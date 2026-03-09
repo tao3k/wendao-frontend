@@ -1,0 +1,294 @@
+/**
+ * GraphView styles - Obsidian-like graph visualization
+ */
+
+.graph-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.graph-svg {
+  display: block;
+}
+
+/* === Links === */
+
+.graph-link {
+  stroke-width: 1.5;
+  stroke-opacity: 0.6;
+  transition: stroke-opacity 0.2s ease;
+}
+
+.graph-link.link-incoming {
+  stroke: #f97316; /* Orange for incoming */
+}
+
+.graph-link.link-outgoing {
+  stroke: #3b82f6; /* Blue for outgoing */
+}
+
+.graph-link.link-both {
+  stroke: #8b5cf6; /* Purple for bidirectional */
+}
+
+.graph-link.link-attachment {
+  stroke: #14b8a6; /* Teal for attachments */
+  stroke-dasharray: 4 2;
+}
+
+.graph-node-group {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.graph-node-group:hover .graph-link {
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+.graph-node-group:hover .graph-node {
+  stroke-width: 3;
+  stroke: rgba(255, 255, 255, 0.8);
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+/* === Nodes === */
+
+.graph-node {
+  cursor: grab;
+  transition: all 0.2s ease;
+  stroke-width: 2;
+  stroke: rgba(255, 255, 255, 0.2);
+}
+
+.graph-node:hover {
+  stroke-width: 3;
+  stroke: rgba(255, 255, 255, 0.8);
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+/* Node type colors */
+.graph-node.node-skill {
+  fill: #22c55e;
+}
+
+.graph-node.node-doc {
+  fill: #3b82f6;
+}
+
+.graph-node.node-knowledge {
+  fill: #a855f7;
+}
+
+.graph-node.node-other {
+  fill: #6b7280;
+}
+
+.graph-node.node-folder {
+  fill: #f59e0b;
+}
+
+/* Attachment node colors */
+.graph-node.node-attachment-Image {
+  fill: #ec4899;
+}
+
+.graph-node.node-attachment-Pdf {
+  fill: #ef4444;
+}
+
+.graph-node.node-attachment-Document {
+  fill: #f59e0b;
+}
+
+.graph-node.node-attachment-Archive {
+  fill: #6366f1;
+}
+
+.graph-node.node-attachment-Audio {
+  fill: #84cc16;
+}
+
+.graph-node.node-attachment-Video {
+  fill: #06b6d4;
+}
+
+.graph-node.node-attachment-Other {
+  fill: #64748b;
+}
+
+/* Center node styling */
+.center-node .graph-node {
+  stroke-width: 3;
+  stroke: #fff;
+  filter: drop-shadow(0 0 12px currentColor);
+}
+
+/* Node labels */
+.graph-node-label {
+  fill: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* === Legend === */
+
+.graph-legend {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.node-skill {
+  background: #22c55e;
+}
+
+.legend-dot.node-doc {
+  background: #3b82f6;
+}
+
+.legend-dot.node-knowledge {
+  background: #a855f7;
+}
+
+.legend-line {
+  width: 20px;
+  height: 2px;
+}
+
+.legend-line.link-incoming {
+  background: #f97316;
+}
+
+.legend-line.link-outgoing {
+  background: #3b82f6;
+}
+
+/* === Stats === */
+
+.graph-stats {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 16px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* === Empty State === */
+
+.graph-view-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.graph-view-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.graph-icon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+/* === Loading State === */
+
+.graph-view-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* === Error State === */
+
+.graph-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #ef4444;
+}
+
+.error-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+/* === Overlay === */
+
+.graph-view-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 17, 23, 0.9);
+  color: rgba(255, 255, 255, 0.7);
+  z-index: 10;
+}

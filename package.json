@@ -1,0 +1,41 @@
+{
+  "name": "qianji-studio",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "rspack dev",
+    "build": "rspack build",
+    "preview": "rspack preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "bpmn-js": "^18.13.0",
+    "framer-motion": "^12.35.0",
+    "katex": "^0.16.35",
+    "lucide-react": "^0.577.0",
+    "postprocessing": "^6.38.3",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "smol-toml": "^1.6.0",
+    "three": "^0.183.2",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@rspack/cli": "^1.7.7",
+    "@rspack/core": "^1.7.7",
+    "@rspack/plugin-react-refresh": "^1.6.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/katex": "^0.16.8",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.183.1",
+    "jsdom": "^28.1.0",
+    "react-refresh": "^0.18.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

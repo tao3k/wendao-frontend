@@ -1,0 +1,92 @@
+.topology-container {
+  position: absolute;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.topology-container > * {
+  pointer-events: auto;
+}
+
+/* 💎 💎 💎 THE ULTIMATE CLIPPING BURST (GLOBAL) */
+svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewport {
+  overflow: visible !important;
+  clip-path: none !important;
+}
+
+/* 🚀 FIX: High-Contrast & Sharp Edges */
+.djs-shape .djs-visual rect,
+.djs-shape .djs-visual polygon,
+.djs-shape .djs-visual circle {
+  fill: #1A2333 !important;
+  fill-opacity: 0.85 !important;
+  stroke: #00D2FF !important;
+  stroke-width: 2px !important;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 0.3s ease, filter 0.3s ease;
+}
+
+/* Logic Line Impact */
+.djs-connection .djs-visual path {
+  stroke: #00D2FF !important;
+  stroke-width: 3px !important;
+  opacity: 0.9;
+}
+
+.djs-label {
+  fill: #E6F3FF !important;
+  font-weight: 900 !important;
+  text-shadow: 0 0 10px #000;
+}
+
+.bjs-powered-by { display: none !important; }
+
+/* === Node State Classes (wendao_cockpit_v1.md) === */
+
+/* Active: Neon-blue border with breathing animation */
+.node-active .djs-visual rect,
+.node-active .djs-visual polygon,
+.node-active .djs-visual circle {
+  stroke: #00D2FF !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 8px #00D2FF);
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* Processing: Gold glow */
+.node-processing .djs-visual rect,
+.node-processing .djs-visual polygon,
+.node-processing .djs-visual circle {
+  stroke: #FFD700 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 8px #FFD700);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* Success: Green glow */
+.node-success .djs-visual rect,
+.node-success .djs-visual polygon,
+.node-success .djs-visual circle {
+  stroke: #00FF88 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 8px #00FF88);
+}
+
+/* Wait: Dimmed opacity */
+.node-wait .djs-visual rect,
+.node-wait .djs-visual polygon,
+.node-wait .djs-visual circle {
+  opacity: 0.5 !important;
+}
+
+/* Animations */
+@keyframes breathe {
+  0%, 100% { filter: drop-shadow(0 0 4px #00D2FF); }
+  50% { filter: drop-shadow(0 0 12px #00D2FF); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}

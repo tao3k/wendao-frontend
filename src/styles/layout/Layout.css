@@ -1,0 +1,193 @@
+/* IDE Layout System */
+
+:root {
+  /* Base theme tokens */
+  --pb-deep-space: #05080F;
+  --pb-neon-blue: #00D2FF;
+  --pb-gold: #FFD700;
+  --pb-slate: #1A2333;
+  --pb-white: #E6F3FF;
+
+  /* IDE-specific tokens */
+  --ide-panel-bg: rgba(10, 15, 30, 0.95);
+  --ide-panel-border: rgba(0, 210, 255, 0.25);
+  --ide-panel-header-bg: rgba(0, 210, 255, 0.08);
+  --ide-resizer-width: 4px;
+  --ide-resizer-color: transparent;
+  --ide-resizer-hover: var(--pb-neon-blue);
+  --ide-header-height: 36px;
+  --ide-toolbar-height: 44px;
+  --ide-statusbar-height: 28px;
+  --ide-sidebar-default: 260px;
+  --ide-sidebar-min: 180px;
+  --ide-sidebar-max: 450px;
+  --ide-property-default: 300px;
+  --ide-property-min: 200px;
+  --ide-property-max: 500px;
+}
+
+.ide-layout {
+  display: grid;
+  grid-template-columns: var(--ide-sidebar-width, var(--ide-sidebar-default)) 1fr var(--ide-property-width, var(--ide-property-default));
+  grid-template-rows: var(--ide-toolbar-height) 1fr var(--ide-statusbar-height);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--pb-deep-space);
+}
+
+.ide-layout__toolbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  background: var(--ide-panel-bg);
+  border-bottom: 1px solid var(--ide-panel-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 100;
+}
+
+.ide-layout__sidebar {
+  grid-column: 1;
+  grid-row: 2;
+  background: var(--ide-panel-bg);
+  border-right: 1px solid var(--ide-panel-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.ide-layout__center {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  overflow: hidden;
+  background: var(--pb-deep-space);
+}
+
+.ide-layout__properties {
+  grid-column: 3;
+  grid-row: 2;
+  background: var(--ide-panel-bg);
+  border-left: 1px solid var(--ide-panel-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.ide-layout__statusbar {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  background: var(--ide-panel-bg);
+  border-top: 1px solid var(--ide-panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 11px;
+  color: var(--pb-white);
+  opacity: 0.7;
+}
+
+/* Panel Header */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: var(--ide-header-height);
+  background: var(--ide-panel-header-bg);
+  border-bottom: 1px solid var(--ide-panel-border);
+  flex-shrink: 0;
+}
+
+.panel-header__title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--pb-neon-blue);
+}
+
+.panel-header__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-header__btn {
+  background: transparent;
+  border: none;
+  color: var(--pb-white);
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.panel-header__btn:hover {
+  opacity: 1;
+  background: rgba(0, 210, 255, 0.1);
+}
+
+/* Panel Content */
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Resizer */
+.resizer {
+  position: absolute;
+  top: var(--ide-toolbar-height);
+  bottom: var(--ide-statusbar-height);
+  z-index: 200;
+  background: var(--ide-resizer-color);
+  transition: background 0.2s;
+}
+
+.resizer--left {
+  right: 0;
+  width: var(--ide-resizer-width);
+  cursor: col-resize;
+}
+
+.resizer--right {
+  left: 0;
+  width: var(--ide-resizer-width);
+  cursor: col-resize;
+}
+
+.resizer:hover,
+.resizer--dragging {
+  background: var(--ide-resizer-hover);
+}
+
+.resizer--dragging {
+  transition: none;
+}
+
+/* Scrollbar */
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 210, 255, 0.2);
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 210, 255, 0.4);
+}

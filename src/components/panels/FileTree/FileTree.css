@@ -1,0 +1,114 @@
+/* FileTree - VSCode-style Explorer */
+
+.file-tree-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--panel-bg);
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-size: 13px;
+}
+
+.file-tree-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  user-select: none;
+}
+
+.file-tree-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.file-tree-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.file-tree-loading,
+.file-tree-error {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.file-tree-error {
+  color: var(--warning-color);
+}
+
+.file-tree-node {
+  user-select: none;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.file-tree-item:hover {
+  background: var(--hover-bg);
+}
+
+.file-tree-item.selected {
+  background: var(--selection-bg);
+}
+
+.file-tree-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.file-tree-icon {
+  flex-shrink: 0;
+}
+
+.file-tree-icon.folder {
+  color: #7dcfff; /* Tokyo Night cyan */
+}
+
+.file-tree-icon.folder-open {
+  color: #7aa2f7; /* Tokyo Night blue */
+}
+
+.file-tree-icon.skill {
+  color: #bb9af7; /* Tokyo Night purple */
+}
+
+.file-tree-icon.knowledge {
+  color: #9ece6a; /* Tokyo Night green */
+}
+
+.file-tree-icon.doc {
+  color: #565f89; /* Tokyo Night comment gray */
+}
+
+.file-tree-icon.other {
+  color: #a9b1d6; /* Tokyo Night foreground */
+}
+
+.file-tree-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+
+.file-tree-item.selected .file-tree-name {
+  color: var(--text-highlight);
+}
+
+.file-tree-children {
+  /* Children are indented via paddingLeft in TreeNode */
+}

@@ -1,0 +1,155 @@
+/**
+ * VFS Sidebar Styles - Tokyo Night Theme
+ */
+
+.vfs-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--acrylic-bg);
+  backdrop-filter: blur(var(--acrylic-blur));
+  border-right: 1px solid var(--tokyo-border);
+}
+
+/* Header */
+.vfs-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(187, 154, 247, 0.08);
+  border-bottom: 1px solid var(--tokyo-border);
+}
+
+.vfs-sidebar__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--neon-purple);
+}
+
+.vfs-sidebar__loading {
+  font-size: 11px;
+  color: var(--tokyo-text-muted);
+  animation: breathe 1.5s ease-in-out infinite;
+}
+
+/* Content */
+.vfs-sidebar__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Tree */
+.vfs-tree {
+  padding: 4px 0;
+}
+
+/* Node */
+.vfs-node {
+  user-select: none;
+}
+
+.vfs-node__content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out-expo);
+  border-left: 2px solid transparent;
+}
+
+.vfs-node__content:hover {
+  background: rgba(187, 154, 247, 0.1);
+  border-left-color: var(--neon-purple);
+}
+
+.vfs-node__content--selected {
+  background: rgba(125, 207, 255, 0.15);
+  border-left-color: var(--neon-blue);
+}
+
+.vfs-node__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.vfs-node__name {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--tokyo-text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vfs-node__anchor {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.vfs-node__id {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--tokyo-text-muted);
+  padding: 1px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.vfs-node__children {
+  /* Children container */
+}
+
+/* Footer */
+.vfs-sidebar__footer {
+  padding: 6px 12px;
+  border-top: 1px solid var(--tokyo-border);
+  font-size: 10px;
+  color: var(--tokyo-text-muted);
+}
+
+.vfs-sidebar__stats {
+  opacity: 0.7;
+}
+
+/* Error */
+.vfs-sidebar__error {
+  padding: 12px;
+  color: var(--neon-red);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Empty */
+.vfs-sidebar__empty {
+  padding: 24px 12px;
+  color: var(--tokyo-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Scrollbar */
+.vfs-sidebar__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vfs-sidebar__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vfs-sidebar__content::-webkit-scrollbar-thumb {
+  background: rgba(187, 154, 247, 0.2);
+  border-radius: 3px;
+}
+
+.vfs-sidebar__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(187, 154, 247, 0.4);
+}

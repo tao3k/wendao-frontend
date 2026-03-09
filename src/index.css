@@ -1,0 +1,19 @@
+/**
+ * Qianji Studio - Main Stylesheet
+ *
+ * Imports Sovereign UI theme and application-specific styles.
+ */
+
+/* Core Theme */
+@import './styles/sovereign-ui.css';
+@import './styles/layout/Layout.css';
+@import './styles/Topology.css';
+@import './styles/ide/NodeBrowser.css';
+@import './styles/ide/PropertyEditor.css';
+
+/* BPMN.js overrides for dark theme */
+@import '../node_modules/bpmn-js/dist/assets/diagram-js.css';
+@import '../node_modules/bpmn-js/dist/assets/bpmn-js.css';
+
+/* KaTeX for math rendering */
+@import '../node_modules/katex/dist/katex.min.css';

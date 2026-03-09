@@ -1,0 +1,133 @@
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #020408;
+  overflow: hidden;
+}
+
+.nav-bar {
+  position: fixed;
+  top: 30px;
+  left: 30px;
+  z-index: 9000 !important;
+  display: flex;
+  gap: 15px;
+}
+
+.nav-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  color: #E6F3FF;
+  padding: 10px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 1px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+}
+
+.nav-btn.active {
+  background: rgba(0, 210, 255, 0.2);
+  border-color: #00D2FF;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+}
+
+.discovery-menu {
+  position: fixed;
+  top: 85px;
+  left: 30px;
+  width: 300px;
+  background: rgba(10, 15, 30, 0.98);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(0, 210, 255, 0.5);
+  border-radius: 8px;
+  padding: 25px;
+  z-index: 9500 !important;
+  box-shadow: 0 30px 100px rgba(0,0,0,1);
+  pointer-events: auto !important;
+}
+
+.example-item {
+  padding: 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  margin-bottom: 8px;
+  color: #A0C4FF;
+}
+
+.example-item:hover {
+  background: rgba(0, 210, 255, 0.1);
+  border-color: rgba(0, 210, 255, 0.4);
+  color: #00D2FF;
+}
+
+.system-badge {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  color: #00D2FF;
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0.5;
+  z-index: 3000;
+}
+
+/* 💎 💎 💎 BPMN CORE RENDERING & INTERACTION REPAIR */
+
+#canvas-2d {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  pointer-events: none; /* 🚀 ALLOW CLICKS TO PENETRATE TO NAV */
+}
+
+#canvas-2d > * {
+  pointer-events: auto; /* 🚀 RE-ENABLE FOR BPMN ELEMENTS */
+}
+
+#canvas-2d svg, 
+#canvas-2d svg *, 
+.djs-container, 
+.djs-group, 
+.djs-element, 
+.djs-shape, 
+.djs-visual {
+  overflow: visible !important;
+  clip-path: none !important;
+}
+
+.djs-shape .djs-visual rect, 
+.djs-shape .djs-visual polygon, 
+.djs-shape .djs-visual circle {
+  fill: #1A2333 !important;
+  fill-opacity: 0.85 !important;
+  stroke: #00D2FF !important;
+  stroke-width: 2px !important;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.3));
+}
+
+.djs-shape[data-element-id*="CallActivity"] .djs-visual rect {
+  stroke-width: 4px !important;
+  stroke-dasharray: 5, 5;
+}
+
+.djs-connection .djs-visual path {
+  stroke: #00D2FF !important;
+  stroke-width: 3px !important;
+}
+
+.djs-label {
+  fill: #E6F3FF !important;
+  font-weight: 900 !important;
+  text-shadow: 0 0 10px #000;
+}
+
+.bjs-powered-by { display: none !important; }

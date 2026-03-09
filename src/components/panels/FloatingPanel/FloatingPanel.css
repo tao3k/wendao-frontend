@@ -1,0 +1,124 @@
+/**
+ * Floating Panel Styles
+ */
+
+.floating-panel {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+.floating-panel:focus {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.floating-panel--dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+  box-shadow: var(--shadow-lg), var(--shadow-glow-strong);
+}
+
+.floating-panel--minimized {
+  height: auto !important;
+}
+
+/* Header */
+.floating-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--ide-panel-header-bg);
+  border-bottom: 1px solid var(--frosted-border);
+  cursor: grab;
+  user-select: none;
+}
+
+.floating-panel--dragging .floating-panel__header {
+  cursor: grabbing;
+}
+
+.floating-panel__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--sovereign-neon-blue);
+}
+
+/* Controls */
+.floating-panel__controls {
+  display: flex;
+  gap: 4px;
+}
+
+.floating-panel__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--sovereign-star);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all var(--transition-fast) var(--ease-out-expo);
+}
+
+.floating-panel__btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.floating-panel__btn:focus-visible {
+  outline: 2px solid var(--sovereign-neon-blue);
+  outline-offset: 1px;
+}
+
+.floating-panel__btn--close:hover {
+  background: rgba(255, 71, 87, 0.2);
+  color: var(--sovereign-error);
+}
+
+/* Content */
+.floating-panel__content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+/* Resize Handle */
+.floating-panel__resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+}
+
+.floating-panel__resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  transition: border-color var(--transition-fast);
+}
+
+.floating-panel__resize-handle:hover::after {
+  border-color: var(--sovereign-neon-blue);
+}

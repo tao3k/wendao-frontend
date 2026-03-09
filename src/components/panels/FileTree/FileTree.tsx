@@ -189,19 +189,10 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
       setIsLoading(true);
       setError(null);
       try {
-        // Load config and VFS scan in parallel
-        const [config, vfsResult] = await Promise.all([
-          getConfig(),
-          api.scanVfs(),
-        ]);
+        // Load config from wendao.toml FIRST
+        const config = await getConfig();
 
-        const tree = buildTree(vfsResult.entries);
-        setTreeData(tree);
-
-        // Set expanded paths from wendao.toml config
-        setExpandedPaths(new Set(config.ui.index_paths));
-
-        // Push config to backend so MCP/wendao can use the same index_paths
+        // Push config to backend BEFORE scanning, so VFS uses correct paths
         try {
           await api.setUiConfig(config);
           console.log('Pushed wendao.toml config to backend:', config);
@@ -209,6 +200,15 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
           // Non-fatal: backend may not be running or may not support this endpoint
           console.warn('Failed to push config to backend:', pushErr);
         }
+
+        // NOW scan VFS - backend will use the pushed config
+        const vfsResult = await api.scanVfs();
+
+        const tree = buildTree(vfsResult.entries);
+        setTreeData(tree);
+
+        // Set expanded paths from wendao.toml config
+        setExpandedPaths(new Set(config.ui.index_paths));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load file tree');
         // Fallback to mock data

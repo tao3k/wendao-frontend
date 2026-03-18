@@ -137,7 +137,7 @@ describe('NodeTree', () => {
   });
 
   it('should render nested nodes with correct depth', () => {
-    const { container } = render(
+    render(
       <NodeTree
         {...defaultProps}
         expandedNodes={new Set(['node-1'])}

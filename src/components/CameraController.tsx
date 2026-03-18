@@ -7,8 +7,8 @@
  * - Smooth transitions with reduced motion support
  */
 
-import { useEffect, useRef, useCallback } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { useThree } from '@react-three/fiber';
 import type { Camera } from 'three';
 import { eventBus } from '../lib/EventBus';
 import {
@@ -44,32 +44,14 @@ export function CameraController({
   const { camera } = useThree();
   const cancelTweenRef = useRef<(() => void) | null>(null);
   const nodePositionsRef = useRef<Map<string, [number, number, number]>>(new Map());
-  const clusterInfoRef = useRef<
-    Map<string, { centroid: [number, number, number]; nodeCount: number }>
-  >(new Map());
 
-  // Store node positions for lookup
-  const registerNodePositions = useCallback(
-    (positions: Map<string, [number, number, number]>) => {
-      nodePositionsRef.current = positions;
-    },
-    []
-  );
-
-  // Store cluster info for lookup
-  const registerClusterInfo = useCallback(
-    (clusters: Map<string, { centroid: [number, number, number]; nodeCount: number }>) => {
-      clusterInfoRef.current = clusters;
-    },
-    []
-  );
 
   // Handle node selection
   useEffect(() => {
     if (!autoFocus) return;
 
-    const unsubscribe = eventBus.subscribe('node:selected', (event) => {
-      const { nodeId, source } = event;
+    const unsubscribe = eventBus.on('node:selected', (event) => {
+      const { id, source } = event;
 
       // Don't auto-focus if selection came from 3D view (already focused)
       if (source === '3d') return;
@@ -80,13 +62,13 @@ export function CameraController({
       }
 
       // Look up node position
-      const position = nodePositionsRef.current.get(nodeId);
+      const position = nodePositionsRef.current.get(id);
       if (position) {
         cancelTweenRef.current = focusOnNode(camera, position, {
           duration: animationDuration ?? getDefaultDuration(),
           onComplete: () => {
             cancelTweenRef.current = null;
-            onFocusChange?.({ type: 'node', id: nodeId });
+            onFocusChange?.({ type: 'node', id: id });
           },
         });
       }
@@ -97,7 +79,7 @@ export function CameraController({
 
   // Handle camera focus events from event bus
   useEffect(() => {
-    const unsubscribe = eventBus.subscribe('camera:focus', (event) => {
+    const unsubscribe = eventBus.on('camera:focus', (event) => {
       const { target, position, centroid, nodeCount } = event;
 
       // Cancel any ongoing tween

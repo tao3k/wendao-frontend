@@ -68,7 +68,9 @@ export class TopologyController {
     this.notifySubscribers();
 
     // Emit event for 2D/3D sync
-    eventBus.emit('node:activated', { id, state });
+    if (state !== 'idle') {
+      eventBus.emit('node:activated', { id, state });
+    }
   }
 
   getNodeState(id: string): NodeState {

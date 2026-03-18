@@ -1,5 +1,3 @@
-/* FileTree - VSCode-style Explorer */
-
 .file-tree-container {
   display: flex;
   flex-direction: column;
@@ -7,36 +5,122 @@
   background: var(--panel-bg);
   font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
   font-size: 13px;
+  color: var(--text-primary);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: inset 0 1px 0 rgba(125, 207, 255, 0.08), 0 6px 22px rgba(5, 9, 18, 0.25);
+  overflow: hidden;
 }
 
-.file-tree-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color);
-  user-select: none;
+.file-tree-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(145deg, rgba(24, 30, 46, 0.9), rgba(18, 24, 36, 0.72));
+  border-bottom: 1px solid rgba(125, 207, 255, 0.16);
+  border-radius: 16px 16px 0 0;
+  box-shadow: inset 0 -1px 0 rgba(125, 207, 255, 0.08);
 }
 
-.file-tree-title {
+.file-tree-toolbar-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.file-tree-toolbar-title::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: radial-gradient(circle at 30% 30%, #9ece6a, #2f5fc2);
+}
+
+.file-tree-toolbar-count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 207, 255, 0.32);
+  color: var(--text-primary);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: rgba(24, 30, 46, 0.9);
 }
 
 .file-tree-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 14px 10px 16px;
+  border-radius: 0 0 15px 15px;
+  background: linear-gradient(170deg, rgba(8, 13, 24, 0.88), rgba(8, 13, 24, 0.75));
 }
 
 .file-tree-loading,
 .file-tree-error {
+  margin: 12px;
   padding: 12px;
-  font-size: 12px;
+  border: 1px solid rgba(125, 207, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(15, 20, 31, 0.84);
+}
+
+.file-tree-loading {
   color: var(--text-muted);
 }
 
 .file-tree-error {
   color: var(--warning-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.file-tree-error strong {
+  color: #f6bd60;
+  font-size: 12px;
+}
+
+.file-tree-error span {
+  color: var(--text-muted);
+}
+
+.file-tree-error code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  word-break: break-all;
+  color: #f7768e;
+}
+
+.file-tree-retry {
+  margin-top: 6px;
+  align-self: flex-start;
+  border: 1px solid rgba(125, 207, 255, 0.28);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: rgba(16, 22, 35, 0.5);
+  color: var(--tokyo-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.file-tree-retry:hover {
+  border-color: rgba(125, 207, 255, 0.45);
+  color: #9cb1ff;
 }
 
 .file-tree-node {
@@ -44,12 +128,19 @@
 }
 
 .file-tree-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  column-gap: 8px;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  margin: 4px 6px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  position: relative;
+  overflow: visible;
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: all 120ms ease;
+  line-height: 1.2;
+  min-width: 0;
 }
 
 .file-tree-item:hover {
@@ -58,6 +149,39 @@
 
 .file-tree-item.selected {
   background: var(--selection-bg);
+  box-shadow: inset 0 0 0 1px rgba(125, 207, 255, 0.16);
+}
+
+.file-tree-item.is-project {
+  margin: 8px 2px 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.file-tree-item.is-project::after {
+  content: '';
+  position: absolute;
+  left: 42px;
+  right: 12px;
+  bottom: 5px;
+  height: 1px;
+  opacity: 0.35;
+  background: linear-gradient(90deg, transparent, rgba(125, 207, 255, 0.28), transparent);
+}
+
+.file-tree-item.is-project:hover {
+  background: rgba(125, 207, 255, 0.05);
+  box-shadow: none;
+}
+
+.file-tree-item.is-project.selected {
+  background: rgba(125, 207, 255, 0.09);
+  box-shadow: none;
 }
 
 .file-tree-chevron {
@@ -74,41 +198,180 @@
   flex-shrink: 0;
 }
 
-.file-tree-icon.folder {
-  color: #7dcfff; /* Tokyo Night cyan */
-}
-
+.file-tree-icon.folder,
 .file-tree-icon.folder-open {
-  color: #7aa2f7; /* Tokyo Night blue */
+  color: #bb9af7;
 }
 
 .file-tree-icon.skill {
-  color: #bb9af7; /* Tokyo Night purple */
+  color: #73daca;
 }
 
 .file-tree-icon.knowledge {
-  color: #9ece6a; /* Tokyo Night green */
+  color: #9ece6a;
 }
 
 .file-tree-icon.doc {
-  color: #565f89; /* Tokyo Night comment gray */
+  color: #7dcfff;
 }
 
 .file-tree-icon.other {
-  color: #a9b1d6; /* Tokyo Night foreground */
+  color: #a9b1d6;
+}
+
+.file-tree-icon.project {
+  color: var(--neon-purple);
+}
+
+.file-tree-name-wrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding-right: 0;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.file-tree-item.is-project .file-tree-name-wrap {
+  min-width: 0;
+  padding-right: 6px;
 }
 
 .file-tree-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  display: block;
+  flex: 1 1 auto;
   color: var(--text-primary);
 }
 
-.file-tree-item.selected .file-tree-name {
-  color: var(--text-highlight);
+.file-tree-item.is-project .file-tree-name {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 13px;
+  color: var(--neon-purple);
+  font-weight: 700;
+  min-width: 0;
+}
+
+.file-tree-project-group {
+  margin-top: 10px;
+  padding-top: 4px;
+  position: relative;
+  isolation: isolate;
+  border: 0;
+}
+
+.file-tree-project-group:first-child {
+  padding-top: 2px;
+  margin-top: 2px;
+}
+
+.file-tree-project-group:last-child::after {
+  content: none;
+}
+
+.file-tree-project-group::after {
+  content: none;
+}
+
+.file-tree-project-group > .file-tree-item,
+.file-tree-project-group > .file-tree-children {
+  position: relative;
+  z-index: 1;
+}
+
+.file-tree-project-children {
+  margin: 2px 4px 2px 12px;
+  padding: 4px 0 6px 2px;
+  border-radius: 0 0 12px 12px;
+  box-shadow: none;
+  background: transparent;
+  position: relative;
+  overflow: visible;
+}
+
+.file-tree-root-meta {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--text-muted);
+  border: 1px solid rgba(115, 218, 202, 0.34);
+  background: rgba(36, 40, 59, 0.72);
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: static;
+  transform: none;
+  justify-self: end;
+  pointer-events: none;
+  transition: opacity 120ms ease, visibility 120ms ease, max-width 120ms ease, width 120ms ease;
+  transition-delay: 0s, 0s, 0s, 0s;
+}
+
+.file-tree-name-wrap:hover + .file-tree-root-meta,
+.file-tree-name-wrap:focus-within + .file-tree-root-meta,
+.file-tree-item:focus-within .file-tree-root-meta {
+  max-width: 96px;
+  width: auto;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.3s, 0.3s, 0s, 0s;
+}
+
+.file-tree-project-source {
+  width: 0;
+  max-width: 0;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  white-space: nowrap;
+  color: var(--text-muted);
+  border: 1px solid rgba(115, 218, 202, 0.34);
+  background: rgba(36, 40, 59, 0.9);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 120ms ease, visibility 120ms ease, max-width 120ms ease, width 120ms ease;
+  transition-delay: 0s, 0s, 0s, 0s;
+  z-index: 10;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.file-tree-name-wrap:hover .file-tree-project-source,
+.file-tree-item:focus-within .file-tree-project-source,
+.file-tree-name-wrap:focus-within .file-tree-project-source {
+  width: auto;
+  max-width: 320px;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.3s, 0.3s, 0s, 0s;
+}
+
+.file-tree-name-wrap,
+.file-tree-name-wrap .file-tree-project-source {
+  display: inline-flex;
+}
+
+.file-tree-name-wrap .file-tree-project-source {
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .file-tree-children {
-  /* Children are indented via paddingLeft in TreeNode */
+  position: relative;
+  overflow: visible;
 }

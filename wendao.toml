@@ -1,13 +1,22 @@
 # Qianji Studio Configuration
 #
 # This is the user-facing configuration file for Qianji Studio.
-# The frontend loads this file and uses it to configure the UI.
+# The frontend loads this file and mirrors project-scoped explorer config into Wendao Studio.
 
 [gateway]
 # Backend API bind address
-bind = "127.0.0.1:8001"
+bind = "127.0.0.1:9517"
 
-[ui]
-# Index paths for the file tree component
-# These directories will be shown and expanded by default
-index_paths = ["docs" "internal_skills" "/Users/guangtao/ghq/github.com/tao3k/omni-dev-fusion/docs"]
+[link_graph.projects.kernel]
+root = "."
+paths = ["docs", "internal_skills"]
+watch_patterns = ["**/*.md", "**/*.markdown", "**/SKILL.md"]
+include_dirs_auto = true
+include_dirs_auto_candidates = ["docs", "internal_skills", "packages"]
+
+[link_graph.projects.qianji_studio]
+root = ".data/qianji-studio"
+paths = ["docs", "internal_skills"]
+watch_patterns = ["**/*.md", "**/*.markdown", "**/SKILL.md"]
+include_dirs_auto = false
+include_dirs_auto_candidates = []

@@ -11,6 +11,7 @@ interface GraphSVGProps {
   nodes: SimulatedNode[];
   links: SimulatedLink[];
   onNodeClick: (node: SimulatedNode) => void;
+  onNodeHover?: (node: SimulatedNode | null) => void;
   onNodeDragStart: (nodeId: string, event: React.MouseEvent | React.TouchEvent) => void;
 }
 
@@ -24,6 +25,7 @@ export const GraphSVG = memo(function GraphSVG({
   nodes,
   links,
   onNodeClick,
+  onNodeHover,
   onNodeDragStart,
 }: GraphSVGProps) {
   const handleNodeMouseDown = useCallback(
@@ -48,6 +50,17 @@ export const GraphSVG = memo(function GraphSVG({
     },
     [onNodeClick]
   );
+
+  const handleNodeMouseEnter = useCallback(
+    (node: SimulatedNode) => {
+      onNodeHover?.(node);
+    },
+    [onNodeHover]
+  );
+
+  const handleNodeMouseLeave = useCallback(() => {
+    onNodeHover?.(null);
+  }, [onNodeHover]);
 
   return (
     <svg
@@ -84,6 +97,8 @@ export const GraphSVG = memo(function GraphSVG({
             className={`graph-node-group ${node.isCenter ? 'center-node' : ''}`}
             transform={`translate(${node.x}, ${node.y})`}
             onClick={(e) => handleNodeClick(node, e)}
+            onMouseEnter={() => handleNodeMouseEnter(node)}
+            onMouseLeave={handleNodeMouseLeave}
             onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
             onTouchStart={(e) => handleNodeTouchStart(node.id, e)}
             style={{ cursor: 'grab' }}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Layers, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Layers, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface VfsStatus {
   isLoading: boolean;
@@ -8,39 +8,30 @@ interface VfsStatus {
 
 interface StatusBarProps {
   nodeCount: number;
-  viewMode: string;
   selectedNodeId?: string | null;
   vfsStatus?: VfsStatus;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
   nodeCount,
-  viewMode,
   selectedNodeId,
   vfsStatus,
 }) => {
+  const vfsTone = vfsStatus?.error ? 'error' : vfsStatus?.isLoading ? 'warning' : 'active';
+
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="status-bar__group">
+        <span className="status-chip">
           <Layers size={12} />
           {nodeCount} nodes
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Activity size={12} />
-          {viewMode.toUpperCase()} Mode
-        </span>
-        {/* VFS Status Indicator */}
         {vfsStatus && (
-          <span style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            color: vfsStatus.error ? '#f7768e' : vfsStatus.isLoading ? '#e0af68' : '#9ece6a',
-          }}>
+          <span className={`status-chip status-chip--${vfsTone}`}>
+            <span className={`status-dot status-dot--${vfsTone}`} aria-hidden="true" />
             {vfsStatus.isLoading ? (
               <>
-                <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={12} className="animate-spin" />
                 VFS Loading...
               </>
             ) : vfsStatus.error ? (
@@ -57,13 +48,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div className="status-bar__group status-bar__group--secondary">
         {selectedNodeId && (
-          <span style={{ color: '#00D2FF' }}>
+          <span className="status-text--accent animate-breathe">
             Selected: {selectedNodeId}
           </span>
         )}
-        <span style={{ opacity: 0.5 }}>
+        <span className="status-text--muted">
           Qianji Studio v1.0
         </span>
       </div>

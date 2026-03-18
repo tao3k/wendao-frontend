@@ -61,20 +61,30 @@ export class VPForceLayout {
 
     // Assign initial positions based on type clusters
     let typeIndex = 0;
-    typeGroups.forEach((groupNodes, type) => {
+    typeGroups.forEach((groupNodes) => {
       const angle = (typeIndex / typeGroups.size) * Math.PI * 2;
-      const clusterRadius = 100;
+      const clusterRadius = this.config.clusterSeparation;
       const clusterX = Math.cos(angle) * clusterRadius;
       const clusterZ = Math.sin(angle) * clusterRadius;
 
       groupNodes.forEach((node, i) => {
         const nodeAngle = (i / groupNodes.length) * Math.PI * 2;
         const nodeRadius = Math.sqrt(groupNodes.length) * 15;
+        const basePosition = node.position;
+
+        const baseX = basePosition
+          ? basePosition[0]
+          : clusterX + Math.cos(nodeAngle) * nodeRadius + (Math.random() - 0.5) * 20;
+        const baseY = basePosition ? basePosition[1] : (Math.random() - 0.5) * 50;
+        const baseZ = basePosition
+          ? basePosition[2]
+          : clusterZ + Math.sin(nodeAngle) * nodeRadius + (Math.random() - 0.5) * 20;
+
         this.nodes.set(node.id, {
           ...node,
-          x: clusterX + Math.cos(nodeAngle) * nodeRadius + (Math.random() - 0.5) * 20,
-          y: (Math.random() - 0.5) * 50,
-          z: clusterZ + Math.sin(nodeAngle) * nodeRadius + (Math.random() - 0.5) * 20,
+          x: baseX,
+          y: baseY,
+          z: baseZ,
           vx: 0,
           vy: 0,
           vz: 0,
@@ -127,6 +137,7 @@ export class VPForceLayout {
       }
 
       // Node repulsion (O(n²) - consider Barnes-Hut for large graphs)
+      const minDistance = this.config.minDistance;
       for (const other of nodes) {
         if (other.id === node.id) continue;
         const dx = node.x - other.x;
@@ -138,6 +149,14 @@ export class VPForceLayout {
         fx += (dx / dist) * force;
         fy += (dy / dist) * force;
         fz += (dz / dist) * force;
+
+        if (dist < minDistance) {
+          const overlap = minDistance - dist;
+          const push = overlap * this.config.repulsionStrength * 0.002;
+          fx += (dx / dist) * push;
+          fy += (dy / dist) * push;
+          fz += (dz / dist) * push;
+        }
       }
 
       // Gravity towards center
@@ -213,7 +232,7 @@ export class VPForceLayout {
       typeGroups.get(type)!.push(node);
     });
 
-    this.clusters = Array.from(typeGroups.entries()).map(([type, nodes], i) => {
+    this.clusters = Array.from(typeGroups.entries()).map(([type, nodes]) => {
       // Calculate centroid
       let cx = 0,
         cy = 0,

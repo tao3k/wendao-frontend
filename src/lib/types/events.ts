@@ -19,8 +19,10 @@ export interface TopologyEvents {
 
   // Camera focus events
   'camera:focus': {
-    nodeId: string;
-    position: [number, number, number];
+    target: 'node' | 'cluster' | 'reset';
+    position?: [number, number, number];
+    centroid?: [number, number, number];
+    nodeCount?: number;
     duration?: number;
   };
 

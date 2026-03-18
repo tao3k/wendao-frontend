@@ -1,15 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { useKeyboardShortcuts, formatShortcut, ShortcutDefinition } from '../useKeyboardShortcuts';
 
 describe('useKeyboardShortcuts', () => {
-  const shortcuts: ShortcutDefinition[] = [
-    { key: 's', ctrl: true, action: vi.fn(), description: 'Save' },
-    { key: 'z', ctrl: true, action: vi.fn(), description: 'Undo' },
-    { key: 'z', ctrl: true, shift: true, action: vi.fn(), description: 'Redo' },
-    { key: 'Escape', action: vi.fn(), description: 'Cancel' },
-  ];
-
   beforeEach(() => {
     vi.clearAllMocks();
   });

@@ -34,8 +34,23 @@ vi.stubGlobal('performance', {
 const mockMatchMedia = vi.fn();
 vi.stubGlobal('matchMedia', mockMatchMedia);
 
+type MockPosition = {
+  x: number;
+  y: number;
+  z: number;
+  set: ReturnType<typeof vi.fn>;
+};
+
+type MockCamera = Parameters<typeof tweenCamera>[0] & {
+  position: MockPosition;
+  lookAt: ReturnType<typeof vi.fn>;
+  updateProjectionMatrix: ReturnType<typeof vi.fn>;
+  zoom: number;
+  quaternion: { x: number; y: number; z: number; w: number };
+};
+
 // Create a mock camera
-function createMockCamera() {
+function createMockCamera(): MockCamera {
   const camera = {
     position: { x: 0, y: 0, z: 0, set: vi.fn((x, y, z) => {
       camera.position.x = x;
@@ -47,7 +62,7 @@ function createMockCamera() {
     zoom: 1,
     quaternion: { x: 0, y: 0, z: 0, w: 1 },
   };
-  return camera as unknown as Parameters<typeof tweenCamera>[0];
+  return camera as MockCamera;
 }
 
 // Helper to simulate animation frames
@@ -363,7 +378,7 @@ describe('focusOnCluster', () => {
 
     // Simulate animation to get the final position
     simulateAnimation(500);
-    const pos1 = camera.position.set.mock.calls.at(-1);
+    const pos1 = camera.position.set.mock.calls[camera.position.set.mock.calls.length - 1];
 
     // Cancel and reset
     cancelAllTweens();
@@ -373,7 +388,7 @@ describe('focusOnCluster', () => {
     focusOnCluster(camera, [0, 0, 0], 5);
 
     simulateAnimation(500);
-    const pos2 = camera.position.set.mock.calls.at(-1);
+    const pos2 = camera.position.set.mock.calls[camera.position.set.mock.calls.length - 1];
 
     // Both positions should be defined
     expect(pos1).toBeDefined();

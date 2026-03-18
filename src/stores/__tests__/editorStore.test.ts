@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { useEditorStore } from '../editorStore';
 import { AcademicNode } from '../../types';

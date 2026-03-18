@@ -9,7 +9,7 @@
  * Phase 3 (600-800ms): Aberration fades, camera settles
  */
 
-import React, { createContext, useContext, useRef, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useContext, useRef, useCallback, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCameraTween, CameraTweenConfig } from './CameraTween';
@@ -72,8 +72,6 @@ export const HyperspaceTransitionProvider: React.FC<HyperspaceTransitionProps> =
 
     if (cameraTween.isActive) {
       // Calculate warp intensity for chromatic aberration
-      const warpIntensity = cameraTween.getWarpIntensity();
-
       // Update phase based on progress
       if (progress < 0.2) {
         setPhase('warming');

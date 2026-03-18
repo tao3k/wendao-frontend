@@ -113,12 +113,8 @@ export const useHorizontalDrag = (
   );
 
   useEffect(() => {
-    let isDragging = false;
-
     const handleMouseMove = (e: MouseEvent) => {
       if (startPosRef.current === 0) return;
-      isDragging = true;
-
       const delta = e.clientX - startPosRef.current;
       startPosRef.current = e.clientX;
       onDrag(invert ? -delta : delta);
@@ -126,7 +122,6 @@ export const useHorizontalDrag = (
 
     const handleMouseUp = () => {
       startPosRef.current = 0;
-      isDragging = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };

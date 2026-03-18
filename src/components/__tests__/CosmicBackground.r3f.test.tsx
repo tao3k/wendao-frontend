@@ -7,11 +7,19 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, waitFor } from '@testing-library/react';
 
 // Mock Three.js and R3F to detect infinite loops
 const mockWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 const mockError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+const startTransitionMock = vi.fn();
+const layoutMocks = vi.hoisted(() => ({
+  initialize: vi.fn(),
+  synchronize: vi.fn(),
+  tick: vi.fn(),
+  stop: vi.fn(),
+}));
 
 // Track render count to detect infinite loops
 let renderCount = 0;
@@ -21,13 +29,12 @@ vi.mock('@react-three/fiber', () => ({
   Canvas: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-canvas">{children}</div>
   ),
-  useFrame: vi.fn((callback) => {
-    // Simulate single frame update
-    callback({ clock: { elapsedTime: 0 } }, 0.016);
-  }),
+  useFrame: vi.fn(),
   useThree: vi.fn(() => ({
     viewport: { width: 800, height: 600 },
-    camera: { position: { set: vi.fn() } },
+    camera: {
+      position: { x: 0, y: 0, z: 50, set: vi.fn(), clone: () => ({ x: 0, y: 0, z: 50 }) },
+    },
     gl: { domElement: document.createElement('canvas') },
   })),
   extend: vi.fn(),
@@ -53,6 +60,38 @@ vi.mock('@react-three/postprocessing', () => ({
   Vignette: () => <div data-testid="mock-vignette" />,
   Noise: () => <div data-testid="mock-noise" />,
   ChromaticAberration: () => <div data-testid="mock-chromatic-aberration" />,
+}));
+
+vi.mock('../../effects', () => ({
+  ChromaticAberrationShader: () => <div data-testid="mock-chromatic-shader" />,
+  HyperspaceTransitionProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="mock-hyperspace-provider">{children}</div>
+  ),
+  useHyperspace: () => ({
+    startTransition: startTransitionMock,
+    isActive: false,
+    phase: 'idle',
+    intensity: 0,
+    progress: 0,
+  }),
+}));
+
+vi.mock('../../hooks/useSpatialLayout', () => ({
+  useSpatialLayout: () => ({
+    nodes: [],
+    clusters: [],
+    alpha: 1,
+    isReady: true,
+    isRunning: false,
+    error: null,
+    initialize: layoutMocks.initialize,
+    synchronize: layoutMocks.synchronize,
+    tick: layoutMocks.tick,
+    start: vi.fn(),
+    stop: layoutMocks.stop,
+    updatePosition: vi.fn(),
+    getClusters: vi.fn(),
+  }),
 }));
 
 vi.mock('three', () => {
@@ -113,7 +152,9 @@ vi.mock('three', () => {
     Color: mockColor,
     Object3D: mockObject3D,
     InstancedMesh: mockInstancedMesh,
-    Mesh: class {},
+    Mesh: class {
+      rotation = new mockVector3();
+    },
     SphereGeometry: class {},
     MeshStandardMaterial: class {},
     LineSegments: class {},
@@ -124,8 +165,21 @@ vi.mock('three', () => {
 
 // Mock NebulaRenderer to isolate tests
 vi.mock('../NebulaRenderer', () => ({
-  NebulaRenderer: ({ nodes, links }: { nodes: unknown[]; links: unknown[] }) => (
-    <div data-testid="mock-nebula-renderer" data-nodes={nodes.length} data-links={links.length} />
+  NebulaRenderer: ({
+    nodes,
+    links,
+    layoutMode,
+  }: {
+    nodes: unknown[];
+    links: unknown[];
+    layoutMode?: string;
+  }) => (
+    <div
+      data-testid="mock-nebula-renderer"
+      data-nodes={nodes.length}
+      data-links={links.length}
+      data-layout-mode={layoutMode}
+    />
   ),
 }));
 
@@ -133,6 +187,12 @@ describe('CosmicBackground R3F Component', () => {
   beforeEach(() => {
     renderCount = 0;
     vi.clearAllMocks();
+    layoutMocks.initialize.mockClear();
+    layoutMocks.synchronize.mockClear();
+    layoutMocks.tick.mockClear();
+    layoutMocks.stop.mockClear();
+    mockWarn.mockClear();
+    mockError.mockClear();
   });
 
   afterEach(() => {
@@ -171,6 +231,98 @@ describe('CosmicBackground R3F Component', () => {
     expect(container).toBeTruthy();
   });
 
+  it('should pass topology data to NebulaRenderer', async () => {
+    const { CosmicBackground } = await import('../CosmicBackground');
+
+    const topology = {
+      nodes: [
+        { id: 'node-1', name: 'Node 1', type: 'task' },
+        { id: 'node-2', name: 'Node 2', type: 'event' },
+      ],
+      links: [{ from: 'node-1', to: 'node-2' }],
+    };
+
+    const { getByTestId } = render(<CosmicBackground topology={topology} />);
+    const renderer = getByTestId('mock-nebula-renderer');
+
+    expect(renderer).toHaveAttribute('data-nodes', '2');
+    expect(renderer).toHaveAttribute('data-links', '1');
+    expect(renderer).toHaveAttribute('data-layout-mode', 'static');
+  });
+
+  it('initializes layout once and ignores equivalent topology rerenders', async () => {
+    const { CosmicBackground } = await import('../CosmicBackground');
+
+    const topology = {
+      nodes: [
+        { id: 'node-1', name: 'Node 1', type: 'task' },
+        { id: 'node-2', name: 'Node 2', type: 'event' },
+      ],
+      links: [{ from: 'node-1', to: 'node-2' }],
+    };
+
+    const { rerender } = render(<CosmicBackground topology={topology} />);
+
+    await waitFor(() => {
+      expect(layoutMocks.initialize).toHaveBeenCalledTimes(1);
+    });
+    expect(layoutMocks.synchronize).not.toHaveBeenCalled();
+    expect(layoutMocks.tick).toHaveBeenCalledWith(120);
+
+    rerender(
+      <CosmicBackground
+        topology={{
+          nodes: topology.nodes.map((node) => ({ ...node })),
+          links: topology.links.map((link) => ({ ...link })),
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(layoutMocks.initialize).toHaveBeenCalledTimes(1);
+    });
+    expect(layoutMocks.synchronize).not.toHaveBeenCalled();
+  });
+
+  it('synchronizes layout instead of cold-initializing when topology shape changes', async () => {
+    const { CosmicBackground } = await import('../CosmicBackground');
+
+    const initialTopology = {
+      nodes: [
+        { id: 'node-1', name: 'Node 1', type: 'task' },
+        { id: 'node-2', name: 'Node 2', type: 'event' },
+      ],
+      links: [{ from: 'node-1', to: 'node-2' }],
+    };
+
+    const { rerender } = render(<CosmicBackground topology={initialTopology} />);
+
+    await waitFor(() => {
+      expect(layoutMocks.initialize).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <CosmicBackground
+        topology={{
+          nodes: [
+            ...initialTopology.nodes,
+            { id: 'node-3', name: 'Node 3', type: 'knowledge' },
+          ],
+          links: [
+            ...initialTopology.links,
+            { from: 'node-2', to: 'node-3' },
+          ],
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(layoutMocks.synchronize).toHaveBeenCalledTimes(1);
+    });
+    expect(layoutMocks.initialize).toHaveBeenCalledTimes(1);
+    expect(layoutMocks.tick).toHaveBeenCalledWith(48);
+  });
+
   it('should not trigger useFrame infinite loop', async () => {
     const useFrame = vi.fn();
     vi.doMock('@react-three/fiber', () => ({
@@ -187,6 +339,7 @@ describe('CosmicBackground R3F Component', () => {
 
     const { container } = render(<CosmicBackground topology={{ nodes: [], links: [] }} />);
     expect(container).toBeTruthy();
+    expect(layoutMocks.stop).toHaveBeenCalled();
   });
 
   it('should handle undefined topology gracefully', async () => {
@@ -209,11 +362,27 @@ describe('CosmicBackground R3F Component', () => {
     // If there were ref issues, this would throw or cause memory leaks
     expect(true).toBe(true);
   });
+
+  it('should trigger hyperspace transitions on transitionKey changes', async () => {
+    const { CosmicBackground } = await import('../CosmicBackground');
+
+    const { rerender } = render(
+      <CosmicBackground active transitionKey={1} transitionTarget={[0, 0, 50]} />
+    );
+
+    expect(startTransitionMock).toHaveBeenCalledTimes(1);
+
+    rerender(<CosmicBackground active transitionKey={2} transitionTarget={[0, 0, 50]} />);
+
+    expect(startTransitionMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('NebulaRenderer Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockWarn.mockClear();
+    mockError.mockClear();
   });
 
   afterEach(() => {

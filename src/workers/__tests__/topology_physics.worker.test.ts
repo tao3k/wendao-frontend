@@ -87,8 +87,8 @@ describe('Octree Barnes-Hut Algorithm', () => {
       const mass = 1;
 
       // Node at origin, tree body at (10, 0, 0)
-      const dx = 10, dy = 0, dz = 0;
-      const distSq = dx * dx + dy * dy + dz * dz;
+    const dx = 10, dy = 0, dz = 0;
+        const distSq = dx * dx + dy * dy + dz * dz;
       const dist = Math.sqrt(distSq);
 
       const force = (repulsion * mass) / distSq;
@@ -225,7 +225,6 @@ describe('Link Force Calculation', () => {
     const attraction = 0.04;
 
     // Node at (0, 0, 0) and (10, 0, 0) - distance is 10, less than linkDistance
-    const dx = 10, dy = 0, dz = 0;
     const dist = 10;
     const displacement = dist - linkDistance; // -5 (too close)
     const force = displacement * linkStrength * attraction;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Settings2, GitBranch, FileText } from 'lucide-react';
+import { Activity, FileText, GitBranch, Layers, Orbit, Settings2 } from 'lucide-react';
 import { PropertyGroup } from './PropertyGroup';
 import { PropertyField } from './PropertyField';
 import { AcademicNode } from '../../../types';
+import type { GraphSidebarSummary } from '../GraphView/types';
 import '../../../styles/ide/PropertyEditor.css';
 
 interface Relationship {
@@ -18,6 +19,7 @@ interface PropertyEditorProps {
     path: string;
     category: string;
   } | null;
+  graphSummary?: GraphSidebarSummary | null;
   onUpdate?: (updates: Partial<AcademicNode>) => void;
 }
 
@@ -68,10 +70,18 @@ const getRelationshipTypeClass = (type: string): string => {
   }
 };
 
+const asSafePercent = (value: number, total: number): number => {
+  if (total <= 0) {
+    return 0;
+  }
+  return Math.round((Math.max(0, value) / total) * 100);
+};
+
 export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   node,
   relationships = [],
   selectedFile,
+  graphSummary,
   onUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState<PropertyTab>('properties');
@@ -92,7 +102,20 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     onUpdate?.({ position });
   };
 
-  const hasContent = node || selectedFile || relationships.length > 0;
+  const hasContent = Boolean(node || selectedFile || relationships.length > 0);
+  const hasGraphSummary = Boolean(graphSummary);
+  const stageLayerSummaries = (graphSummary?.layerSummaries ?? []).slice().sort((a, b) => a.layer - b.layer);
+  const maxStageCount = Math.max(1, ...stageLayerSummaries.map((layer) => layer.count));
+  const totalNodes = graphSummary?.totalNodes ?? 0;
+  const totalLinks = graphSummary?.totalLinks ?? 0;
+  const hoveredLayer = graphSummary?.hoveredLayer ?? 0;
+  const hoveredLayerNodes =
+    stageLayerSummaries.find((item) => item.layer === hoveredLayer)?.count ??
+    stageLayerSummaries.find((item) => item.layer === 0)?.count ??
+    0;
+  const activeLayerPercent = asSafePercent(hoveredLayerNodes, maxStageCount);
+  const activeLayerShare = asSafePercent(hoveredLayerNodes, totalNodes);
+  const graphDensity = totalNodes <= 1 ? 0 : asSafePercent(totalLinks, (totalNodes * (totalNodes - 1)) / 2);
 
   return (
     <div className="property-editor">
@@ -120,9 +143,15 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
       {/* Tab Content */}
       <div className="property-editor__content">
         {!hasContent ? (
-          <div className="property-editor--empty">
-            <p>选择文件或节点查看详情</p>
-          </div>
+          !hasGraphSummary ? (
+            <div className="property-editor--empty">
+              <p>选择文件或节点查看详情</p>
+            </div>
+          ) : (
+            <div className="property-editor__content-placeholder">
+              <p>No node or file selected. Showing graph summary.</p>
+            </div>
+          )
         ) : activeTab === 'properties' ? (
           <>
             {/* Selected File Info */}
@@ -230,6 +259,185 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
               </div>
             )}
           </div>
+        )}
+
+        {/* Graph Insights Panel */}
+        {hasGraphSummary && (
+          <section className="property-editor__graph-insights" aria-label="Graph insights">
+            <header className="property-editor__graph-insights-head">
+              <h4 className="property-editor__insights-title">
+                <Orbit size={14} className="property-editor__insights-icon" />
+                <span>Graph Insights</span>
+              </h4>
+              <span className="property-editor__graph-insights-pill">
+                {totalNodes} nodes / {totalLinks} links
+              </span>
+            </header>
+
+            <article className="property-editor__insight-card property-editor__insight-card--snapshot">
+              <header className="property-editor__insight-card-head">
+                <h5 className="property-editor__insight-card-title">
+                  <Layers size={12} />
+                  <span>Snapshot</span>
+                </h5>
+              </header>
+              <div className="property-editor__snapshot-grid">
+                <div className="property-editor__snapshot-cell">
+                  <span className="property-editor__snapshot-label">Active Layer</span>
+                  <span className="property-editor__snapshot-value">
+                    {graphSummary?.hoveredLayer == null ? 'Core' : `Layer ${graphSummary.hoveredLayer}`}
+                  </span>
+                </div>
+                <div className="property-editor__snapshot-cell">
+                  <span className="property-editor__snapshot-label">Layer Nodes</span>
+                  <span className="property-editor__snapshot-value">{hoveredLayerNodes}</span>
+                </div>
+                <div className="property-editor__snapshot-cell">
+                  <span className="property-editor__snapshot-label">
+                    <Activity size={10} />
+                    <span>Density</span>
+                  </span>
+                  <span className="property-editor__snapshot-value">{graphDensity}%</span>
+                </div>
+              </div>
+              <div className="property-editor__snapshot-sparkline" role="presentation">
+                <span
+                  className="property-editor__snapshot-sparkline-fill"
+                  style={{ width: `${activeLayerPercent}%` }}
+                />
+              </div>
+            </article>
+
+            <article className="property-editor__insight-card">
+              <header className="property-editor__insight-card-head">
+                <h5 className="property-editor__insight-card-title">Legend</h5>
+              </header>
+              <div className="property-editor__legend-list">
+                <span
+                  className="property-editor__legend-item"
+                  data-tooltip="Skill nodes are workflow and knowledge-action references."
+                >
+                  <span className="property-editor__legend-dot property-editor__legend-dot--skill" /> Skill
+                </span>
+                <span
+                  className="property-editor__legend-item"
+                  data-tooltip="Doc nodes represent knowledge and process documentation."
+                >
+                  <span className="property-editor__legend-dot property-editor__legend-dot--doc" /> Doc
+                </span>
+                <span
+                  className="property-editor__legend-item"
+                  data-tooltip="Knowledge nodes mark long-living semantic anchors."
+                >
+                  <span className="property-editor__legend-dot property-editor__legend-dot--knowledge" /> Knowledge
+                </span>
+                <span
+                  className="property-editor__legend-item"
+                  data-tooltip="Incoming edge means this file is referenced by the node."
+                >
+                  <span className="property-editor__legend-line property-editor__legend-line--incoming" /> Incoming
+                </span>
+                <span
+                  className="property-editor__legend-item"
+                  data-tooltip="Outgoing edge means this node points to the target file."
+                >
+                  <span className="property-editor__legend-line property-editor__legend-line--outgoing" /> Outgoing
+                </span>
+                <span
+                  className="property-editor__legend-item"
+                  data-tooltip="Attachment edges connect derived or non-primary content."
+                >
+                  <span className="property-editor__legend-line property-editor__legend-line--attachment" /> Attachment
+                </span>
+              </div>
+            </article>
+
+            <article className="property-editor__insight-card">
+              <header className="property-editor__insight-card-head">
+                <h5 className="property-editor__insight-card-title">Stage Layers</h5>
+              </header>
+              <div className="property-editor__stage-layers">
+                {stageLayerSummaries.length > 0 ? (
+                  stageLayerSummaries.map((layer) => {
+                    const ratio = asSafePercent(layer.count, maxStageCount);
+                    const globalShare = asSafePercent(layer.count, totalNodes);
+                    return (
+                      <div
+                        className={`property-editor__stage-row ${
+                          graphSummary?.hoveredLayer === layer.layer ? 'is-active' : ''
+                        }`}
+                        key={`layer-${layer.layer}-${layer.count}`}
+                      >
+                        <div className="property-editor__stage-row-head">
+                          <span className="property-editor__stage-row-label">Layer {layer.layer}</span>
+                          <span className="property-editor__stage-row-count">{layer.count}</span>
+                          <span className="property-editor__stage-row-percent">{ratio}%</span>
+                        </div>
+                        <div className="property-editor__stage-row-meta">
+                          <span className="property-editor__stage-row-meta-label">Global {globalShare}%</span>
+                        </div>
+                        <div className="property-editor__stage-row-bar">
+                          <span
+                            className={`property-editor__stage-row-fill ${
+                              graphSummary?.hoveredLayer === layer.layer ? 'is-active' : ''
+                            }`}
+                            style={{ width: `${ratio}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="property-editor__stage-empty">No stage data.</p>
+                )}
+              </div>
+            </article>
+
+            <article className="property-editor__insight-card">
+              <header className="property-editor__insight-card-head">
+                <h5 className="property-editor__insight-card-title">Core Layers</h5>
+              </header>
+              <div className="property-editor__core-grid">
+                <div className="property-editor__core-cell property-editor__core-cell--coverage">
+                  <span className="property-editor__core-cell-label">Layer Coverage</span>
+                  <span className="property-editor__core-cell-value">{activeLayerPercent}%</span>
+                  <span className="property-editor__core-cell-sublabel">
+                    relative to active peak
+                  </span>
+                </div>
+                <div className="property-editor__core-cell property-editor__core-cell--nodes">
+                  <span className="property-editor__core-cell-label">Total Nodes</span>
+                  <span className="property-editor__core-cell-value">{graphSummary?.totalNodes ?? 0}</span>
+                </div>
+                <div className="property-editor__core-cell property-editor__core-cell--links">
+                  <span className="property-editor__core-cell-label">Total Links</span>
+                  <span className="property-editor__core-cell-value">{graphSummary?.totalLinks ?? 0}</span>
+                </div>
+                <div className="property-editor__core-cell property-editor__core-cell--active">
+                  <span className="property-editor__core-cell-label">Active Layer</span>
+                  <span className="property-editor__core-cell-value">
+                    {graphSummary?.hoveredLayer == null ? 'Core' : `Layer ${graphSummary.hoveredLayer}`}
+                  </span>
+                </div>
+                <div className="property-editor__core-cell property-editor__core-cell--focus">
+                  <span className="property-editor__core-cell-label">Layer Nodes</span>
+                  <span className="property-editor__core-cell-value">{hoveredLayerNodes}</span>
+                  <div
+                    className="property-editor__core-cell-meter"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={activeLayerShare}
+                  >
+                    <span style={{ width: `${activeLayerShare}%` }} />
+                  </div>
+                  <span className="property-editor__core-cell-sublabel">
+                    {activeLayerPercent}% local peak | {activeLayerShare}% total share
+                  </span>
+                </div>
+              </div>
+            </article>
+          </section>
         )}
       </div>
     </div>

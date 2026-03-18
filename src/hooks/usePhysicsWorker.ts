@@ -5,11 +5,11 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { deterministicNodePosition } from '../utils/topologyContinuity';
 
 // === Binary Protocol Constants ===
 const NODE_STRIDE = 7; // x, y, z, vx, vy, vz, mass
 const LINK_STRIDE = 2; // source, target
-const POSITION_STRIDE = 3; // x, y, z
 
 export interface PhysicsNode {
   id: string;
@@ -43,15 +43,22 @@ export interface PhysicsConfig {
 
 interface UsePhysicsWorkerOptions {
   onNodesUpdate?: (positions: Float32Array, nodeCount: number) => void;
+  enabled?: boolean;
 }
 
 export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
   const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
   const nodeIndexMapRef = useRef<Map<string, number>>(new Map());
+  const enabled = options.enabled !== false;
 
   // Create worker on mount
   useEffect(() => {
+    if (!enabled) {
+      setIsReady(false);
+      return;
+    }
+
     workerRef.current = new Worker(
       new URL('../workers/topology_physics.worker.ts', import.meta.url),
       { type: 'module' }
@@ -89,114 +96,161 @@ export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
     return () => {
       workerRef.current?.terminate();
     };
-  }, []);
+  }, [enabled]);
 
   /**
    * Initialize physics with nodes and links
    */
   const init = useCallback(
     (nodes: PhysicsNode[], links: PhysicsLink[], config?: PhysicsConfig) => {
-    if (!workerRef.current) return;
+      if (!enabled || !workerRef.current) return;
 
-    const nodeCount = nodes.length;
-    const linkCount = links.length;
+      const nodeCount = nodes.length;
+      const linkCount = links.length;
 
-    // Build index map
-    nodeIndexMapRef.current = new Map(nodes.map((n, i) => [n.id, i]));
+      // Build index map
+      nodeIndexMapRef.current = new Map(nodes.map((n, i) => [n.id, i]));
 
-    // Create binary buffers
-    const nodeBuffer = new Float32Array(nodeCount * NODE_STRIDE);
-    const linkBuffer = new Uint16Array(linkCount * LINK_STRIDE);
+      // Create binary buffers
+      const nodeBuffer = new Float32Array(nodeCount * NODE_STRIDE);
+      const linkBuffer = new Uint16Array(linkCount * LINK_STRIDE);
 
-    // Fill node buffer
-    nodes.forEach((node, i) => {
-      const offset = i * NODE_STRIDE;
-      nodeBuffer[offset] = node.x ?? (Math.random() - 0.5) * 50;
-      nodeBuffer[offset + 1] = node.y ?? (Math.random() - 0.5) * 50;
-      nodeBuffer[offset + 2] = node.z ?? (Math.random() - 0.5) * 50;
-      nodeBuffer[offset + 3] = node.vx ?? 0;
-      nodeBuffer[offset + 4] = node.vy ?? 1;
-      nodeBuffer[offset + 5] = node.vz ?? 1;
-      nodeBuffer[offset + 6] = node.mass ?? 1;
-    });
+      // Fill node buffer
+      nodes.forEach((node, i) => {
+        const offset = i * NODE_STRIDE;
+        const fallbackPosition = deterministicNodePosition(node.id, i, nodeCount, 24);
+        nodeBuffer[offset] = node.x !== undefined ? node.x : fallbackPosition[0];
+        nodeBuffer[offset + 1] = node.y !== undefined ? node.y : fallbackPosition[1];
+        nodeBuffer[offset + 2] = node.z !== undefined ? node.z : fallbackPosition[2];
+        nodeBuffer[offset + 3] = node.vx !== undefined ? node.vx : 0;
+        nodeBuffer[offset + 4] = node.vy !== undefined ? node.vy : 0;
+        nodeBuffer[offset + 5] = node.vz !== undefined ? node.vz : 0;
+        nodeBuffer[offset + 6] = node.mass !== undefined ? node.mass : 1;
+      });
 
-    // Fill link buffer
-    links.forEach((link, i) => {
-      const offset = i * LINK_STRIDE;
-      const sourceIdx = nodeIndexMapRef.current.get(link.source) ?? 0;
-      const targetIdx = nodeIndexMapRef.current.get(link.target) ?? 0;
-      linkBuffer[offset] = sourceIdx;
-      linkBuffer[offset + 1] = targetIdx;
-    });
+      // Fill link buffer
+      links.forEach((link, i) => {
+        const offset = i * LINK_STRIDE;
+        const sourceIdx = nodeIndexMapRef.current.get(link.source);
+        const targetIdx = nodeIndexMapRef.current.get(link.target);
+        linkBuffer[offset] = sourceIdx === undefined ? 0 : sourceIdx;
+        linkBuffer[offset + 1] = targetIdx === undefined ? 0 : targetIdx;
+      });
 
-    // Transfer buffers to worker (zero-copy)
-    workerRef.current.postMessage(
-      {
-        type: 'init',
-        nodeCount,
-        linkCount,
-        nodeBuffer: nodeBuffer.buffer,
-        linkBuffer: linkBuffer.buffer,
-        config,
-      },
-      [nodeBuffer.buffer, linkBuffer.buffer]
-    );
+      // Transfer buffers to worker (zero-copy)
+      workerRef.current.postMessage(
+        {
+          type: 'init',
+          nodeCount,
+          linkCount,
+          nodeBuffer: nodeBuffer.buffer,
+          linkBuffer: linkBuffer.buffer,
+          config,
+        },
+        [nodeBuffer.buffer, linkBuffer.buffer]
+      );
 
-    setIsReady(false);
-  },
-    []
+      setIsReady(false);
+    },
+    [enabled]
   );
 
+  const syncGraph = useCallback(
+    (nodes: PhysicsNode[], links: PhysicsLink[], config?: PhysicsConfig) => {
+      if (!enabled || !workerRef.current) return;
+
+      const nodeCount = nodes.length;
+      const linkCount = links.length;
+      nodeIndexMapRef.current = new Map(nodes.map((n, i) => [n.id, i]));
+
+      const nodeBuffer = new Float32Array(nodeCount * NODE_STRIDE);
+      const linkBuffer = new Uint16Array(linkCount * LINK_STRIDE);
+
+      nodes.forEach((node, i) => {
+        const offset = i * NODE_STRIDE;
+        const fallbackPosition = deterministicNodePosition(node.id, i, nodeCount, 24);
+        nodeBuffer[offset] = node.x !== undefined ? node.x : fallbackPosition[0];
+        nodeBuffer[offset + 1] = node.y !== undefined ? node.y : fallbackPosition[1];
+        nodeBuffer[offset + 2] = node.z !== undefined ? node.z : fallbackPosition[2];
+        nodeBuffer[offset + 3] = node.vx !== undefined ? node.vx : 0;
+        nodeBuffer[offset + 4] = node.vy !== undefined ? node.vy : 0;
+        nodeBuffer[offset + 5] = node.vz !== undefined ? node.vz : 0;
+        nodeBuffer[offset + 6] = node.mass !== undefined ? node.mass : 1;
+      });
+
+      links.forEach((link, i) => {
+        const offset = i * LINK_STRIDE;
+        const sourceIdx = nodeIndexMapRef.current.get(link.source);
+        const targetIdx = nodeIndexMapRef.current.get(link.target);
+        linkBuffer[offset] = sourceIdx === undefined ? 0 : sourceIdx;
+        linkBuffer[offset + 1] = targetIdx === undefined ? 0 : targetIdx;
+      });
+
+      workerRef.current.postMessage(
+        {
+          type: 'sync',
+          nodeCount,
+          linkCount,
+          nodeBuffer: nodeBuffer.buffer,
+          linkBuffer: linkBuffer.buffer,
+          config,
+        },
+        [nodeBuffer.buffer, linkBuffer.buffer]
+      );
+    },
+    [enabled]
+  );
   /**
    * Run physics ticks
    */
   const tick = useCallback((ticks: number = 1) => {
-    if (!workerRef.current || !isReady) return;
+    if (!enabled || !workerRef.current || !isReady) return;
     workerRef.current.postMessage({ type: 'tick', ticks });
-  }, [isReady]);
+  }, [enabled, isReady]);
 
   /**
    * Drag a node
    */
   const drag = useCallback((nodeId: string, x: number, y: number, z: number) => {
-    if (!workerRef.current) return;
+    if (!enabled || !workerRef.current) return;
     const index = nodeIndexMapRef.current.get(nodeId);
     if (index !== undefined) {
       workerRef.current.postMessage({ type: 'drag', index, x, y, z });
     }
-  }, []);
+  }, [enabled]);
 
   /**
    * Release a dragged node
    */
   const release = useCallback((nodeId: string) => {
-    if (!workerRef.current) return;
+    if (!enabled || !workerRef.current) return;
     const index = nodeIndexMapRef.current.get(nodeId);
     if (index !== undefined) {
       workerRef.current.postMessage({ type: 'release', index });
     }
-  }, []);
+  }, [enabled]);
 
   /**
    * Update config
    */
   const setConfig = useCallback((newConfig: object) => {
-    if (!workerRef.current) return;
+    if (!enabled || !workerRef.current) return;
     workerRef.current.postMessage({ type: 'config', ...newConfig });
-  }, []);
+  }, [enabled]);
 
   /**
    * Get current positions (async)
    */
   const getPositions = useCallback(() => {
-    if (!workerRef.current || !isReady) return;
+    if (!enabled || !workerRef.current || !isReady) return;
     workerRef.current.postMessage({ type: 'getPositions' });
-  }, [isReady]);
+  }, [enabled, isReady]);
 
   return {
     worker: workerRef.current,
     isReady,
     init,
+    syncGraph,
     tick,
     drag,
     release,

@@ -9,8 +9,8 @@
 
 .nav-btn {
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 210, 255, 0.3);
-  color: #E6F3FF;
+  border: 1px solid rgba(125, 207, 255, 0.28);
+  color: var(--tokyo-text);
   padding: 10px 25px;
   border-radius: 4px;
   cursor: pointer;
@@ -21,8 +21,9 @@
 }
 
 .nav-btn.active {
-  background: rgba(0, 210, 255, 0.2);
-  border-color: #00D2FF;
+  background: rgba(125, 207, 255, 0.16);
+  border-color: var(--neon-blue);
+  box-shadow: var(--glow-blue);
 }
 
 .discovery-menu {
@@ -30,13 +31,13 @@
   top: 85px;
   left: 30px;
   width: 300px;
-  background: rgba(10, 15, 30, 0.98);
+  background: var(--panel-bg-strong);
   backdrop-filter: blur(40px);
-  border: 1px solid rgba(0, 210, 255, 0.5);
+  border: 1px solid rgba(125, 207, 255, 0.4);
   border-radius: 8px;
   padding: 25px;
   z-index: 9500;
-  box-shadow: 0 30px 100px rgba(0,0,0,1);
+  box-shadow: var(--shadow-lg), var(--glow-blue);
 }
 
 .example-item {
@@ -44,19 +45,19 @@
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  color: #A0C4FF;
+  color: var(--tokyo-text);
 }
 
 .example-item:hover {
-  background: rgba(0, 210, 255, 0.1);
-  color: #00D2FF;
+  background: var(--hover-bg);
+  color: var(--neon-blue);
 }
 
 .system-badge {
   position: fixed;
   bottom: 25px;
   right: 25px;
-  color: #00D2FF;
+  color: var(--neon-blue);
   font-size: 11px;
   opacity: 0.5;
   z-index: 9000;

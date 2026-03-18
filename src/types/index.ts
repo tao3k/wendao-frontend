@@ -34,7 +34,5 @@ export interface KnowledgePanelState {
  */
 export type PanelState = KnowledgePanelState;
 
-export type ViewMode = '2d' | '3d';
-
 // Re-export IDE types
 export * from './ide';

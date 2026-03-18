@@ -4,7 +4,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
-import React from 'react';
 
 // Mock @react-three/fiber FIRST
 const mockCamera = {
@@ -41,11 +40,15 @@ vi.mock('../lib/camera/tweenCamera', () => ({
 
 // Mock eventBus BEFORE importing
 const unsubscribeMock = vi.fn();
-const subscribeMock = vi.fn(() => unsubscribeMock);
+const eventHandlers: Array<[string, (payload: unknown) => void]> = [];
+const onMock = vi.fn((event: string, handler: (payload: unknown) => void) => {
+  eventHandlers.push([event, handler]);
+  return unsubscribeMock;
+});
 
 vi.mock('../lib/EventBus', () => ({
   eventBus: {
-    subscribe: (...args: unknown[]) => subscribeMock(...args),
+    on: (event: string, handler: (payload: unknown) => void) => onMock(event, handler),
   },
 }));
 
@@ -55,12 +58,14 @@ import { CameraController } from './CameraController';
 describe('CameraController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    eventHandlers.length = 0;
     mockCamera.position.set.mockClear();
     mockCamera.lookAt.mockClear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    eventHandlers.length = 0;
   });
 
   describe('rendering', () => {
@@ -74,27 +79,21 @@ describe('CameraController', () => {
     it('should subscribe to node:selected event when autoFocus is true', () => {
       render(<CameraController autoFocus={true} />);
 
-      const nodeSelectedSub = subscribeMock.mock.calls.find(
-        (call) => call[0] === 'node:selected'
-      );
+      const nodeSelectedSub = eventHandlers.find(([eventName]) => eventName === 'node:selected');
       expect(nodeSelectedSub).toBeDefined();
     });
 
     it('should not subscribe to node:selected when autoFocus is false', () => {
       render(<CameraController autoFocus={false} />);
 
-      const nodeSelectedSub = subscribeMock.mock.calls.find(
-        (call) => call[0] === 'node:selected'
-      );
+      const nodeSelectedSub = eventHandlers.find(([eventName]) => eventName === 'node:selected');
       expect(nodeSelectedSub).toBeUndefined();
     });
 
     it('should subscribe to camera:focus event', () => {
       render(<CameraController />);
 
-      const cameraFocusSub = subscribeMock.mock.calls.find(
-        (call) => call[0] === 'camera:focus'
-      );
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
       expect(cameraFocusSub).toBeDefined();
     });
   });
@@ -103,10 +102,11 @@ describe('CameraController', () => {
     it('should call focusOnNode when target is node', () => {
       render(<CameraController />);
 
-      const cameraFocusSub = subscribeMock.mock.calls.find(
-        (call) => call[0] === 'camera:focus'
-      );
-      const handler = cameraFocusSub![1];
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      if (!cameraFocusSub) {
+        throw new Error('camera:focus handler not registered');
+      }
+      const handler = cameraFocusSub[1];
 
       act(() => {
         handler({
@@ -121,10 +121,11 @@ describe('CameraController', () => {
     it('should call focusOnCluster when target is cluster', () => {
       render(<CameraController />);
 
-      const cameraFocusSub = subscribeMock.mock.calls.find(
-        (call) => call[0] === 'camera:focus'
-      );
-      const handler = cameraFocusSub![1];
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      if (!cameraFocusSub) {
+        throw new Error('camera:focus handler not registered');
+      }
+      const handler = cameraFocusSub[1];
 
       act(() => {
         handler({
@@ -140,10 +141,11 @@ describe('CameraController', () => {
     it('should call resetCamera when target is reset', () => {
       render(<CameraController />);
 
-      const cameraFocusSub = subscribeMock.mock.calls.find(
-        (call) => call[0] === 'camera:focus'
-      );
-      const handler = cameraFocusSub![1];
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      if (!cameraFocusSub) {
+        throw new Error('camera:focus handler not registered');
+      }
+      const handler = cameraFocusSub[1];
 
       act(() => {
         handler({

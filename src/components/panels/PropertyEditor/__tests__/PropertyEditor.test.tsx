@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PropertyEditor } from '../PropertyEditor';
-import { AcademicNode } from '../../../types';
+import type { AcademicNode } from '../../../../types';
 
 describe('PropertyEditor', () => {
   const mockNode: AcademicNode = {

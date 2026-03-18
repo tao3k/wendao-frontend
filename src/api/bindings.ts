@@ -3,6 +3,7 @@
  * Source: xiuxian-wendao/src/gateway/studio/types.rs
  *
  * These types are kept in sync with the Rust backend via the Axum-TS Bridge.
+ * Run: just generate-bindings
  */
 
 // === VFS Types ===
@@ -14,6 +15,37 @@ export interface VfsEntry {
   size: number;
   modified: number;
   contentType?: string;
+  projectName?: string;
+  rootLabel?: string;
+}
+
+export type VfsCategory = 'folder' | 'skill' | 'doc' | 'knowledge' | 'other';
+
+export interface VfsScanEntry {
+  path: string;
+  name: string;
+  isDir: boolean;
+  category: VfsCategory;
+  size: number;
+  modified: number;
+  contentType?: string;
+  hasFrontmatter: boolean;
+  wendaoId?: string;
+  projectName?: string;
+  rootLabel?: string;
+}
+
+export interface VfsScanResult {
+  entries: VfsScanEntry[];
+  fileCount: number;
+  dirCount: number;
+  scanDurationMs: number;
+}
+
+export interface VfsContentResponse {
+  path: string;
+  content: string;
+  contentType: string;
 }
 
 // === Graph Types ===
@@ -26,8 +58,6 @@ export interface NodeNeighbors {
   outgoing: string[];
   twoHop: string[];
 }
-
-// Obsidian-like graph visualization types
 
 export interface GraphNode {
   id: string;
@@ -99,6 +129,126 @@ export interface KnowledgeSearchResult {
   score: number;
   snippet: string;
   source: string;
+}
+
+export interface SearchHit {
+  stem: string;
+  title?: string;
+  path: string;
+  docType?: string;
+  tags: string[];
+  score: number;
+  bestSection?: string;
+  matchReason?: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  hits: SearchHit[];
+  hitCount: number;
+  graphConfidenceScore?: number;
+  selectedMode?: string;
+}
+
+export interface AstSearchHit {
+  name: string;
+  signature: string;
+  path: string;
+  language: string;
+  crateName: string;
+  projectName?: string;
+  rootLabel?: string;
+  lineStart: number;
+  lineEnd: number;
+  score: number;
+}
+
+export interface AstSearchResponse {
+  query: string;
+  hits: AstSearchHit[];
+  hitCount: number;
+  selectedScope: string;
+}
+
+export interface DefinitionResolveResponse {
+  query: string;
+  sourcePath?: string;
+  sourceLine?: number;
+  definition: AstSearchHit;
+  candidateCount: number;
+  selectedScope: string;
+}
+
+export interface ReferenceSearchHit {
+  name: string;
+  path: string;
+  language: string;
+  crateName: string;
+  projectName?: string;
+  rootLabel?: string;
+  line: number;
+  column: number;
+  lineText: string;
+  score: number;
+}
+
+export interface ReferenceSearchResponse {
+  query: string;
+  hits: ReferenceSearchHit[];
+  hitCount: number;
+  selectedScope: string;
+}
+
+export type SymbolSearchSource = 'project' | 'external';
+
+export interface SymbolSearchHit {
+  name: string;
+  kind: string;
+  path: string;
+  line: number;
+  location: string;
+  language: string;
+  crateName: string;
+  projectName?: string;
+  rootLabel?: string;
+  source: SymbolSearchSource;
+  score: number;
+}
+
+export interface SymbolSearchResponse {
+  query: string;
+  hits: SymbolSearchHit[];
+  hitCount: number;
+  selectedScope: string;
+}
+
+export type AutocompleteSuggestionType = 'title' | 'tag' | 'stem';
+
+export interface AutocompleteSuggestion {
+  text: string;
+  suggestionType: AutocompleteSuggestionType;
+  path?: string;
+  docType?: string;
+}
+
+export interface AutocompleteResponse {
+  prefix: string;
+  suggestions: AutocompleteSuggestion[];
+}
+
+// === UI Config Types ===
+
+export interface UiProjectConfig {
+  name: string;
+  root: string;
+  paths: string[];
+  watchPatterns?: string[];
+  includeDirsAuto: boolean;
+  includeDirsAutoCandidates?: string[];
+}
+
+export interface UiConfig {
+  projects: UiProjectConfig[];
 }
 
 // === Error Types ===

@@ -10,6 +10,10 @@ const NODE_STRIDE = 7; // x, y, z, vx, vy, vz, mass
 const LINK_STRIDE = 2; // source, target
 const POSITION_STRIDE = 3; // x, y, z
 
+const workerScope = self as unknown as {
+  postMessage: (message: unknown, transfer?: Transferable[]) => void;
+};
+
 // === Octree Constants (Barnes-Hut) ===
 const MAX_TREE_NODES = 262144; // 256K tree nodes for up to ~100K particles
 const TREE_DATA_STRIDE = 6; // cx, cy, cz, mass, size, leafFlag
@@ -429,6 +433,46 @@ function tick(): void {
   }
 }
 
+function rebuildPositionBuffer(): void {
+  const nextBuffer = new Float32Array(nodeCount * POSITION_STRIDE);
+  if (!nodeBuffer) {
+    positionBuffer = nextBuffer;
+    return;
+  }
+
+  for (let index = 0; index < nodeCount; index += 1) {
+    const nodeOffset = getNodeOffset(index);
+    const positionOffset = index * POSITION_STRIDE;
+    nextBuffer[positionOffset] = nodeBuffer[nodeOffset];
+    nextBuffer[positionOffset + 1] = nodeBuffer[nodeOffset + 1];
+    nextBuffer[positionOffset + 2] = nodeBuffer[nodeOffset + 2];
+  }
+
+  positionBuffer = nextBuffer;
+}
+
+function postCurrentPositions(type: 'ticked' | 'positions'): void {
+  if (!positionBuffer) {
+    rebuildPositionBuffer();
+  }
+  if (!positionBuffer) {
+    return;
+  }
+
+  const transferBuffer = positionBuffer.buffer;
+  workerScope.postMessage(
+    {
+      type,
+      nodeCount,
+      buffer: transferBuffer,
+    },
+    [transferBuffer]
+  );
+
+  // Keep an in-worker copy aligned with the latest node state for later reads.
+  rebuildPositionBuffer();
+}
+
 // === Message Handler ===
 
 self.onmessage = (e: MessageEvent) => {
@@ -452,10 +496,9 @@ self.onmessage = (e: MessageEvent) => {
         config = { ...config, ...data.config };
       }
 
-      // Allocate position buffer
-      positionBuffer = new Float32Array(nodeCount * POSITION_STRIDE);
+      rebuildPositionBuffer();
 
-      self.postMessage({ type: 'ready', nodeCount, linkCount });
+      workerScope.postMessage({ type: 'ready', nodeCount, linkCount });
       break;
     }
 
@@ -465,19 +508,27 @@ self.onmessage = (e: MessageEvent) => {
         tick();
       }
 
-      // Transfer position buffer (zero-copy)
-      if (positionBuffer) {
-        const transferBuffer = positionBuffer.buffer;
-        self.postMessage(
-          {
-            type: 'ticked',
-            nodeCount,
-          },
-          [transferBuffer]
-        );
-        // Reallocate after transfer
-        positionBuffer = new Float32Array(nodeCount * POSITION_STRIDE);
+      postCurrentPositions('ticked');
+      break;
+    }
+
+    case 'sync': {
+      nodeCount = data.nodeCount;
+      linkCount = data.linkCount;
+
+      if (e.data.nodeBuffer) {
+        nodeBuffer = new Float32Array(e.data.nodeBuffer);
       }
+      if (e.data.linkBuffer) {
+        linkBuffer = new Uint16Array(e.data.linkBuffer);
+      }
+
+      if (data.config) {
+        config = { ...config, ...data.config };
+      }
+
+      rebuildPositionBuffer();
+      postCurrentPositions('positions');
       break;
     }
 
@@ -506,16 +557,7 @@ self.onmessage = (e: MessageEvent) => {
     }
 
     case 'getPositions': {
-      if (positionBuffer) {
-        self.postMessage(
-          {
-            type: 'positions',
-            nodeCount,
-          },
-          [positionBuffer.buffer]
-        );
-        positionBuffer = new Float32Array(nodeCount * POSITION_STRIDE);
-      }
+      postCurrentPositions('positions');
       break;
     }
 

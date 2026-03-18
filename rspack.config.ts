@@ -2,11 +2,55 @@ import { defineConfig } from '@rspack/cli';
 import { rspack, type SwcLoaderOptions } from '@rspack/core';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 import type { Configuration } from '@rspack/core';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import * as TOML from 'smol-toml';
 
 const isDev = process.env.NODE_ENV === 'development';
 
 // Target browsers, see: https://github.com/browserslist/browserslist
 const targets = ['last 2 versions', '> 0.2%', 'not dead', 'Firefox ESR'];
+
+function parseGatewayTarget(): string {
+  interface GatewaySection {
+    bind?: string;
+  }
+
+  interface WendaoConfig {
+    gateway?: GatewaySection;
+  }
+
+  const normalizeBind = (bind: string | undefined): string | null => {
+    if (!bind) {
+      return null;
+    }
+
+    const trimmed = bind.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return `http://${trimmed}`;
+  };
+
+  try {
+    const tomlContent = readFileSync(resolve(process.cwd(), 'wendao.toml'), 'utf8');
+    const parsed = TOML.parse(tomlContent) as WendaoConfig;
+    const target = normalizeBind(parsed?.gateway?.bind);
+    if (!target) {
+      throw new Error('Rspack requires [gateway].bind in wendao.toml');
+    }
+    return target;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error';
+    throw new Error(`Rspack could not resolve gateway target from wendao.toml: ${message}`);
+  }
+}
+
+const GATEWAY_TARGET = parseGatewayTarget();
 
 export default defineConfig({
   entry: {
@@ -120,7 +164,7 @@ export default defineConfig({
         proxy: [
           {
             context: ['/api'],
-            target: 'http://localhost:8001',
+            target: GATEWAY_TARGET,
             changeOrigin: true,
           },
         ],

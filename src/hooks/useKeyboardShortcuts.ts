@@ -12,18 +12,29 @@ export interface ShortcutDefinition {
 export const useKeyboardShortcuts = (shortcuts: ShortcutDefinition[]) => {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (e.isComposing) {
+        return;
+      }
+
       // Don't trigger shortcuts when typing in input fields
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
         // Allow Escape even in input fields
-        if (e.key !== 'Escape') {
+        if (e.key !== 'Escape' && e.key !== 'Esc') {
           return;
         }
       }
 
+      const normalizedKey = e.key === 'Esc' ? 'Escape' : e.key;
+
       const matchingShortcut = shortcuts.find(
         (s) =>
-          s.key.toLowerCase() === e.key.toLowerCase() &&
+          s.key.toLowerCase() === normalizedKey.toLowerCase() &&
           !!s.ctrl === (e.ctrlKey || e.metaKey) && // Meta for Mac
           !!s.shift === e.shiftKey &&
           !!s.alt === e.altKey

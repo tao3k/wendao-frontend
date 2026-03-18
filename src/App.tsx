@@ -1,39 +1,19 @@
-import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import { AppLayout } from './components/layout';
 import { FileTree } from './components/panels/FileTree';
 import { MainView } from './components/panels/MainView';
 import { PropertyEditor } from './components/panels/PropertyEditor';
 import { Toolbar } from './components/Toolbar';
 import { StatusBar } from './components/StatusBar';
+import { SearchBar } from './components/SearchBar';
 import { useEditorStore } from './stores/editorStore';
+import { useAccessibility } from './hooks/useAccessibility';
 import { useKeyboardShortcuts, ShortcutDefinition } from './hooks/useKeyboardShortcuts';
 import { AcademicTopology } from './types';
+import type { GraphSidebarSummary } from './components/panels/GraphView/types';
 import { api } from './api/client';
+import { buildPositionCache, mergeTopologyPositions } from './utils/topologyContinuity';
 import './styles/UI.css';
-
-const DEFAULT_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
-  <bpmn:process id="Process_1" isExecutable="false">
-    <bpmn:startEvent id="Start" name="RESEARCH INTENT" />
-    <bpmn:task id="T1" name="ACADEMIC STYLIST" />
-    <bpmn:exclusiveGateway id="G1" name="OMEGA AUDIT" />
-    <bpmn:endEvent id="End" name="RELEASE" />
-    <bpmn:sequenceFlow id="f1" sourceRef="Start" targetRef="T1" />
-    <bpmn:sequenceFlow id="f2" sourceRef="T1" targetRef="G1" />
-    <bpmn:sequenceFlow id="f3" sourceRef="G1" targetRef="End" />
-  </bpmn:process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="S_di" bpmnElement="Start"><dc:Bounds x="100" y="100" width="36" height="36" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="T1_di" bpmnElement="T1"><dc:Bounds x="250" y="78" width="120" height="80" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="G1_di" bpmnElement="G1" isMarkerVisible="true"><dc:Bounds x="450" y="93" width="50" height="50" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="E_di" bpmnElement="End"><dc:Bounds x="600" y="100" width="36" height="36" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="e1" bpmnElement="f1"><di:waypoint x="136" y="118" /><di:waypoint x="250" y="118" /></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="e2" bpmnElement="f2"><di:waypoint x="370" y="118" /><di:waypoint x="450" y="118" /></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="e3" bpmnElement="f3"><di:waypoint x="500" y="118" /><di:waypoint x="600" y="118" /></bpmndi:BPMNEdge>
-    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
-</bpmn:definitions>`;
 
 interface Relationship {
   from?: string;
@@ -41,20 +21,66 @@ interface Relationship {
   type: string;
 }
 
+interface FileSelectionLocation {
+  line?: number;
+  lineEnd?: number;
+  column?: number;
+}
+
+interface FileSelectionMetadata {
+  projectName?: string;
+  rootLabel?: string;
+}
+
+interface FileSelection extends FileSelectionLocation {
+  path: string;
+  category: string;
+  projectName?: string;
+  rootLabel?: string;
+}
+
+interface MainViewTabRequest {
+  tab: 'references' | 'graph' | 'content' | 'diagram';
+  nonce: number;
+}
+
+function inferFileCategory(path: string): string {
+  if (path.startsWith('knowledge/')) {
+    return 'knowledge';
+  }
+
+  if (path.endsWith('SKILL.md')) {
+    return 'skill';
+  }
+
+  return 'doc';
+}
+
+const EMPTY_TOPOLOGY: AcademicTopology = {
+  nodes: [],
+  links: [],
+};
+
 function App() {
-  const topologyRef = useRef<any>(null);
-  const [isVfsLoading, setIsVfsLoading] = useState(false);
+  const topologyPositionCacheRef = useRef(buildPositionCache(EMPTY_TOPOLOGY.nodes));
+  const accessibility = useAccessibility();
+  const isVfsLoading = false;
   const [vfsError, setVfsError] = useState<string | null>(null);
+  const [topology, setTopology] = useState<AcademicTopology>(EMPTY_TOPOLOGY);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const [selectedFileCategory, setSelectedFileCategory] = useState<string | null>(null);
+  const [selectedFileLocation, setSelectedFileLocation] = useState<FileSelectionLocation | null>(null);
+  const [selectedFileMetadata, setSelectedFileMetadata] = useState<FileSelectionMetadata | null>(null);
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [mainViewTabRequest, setMainViewTabRequest] = useState<MainViewTabRequest | null>(null);
+  const [graphSidebarSummary, setGraphSidebarSummary] = useState<GraphSidebarSummary | null>(null);
 
   // Use Zustand store
   const {
     currentXml,
     setCurrentXml,
-    viewMode,
-    setViewMode,
     selectedNode,
     setSelectedNode,
     clearSelection,
@@ -67,69 +93,111 @@ function App() {
     canRedo,
   } = useEditorStore();
 
-  // VFS-driven initialization: Load default blueprint from VFS on mount
   useEffect(() => {
-    const initTopology = async () => {
-      if (currentXml || isVfsLoading) return;
+    let cancelled = false;
 
-      setIsVfsLoading(true);
-      setVfsError(null);
-
+    const loadLiveTopology = async () => {
       try {
-        const { content } = await api.getVfsContent('blueprints/default.bpmn');
-        setCurrentXml(content);
-        console.log('Sovereign Studio: VFS Topology Loaded.');
+        const liveTopology = await api.get3DTopology();
+
+        if (cancelled) return;
+
+        if (liveTopology.nodes.length === 0) {
+          topologyPositionCacheRef.current = buildPositionCache(EMPTY_TOPOLOGY.nodes);
+          setTopology(EMPTY_TOPOLOGY);
+          return;
+        }
+
+        const nextTopology = {
+          nodes: liveTopology.nodes.map((node) => ({
+            id: node.id,
+            name: node.name,
+            type: node.nodeType as AcademicTopology['nodes'][number]['type'],
+            position: node.position,
+          })),
+          links: liveTopology.links.map((link) => ({
+            from: link.from,
+            to: link.to,
+          })),
+        };
+        const mergedTopology = mergeTopologyPositions(
+          nextTopology,
+          topologyPositionCacheRef.current
+        );
+        topologyPositionCacheRef.current = buildPositionCache(mergedTopology.nodes);
+        setTopology(mergedTopology);
       } catch (err) {
-        console.warn('VFS Load Failed, falling back to embedded default.', err);
-        setVfsError(err instanceof Error ? err.message : 'VFS load failed');
-        setCurrentXml(DEFAULT_BPMN);
-      } finally {
-        setIsVfsLoading(false);
+        console.warn('3D topology load failed; topology stays empty until the gateway responds.', err);
+        if (!cancelled) {
+          topologyPositionCacheRef.current = buildPositionCache(EMPTY_TOPOLOGY.nodes);
+          setTopology(EMPTY_TOPOLOGY);
+        }
       }
     };
 
-    initTopology();
-  }, [currentXml, isVfsLoading, setCurrentXml]);
+    loadLiveTopology();
 
-  // Build topology from current XML
-  const topology: AcademicTopology = useMemo(
-    () => ({
-      nodes: [
-        { id: 'Start', name: 'RESEARCH INTENT', type: 'event', position: [-10, 5, 0] },
-        { id: 'T1', name: 'ACADEMIC STYLIST', type: 'task', position: [0, 0, 0] },
-        { id: 'G1', name: 'OMEGA AUDIT', type: 'gateway', position: [10, -5, 0] },
-        { id: 'End', name: 'RELEASE', type: 'event', position: [20, 0, 0] },
-      ],
-      links: [
-        { from: 'Start', to: 'T1' },
-        { from: 'T1', to: 'G1' },
-        { from: 'G1', to: 'End' },
-      ],
-    }),
-    []
-  );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Handle file selection from FileTree
-  const handleFileSelect = useCallback(
-    async (path: string, category: string) => {
+  const hydrateSelectedFile = useCallback(
+    async ({ path, category, line, lineEnd, column, projectName, rootLabel }: FileSelection) => {
       setSelectedFilePath(path);
+      setSelectedFileCategory(category);
+      setSelectedFileLocation(
+        typeof line === 'number' || typeof lineEnd === 'number' || typeof column === 'number'
+          ? {
+              ...(typeof line === 'number' ? { line } : {}),
+              ...(typeof lineEnd === 'number' ? { lineEnd } : {}),
+              ...(typeof column === 'number' ? { column } : {}),
+            }
+          : null
+      );
+      setSelectedFileMetadata(
+        projectName || rootLabel
+          ? {
+              ...(projectName ? { projectName } : {}),
+              ...(rootLabel ? { rootLabel } : {}),
+            }
+          : null
+      );
       console.log('File selected:', path, category);
 
       try {
         const { content } = await api.getVfsContent(path);
         setSelectedFileContent(content);
+        const isMermaidFile = /\\.(mmd|mermaid)$/i.test(path) || /```\\s*mermaid[\\s\\S]*?```/i.test(content);
+        const isBpmnFile = /<\\s*bpmn:definitions\\b/i.test(content);
 
-        // Parse references from content (mock for now)
-        const mockRelationships: Relationship[] = [
-          { from: path.split('/').pop(), to: 'default.bpmn', type: 'bpmn' },
-          { from: path.split('/').pop(), to: 'knowledge', type: 'skill' },
-        ];
-        setRelationships(mockRelationships);
+        try {
+          const neighbors = await api.getGraphNeighbors(path, {
+            direction: 'both',
+            hops: 1,
+            limit: 20,
+          });
+          const liveRelationships: Relationship[] = neighbors.links.map((link) => ({
+            from: link.source,
+            to: link.target,
+            type: link.direction,
+          }));
+          setRelationships(liveRelationships);
+        } catch (relationshipErr) {
+          console.warn('Relationship load failed, keeping references empty.', relationshipErr);
+          setRelationships([]);
+        }
 
-        // If BPMN content, load it
-        if (content.includes('bpmn:definitions')) {
+        if (isBpmnFile) {
           setCurrentXml(content);
-          setViewMode('2d');
+        }
+
+        if (isBpmnFile || isMermaidFile) {
+          setMainViewTabRequest((current) => ({
+            tab: 'diagram',
+            nonce: (current?.nonce ?? 0) + 1,
+          }));
         }
       } catch (err) {
         console.error('Failed to load file:', err);
@@ -137,7 +205,99 @@ function App() {
         setRelationships([]);
       }
     },
-    [setCurrentXml, setViewMode]
+    [setCurrentXml]
+  );
+
+  // Handle file selection from FileTree
+  const handleFileSelect = useCallback(
+    async (path: string, category: string, metadata?: FileSelectionMetadata) => {
+      await hydrateSelectedFile({ path, category, ...(metadata ?? {}) });
+    },
+    [hydrateSelectedFile]
+  );
+
+  // Handle bi-link navigation - resolve the link and hydrate it into content view
+  const handleBiLinkClick = useCallback(
+    async (link: string) => {
+      console.log('Bi-link clicked:', link);
+      setMainViewTabRequest((current) => ({
+        tab: 'content',
+        nonce: (current?.nonce ?? 0) + 1,
+      }));
+
+      try {
+        const neighbors = await api.getGraphNeighbors(link, {
+          direction: 'both',
+          hops: 1,
+          limit: 1,
+        });
+        if (neighbors.center?.path) {
+          await hydrateSelectedFile({
+            path: neighbors.center.path,
+            category: inferFileCategory(neighbors.center.path),
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('Bi-link graph resolution failed, falling back to direct path hydration.', err);
+      }
+
+      await hydrateSelectedFile({
+        path: link,
+        category: inferFileCategory(link),
+      });
+    },
+    [hydrateSelectedFile]
+  );
+
+  // Handle search result selection
+  const handleSearchResultSelect = useCallback(
+    async (selection: FileSelection) => {
+      setSearchOpen(false);
+      setMainViewTabRequest((current) => ({
+        tab: 'content',
+        nonce: (current?.nonce ?? 0) + 1,
+      }));
+      await hydrateSelectedFile(selection);
+    },
+    [hydrateSelectedFile]
+  );
+
+  const handleSearchResultGraphSelect = useCallback(
+    (path: string) => {
+      setSearchOpen(false);
+      setMainViewTabRequest((current) => ({
+        tab: 'graph',
+        nonce: (current?.nonce ?? 0) + 1,
+      }));
+      void hydrateSelectedFile({
+        path,
+        category: inferFileCategory(path),
+      });
+    },
+    [hydrateSelectedFile]
+  );
+
+  const handleSearchResultReferencesSelect = useCallback(
+    async (selection: FileSelection) => {
+      setSearchOpen(false);
+      setMainViewTabRequest((current) => ({
+        tab: 'references',
+        nonce: (current?.nonce ?? 0) + 1,
+      }));
+      await hydrateSelectedFile(selection);
+    },
+    [hydrateSelectedFile]
+  );
+
+  const handleGraphFileSelect = useCallback(
+    (path: string) => {
+      void hydrateSelectedFile({
+        path,
+        category: inferFileCategory(path),
+      });
+    },
+    [hydrateSelectedFile]
   );
 
   // Handle node click from BPMN canvas
@@ -161,17 +321,6 @@ function App() {
       setRelationships(nodeRelationships);
     },
     [topology.nodes, topology.links, setSelectedNode]
-  );
-
-  // Handle view change
-  const handleViewChange = useCallback(
-    (mode: '2d' | '3d') => {
-      setViewMode(mode);
-      if (mode === '2d') {
-        setTimeout(() => topologyRef.current?.center(), 100);
-      }
-    },
-    [setViewMode]
   );
 
   // Handle save
@@ -201,12 +350,11 @@ function App() {
         const xml = await response.text();
         setCurrentXml(xml);
         setDiscoveryOpen(false);
-        setViewMode('2d');
       } catch (err) {
         console.error(err);
       }
     },
-    [setCurrentXml, setDiscoveryOpen, setViewMode]
+    [setCurrentXml, setDiscoveryOpen]
   );
 
   // Keyboard shortcuts
@@ -215,16 +363,18 @@ function App() {
       { key: 's', ctrl: true, action: handleSave, description: 'Save' },
       { key: 'z', ctrl: true, action: handleUndo, description: 'Undo' },
       { key: 'z', ctrl: true, shift: true, action: handleRedo, description: 'Redo' },
+      { key: 'f', ctrl: true, action: () => setSearchOpen(true), description: 'Search' },
       {
         key: 'Escape',
         action: () => {
           clearSelection();
           setDiscoveryOpen(false);
+          setSearchOpen(false);
         },
         description: 'Deselect / Close panels',
       },
     ],
-    [handleSave, handleUndo, handleRedo, clearSelection, setDiscoveryOpen]
+    [handleSave, handleUndo, handleRedo, clearSelection, setDiscoveryOpen, setSearchOpen]
   );
 
   useKeyboardShortcuts(shortcuts);
@@ -232,14 +382,32 @@ function App() {
   const selectedFile = selectedFilePath
     ? {
         path: selectedFilePath,
-        category: selectedFilePath.endsWith('.md') && selectedFilePath.includes('SKILL') ? 'skill' : 'doc',
+        category:
+          selectedFileCategory ||
+          (selectedFilePath.endsWith('.md') && selectedFilePath.includes('SKILL') ? 'skill' : 'doc'),
         content: selectedFileContent || undefined,
+        ...(selectedFileMetadata ?? {}),
+        ...(selectedFileLocation ?? {}),
       }
     : null;
 
   return (
-    <AppLayout
-      leftPanel={
+    <div
+      className="sovereign-app"
+      data-high-contrast={accessibility.prefersHighContrast ? 'true' : 'false'}
+      data-reduced-motion={accessibility.prefersReducedMotion ? 'true' : 'false'}
+    >
+      {/* Search Modal */}
+      <SearchBar
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onResultSelect={handleSearchResultSelect}
+        onReferencesResultSelect={handleSearchResultReferencesSelect}
+        onGraphResultSelect={handleSearchResultGraphSelect}
+      />
+
+      <AppLayout
+        leftPanel={
         <FileTree
           onFileSelect={handleFileSelect}
           selectedPath={selectedFilePath}
@@ -249,12 +417,15 @@ function App() {
         <>
           <MainView
             topology={topology}
-            currentXml={currentXml}
-            defaultXml={DEFAULT_BPMN}
-            viewMode={viewMode}
             isVfsLoading={isVfsLoading}
             selectedFile={selectedFile}
+            relationships={relationships}
+            selectedNode={selectedNode}
+            requestedTab={mainViewTabRequest}
             onNodeClick={handleCanvasNodeClick}
+            onGraphFileSelect={handleGraphFileSelect}
+            onBiLinkClick={handleBiLinkClick}
+            onSidebarSummaryChange={setGraphSidebarSummary}
           />
 
           {/* Discovery Menu */}
@@ -264,12 +435,11 @@ function App() {
               <div
                 className="example-item"
                 onClick={() => {
-                  setCurrentXml(DEFAULT_BPMN);
+                  setCurrentXml('');
                   setDiscoveryOpen(false);
-                  setViewMode('2d');
                 }}
               >
-                💎 Sovereign Forge (Simple)
+                Empty workspace
               </div>
               <div className="example-item" onClick={() => loadExample('administrative_zones')}>
                 🏛️ Gov Administration (Complex)
@@ -283,15 +453,14 @@ function App() {
           node={selectedNode}
           relationships={relationships}
           selectedFile={selectedFile}
+          graphSummary={graphSidebarSummary}
         />
       }
       toolbar={
         <Toolbar
-          viewMode={viewMode}
           discoveryOpen={discoveryOpen}
           canUndo={canUndo()}
           canRedo={canRedo()}
-          onViewChange={handleViewChange}
           onDiscoveryToggle={() => setDiscoveryOpen(!discoveryOpen)}
           onSave={handleSave}
           onUndo={handleUndo}
@@ -301,12 +470,12 @@ function App() {
       statusBar={
         <StatusBar
           nodeCount={topology.nodes.length}
-          viewMode={viewMode}
           selectedNodeId={selectedNode?.id}
           vfsStatus={{ isLoading: isVfsLoading, error: vfsError }}
         />
       }
     />
+    </div>
   );
 }
 

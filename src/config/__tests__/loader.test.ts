@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadConfig, getConfig, getConfigSync, resetConfig } from '../loader';
+import { loadConfig, getConfig, getConfigSync, resetConfig, toUiConfig } from '../loader';
 
 describe('Config Loader', () => {
   beforeEach(() => {
@@ -12,24 +12,26 @@ describe('Config Loader', () => {
   });
 
   describe('loadConfig', () => {
-    it('should return empty config when wendao.toml is not found', async () => {
-      // Mock fetch to return 404
+    it('should reject when wendao.toml is not found', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
       });
 
-      const config = await loadConfig();
-
-      // When config file not found, should return empty paths
-      // UI should handle this case appropriately
-      expect(config.ui?.index_paths).toEqual([]);
+      await expect(loadConfig()).rejects.toThrow('wendao.toml could not be loaded: HTTP 404');
     });
 
     it('should parse valid TOML config', async () => {
       const mockToml = `
-[ui]
-index_paths = ["custom", "paths"]
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+paths = ["docs", "internal_skills"]
+watch_patterns = ["**/*.md", "**/SKILL.md"]
+include_dirs_auto = true
+include_dirs_auto_candidates = ["docs", "internal_skills"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -39,13 +41,39 @@ index_paths = ["custom", "paths"]
 
       const config = await loadConfig();
 
-      expect(config.ui?.index_paths).toEqual(['custom', 'paths']);
+      expect(toUiConfig(config).projects).toEqual([
+        {
+          name: 'kernel',
+          root: '.',
+          paths: ['docs', 'internal_skills'],
+          watchPatterns: ['**/*.md', '**/SKILL.md'],
+          includeDirsAuto: true,
+          includeDirsAutoCandidates: ['docs', 'internal_skills'],
+        },
+      ]);
     });
 
-    it('should return empty paths when ui section is missing', async () => {
+    it('should reject when gateway.bind is missing', async () => {
+      const mockToml = `
+[link_graph.projects.kernel]
+root = "."
+paths = ["docs"]
+`;
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(mockToml),
+      });
+
+      await expect(loadConfig()).rejects.toThrow('wendao.toml must define [gateway].bind');
+    });
+
+    it('should reject when link_graph.projects is empty', async () => {
       const mockToml = `
 [gateway]
-bind = "127.0.0.1:8001"
+bind = "127.0.0.1:9517"
+
+[link_graph]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -53,36 +81,34 @@ bind = "127.0.0.1:8001"
         text: () => Promise.resolve(mockToml),
       });
 
-      const config = await loadConfig();
-
-      // When ui section is missing, should return empty paths
-      expect(config.ui?.index_paths).toEqual([]);
+      await expect(loadConfig()).rejects.toThrow(
+        'wendao.toml must define at least one [link_graph.projects.<name>] section'
+      );
     });
 
-    it('should return empty paths when ui.index_paths is empty', async () => {
-      const mockToml = `
-[ui]
-index_paths = []
-`;
-
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockToml),
-      });
-
-      const config = await loadConfig();
-
-      // When index_paths is empty, should return empty array
-      expect(config.ui?.index_paths).toEqual([]);
-    });
-
-    it('should handle fetch errors gracefully', async () => {
+    it('should surface fetch errors', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
+      await expect(loadConfig()).rejects.toThrow('Network error');
+    });
+
+    it('should reject projects without paths during ui normalization', async () => {
+      const mockToml = `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+`;
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(mockToml),
+      });
+
       const config = await loadConfig();
 
-      // On network error, should return empty config
-      expect(config.ui?.index_paths).toEqual([]);
+      expect(() => toUiConfig(config)).toThrow('project "kernel" must define at least one path');
     });
   });
 
@@ -93,8 +119,12 @@ index_paths = []
 
     it('should load and cache config', async () => {
       const mockToml = `
-[ui]
-index_paths = ["cached"]
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.cached]
+root = "."
+paths = ["docs"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -107,7 +137,16 @@ index_paths = ["cached"]
 
       // Fetch should only be called once due to caching
       expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(config1.ui?.index_paths).toEqual(['cached']);
+      expect(toUiConfig(config1).projects).toEqual([
+        {
+          name: 'cached',
+          root: '.',
+          paths: ['docs'],
+          watchPatterns: [],
+          includeDirsAuto: false,
+          includeDirsAutoCandidates: [],
+        },
+      ]);
       expect(config2).toBe(config1);
     });
   });
@@ -124,8 +163,12 @@ index_paths = ["cached"]
 
     it('should return cached config after loading', async () => {
       const mockToml = `
-[ui]
-index_paths = ["sync-test"]
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.sync_test]
+root = "."
+paths = ["docs"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -137,7 +180,18 @@ index_paths = ["sync-test"]
       const syncConfig = getConfigSync();
 
       expect(syncConfig).not.toBeNull();
-      expect(syncConfig?.ui?.index_paths).toEqual(['sync-test']);
+      expect(toUiConfig(syncConfig!)).toEqual({
+        projects: [
+          {
+            name: 'sync_test',
+            root: '.',
+            paths: ['docs'],
+            watchPatterns: [],
+            includeDirsAuto: false,
+            includeDirsAutoCandidates: [],
+          },
+        ],
+      });
     });
   });
 });

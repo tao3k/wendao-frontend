@@ -31,7 +31,7 @@ describe('useAccessibility', () => {
 
   describe('initial state', () => {
     it('should return default values when no preferences are set', () => {
-      matchMediaSpy.mockImplementation((query: string) => {
+      matchMediaSpy.mockImplementation(() => {
         return createMediaQueryList(false);
       });
 
@@ -61,7 +61,6 @@ describe('useAccessibility', () => {
 
       matchMediaSpy.mockImplementation((query: string) => {
         const mql = createMediaQueryList(false);
-        const originalAddEventListener = mql.addEventListener;
         mql.addEventListener = vi.fn((event, listener) => {
           if (event === 'change' && query === '(prefers-reduced-motion: reduce)') {
             motionListeners.push(listener as (e: MediaQueryListEvent) => void);

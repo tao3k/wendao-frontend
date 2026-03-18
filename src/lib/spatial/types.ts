@@ -58,6 +58,8 @@ export interface LayoutConfig {
   gravityStrength: number;
   /** Ideal edge length */
   idealEdgeLength: number;
+  /** Minimum separation between nodes */
+  minDistance: number;
   /** Z-axis separation between clusters */
   clusterSeparation: number;
   /** Alpha decay rate */
@@ -73,6 +75,7 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   repulsionStrength: 800,
   gravityStrength: 0.01,
   idealEdgeLength: 50,
+  minDistance: 24,
   clusterSeparation: 100,
   alphaDecay: 0.02,
 };
@@ -82,6 +85,7 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
  */
 export type LayoutWorkerInput =
   | { type: 'init'; nodes: AcademicNode[]; links: AcademicLink[]; config?: Partial<LayoutConfig> }
+  | { type: 'sync'; nodes: AcademicNode[]; links: AcademicLink[]; config?: Partial<LayoutConfig> }
   | { type: 'tick'; count?: number }
   | { type: 'update'; nodeId: string; position: [number, number, number] }
   | { type: 'getNodes' }

@@ -143,9 +143,6 @@ describe('Recursion Detection', () => {
       const detectMessageLoop = (workerCode: string): boolean => {
         const hasPostMessage = /postMessage\s*\(/.test(workerCode);
         const hasOnMessage = /onmessage\s*=/.test(workerCode);
-        const sendsToSelf = /self\.postMessage/.test(workerCode) &&
-                          /self\.onmessage/.test(workerCode);
-
         // This is expected for workers, but check for unbounded loops
         const hasLoopWithoutTermination = /while\s*\(\s*true\s*\)/.test(workerCode) ||
                                           /for\s*\(\s*;\s*;/.test(workerCode);

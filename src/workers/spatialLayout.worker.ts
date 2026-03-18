@@ -11,6 +11,7 @@ import type {
   LayoutWorkerOutput,
   LayoutConfig,
 } from '../lib/spatial/types';
+import { deterministicNodePosition } from '../utils/topologyContinuity';
 
 // Inline VP-FDC implementation (can't import modules in workers easily)
 // This is a simplified version - full version in VPForceLayout.ts
@@ -43,12 +44,39 @@ let config: LayoutConfig = {
   repulsionStrength: 800,
   gravityStrength: 0.01,
   idealEdgeLength: 50,
+  minDistance: 24,
   clusterSeparation: 100,
   alphaDecay: 0.02,
 };
 
-function initialize(inputNodes: AcademicNode[], inputLinks: AcademicLink[]): void {
-  nodes.clear();
+function resolveInitialPosition(
+  node: AcademicNode,
+  index: number,
+  totalCount: number,
+  clusterX: number,
+  clusterZ: number,
+  nodeRadius: number
+): [number, number, number] {
+  if (node.position) {
+    return node.position;
+  }
+
+  const [localX, localY, localZ] = deterministicNodePosition(
+    node.id,
+    index,
+    totalCount,
+    Math.max(18, nodeRadius)
+  );
+  return [clusterX + localX * 0.35, localY, clusterZ + localZ * 0.35];
+}
+
+function populateNodes(
+  inputNodes: AcademicNode[],
+  inputLinks: AcademicLink[],
+  preserveExisting: boolean
+): void {
+  const previousNodes = preserveExisting ? nodes : new Map<string, LayoutNodeInternal>();
+  const nextNodes: Map<string, LayoutNodeInternal> = new Map();
   links = inputLinks.map((l) => ({ source: l.from, target: l.to, strength: 1.0 }));
 
   const typeGroups = new Map<string, AcademicNode[]>();
@@ -59,29 +87,48 @@ function initialize(inputNodes: AcademicNode[], inputLinks: AcademicLink[]): voi
   });
 
   let typeIndex = 0;
-  typeGroups.forEach((groupNodes, type) => {
+  typeGroups.forEach((groupNodes) => {
     const angle = (typeIndex / typeGroups.size) * Math.PI * 2;
-    const clusterRadius = 100;
+    const clusterRadius = config.clusterSeparation;
     const clusterX = Math.cos(angle) * clusterRadius;
     const clusterZ = Math.sin(angle) * clusterRadius;
 
     groupNodes.forEach((node, i) => {
-      const nodeAngle = (i / groupNodes.length) * Math.PI * 2;
+      const existing = previousNodes.get(node.id);
       const nodeRadius = Math.sqrt(groupNodes.length) * 15;
-      nodes.set(node.id, {
+      const [baseX, baseY, baseZ] = resolveInitialPosition(
+        node,
+        i,
+        inputNodes.length,
+        clusterX,
+        clusterZ,
+        nodeRadius
+      );
+
+      nextNodes.set(node.id, {
         ...node,
-        x: clusterX + Math.cos(nodeAngle) * nodeRadius + (Math.random() - 0.5) * 20,
-        y: (Math.random() - 0.5) * 50,
-        z: clusterZ + Math.sin(nodeAngle) * nodeRadius + (Math.random() - 0.5) * 20,
-        vx: 0,
-        vy: 0,
-        vz: 0,
+        x: existing?.x ?? baseX,
+        y: existing?.y ?? baseY,
+        z: existing?.z ?? baseZ,
+        vx: existing?.vx ?? 0,
+        vy: existing?.vy ?? 0,
+        vz: existing?.vz ?? 0,
+        fixed: existing?.fixed ?? false,
       });
     });
     typeIndex++;
   });
 
-  alpha = 1.0;
+  nodes = nextNodes;
+  alpha = preserveExisting ? Math.max(alpha, 0.35) : 1.0;
+}
+
+function initialize(inputNodes: AcademicNode[], inputLinks: AcademicLink[]): void {
+  populateNodes(inputNodes, inputLinks, false);
+}
+
+function synchronize(inputNodes: AcademicNode[], inputLinks: AcademicLink[]): void {
+  populateNodes(inputNodes, inputLinks, true);
 }
 
 function tick(count: number = 1): LayoutNodeInternal[] {
@@ -116,6 +163,7 @@ function tick(count: number = 1): LayoutNodeInternal[] {
       }
 
       // Node repulsion
+      const minDistance = config.minDistance;
       for (const other of nodeArray) {
         if (other.id === node.id) continue;
         const dx = node.x - other.x;
@@ -127,6 +175,14 @@ function tick(count: number = 1): LayoutNodeInternal[] {
         fx += (dx / dist) * force;
         fy += (dy / dist) * force;
         fz += (dz / dist) * force;
+
+        if (dist < minDistance) {
+          const overlap = minDistance - dist;
+          const push = overlap * config.repulsionStrength * 0.002;
+          fx += (dx / dist) * push;
+          fy += (dy / dist) * push;
+          fz += (dz / dist) * push;
+        }
       }
 
       // Gravity
@@ -210,6 +266,18 @@ self.onmessage = (e: MessageEvent<LayoutWorkerInput>) => {
         postMessage({
           type: 'tick',
           nodes: resultNodes,
+          alpha,
+        } as LayoutWorkerOutput);
+        break;
+
+      case 'sync':
+        if (msg.config) {
+          config = { ...config, ...msg.config };
+        }
+        synchronize(msg.nodes, msg.links);
+        postMessage({
+          type: 'nodes',
+          nodes: Array.from(nodes.values()),
           alpha,
         } as LayoutWorkerOutput);
         break;

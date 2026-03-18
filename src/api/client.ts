@@ -2,51 +2,60 @@
  * Type-safe API client for Qianji Studio backend
  *
  * Uses the bindings generated from Rust Specta types.
- * All endpoints are proxied through Rspack dev server to localhost:8001.
+ * All endpoints are routed by the Rspack dev proxy according to .data/qianji-studio/wendao.toml gateway settings.
  */
 
 import type {
   VfsEntry,
+  VfsScanEntry,
+  VfsScanResult,
+  VfsContentResponse,
   NodeNeighbors,
   Topology3D,
-  KnowledgeSearchResult,
-  ApiError,
   GraphNeighborsResponse,
+  UiConfig,
+  UiProjectConfig,
+  SearchHit,
+  SearchResponse,
+  AstSearchHit,
+  AstSearchResponse,
+  DefinitionResolveResponse,
+  ReferenceSearchHit,
+  ReferenceSearchResponse,
+  SymbolSearchHit,
+  SymbolSearchResponse,
+  AutocompleteSuggestion,
+  AutocompleteResponse,
 } from './bindings';
 
+// Re-export types for convenience
+export type {
+  VfsEntry,
+  VfsScanEntry,
+  VfsScanResult,
+  VfsContentResponse,
+  NodeNeighbors,
+  Topology3D,
+  GraphNeighborsResponse,
+  UiConfig,
+  UiProjectConfig,
+  SearchHit,
+  SearchResponse,
+  AstSearchHit,
+  AstSearchResponse,
+  DefinitionResolveResponse,
+  ReferenceSearchHit,
+  ReferenceSearchResponse,
+  SymbolSearchHit,
+  SymbolSearchResponse,
+  AutocompleteSuggestion,
+  AutocompleteResponse,
+};
+
+// Import ApiError for use in this module (not re-exported to avoid conflict)
+import type { ApiError } from './bindings';
+
 const API_BASE = '/api';
-
-// VFS Content response type
-export interface VfsContentResponse {
-  path: string;
-  content: string;
-  contentType: string;
-}
-
-// VFS Scan result type
-export interface VfsScanEntry {
-  path: string;
-  name: string;
-  isDir: boolean;
-  category: 'folder' | 'skill' | 'doc' | 'knowledge' | 'other';
-  size: number;
-  modified: number;
-  contentType?: string;
-  hasFrontmatter: boolean;
-  wendaoId?: string;
-}
-
-export interface VfsScanResult {
-  entries: VfsScanEntry[];
-  fileCount: number;
-  dirCount: number;
-  scanDurationMs: number;
-}
-
-// UI Config type
-export interface UiConfig {
-  indexPaths: string[];
-}
 
 class ApiClientError extends Error {
   constructor(
@@ -74,6 +83,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * API client for Qianji Studio
  */
 export const api = {
+  // === Health Endpoint ===
+
+  /**
+   * Verify the gateway is reachable before studio boot continues
+   */
+  async health(): Promise<string> {
+    const response = await fetch(`${API_BASE}/health`);
+    return handleResponse<string>(response);
+  },
+
   // === VFS Endpoints ===
 
   /**
@@ -152,12 +171,62 @@ export const api = {
   // === Search Endpoints ===
 
   /**
-   * Search knowledge base
+   * Search knowledge base using LinkGraphIndex
    */
-  async searchKnowledge(query: string, limit: number = 10): Promise<KnowledgeSearchResult[]> {
+  async searchKnowledge(query: string, limit: number = 10): Promise<SearchResponse> {
     const params = new URLSearchParams({ q: query, limit: String(limit) });
     const response = await fetch(`${API_BASE}/search?${params}`);
-    return handleResponse<KnowledgeSearchResult[]>(response);
+    return handleResponse<SearchResponse>(response);
+  },
+
+  /**
+   * Search AST-derived definitions from source files
+   */
+  async searchAst(query: string, limit: number = 10): Promise<AstSearchResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/search/ast?${params}`);
+    return handleResponse<AstSearchResponse>(response);
+  },
+
+  /**
+   * Resolve the best backend-native definition target for a symbol reference
+   */
+  async resolveDefinition(
+    query: string,
+    options?: { path?: string; line?: number }
+  ): Promise<DefinitionResolveResponse> {
+    const params = new URLSearchParams({ q: query });
+    if (options?.path) params.set('path', options.path);
+    if (typeof options?.line === 'number') params.set('line', String(options.line));
+    const response = await fetch(`${API_BASE}/search/definition?${params}`);
+    return handleResponse<DefinitionResolveResponse>(response);
+  },
+
+  /**
+   * Search source references and usages for a symbol
+   */
+  async searchReferences(query: string, limit: number = 10): Promise<ReferenceSearchResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/search/references?${params}`);
+    return handleResponse<ReferenceSearchResponse>(response);
+  },
+
+  /**
+   * Search extracted project symbols from source files
+   */
+  async searchSymbols(query: string, limit: number = 10): Promise<SymbolSearchResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/search/symbols?${params}`);
+    return handleResponse<SymbolSearchResponse>(response);
+  },
+
+  /**
+   * Get autocomplete suggestions for typeahead
+   */
+  async searchAutocomplete(prefix: string, limit: number = 5): Promise<AutocompleteResponse> {
+    const params = new URLSearchParams({ prefix, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/search/autocomplete?${params}`);
+    return handleResponse<AutocompleteResponse>(response);
   },
 
   // === UI Config Endpoints ===
@@ -185,4 +254,3 @@ export const api = {
 };
 
 export { ApiClientError };
-export type { ApiError };

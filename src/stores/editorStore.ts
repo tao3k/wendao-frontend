@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AcademicNode, ViewMode } from '../types';
+import { AcademicNode } from '../types';
 
 interface HistoryState {
   xml: string;
@@ -13,10 +13,6 @@ interface EditorState {
   selectedNode: AcademicNode | null;
   setSelectedNode: (node: AcademicNode | null) => void;
   clearSelection: () => void;
-
-  // View mode
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
 
   // XML state
   currentXml: string;
@@ -34,6 +30,12 @@ interface EditorState {
   // UI state
   discoveryOpen: boolean;
   setDiscoveryOpen: (open: boolean) => void;
+
+  // Sidebar state persistence
+  expandedPaths: string[];
+  setExpandedPaths: (paths: string[]) => void;
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -52,10 +54,6 @@ export const useEditorStore = create<EditorState>()(
           selectedNodeId: null,
           selectedNode: null,
         }),
-
-      // View mode
-      viewMode: '2d',
-      setViewMode: (mode) => set({ viewMode: mode }),
 
       // XML state
       currentXml: '',
@@ -101,11 +99,18 @@ export const useEditorStore = create<EditorState>()(
       // UI state
       discoveryOpen: false,
       setDiscoveryOpen: (open) => set({ discoveryOpen: open }),
+
+      // Sidebar state persistence
+      expandedPaths: [],
+      setExpandedPaths: (paths) => set({ expandedPaths: paths }),
+      sidebarWidth: 260,
+      setSidebarWidth: (width) => set({ sidebarWidth: width }),
     }),
     {
       name: 'qianji-editor-state',
       partialize: (state) => ({
-        viewMode: state.viewMode,
+        expandedPaths: state.expandedPaths,
+        sidebarWidth: state.sidebarWidth,
       }),
     }
   )

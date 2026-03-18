@@ -43,6 +43,17 @@
   --sovereign-error: var(--neon-red);
   --sovereign-purple: var(--neon-purple);
 
+  /* Legacy semantic aliases */
+  --bg-primary: var(--tokyo-bg);
+  --bg-secondary: var(--sovereign-void);
+  --panel-bg: var(--tokyo-panel);
+  --panel-bg-strong: rgba(36, 40, 59, 0.96);
+  --border-color: var(--tokyo-border);
+  --text-primary: var(--tokyo-text);
+  --text-muted: var(--tokyo-text-muted);
+  --accent-color: var(--neon-blue);
+  --hover-bg: rgba(125, 207, 255, 0.12);
+
   /* Acrylic Glass Effect */
   --acrylic-bg: rgba(36, 40, 59, 0.85);
   --acrylic-bg-light: rgba(36, 40, 59, 0.65);
@@ -115,6 +126,14 @@ body {
   background-color: var(--tokyo-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.sovereign-app {
+  min-height: 100vh;
+  color: var(--tokyo-text);
+  background:
+    radial-gradient(circle at top, rgba(125, 207, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, var(--tokyo-bg) 0%, var(--sovereign-void) 100%);
 }
 
 /* ============================================
@@ -460,9 +479,19 @@ body {
     --acrylic-bg: rgba(0, 0, 0, 0.95);
     --acrylic-border: rgba(255, 255, 255, 0.5);
     --tokyo-text: #ffffff;
+    --tokyo-text-muted: #d7d7d7;
+    --hover-bg: rgba(255, 255, 255, 0.18);
   }
 
   .hud-panel {
+    border-width: 2px;
+  }
+
+  .toolbar-btn,
+  .search-modal,
+  .search-input-container,
+  .search-suggestion.selected,
+  .search-result.selected {
     border-width: 2px;
   }
 }
@@ -526,6 +555,33 @@ body {
 
 .btn--icon {
   padding: 8px;
+}
+
+.toolbar-btn {
+  min-height: 34px;
+  border-color: rgba(125, 207, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.toolbar-btn svg {
+  color: currentColor;
+}
+
+.toolbar-btn--active {
+  color: var(--neon-blue);
+  background: rgba(125, 207, 255, 0.14);
+  border-color: var(--neon-blue);
+  box-shadow: var(--glow-blue);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(125, 207, 255, 0.18);
+}
+
+.toolbar-spacer {
+  flex: 1;
 }
 
 /* ============================================
@@ -678,6 +734,50 @@ body {
 
 .status-dot--inactive {
   background: var(--tokyo-text-muted);
+}
+
+.status-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.status-bar__group--secondary {
+  justify-content: flex-end;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--tokyo-text);
+}
+
+.status-chip svg {
+  color: currentColor;
+}
+
+.status-chip--warning {
+  color: var(--neon-yellow);
+}
+
+.status-chip--error {
+  color: var(--neon-red);
+}
+
+.status-chip--active {
+  color: var(--neon-green);
+}
+
+.status-text--accent {
+  color: var(--neon-blue);
+  text-shadow: var(--glow-blue);
+}
+
+.status-text--muted {
+  color: var(--tokyo-text-muted);
 }
 
 /* ============================================

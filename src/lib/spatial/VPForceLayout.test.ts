@@ -92,6 +92,29 @@ describe('VPForceLayout', () => {
       });
     });
 
+    it('should respect provided node positions', () => {
+      const positionedNodes: AcademicNode[] = [
+        { id: 'node-a', name: 'Node A', type: 'task', position: [10, 5, -3] },
+        { id: 'node-b', name: 'Node B', type: 'event', position: [-4, 2, 7] },
+      ];
+
+      layout.initialize(positionedNodes, []);
+      const nodes = layout.getNodes();
+
+      const nodeA = nodes.find((node) => node.id === 'node-a');
+      const nodeB = nodes.find((node) => node.id === 'node-b');
+
+      expect(nodeA).toBeDefined();
+      expect(nodeA!.x).toBe(10);
+      expect(nodeA!.y).toBe(5);
+      expect(nodeA!.z).toBe(-3);
+
+      expect(nodeB).toBeDefined();
+      expect(nodeB!.x).toBe(-4);
+      expect(nodeB!.y).toBe(2);
+      expect(nodeB!.z).toBe(7);
+    });
+
     it('should reset alpha on initialize', () => {
       layout.initialize(testNodes, testLinks);
       layout.tickMany(10);
@@ -265,6 +288,30 @@ describe('VPForceLayout', () => {
       expect(layout['alpha']).toBeLessThan(0.1);
     });
 
+    it('should push overlapping nodes apart with minDistance', () => {
+      const layoutWithMinDistance = new VPForceLayout({
+        minDistance: 12,
+        repulsionStrength: 1200,
+        alphaDecay: 0.01,
+      });
+
+      const overlappingNodes: AcademicNode[] = [
+        { id: 'overlap-1', name: 'Overlap 1', type: 'task', position: [0, 0, 0] },
+        { id: 'overlap-2', name: 'Overlap 2', type: 'task', position: [1, 0, 0] },
+      ];
+
+      layoutWithMinDistance.initialize(overlappingNodes, []);
+      layoutWithMinDistance.tickMany(150);
+
+      const [first, second] = layoutWithMinDistance.getNodes();
+      const dx = first.x - second.x;
+      const dy = first.y - second.y;
+      const dz = first.z - second.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      expect(dist).toBeGreaterThan(6);
+    });
+
     it('should not let nodes overlap significantly', () => {
       // Create more nodes to test repulsion
       const manyNodes: AcademicNode[] = [];
@@ -302,6 +349,7 @@ describe('DEFAULT_LAYOUT_CONFIG', () => {
     expect(DEFAULT_LAYOUT_CONFIG.repulsionStrength).toBeDefined();
     expect(DEFAULT_LAYOUT_CONFIG.gravityStrength).toBeDefined();
     expect(DEFAULT_LAYOUT_CONFIG.idealEdgeLength).toBeDefined();
+    expect(DEFAULT_LAYOUT_CONFIG.minDistance).toBeDefined();
     expect(DEFAULT_LAYOUT_CONFIG.clusterSeparation).toBeDefined();
     expect(DEFAULT_LAYOUT_CONFIG.alphaDecay).toBeDefined();
   });

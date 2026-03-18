@@ -4,11 +4,12 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import * as React from 'react';
 import type { AcademicNode, AcademicLink } from '../types';
 
 // Mock the spatial layout worker module
 vi.mock('../workers/spatialLayout.worker.ts', () => ({}));
+
+let lastPostedMessage: unknown | null = null;
 
 // Mock Worker class
 class MockWorker {
@@ -16,6 +17,7 @@ class MockWorker {
   onerror: ((e: ErrorEvent) => void) | null = null;
 
   postMessage(data: unknown) {
+    lastPostedMessage = data;
     // Simulate async response
     setTimeout(() => {
       if (!this.onmessage) return;
@@ -24,6 +26,7 @@ class MockWorker {
 
       switch (msg.type) {
         case 'init':
+        case 'sync':
           this.onmessage({
             data: {
               type: 'nodes',
@@ -92,6 +95,7 @@ const OriginalWorker = globalThis.Worker;
 const OriginalURL = globalThis.URL;
 
 beforeEach(() => {
+  lastPostedMessage = null;
   // @ts-expect-error Mock Worker
   globalThis.Worker = MockWorker;
   // @ts-expect-error Mock URL
@@ -132,7 +136,7 @@ describe('useSpatialLayout', () => {
 
   describe('initialize', () => {
     it('should initialize with nodes and links', async () => {
-      const { result } = renderHook(() => useSpatialLayout());
+      const { result } = renderHook(() => useSpatialLayout({ autoTick: false }));
 
       act(() => {
         result.current.initialize(testNodes, testLinks);
@@ -149,9 +153,11 @@ describe('useSpatialLayout', () => {
     it('should pass config to worker', async () => {
       const { result } = renderHook(() =>
         useSpatialLayout({
+          autoTick: false,
           config: {
             iterations: 500,
             linkStrength: 0.5,
+            minDistance: 32,
           },
         })
       );
@@ -163,12 +169,55 @@ describe('useSpatialLayout', () => {
       await waitFor(() => {
         expect(result.current.isReady).toBe(true);
       });
+
+      expect(lastPostedMessage).toEqual(
+        expect.objectContaining({
+          type: 'init',
+          config: expect.objectContaining({
+            iterations: 500,
+            linkStrength: 0.5,
+            minDistance: 32,
+          }),
+        })
+      );
+    });
+  });
+
+  describe('synchronize', () => {
+    it('should reconcile nodes without dropping readiness', async () => {
+      const { result } = renderHook(() => useSpatialLayout({ autoTick: false }));
+
+      act(() => {
+        result.current.initialize(testNodes, testLinks);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isReady).toBe(true);
+      });
+
+      act(() => {
+        result.current.synchronize(
+          [...testNodes, { id: 'node-3', name: 'Task 3', type: 'task' }],
+          [...testLinks, { from: 'node-2', to: 'node-3' }]
+        );
+      });
+
+      await waitFor(() => {
+        expect(result.current.nodes).toHaveLength(3);
+      });
+
+      expect(result.current.isReady).toBe(true);
+      expect(lastPostedMessage).toEqual(
+        expect.objectContaining({
+          type: 'sync',
+        })
+      );
     });
   });
 
   describe('tick', () => {
     it('should send tick message to worker', async () => {
-      const { result } = renderHook(() => useSpatialLayout());
+      const { result } = renderHook(() => useSpatialLayout({ autoTick: false }));
 
       act(() => {
         result.current.initialize(testNodes, testLinks);
@@ -218,7 +267,7 @@ describe('useSpatialLayout', () => {
 
   describe('updatePosition', () => {
     it('should send update message to worker', async () => {
-      const { result } = renderHook(() => useSpatialLayout());
+      const { result } = renderHook(() => useSpatialLayout({ autoTick: false }));
 
       act(() => {
         result.current.initialize(testNodes, testLinks);

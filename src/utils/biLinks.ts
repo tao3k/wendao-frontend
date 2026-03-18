@@ -4,7 +4,7 @@
  */
 export const parseBiLinks = (text: string): string => {
   return text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-    return `<span class="bilink" data-anchor="${p1}">[[${p1}]]</span>`;
+    return `<span class="bilink" data-anchor="${p1}">${match}</span>`;
   });
 };
 

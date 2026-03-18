@@ -7,7 +7,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AcademicNode, AcademicLink } from '../types';
-import type { LayoutNode, LayoutCluster, LayoutConfig, LayoutWorkerInput } from '../lib/spatial/types';
+import type {
+  LayoutNode,
+  LayoutCluster,
+  LayoutConfig,
+  LayoutWorkerInput,
+  LayoutWorkerOutput,
+} from '../lib/spatial/types';
 
 export interface UseSpatialLayoutOptions {
   /** Layout configuration */
@@ -33,6 +39,8 @@ export interface UseSpatialLayoutReturn {
   error: string | null;
   /** Initialize with nodes and links */
   initialize: (nodes: AcademicNode[], links: AcademicLink[]) => void;
+  /** Reconcile graph changes without dropping current layout state */
+  synchronize: (nodes: AcademicNode[], links: AcademicLink[]) => void;
   /** Run a single tick */
   tick: (count?: number) => void;
   /** Start continuous simulation */
@@ -65,6 +73,14 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
   // Initialize worker
   useEffect(() => {
     mountedRef.current = true;
+
+    if (typeof Worker === 'undefined') {
+      setError('Web Worker not available');
+      setIsReady(false);
+      return () => {
+        mountedRef.current = false;
+      };
+    }
 
     // Create worker
     workerRef.current = new Worker(
@@ -146,14 +162,38 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
       if (!workerRef.current) return;
 
       setError(null);
+      setIsReady(false);
       workerRef.current.postMessage({
         type: 'init',
         nodes: inputNodes,
         links: inputLinks,
         config,
       } as LayoutWorkerInput);
+
+      if (autoTick) {
+        setIsRunning(true);
+      }
     },
-    [config]
+    [config, autoTick]
+  );
+
+  const synchronize = useCallback(
+    (inputNodes: AcademicNode[], inputLinks: AcademicLink[]) => {
+      if (!workerRef.current) return;
+
+      setError(null);
+      workerRef.current.postMessage({
+        type: 'sync',
+        nodes: inputNodes,
+        links: inputLinks,
+        config,
+      } as LayoutWorkerInput);
+
+      if (autoTick) {
+        setIsRunning(true);
+      }
+    },
+    [config, autoTick]
   );
 
   const tick = useCallback((count = 1) => {
@@ -199,6 +239,7 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
     isRunning,
     error,
     initialize,
+    synchronize,
     tick,
     start,
     stop,

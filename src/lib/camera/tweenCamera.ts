@@ -7,7 +7,7 @@
  * - Easing functions for natural-feeling animations
  */
 
-import type { Object3D, Vector3, Camera } from 'three';
+import type { Vector3, Camera } from 'three';
 
 /**
  * Easing functions for camera animations
@@ -141,6 +141,7 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
 
   // Handle reduced motion - instant transition
   const duration = prefersReducedMotion() ? 0 : config.duration;
+  const zoomableCamera = camera as Camera & { zoom: number; updateProjectionMatrix?: () => void };
 
   if (duration === 0) {
     camera.position.set(...target.position);
@@ -148,7 +149,7 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
       camera.lookAt(target.lookAt[0], target.lookAt[1], target.lookAt[2]);
     }
     if (target.zoom !== undefined && 'zoom' in camera) {
-      (camera as { zoom: number }).zoom = target.zoom;
+      zoomableCamera.zoom = target.zoom;
     }
     config.onComplete?.();
     return () => {};
@@ -167,8 +168,6 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
   // Get current lookAt direction (if available)
   let startLookAt: Vector3 | null = null;
   if (target.lookAt && 'quaternion' in camera) {
-    // Use a default forward direction as fallback
-    const direction = createVector3(0, 0, -1);
     // Apply quaternion rotation if available
     const q = (camera as { quaternion: { x: number; y: number; z: number; w: number } }).quaternion;
     // Simplified quaternion rotation for forward vector
@@ -185,7 +184,7 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
 
   const targetPosition = createVector3(...target.position);
   const targetLookAt = target.lookAt ? createVector3(...target.lookAt) : null;
-  const startZoom = 'zoom' in camera ? (camera as { zoom: number }).zoom : 1;
+  const startZoom = 'zoom' in camera ? zoomableCamera.zoom : 1;
   const targetZoom = target.zoom ?? startZoom;
 
   const state: TweenState = {
@@ -227,8 +226,8 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
     // Interpolate zoom
     if ('zoom' in camera) {
       const newZoom = state.startZoom + (state.targetZoom - state.startZoom) * progress;
-      (camera as { zoom: number }).zoom = newZoom;
-      camera.updateProjectionMatrix?.();
+      zoomableCamera.zoom = newZoom;
+      zoomableCamera.updateProjectionMatrix?.();
     }
 
     config.onUpdate?.(progress);

@@ -32,14 +32,41 @@ interface FileNode {
 interface FileTreeProps {
   onFileSelect: (path: string, category: string, metadata?: { projectName?: string; rootLabel?: string }) => void;
   selectedPath?: string | null;
+  locale?: 'en' | 'zh';
+  onStatusChange?: (status: { isLoading: boolean; error: string | null }) => void;
 }
+
+interface FileTreeCopy {
+  toolbarTitle: string;
+  rootsSuffix: string;
+  gatewayBlocked: string;
+  gatewayHint: string;
+  retry: string;
+}
+
+const FILE_TREE_COPY: Record<'en' | 'zh', FileTreeCopy> = {
+  en: {
+    toolbarTitle: 'File Tree',
+    rootsSuffix: 'roots',
+    gatewayBlocked: 'Gateway sync blocked.',
+    gatewayHint: 'Studio requires a healthy gateway before the project tree can be shown.',
+    retry: 'Retry gateway sync',
+  },
+  zh: {
+    toolbarTitle: '文件树',
+    rootsSuffix: '个根节点',
+    gatewayBlocked: '网关同步被阻塞。',
+    gatewayHint: 'Studio 需要可用网关后才能显示项目树。',
+    retry: '重试网关同步',
+  },
+};
 
 interface ProjectHint {
   name: string;
   aliasSet: Set<string>;
-  pathSet: Set<string>;
+  dirSet: Set<string>;
   root: string;
-  paths: string[];
+  dirs: string[];
   order: number;
 }
 
@@ -54,24 +81,24 @@ function normalizeProjectSegment(value?: string): string {
 
 function buildProjectHints(config: WendaoConfig): ProjectHint[] {
   return toUiConfig(config).projects.map((project, order) => {
-    const normalizedPaths = new Set(
-      (project.paths ?? []).map((path) => normalizeProjectSegment(path)).filter((path) => path.length > 0)
+    const normalizedDirs = new Set(
+      (project.dirs ?? []).map((dir) => normalizeProjectSegment(dir)).filter((dir) => dir.length > 0)
     );
 
     const aliasSet = new Set<string>([project.name]);
-    for (const path of normalizedPaths) {
-      aliasSet.add(`${project.name}-${path}`);
+    for (const dir of normalizedDirs) {
+      aliasSet.add(`${project.name}-${dir}`);
     }
-    if (normalizedPaths.has(project.name)) {
+    if (normalizedDirs.has(project.name)) {
       aliasSet.add(project.name);
     }
 
     return {
       name: project.name,
       aliasSet,
-      pathSet: normalizedPaths,
+      dirSet: normalizedDirs,
       root: project.root,
-      paths: [...normalizedPaths],
+      dirs: [...normalizedDirs],
       order,
     };
   });
@@ -97,7 +124,7 @@ function inferProjectFromPath(entryPath: string, rootLabel: string | undefined, 
     }
   }
 
-  const byConfiguredPath = hints.filter((hint) => hint.pathSet.has(topSegment));
+  const byConfiguredPath = hints.filter((hint) => hint.dirSet.has(topSegment));
   if (byConfiguredPath.length === 1) {
     return byConfiguredPath[0].name;
   }
@@ -106,7 +133,7 @@ function inferProjectFromPath(entryPath: string, rootLabel: string | undefined, 
     return undefined;
   }
 
-  const byRootLabel = hints.filter((hint) => hint.pathSet.has(normalizeProjectSegment(rootLabel)));
+  const byRootLabel = hints.filter((hint) => hint.dirSet.has(normalizeProjectSegment(rootLabel)));
   if (byRootLabel.length === 1) {
     return byRootLabel[0].name;
   }
@@ -129,24 +156,28 @@ function inferRootLabel(entryPath: string, projectName: string | undefined, hint
     return undefined;
   }
 
-  if (hint.pathSet.size === 1) {
-    return [...hint.pathSet][0];
+  if (hint.dirSet.size === 1) {
+    return [...hint.dirSet][0];
   }
 
   return undefined;
 }
 
-function formatProjectSourceHint(hint: ProjectHint | undefined): string | undefined {
+function formatProjectSourceHint(hint: ProjectHint | undefined, locale: 'en' | 'zh'): string | undefined {
   if (!hint) {
     return undefined;
   }
 
-  const segments = [`root: ${hint.root || '(no explicit root)'}`];
-  if (hint.paths.length > 0) {
-    segments.push(`paths: [${hint.paths.join(', ')}]`);
+  const rootPrefix = locale === 'zh' ? '根目录' : 'root';
+  const dirsPrefix = locale === 'zh' ? '目录' : 'dirs';
+  const sourcePrefix = locale === 'zh' ? '来源' : 'source';
+  const emptyRoot = locale === 'zh' ? '（未显式配置）' : '(no explicit root)';
+  const segments = [`${rootPrefix}: ${hint.root || emptyRoot}`];
+  if (hint.dirs.length > 0) {
+    segments.push(`${dirsPrefix}: [${hint.dirs.join(', ')}]`);
   }
 
-  return `source: ${segments.join(' · ')}`;
+  return `${sourcePrefix}: ${segments.join(' · ')}`;
 }
 
 function buildTree(entries: {
@@ -156,7 +187,7 @@ function buildTree(entries: {
   category: string;
   projectName?: string;
   rootLabel?: string;
-}, projectHints: ProjectHint[]): FileNode[] {
+}, projectHints: ProjectHint[], locale: 'en' | 'zh'): FileNode[] {
   const root: FileNode[] = [];
   const nodeMap = new Map<string, FileNode>();
   const entryMap = new Map(entries.map((entry) => [entry.path, entry]));
@@ -192,7 +223,7 @@ function buildTree(entries: {
       category: entry.category as FileNode['category'],
       projectName: resolvedProjectName,
       rootLabel: resolvedRootLabel,
-      sourceHint: formatProjectSourceHint(resolvedProjectHint),
+      sourceHint: formatProjectSourceHint(resolvedProjectHint, locale),
       children: entry.isDir ? [] : undefined,
       level,
     };
@@ -304,6 +335,7 @@ function getCategoryIcon(category: FileNode['category'], isDir: boolean, isOpen:
 
 interface TreeNodeProps {
   node: FileNode;
+  locale: 'en' | 'zh';
   onFileSelect: (path: string, category: string, metadata?: { projectName?: string; rootLabel?: string }) => void;
   selectedPath?: string | null;
   expandedPaths: Set<string>;
@@ -312,6 +344,7 @@ interface TreeNodeProps {
 
 const TreeNode: React.FC<TreeNodeProps> = ({
   node,
+  locale,
   onFileSelect,
   selectedPath,
   expandedPaths,
@@ -340,11 +373,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     <div className={`file-tree-node ${node.isProjectGroup ? 'file-tree-project-group' : ''}`}>
       <div
         className={`file-tree-item ${isSelected ? 'selected' : ''} ${node.isProjectGroup ? 'is-project' : ''}`}
-        style={{ paddingLeft: `${Math.min(node.level, 6) * 10 + 8}px` }}
+        style={{ paddingLeft: `${Math.min(node.level, 8) * 8 + 6}px` }}
         onClick={handleClick}
         role="treeitem"
         aria-expanded={isDir ? isExpanded : undefined}
-        aria-label={node.isProjectGroup ? `Project ${node.name}` : node.name}
+        aria-label={node.isProjectGroup ? `${locale === 'zh' ? '项目' : 'Project'} ${node.name}` : node.name}
         title={node.path}
       >
         {node.isDir ? (
@@ -366,17 +399,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         )}
         {getCategoryIcon(node.category, node.isDir, isExpanded, node.isProjectGroup)}
         {node.isProjectGroup ? (
-          <span className="file-tree-name-wrap">
-            <span
-              className="file-tree-name file-tree-project-name"
-              title={node.name}
-            >
-              {node.name}
+          <>
+            <span className="file-tree-name-wrap">
+              <span
+                className="file-tree-name file-tree-project-name"
+                title={node.name}
+              >
+                {node.name}
+              </span>
             </span>
             {node.sourceHint ? (
-              <span className="file-tree-project-source">{node.sourceHint}</span>
+              <span className="file-tree-project-source" title={node.sourceHint}>
+                {node.sourceHint}
+              </span>
             ) : null}
-          </span>
+          </>
         ) : (
           <span className="file-tree-name" title={node.name}>
             {node.name}
@@ -395,6 +432,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             <TreeNode
               key={child.path}
               node={child}
+              locale={locale}
               onFileSelect={onFileSelect}
               selectedPath={selectedPath}
               expandedPaths={expandedPaths}
@@ -407,7 +445,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   );
 };
 
-export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }) => {
+export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, locale = 'en', onStatusChange }) => {
+  const copy = FILE_TREE_COPY[locale];
   const [treeData, setTreeData] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -432,7 +471,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
         const uiConfig = toUiConfig(config);
         const projectHints = buildProjectHints(config);
 
-        // Push config to backend BEFORE scanning, so VFS uses correct paths
+        // Push config to backend BEFORE scanning, so VFS uses correct dirs
         try {
           await api.setUiConfig(uiConfig);
           console.log('Pushed wendao.toml config to backend:', uiConfig);
@@ -443,11 +482,11 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
 
         // NOW scan VFS - backend will use the pushed config
         const vfsResult = await api.scanVfs();
-        const tree = buildTree(vfsResult.entries, projectHints);
+        const tree = buildTree(vfsResult.entries, projectHints, locale);
         setTreeData(tree);
 
-        // Set expanded paths from wendao.toml config (only if store is empty)
-        if (storeExpandedPaths.length === 0) {
+        // Set expanded tree nodes from wendao.toml config (only if store is empty)
+        if (useEditorStore.getState().expandedPaths.length === 0) {
           storeSetExpandedPaths(tree.map((node) => node.path));
         }
       } catch (err) {
@@ -459,7 +498,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
     };
 
     void loadTree();
-  }, [reloadToken, storeSetExpandedPaths, storeExpandedPaths.length]);
+  }, [locale, reloadToken, storeSetExpandedPaths]);
 
   useEffect(() => {
     if (!error) {
@@ -480,15 +519,19 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
     };
   }, [error, retryGatewaySync]);
 
+  useEffect(() => {
+    onStatusChange?.({ isLoading, error });
+  }, [error, isLoading, onStatusChange]);
+
   const toggleExpand = useCallback((path: string) => {
-    const current = new Set(storeExpandedPaths);
+    const current = new Set(useEditorStore.getState().expandedPaths);
     if (current.has(path)) {
       current.delete(path);
     } else {
       current.add(path);
     }
     storeSetExpandedPaths(Array.from(current));
-  }, [storeExpandedPaths, storeSetExpandedPaths]);
+  }, [storeSetExpandedPaths]);
 
   const handleFileSelect = useCallback((
     path: string,
@@ -501,23 +544,21 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
   return (
     <div className="file-tree-container">
       <div className="file-tree-toolbar">
-        <span className="file-tree-toolbar-title">File Tree</span>
+        <span className="file-tree-toolbar-title">{copy.toolbarTitle}</span>
         {treeData.length > 0 && (
           <span className="file-tree-toolbar-count">
-            {treeData.length} roots
+            {treeData.length} {copy.rootsSuffix}
           </span>
         )}
       </div>
       <div className="file-tree-content">
-        {isLoading ? (
-          <div className="file-tree-loading">Loading...</div>
-        ) : error ? (
+        {error ? (
           <div className="file-tree-error">
-            <strong>Gateway sync blocked.</strong>
-            <span>Studio requires a healthy gateway before the project tree can be shown.</span>
+            <strong>{copy.gatewayBlocked}</strong>
+            <span>{copy.gatewayHint}</span>
             <code>{error}</code>
             <button type="button" className="file-tree-retry" onClick={retryGatewaySync}>
-              Retry gateway sync
+              {copy.retry}
             </button>
           </div>
         ) : null}
@@ -525,6 +566,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath }
           <TreeNode
             key={node.path}
             node={node}
+            locale={locale}
             onFileSelect={handleFileSelect}
             selectedPath={selectedPath}
             expandedPaths={expandedPaths}

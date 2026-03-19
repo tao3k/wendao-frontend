@@ -37,6 +37,7 @@ vi.mock('./config/loader', () => ({
 describe('StudioBootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.setItem('qianji-ui-locale', 'en');
     mocks.getConfig.mockResolvedValue({
       gateway: {
         bind: '127.0.0.1:9517',
@@ -45,7 +46,7 @@ describe('StudioBootstrap', () => {
         projects: {
           kernel: {
             root: '.',
-            paths: ['docs'],
+            dirs: ['docs'],
           },
         },
       },
@@ -55,10 +56,7 @@ describe('StudioBootstrap', () => {
         {
           name: 'kernel',
           root: '.',
-          paths: ['docs'],
-          watchPatterns: [],
-          includeDirsAuto: false,
-          includeDirsAutoCandidates: [],
+          dirs: ['docs'],
         },
       ],
     });
@@ -86,10 +84,7 @@ describe('StudioBootstrap', () => {
         {
           name: 'kernel',
           root: '.',
-          paths: ['docs'],
-          watchPatterns: [],
-          includeDirsAuto: false,
-          includeDirsAutoCandidates: [],
+          dirs: ['docs'],
         },
       ],
     });
@@ -143,5 +138,19 @@ describe('StudioBootstrap', () => {
 
     expect(mocks.health).toHaveBeenCalledTimes(2);
     expect(mocks.scanVfs).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses zh copy and localized fallback message when rejected value is not Error', async () => {
+    window.localStorage.setItem('qianji-ui-locale', 'zh');
+    mocks.health.mockRejectedValue('bad gateway');
+
+    render(<StudioBootstrap />);
+
+    await waitFor(() => {
+      expect(screen.getByText('工作区启动被阻止')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('工作区引导失败')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试工作区引导' })).toBeInTheDocument();
   });
 });

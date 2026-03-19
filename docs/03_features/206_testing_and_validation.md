@@ -67,6 +67,17 @@ Covers:
 - Indexed roots explorer state
 - Graph loading and error overlays
 - Graph node click callback forwarding
+- Graph `NODE_NOT_FOUND` fallback from `/api/graph/neighbors` to `/api/analysis/markdown`
+- JSDOM-stable 3D toolbar tests via a mocked `Canvas` surface (no raw three.js tag noise)
+
+### Diagram Panel
+
+- `src/components/panels/DiagramWindow/__tests__/DiagramWindow.test.tsx`
+
+Covers:
+
+- Embedded Mermaid block rendering in the diagram tab
+- Markdown fallback projection via `/api/analysis/markdown` when no Mermaid block is present
 
 ## Common Validation Command
 
@@ -74,6 +85,18 @@ For the current studio-alignment surface, the most useful targeted command is:
 
 ```bash
 direnv exec . npm test -- src/App.test.tsx src/components/panels/MainView/MainView.test.tsx src/components/panels/GraphView/__tests__/GraphView.test.tsx src/components/SearchBar/__tests__/SearchBar.test.tsx src/components/panels/DirectReader/DirectReader.test.tsx
+```
+
+For focused graph plus app routing validation:
+
+```bash
+direnv exec . npm test -- src/components/panels/GraphView/__tests__/GraphView.test.tsx src/App.test.tsx
+```
+
+For focused diagram projection validation:
+
+```bash
+direnv exec . npm test -- src/components/panels/DiagramWindow/__tests__/DiagramWindow.test.tsx
 ```
 
 ## Known Gaps

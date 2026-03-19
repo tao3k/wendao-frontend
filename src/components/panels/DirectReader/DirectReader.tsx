@@ -16,6 +16,8 @@ export interface DirectReaderProps {
   content?: string;
   /** File path being displayed */
   path?: string;
+  /** UI locale */
+  locale?: 'en' | 'zh';
   /** Optional focused line number */
   line?: number;
   /** Optional focused line range end */
@@ -40,9 +42,44 @@ const MATH_INLINE_RE = /(^|[^\\\w])\$([^\s$](?:[^$\n]*?[^\s$])?)\$(?!\$)/gm;
 const BI_LINK_RE = /\[\[([^\]]+)\]\]/g;
 const BLOCKQUOTE_RE = /^> (.+)$/gm;
 
+interface DirectReaderCopy {
+  emptyContent: string;
+  locationLine: string;
+  locationLines: string;
+  locationLineSuffix: string;
+  locationColumnShort: string;
+  loading: string;
+  emptyMermaidBlock: string;
+  mermaidRenderFailed: string;
+}
+
+const DIRECT_READER_COPY: Record<'en' | 'zh', DirectReaderCopy> = {
+  en: {
+    emptyContent: 'Select a file to view its content',
+    locationLine: 'Line',
+    locationLines: 'Lines',
+    locationLineSuffix: '',
+    locationColumnShort: 'Col',
+    loading: 'Loading...',
+    emptyMermaidBlock: 'Empty Mermaid block',
+    mermaidRenderFailed: 'Mermaid render failed',
+  },
+  zh: {
+    emptyContent: '请选择文件以查看其内容',
+    locationLine: '第',
+    locationLines: '第',
+    locationLineSuffix: '行',
+    locationColumnShort: '列',
+    loading: '加载中...',
+    emptyMermaidBlock: 'Mermaid 代码块为空',
+    mermaidRenderFailed: 'Mermaid 渲染失败',
+  },
+};
+
 export function DirectReader({
   content = '',
   path,
+  locale = 'en',
   line,
   lineEnd,
   column,
@@ -51,6 +88,7 @@ export function DirectReader({
   onBiLinkClick,
   className = '',
 }: DirectReaderProps): React.ReactElement {
+  const copy = DIRECT_READER_COPY[locale];
   const containerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [renderedContent, setRenderedContent] = useState<string>('');
@@ -61,14 +99,18 @@ export function DirectReader({
   const locationLabel =
     typeof line === 'number'
       ? typeof focusedLineEnd === 'number' && focusedLineEnd > line
-        ? `Lines ${line}-${focusedLineEnd}${typeof column === 'number' ? `, Col ${column}` : ''}`
-        : `Line ${line}${typeof column === 'number' ? `, Col ${column}` : ''}`
+        ? locale === 'zh'
+          ? `${copy.locationLines} ${line}-${focusedLineEnd} ${copy.locationLineSuffix}${typeof column === 'number' ? `, ${copy.locationColumnShort} ${column}` : ''}`
+          : `${copy.locationLines} ${line}-${focusedLineEnd}${typeof column === 'number' ? `, ${copy.locationColumnShort} ${column}` : ''}`
+        : locale === 'zh'
+          ? `${copy.locationLine} ${line} ${copy.locationLineSuffix}${typeof column === 'number' ? `, ${copy.locationColumnShort} ${column}` : ''}`
+          : `${copy.locationLine} ${line}${typeof column === 'number' ? `, ${copy.locationColumnShort} ${column}` : ''}`
       : null;
 
   // Process and render content for rich text mode
   useEffect(() => {
     if (!content) {
-      setRenderedContent('<div class="direct-reader__empty">Select a file to view its content</div>');
+      setRenderedContent(`<div class="direct-reader__empty">${copy.emptyContent}</div>`);
       return;
     }
 
@@ -78,7 +120,7 @@ export function DirectReader({
       const language = (lang || 'plaintext').toLowerCase();
 
       if (language === 'mermaid') {
-        return renderMermaidDiagram(code);
+        return renderMermaidDiagram(code, copy);
       }
 
       const escaped = escapeHtml(code.trim());
@@ -146,7 +188,7 @@ export function DirectReader({
     processed = wrapped.join('\n');
 
     setRenderedContent(processed);
-  }, [content]);
+  }, [content, copy]);
 
   useEffect(() => {
     if (!hasSourceFocus || typeof line !== 'number') {
@@ -290,7 +332,7 @@ export function DirectReader({
       {loading && (
         <div className="direct-reader__loading">
           <div className="direct-reader__spinner" />
-          Loading...
+          {copy.loading}
         </div>
       )}
       {error && <div className="direct-reader__error">{error}</div>}
@@ -324,11 +366,11 @@ function shouldRenderInlineMath(math: string): boolean {
 
 export default DirectReader;
 
-function renderMermaidDiagram(source: string): string {
+function renderMermaidDiagram(source: string, copy: DirectReaderCopy): string {
   const trimmed = source.trim();
 
   if (!trimmed) {
-    return '<div class="direct-reader__mermaid direct-reader__mermaid--empty">Empty Mermaid block</div>';
+    return `<div class="direct-reader__mermaid direct-reader__mermaid--empty">${copy.emptyMermaidBlock}</div>`;
   }
 
   try {
@@ -344,6 +386,6 @@ function renderMermaidDiagram(source: string): string {
     const message = error instanceof Error ? error.message : String(error);
     const escapedSource = escapeHtml(trimmed);
     const escapedMessage = escapeHtml(message);
-    return `<div class="direct-reader__mermaid direct-reader__mermaid--error">Mermaid render failed: ${escapedMessage}</div><pre class="direct-reader__code" data-lang="mermaid"><code class="language-mermaid">${escapedSource}</code></pre>`;
+    return `<div class="direct-reader__mermaid direct-reader__mermaid--error">${copy.mermaidRenderFailed}: ${escapedMessage}</div><pre class="direct-reader__code" data-lang="mermaid"><code class="language-mermaid">${escapedSource}</code></pre>`;
   }
 }

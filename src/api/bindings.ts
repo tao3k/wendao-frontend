@@ -236,15 +236,66 @@ export interface AutocompleteResponse {
   suggestions: AutocompleteSuggestion[];
 }
 
+// === Analysis Types ===
+
+export type AnalysisNodeKind = 'document' | 'section' | 'task' | 'codeblock' | 'reference';
+
+export type AnalysisEdgeKind = 'contains' | 'references' | 'next_step';
+
+export interface AnalysisEvidence {
+  path: string;
+  lineStart: number;
+  lineEnd: number;
+  confidence: number;
+}
+
+export interface AnalysisNode {
+  id: string;
+  kind: AnalysisNodeKind;
+  label: string;
+  depth: number;
+  lineStart: number;
+  lineEnd: number;
+  parentId?: string;
+}
+
+export interface AnalysisEdge {
+  id: string;
+  kind: AnalysisEdgeKind;
+  sourceId: string;
+  targetId: string;
+  label?: string;
+  evidence: AnalysisEvidence;
+}
+
+export type MermaidViewKind = 'mindmap' | 'flowchart' | 'graph';
+
+export interface MermaidProjection {
+  kind: MermaidViewKind;
+  source: string;
+  nodeCount: number;
+  edgeCount: number;
+  complexityScore: number;
+  diagnostics: string[];
+}
+
+export interface MarkdownAnalysisResponse {
+  path: string;
+  documentHash: string;
+  nodeCount: number;
+  edgeCount: number;
+  nodes: AnalysisNode[];
+  edges: AnalysisEdge[];
+  projections: MermaidProjection[];
+  diagnostics: string[];
+}
+
 // === UI Config Types ===
 
 export interface UiProjectConfig {
   name: string;
   root: string;
-  paths: string[];
-  watchPatterns?: string[];
-  includeDirsAuto: boolean;
-  includeDirsAutoCandidates?: string[];
+  dirs: string[];
 }
 
 export interface UiConfig {

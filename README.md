@@ -35,6 +35,7 @@ The dev proxy reads that bind and forwards `/api/*` requests to the configured W
 
 - Indexed roots and VFS hydration
 - Topology and graph navigation
+- Graph auto-fallback to `/api/analysis/markdown` when `/api/graph/neighbors/<path>` returns `NODE_NOT_FOUND`
 - Knowledge, symbols, AST, and references search
 - Search actions for `Open`, `Graph`, `Refs`, and `Definition`
 - Source-focused reader mode with line highlighting

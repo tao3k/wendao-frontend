@@ -10,7 +10,7 @@ import { Canvas } from '@react-three/fiber';
 import { Float, OrbitControls, Sparkles, Stars } from '@react-three/drei';
 import { Boxes, SplitSquareHorizontal, Move3d } from 'lucide-react';
 import { api } from '../../../api/client';
-import type { GraphNeighborsResponse } from '../../../api/bindings';
+import type { GraphNeighborsResponse, MarkdownAnalysisResponse } from '../../../api/bindings';
 import type { GraphSidebarSummary, GraphViewProps, SimulatedNode, SimulatedLink } from './types';
 import { useContainerDimensions } from './useContainerDimensions';
 import { useForceSimulation } from './useForceSimulation';
@@ -94,6 +94,7 @@ function RealisticStarfield(): JSX.Element {
 const NEBULA_WORLD_SCALE = 0.0048;
 
 type GraphViewLayoutMode = '2d' | '3d' | 'split';
+type UiLocale = 'en' | 'zh';
 
 interface NebulaSceneNode {
   id: string;
@@ -117,6 +118,52 @@ interface NebulaSceneLink {
   target: string;
 }
 
+interface GraphViewCopy {
+  runtimeLoading: string;
+  runtimePreparing: string;
+  runtimeEmpty: string;
+  standby: string;
+  standbyHint: string;
+  dependencyStageMode: string;
+  tab2d: string;
+  tab3d: string;
+  tabHybrid: string;
+  aria2dMap: string;
+  aria3dMap: string;
+  emptyCornerHint: string;
+}
+
+const GRAPH_VIEW_COPY: Record<UiLocale, GraphViewCopy> = {
+  en: {
+    runtimeLoading: 'Loading relationship graph...',
+    runtimePreparing: 'Preparing graph viewport...',
+    runtimeEmpty: 'No graph nodes returned for this file.',
+    standby: 'Link graph standby',
+    standbyHint: 'Select a file to inspect linked dependency stages.',
+    dependencyStageMode: 'Dependency stage mode',
+    tab2d: '2D Map',
+    tab3d: '3D Stage',
+    tabHybrid: 'Hybrid Stage',
+    aria2dMap: '2D dependency map',
+    aria3dMap: '3D stage map',
+    emptyCornerHint: 'No graph data returned for this file.',
+  },
+  zh: {
+    runtimeLoading: '正在加载关系图谱...',
+    runtimePreparing: '正在准备图谱视口...',
+    runtimeEmpty: '当前文件未返回图谱节点。',
+    standby: '图谱待命',
+    standbyHint: '请选择文件以查看关联依赖层级。',
+    dependencyStageMode: '依赖阶段模式',
+    tab2d: '2D 视图',
+    tab3d: '3D 舞台',
+    tabHybrid: '混合舞台',
+    aria2dMap: '2D 依赖图',
+    aria3dMap: '3D 阶段图',
+    emptyCornerHint: '当前文件没有返回图谱数据。',
+  },
+};
+
 const NEBULA_NODE_PALETTE: Record<string, string> = {
   skill: '#22c55e',
   doc: '#3b82f6',
@@ -135,18 +182,131 @@ const NEBULA_NODE_PALETTE: Record<string, string> = {
 
 const DEFAULT_LAYOUT_MODE: GraphViewLayoutMode = '2d';
 const GRAPH_FETCH_DEBOUNCE_MS = 240;
+const GRAPH_NODE_NOT_FOUND_ERROR_CODE = 'NODE_NOT_FOUND';
 
 const getNebulaNodeColor = (nodeType: string): string => {
   return NEBULA_NODE_PALETTE[nodeType] || NEBULA_NODE_PALETTE.default;
 };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  return 'Failed to load graph data';
+}
+
+function isNodeNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const maybeCode = 'code' in error ? (error as { code?: unknown }).code : undefined;
+  if (
+    typeof maybeCode === 'string' &&
+    maybeCode.toUpperCase() === GRAPH_NODE_NOT_FOUND_ERROR_CODE
+  ) {
+    return true;
+  }
+
+  const maybeMessage = 'message' in error ? (error as { message?: unknown }).message : undefined;
+  return typeof maybeMessage === 'string' && /node not found/i.test(maybeMessage);
+}
+
+function toGraphNodeType(kind: MarkdownAnalysisResponse['nodes'][number]['kind']): string {
+  switch (kind) {
+    case 'document':
+      return 'doc';
+    case 'section':
+      return 'doc';
+    case 'task':
+      return 'knowledge';
+    case 'reference':
+      return 'knowledge';
+    case 'codeblock':
+      return 'other';
+    default:
+      return 'other';
+  }
+}
+
+function toGraphDirection(kind: MarkdownAnalysisResponse['edges'][number]['kind']): string {
+  switch (kind) {
+    case 'contains':
+      return 'outgoing';
+    case 'references':
+      return 'references';
+    case 'next_step':
+      return 'next_step';
+    default:
+      return 'outgoing';
+  }
+}
+
+function toGraphNeighborsFromAnalysis(analysis: MarkdownAnalysisResponse): GraphNeighborsResponse {
+  const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
+
+  const analysisCenterNode =
+    analysis.nodes.find((node) => node.kind === 'document') ??
+    analysis.nodes.reduce<MarkdownAnalysisResponse['nodes'][number] | null>((candidate, node) => {
+      if (!candidate || node.depth < candidate.depth) {
+        return node;
+      }
+      return candidate;
+    }, null);
+
+  const mappedNodes = analysis.nodes.map((node) => ({
+    id: node.id,
+    label: node.label,
+    path: analysis.path,
+    nodeType: toGraphNodeType(node.kind),
+    isCenter: analysisCenterNode ? node.id === analysisCenterNode.id : node.depth === 0,
+    distance: Math.max(0, node.depth),
+  }));
+
+  const fallbackCenter = {
+    id: analysis.path,
+    label: analysis.path.split('/').pop() || analysis.path,
+    path: analysis.path,
+    nodeType: 'doc',
+    isCenter: true,
+    distance: 0,
+  };
+
+  const normalizedNodes = mappedNodes.length > 0 ? mappedNodes : [fallbackCenter];
+  const centerNode =
+    normalizedNodes.find((node) => node.isCenter) || normalizedNodes[0] || fallbackCenter;
+
+  const links = analysis.edges
+    .filter((edge) => nodeById.has(edge.sourceId) && nodeById.has(edge.targetId))
+    .map((edge) => ({
+      source: edge.sourceId,
+      target: edge.targetId,
+      direction: toGraphDirection(edge.kind),
+      distance: Math.max(
+        nodeById.get(edge.sourceId)?.depth ?? 0,
+        nodeById.get(edge.targetId)?.depth ?? 0
+      ),
+    }));
+
+  return {
+    center: centerNode,
+    nodes: normalizedNodes,
+    links,
+    totalNodes: normalizedNodes.length,
+    totalLinks: links.length,
+  };
+}
+
 export const GraphView: React.FC<GraphViewProps> = ({
   centerNodeId,
+  locale = 'en',
   onNodeClick,
   onSidebarSummaryChange,
+  onRuntimeStatusChange,
   enabled = true,
   options = DEFAULT_OPTIONS,
 }) => {
+  const copy = GRAPH_VIEW_COPY[locale];
   const containerRef = useRef<HTMLDivElement>(null);
   const [graphData, setGraphData] = useState<GraphNeighborsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -168,9 +328,13 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
   // Fetch graph data when centerNodeId changes
   useEffect(() => {
+    let cancelled = false;
+
+    const loadGraphData = async () => {
     if (!enabled || !debouncedCenterNodeId) {
       setLoading(false);
       onSidebarSummaryChange?.(null);
+      onRuntimeStatusChange?.(null);
       return;
     }
 
@@ -178,25 +342,58 @@ export const GraphView: React.FC<GraphViewProps> = ({
       setGraphData(null);
       setHoveredNode(null);
       onSidebarSummaryChange?.(null);
+      onRuntimeStatusChange?.(null);
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    api
-      .getGraphNeighbors(debouncedCenterNodeId, debouncedOptions)
-      .then((data) => {
+      try {
+        const data = await api.getGraphNeighbors(debouncedCenterNodeId, debouncedOptions);
+        if (cancelled) {
+          return;
+        }
         setGraphData(data);
-      })
-      .catch((err) => {
-        setError(err.message || 'Failed to load graph data');
+      } catch (graphError) {
+        if (cancelled) {
+          return;
+        }
+
+        if (isNodeNotFoundError(graphError)) {
+          try {
+            const markdownAnalysis = await api.getMarkdownAnalysis(debouncedCenterNodeId);
+            if (cancelled) {
+              return;
+            }
+            setGraphData(toGraphNeighborsFromAnalysis(markdownAnalysis));
+            setError(null);
+            return;
+          } catch (analysisError) {
+            if (cancelled) {
+              return;
+            }
+            setError(getErrorMessage(analysisError));
+            setGraphData(null);
+            return;
+          }
+        }
+
+        setError(getErrorMessage(graphError));
         setGraphData(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [centerNodeId, debouncedCenterNodeId, debouncedOptions, enabled, onSidebarSummaryChange]);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadGraphData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [centerNodeId, debouncedCenterNodeId, debouncedOptions, enabled, onRuntimeStatusChange, onSidebarSummaryChange]);
 
   useEffect(() => {
     setHoveredNode(null);
@@ -514,7 +711,10 @@ export const GraphView: React.FC<GraphViewProps> = ({
   const show3DGraph = (layoutMode === '3d' || layoutMode === 'split') && has3DView;
   const split2DWidth = dimensions.width / (layoutMode === 'split' ? 2 : 1);
 
-  const showOverlay = loading || !dimensionsReady || error || !hasRenderPayload;
+  const showOverlay = Boolean(error);
+  const showEmptyCornerHint = Boolean(
+    !error && dimensionsReady && !loading && (!graphData || simulatedNodes.length === 0)
+  );
 
   const displayLayerStats = useMemo<StageSummary[]>(() => {
     if (!graphData) {
@@ -554,6 +754,63 @@ export const GraphView: React.FC<GraphViewProps> = ({
     onSidebarSummaryChange?.(stageSummary);
   }, [onSidebarSummaryChange, stageSummary]);
 
+  useEffect(() => {
+    if (!enabled || !centerNodeId) {
+      onRuntimeStatusChange?.(null);
+      return;
+    }
+
+    if (loading) {
+      onRuntimeStatusChange?.({
+        tone: 'warning',
+        source: 'graph',
+        message: copy.runtimeLoading,
+      });
+      return;
+    }
+
+    if (!dimensionsReady) {
+      onRuntimeStatusChange?.({
+        tone: 'warning',
+        source: 'graph',
+        message: copy.runtimePreparing,
+      });
+      return;
+    }
+
+    if (error) {
+      onRuntimeStatusChange?.({
+        tone: 'error',
+        source: 'graph',
+        message: error,
+      });
+      return;
+    }
+
+    if (graphData && simulatedNodes.length === 0) {
+      onRuntimeStatusChange?.({
+        tone: 'warning',
+        source: 'graph',
+        message: copy.runtimeEmpty,
+      });
+      return;
+    }
+
+    onRuntimeStatusChange?.(null);
+  }, [
+    centerNodeId,
+    copy.runtimeEmpty,
+    copy.runtimeLoading,
+    copy.runtimePreparing,
+    dimensionsReady,
+    enabled,
+    error,
+    graphData,
+    loading,
+    onRuntimeStatusChange,
+    simulatedNodes.length,
+  ]);
+
   const handleNebulaNodeHover = useCallback((node: NebulaSceneNode | null) => {
     setHoveredNode(node);
   }, []);
@@ -562,18 +819,23 @@ export const GraphView: React.FC<GraphViewProps> = ({
   if (!centerNodeId) {
     return (
       <div className="graph-view-empty">
-        <div className="graph-view-placeholder">
-          <span className="graph-icon">◎</span>
-          <span className="graph-placeholder-kicker">Link graph standby</span>
-          <p>Select a file to inspect linked dependency stages.</p>
-        </div>
+      <div className="graph-view-placeholder">
+        <span className="graph-icon">◎</span>
+          <span className="graph-placeholder-kicker">{copy.standby}</span>
+          <p>{copy.standbyHint}</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className={`graph-view ${show3DGraph ? 'graph-view--3d-active' : 'graph-view--2d-active'}`} ref={containerRef}>
-      <div className="graph-view-mode-switch" role="tablist" aria-label="Dependency stage mode">
+      <div
+        className="graph-view-mode-switch"
+        role="tablist"
+        aria-label={copy.dependencyStageMode}
+        data-mode-label={copy.dependencyStageMode}
+      >
         <button
           type="button"
           className={`graph-view-mode-button ${layoutMode === '2d' ? 'graph-view-mode-button--active' : ''}`}
@@ -582,7 +844,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
           onClick={() => setLayoutMode('2d')}
         >
           <Boxes size={11} aria-hidden="true" />
-          <span>2D Map</span>
+          <span>{copy.tab2d}</span>
         </button>
         <button
           type="button"
@@ -592,7 +854,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
           onClick={() => setLayoutMode('3d')}
         >
           <Move3d size={11} aria-hidden="true" />
-          <span>3D Stage</span>
+          <span>{copy.tab3d}</span>
         </button>
         <button
           type="button"
@@ -607,13 +869,13 @@ export const GraphView: React.FC<GraphViewProps> = ({
           }}
         >
           <SplitSquareHorizontal size={11} aria-hidden="true" />
-          <span>Hybrid Stage</span>
+          <span>{copy.tabHybrid}</span>
         </button>
       </div>
 
       <div className={`graph-view-stage ${layoutMode === 'split' ? 'graph-view-stage--split' : 'graph-view-stage--single'}`}>
         {show2DGraph && (
-          <section className="graph-view-stage-panel graph-view-stage-panel--2d" aria-label="2D dependency map">
+          <section className="graph-view-stage-panel graph-view-stage-panel--2d" aria-label={copy.aria2dMap}>
             <div className="graph-view-2d-stage-shell">
               <GraphSVG
                 width={Math.max(1, split2DWidth)}
@@ -629,7 +891,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
         )}
 
         {show3DGraph && (
-          <section className="graph-view-stage-panel graph-view-stage-panel--3d" aria-label="3D stage map">
+          <section className="graph-view-stage-panel graph-view-stage-panel--3d" aria-label={copy.aria3dMap}>
             <div className="graph-view-3d-canvas">
               <Canvas
                 camera={{ position: [0, 0, 44], fov: 55 }}
@@ -660,30 +922,21 @@ export const GraphView: React.FC<GraphViewProps> = ({
         )}
       </div>
 
+      {showEmptyCornerHint && (
+        <div className="graph-view-corner-hint" role="status" aria-live="polite">
+          {copy.emptyCornerHint}
+        </div>
+      )}
+
       {/* Loading/Error Overlay */}
       {showOverlay && (
         <div className="graph-view-overlay">
           <div className="graph-view-overlay-panel">
-            {loading && (
-              <>
-                <div className="loading-spinner" />
-                <p>Loading relationship graph...</p>
-              </>
-            )}
-            {!dimensionsReady && !loading && (
-              <>
-                <div className="loading-spinner" />
-                <p>Calibrating viewport...</p>
-              </>
-            )}
             {error && (
               <>
                 <span className="error-icon">!</span>
                 <p>{error}</p>
               </>
-            )}
-            {dimensionsReady && !loading && !error && (!graphData || simulatedNodes.length === 0) && (
-              <p>No graph data returned for this file.</p>
             )}
           </div>
         </div>

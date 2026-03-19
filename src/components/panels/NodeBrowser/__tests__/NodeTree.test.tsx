@@ -29,6 +29,7 @@ describe('NodeTree', () => {
   const defaultProps = {
     tree: mockTree,
     expandedNodes: new Set<string>(),
+    emptyLabel: 'No nodes found',
     onToggleExpand: vi.fn(),
     onSelect: vi.fn(),
     onDoubleClick: vi.fn(),

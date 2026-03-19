@@ -2,15 +2,25 @@
  * GraphView type definitions
  */
 
+export interface GraphRuntimeStatus {
+  tone: 'active' | 'warning' | 'error';
+  message: string;
+  source: 'graph';
+}
+
 export interface GraphViewProps {
   /** The file path to use as the center node */
   centerNodeId: string | null;
+  /** UI locale */
+  locale?: 'en' | 'zh';
   /** When false, graph requests and auto-refresh are paused. */
   enabled?: boolean;
   /** Called when a node is clicked */
   onNodeClick?: (nodeId: string, path: string) => void;
   /** Called when graph summary data updates for right-side panel */
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
+  /** Called when graph runtime status changes */
+  onRuntimeStatusChange?: (status: GraphRuntimeStatus | null) => void;
   /** Graph traversal options */
   options?: {
     direction?: 'incoming' | 'outgoing' | 'both';

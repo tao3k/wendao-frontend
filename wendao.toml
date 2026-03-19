@@ -9,14 +9,8 @@ bind = "127.0.0.1:9517"
 
 [link_graph.projects.kernel]
 root = "."
-paths = ["docs", "internal_skills"]
-watch_patterns = ["**/*.md", "**/*.markdown", "**/SKILL.md"]
-include_dirs_auto = true
-include_dirs_auto_candidates = ["docs", "internal_skills", "packages"]
+dirs = ["docs"]
 
-[link_graph.projects.qianji_studio]
-root = ".data/qianji-studio"
-paths = ["docs", "internal_skills"]
-watch_patterns = ["**/*.md", "**/*.markdown", "**/SKILL.md"]
-include_dirs_auto = false
-include_dirs_auto_candidates = []
+[link_graph.projects.main]
+root = "~/ghq/github.com/tao3k/omni-dev-fusion/"
+dirs = ["docs", "internal_skills"]

@@ -4,7 +4,7 @@ import { FileTree } from './components/panels/FileTree';
 import { MainView } from './components/panels/MainView';
 import { PropertyEditor } from './components/panels/PropertyEditor';
 import { Toolbar } from './components/Toolbar';
-import { StatusBar } from './components/StatusBar';
+import { StatusBar, type RuntimeStatus, type VfsStatus } from './components/StatusBar';
 import { SearchBar } from './components/SearchBar';
 import { useEditorStore } from './stores/editorStore';
 import { useAccessibility } from './hooks/useAccessibility';
@@ -44,6 +44,24 @@ interface MainViewTabRequest {
   nonce: number;
 }
 
+type UiLocale = 'en' | 'zh';
+
+const UI_LOCALE_STORAGE_KEY = 'qianji-ui-locale';
+
+function resolveInitialLocale(): UiLocale {
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
+
+  const storedLocale = window.localStorage.getItem(UI_LOCALE_STORAGE_KEY);
+  if (storedLocale === 'en' || storedLocale === 'zh') {
+    return storedLocale;
+  }
+
+  const systemLocale = (window.navigator.language || '').toLowerCase();
+  return systemLocale.startsWith('zh') ? 'zh' : 'en';
+}
+
 function inferFileCategory(path: string): string {
   if (path.startsWith('knowledge/')) {
     return 'knowledge';
@@ -64,8 +82,10 @@ const EMPTY_TOPOLOGY: AcademicTopology = {
 function App() {
   const topologyPositionCacheRef = useRef(buildPositionCache(EMPTY_TOPOLOGY.nodes));
   const accessibility = useAccessibility();
-  const isVfsLoading = false;
-  const [vfsError, setVfsError] = useState<string | null>(null);
+  const [uiLocale, setUiLocale] = useState<UiLocale>(resolveInitialLocale);
+  const [vfsStatus, setVfsStatus] = useState<VfsStatus>({ isLoading: false, error: null });
+  const [searchRuntimeStatus, setSearchRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [graphRuntimeStatus, setGraphRuntimeStatus] = useState<RuntimeStatus | null>(null);
   const [topology, setTopology] = useState<AcademicTopology>(EMPTY_TOPOLOGY);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [selectedFileCategory, setSelectedFileCategory] = useState<string | null>(null);
@@ -79,18 +99,12 @@ function App() {
 
   // Use Zustand store
   const {
-    currentXml,
     setCurrentXml,
     selectedNode,
     setSelectedNode,
     clearSelection,
     discoveryOpen,
     setDiscoveryOpen,
-    pushHistory,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
   } = useEditorStore();
 
   useEffect(() => {
@@ -300,6 +314,32 @@ function App() {
     [hydrateSelectedFile]
   );
 
+  const handleVfsStatusChange = useCallback((status: VfsStatus) => {
+    setVfsStatus(status);
+  }, []);
+
+  const handleSearchRuntimeStatusChange = useCallback((status: RuntimeStatus | null) => {
+    setSearchRuntimeStatus(status);
+  }, []);
+
+  const handleGraphRuntimeStatusChange = useCallback((status: RuntimeStatus | null) => {
+    setGraphRuntimeStatus(status);
+  }, []);
+
+  const runtimeStatus = searchRuntimeStatus ?? graphRuntimeStatus;
+
+  const toggleUiLocale = useCallback(() => {
+    setUiLocale((current) => (current === 'en' ? 'zh' : 'en'));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(UI_LOCALE_STORAGE_KEY, uiLocale);
+  }, [uiLocale]);
+
   // Handle node click from BPMN canvas
   const handleCanvasNodeClick = useCallback(
     (name: string, type: string, id: string) => {
@@ -323,25 +363,6 @@ function App() {
     [topology.nodes, topology.links, setSelectedNode]
   );
 
-  // Handle save
-  const handleSave = useCallback(() => {
-    if (currentXml) {
-      pushHistory(currentXml);
-      console.log('Saved:', new Date().toISOString());
-    }
-  }, [currentXml, pushHistory]);
-
-  // Handle undo/redo
-  const handleUndo = useCallback(() => {
-    const xml = undo();
-    if (xml) setCurrentXml(xml);
-  }, [undo, setCurrentXml]);
-
-  const handleRedo = useCallback(() => {
-    const xml = redo();
-    if (xml) setCurrentXml(xml);
-  }, [redo, setCurrentXml]);
-
   // Load example
   const loadExample = useCallback(
     async (name: string) => {
@@ -360,9 +381,6 @@ function App() {
   // Keyboard shortcuts
   const shortcuts: ShortcutDefinition[] = useMemo(
     () => [
-      { key: 's', ctrl: true, action: handleSave, description: 'Save' },
-      { key: 'z', ctrl: true, action: handleUndo, description: 'Undo' },
-      { key: 'z', ctrl: true, shift: true, action: handleRedo, description: 'Redo' },
       { key: 'f', ctrl: true, action: () => setSearchOpen(true), description: 'Search' },
       {
         key: 'Escape',
@@ -374,7 +392,7 @@ function App() {
         description: 'Deselect / Close panels',
       },
     ],
-    [handleSave, handleUndo, handleRedo, clearSelection, setDiscoveryOpen, setSearchOpen]
+    [clearSelection, setDiscoveryOpen, setSearchOpen]
   );
 
   useKeyboardShortcuts(shortcuts);
@@ -400,10 +418,12 @@ function App() {
       {/* Search Modal */}
       <SearchBar
         isOpen={searchOpen}
+        locale={uiLocale}
         onClose={() => setSearchOpen(false)}
         onResultSelect={handleSearchResultSelect}
         onReferencesResultSelect={handleSearchResultReferencesSelect}
         onGraphResultSelect={handleSearchResultGraphSelect}
+        onRuntimeStatusChange={handleSearchRuntimeStatusChange}
       />
 
       <AppLayout
@@ -411,13 +431,16 @@ function App() {
         <FileTree
           onFileSelect={handleFileSelect}
           selectedPath={selectedFilePath}
+          locale={uiLocale}
+          onStatusChange={handleVfsStatusChange}
         />
       }
       centerPanel={
         <>
           <MainView
+            locale={uiLocale}
             topology={topology}
-            isVfsLoading={isVfsLoading}
+            isVfsLoading={vfsStatus.isLoading}
             selectedFile={selectedFile}
             relationships={relationships}
             selectedNode={selectedNode}
@@ -426,6 +449,7 @@ function App() {
             onGraphFileSelect={handleGraphFileSelect}
             onBiLinkClick={handleBiLinkClick}
             onSidebarSummaryChange={setGraphSidebarSummary}
+            onGraphRuntimeStatusChange={handleGraphRuntimeStatusChange}
           />
 
           {/* Discovery Menu */}
@@ -454,24 +478,24 @@ function App() {
           relationships={relationships}
           selectedFile={selectedFile}
           graphSummary={graphSidebarSummary}
+          locale={uiLocale}
         />
       }
       toolbar={
         <Toolbar
           discoveryOpen={discoveryOpen}
-          canUndo={canUndo()}
-          canRedo={canRedo()}
+          locale={uiLocale}
           onDiscoveryToggle={() => setDiscoveryOpen(!discoveryOpen)}
-          onSave={handleSave}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
+          onLocaleToggle={toggleUiLocale}
         />
       }
       statusBar={
         <StatusBar
+          locale={uiLocale}
           nodeCount={topology.nodes.length}
           selectedNodeId={selectedNode?.id}
-          vfsStatus={{ isLoading: isVfsLoading, error: vfsError }}
+          vfsStatus={vfsStatus}
+          runtimeStatus={runtimeStatus}
         />
       }
     />

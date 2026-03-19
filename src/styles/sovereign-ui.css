@@ -771,6 +771,13 @@ body {
   color: var(--neon-green);
 }
 
+.status-chip--runtime {
+  max-width: min(48vw, 520px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .status-text--accent {
   color: var(--neon-blue);
   text-shadow: var(--glow-blue);

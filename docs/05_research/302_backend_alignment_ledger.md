@@ -50,7 +50,7 @@ Frontend outcome:
 
 - Search scopes for knowledge, symbols, AST, and references are live.
 - Search result actions support `Open`, `Graph`, `Refs`, and `Definition`.
-- `Definition` is backed by a native Wendao Studio contract rather than frontend AST composition.
+- `Definition` is backed by the native Wendao Studio contract at `/api/search/definition`.
 - Source line focus now reaches `DirectReader`.
 
 ## Partial

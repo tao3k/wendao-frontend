@@ -24,6 +24,7 @@ import './SearchBar.css';
 type SearchScope = 'all' | 'document' | 'knowledge' | 'tag' | 'symbol' | 'ast' | 'reference';
 type SearchSort = 'relevance' | 'path';
 type ResultCategory = 'knowledge' | 'skill' | 'tag' | 'document' | 'symbol' | 'ast' | 'reference';
+type UiLocale = 'en' | 'zh';
 
 interface SearchSelection {
   path: string;
@@ -46,11 +47,104 @@ interface SearchResult extends SearchHit {
 
 interface SearchBarProps {
   isOpen: boolean;
+  locale?: UiLocale;
   onClose: () => void;
   onResultSelect: (selection: SearchSelection) => void;
   onReferencesResultSelect?: (selection: SearchSelection) => void;
   onGraphResultSelect?: (path: string) => void;
+  onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
 }
+
+interface SearchBarCopy {
+  placeholder: string;
+  searching: string;
+  suggestions: string;
+  toggleSuggestions: string;
+  relevance: string;
+  path: string;
+  totalResults: string;
+  mode: string;
+  confidence: string;
+  scope: string;
+  sort: string;
+  noResultsPrefix: string;
+  project: string;
+  root: string;
+  graph: string;
+  refs: string;
+  definition: string;
+  open: string;
+  openInGraph: string;
+  graphUnavailable: string;
+  openReferences: string;
+  referencesUnavailable: string;
+  navigate: string;
+  autocomplete: string;
+  select: string;
+  close: string;
+  runtimeSearching: string;
+}
+
+const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
+  en: {
+    placeholder: 'Search knowledge graph... (Ctrl+F)',
+    searching: 'Searching...',
+    suggestions: 'Suggestions',
+    toggleSuggestions: 'Toggle suggestions',
+    relevance: 'Relevance',
+    path: 'Path',
+    totalResults: 'Total',
+    mode: 'Mode',
+    confidence: 'Confidence',
+    scope: 'Scope',
+    sort: 'Sort',
+    noResultsPrefix: 'No results found for',
+    project: 'Project',
+    root: 'Root',
+    graph: 'Graph',
+    refs: 'Refs',
+    definition: 'Definition',
+    open: 'Open',
+    openInGraph: 'Open in graph',
+    graphUnavailable: 'Graph action unavailable',
+    openReferences: 'Open references',
+    referencesUnavailable: 'References action unavailable',
+    navigate: 'Navigate',
+    autocomplete: 'Autocomplete',
+    select: 'Select',
+    close: 'Close',
+    runtimeSearching: 'Searching knowledge graph...',
+  },
+  zh: {
+    placeholder: '搜索知识图谱... (Ctrl+F)',
+    searching: '搜索中...',
+    suggestions: '建议',
+    toggleSuggestions: '切换建议',
+    relevance: '相关度',
+    path: '路径',
+    totalResults: '共',
+    mode: '模式',
+    confidence: '置信度',
+    scope: '范围',
+    sort: '排序',
+    noResultsPrefix: '未找到相关结果',
+    project: '项目',
+    root: '根',
+    graph: '图谱',
+    refs: '引用',
+    definition: '定义',
+    open: '打开',
+    openInGraph: '在图谱中打开',
+    graphUnavailable: '图谱动作不可用',
+    openReferences: '打开引用',
+    referencesUnavailable: '引用动作不可用',
+    navigate: '导航',
+    autocomplete: '自动补全',
+    select: '选择',
+    close: '关闭',
+    runtimeSearching: '正在搜索知识图谱...',
+  },
+};
 
 // Get icon based on document type
 function getDocIcon(docType?: string) {
@@ -88,47 +182,61 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   );
 }
 
-function getScopeLabel(scope: SearchScope) {
+function getScopeLabel(scope: SearchScope, locale: UiLocale) {
   switch (scope) {
     case 'document':
-      return 'Documents';
+      return locale === 'zh' ? '文档' : 'Documents';
     case 'knowledge':
-      return 'Knowledge';
+      return locale === 'zh' ? '知识' : 'Knowledge';
     case 'tag':
-      return 'Tag';
+      return locale === 'zh' ? '标签' : 'Tag';
     case 'symbol':
-      return 'Symbols';
+      return locale === 'zh' ? '符号' : 'Symbols';
     case 'ast':
       return 'AST';
     case 'reference':
-      return 'References';
+      return locale === 'zh' ? '引用' : 'References';
     default:
-      return 'All';
+      return locale === 'zh' ? '全部' : 'All';
   }
 }
 
-function formatSearchMode(mode: string | undefined) {
+function formatSearchMode(mode: string | undefined, locale: UiLocale) {
   if (!mode) {
-    return 'default';
+    return locale === 'zh' ? '默认' : 'default';
   }
 
   if (mode.includes('+') || mode.includes(' ')) {
+    if (locale === 'zh') {
+      return mode
+        .replaceAll('Reference Index', '引用索引')
+        .replaceAll('AST Index', 'AST 索引')
+        .replaceAll('Symbol Index', '符号索引')
+        .replaceAll('References', '引用')
+        .replaceAll('Symbols', '符号');
+    }
     return mode;
   }
 
-  return mode.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  const normalized = mode.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  if (locale === 'zh') {
+    return normalized
+      .replaceAll('Hybrid', '混合')
+      .replaceAll('Default', '默认');
+  }
+  return normalized;
 }
 
-function formatSuggestionType(type: string) {
+function formatSuggestionType(type: string, locale: UiLocale) {
   switch (type) {
     case 'stem':
-      return 'Stem';
+      return locale === 'zh' ? '词干' : 'Stem';
     case 'tag':
-      return 'Tag';
+      return locale === 'zh' ? '标签' : 'Tag';
     case 'title':
-      return 'Title';
+      return locale === 'zh' ? '标题' : 'Title';
     default:
-      return 'Match';
+      return locale === 'zh' ? '匹配' : 'Match';
   }
 }
 
@@ -225,10 +333,12 @@ function errorMessage(error: unknown): string {
 
 export const SearchBar: React.FC<SearchBarProps> = ({
   isOpen,
+  locale = 'en',
   onClose,
   onResultSelect,
   onReferencesResultSelect,
   onGraphResultSelect,
+  onRuntimeStatusChange,
 }) => {
   interface SearchMeta {
     query: string;
@@ -248,6 +358,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const [scope, setScope] = useState<SearchScope>('all');
   const [sortMode, setSortMode] = useState<SearchSort>('relevance');
   const [isComposing, setIsComposing] = useState(false);
+  const copy = SEARCH_BAR_COPY[locale];
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedAutocomplete = useDebouncedValue(query, 100);
@@ -343,15 +454,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     });
 
     return [
-      { key: 'knowledge' as const, title: 'Knowledge', hits: buckets.knowledge },
-      { key: 'skill' as const, title: 'Skill', hits: buckets.skill },
+      { key: 'knowledge' as const, title: locale === 'zh' ? '知识' : 'Knowledge', hits: buckets.knowledge },
+      { key: 'skill' as const, title: locale === 'zh' ? '技能' : 'Skill', hits: buckets.skill },
       { key: 'ast' as const, title: 'AST', hits: buckets.ast },
-      { key: 'reference' as const, title: 'References', hits: buckets.reference },
-      { key: 'symbol' as const, title: 'Symbols', hits: buckets.symbol },
-      { key: 'tag' as const, title: 'Tagged', hits: buckets.tag },
-      { key: 'document' as const, title: 'Documents', hits: buckets.document },
+      { key: 'reference' as const, title: locale === 'zh' ? '引用' : 'References', hits: buckets.reference },
+      { key: 'symbol' as const, title: locale === 'zh' ? '符号' : 'Symbols', hits: buckets.symbol },
+      { key: 'tag' as const, title: locale === 'zh' ? '标签' : 'Tagged', hits: buckets.tag },
+      { key: 'document' as const, title: locale === 'zh' ? '文档' : 'Documents', hits: buckets.document },
     ].filter((section) => section.hits.length > 0);
-  }, [resultCategory, visibleResults]);
+  }, [locale, resultCategory, visibleResults]);
 
   const visibleSuggestionCount = useMemo(() => (showSuggestions ? suggestions.length : 0), [showSuggestions, suggestions.length]);
   const totalSelectableItems = useMemo(
@@ -477,7 +588,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               referenceResponse.hitCount +
               symbolResponse.hitCount,
             selectedMode: semanticSuffix
-              ? `${formatSearchMode(knowledgeResponse.selectedMode)} + ${semanticSuffix}`
+              ? `${formatSearchMode(knowledgeResponse.selectedMode, 'en')} + ${semanticSuffix}`
               : knowledgeResponse.selectedMode,
             graphConfidenceScore: knowledgeResponse.graphConfidenceScore,
           });
@@ -507,6 +618,37 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     doSearch();
   }, [debouncedQuery, isOpen, searchMode]);
 
+  useEffect(() => {
+    if (!onRuntimeStatusChange) {
+      return;
+    }
+
+    if (!isOpen) {
+      onRuntimeStatusChange(null);
+      return;
+    }
+
+    if (error) {
+      onRuntimeStatusChange({
+        tone: 'error',
+        message: error,
+        source: 'search',
+      });
+      return;
+    }
+
+    if (isLoading && query.trim()) {
+      onRuntimeStatusChange({
+        tone: 'warning',
+        message: copy.runtimeSearching,
+        source: 'search',
+      });
+      return;
+    }
+
+    onRuntimeStatusChange(null);
+  }, [copy.runtimeSearching, error, isLoading, isOpen, onRuntimeStatusChange, query]);
+
   const getSuggestionIcon = useCallback((type: string) => {
     switch (type) {
       case 'tag':
@@ -523,8 +665,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const confidenceLabel =
     typeof searchMeta?.graphConfidenceScore === 'number'
       ? `${Math.round(searchMeta.graphConfidenceScore * 100)}%`
-      : 'n/a';
-  const modeLabel = searchMeta ? formatSearchMode(searchMeta.selectedMode) : 'default';
+      : locale === 'zh'
+        ? '无'
+        : 'n/a';
+  const modeLabel = searchMeta ? formatSearchMode(searchMeta.selectedMode, locale) : locale === 'zh' ? '默认' : 'default';
   const confidenceTone =
     typeof searchMeta?.graphConfidenceScore === 'number'
       ? searchMeta.graphConfidenceScore >= 0.8
@@ -719,7 +863,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             type="text"
             autoFocus
             className="search-input"
-            placeholder="Search knowledge graph... (Ctrl+F)"
+            placeholder={copy.placeholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -730,21 +874,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             type="button"
             className={`search-toolbar-btn ${showSuggestions ? 'active' : ''}`}
             onClick={() => setShowSuggestions((value) => !value)}
-            title="Toggle suggestions"
+            title={copy.toggleSuggestions}
             aria-pressed={showSuggestions}
-            aria-label="Toggle suggestions"
+            aria-label={copy.toggleSuggestions}
           >
-            <span className="search-toolbar-btn-label">Suggestions</span>
+            <span className="search-toolbar-btn-label">{copy.suggestions}</span>
             <span className="search-suggestions-toggle">
               <span className="search-suggestions-toggle-track">
                 <span className={`search-suggestions-toggle-knob ${showSuggestions ? 'on' : 'off'}`} />
               </span>
               <span className={`search-toolbar-btn-state ${showSuggestions ? 'active' : 'inactive'}`}>
-                {showSuggestions ? 'ON' : 'OFF'}
+                {showSuggestions ? (locale === 'zh' ? '开' : 'ON') : locale === 'zh' ? '关' : 'OFF'}
               </span>
             </span>
           </button>
-          <span className={`search-loading ${isLoading ? 'is-visible' : ''}`}>Searching...</span>
+          <span className={`search-loading ${isLoading ? 'is-visible' : ''}`}>{copy.searching}</span>
           <button className="search-close" onClick={onClose}>
             <X size={16} />
           </button>
@@ -759,7 +903,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 className={`search-scope-btn ${scope === item ? 'active' : ''}`}
                 onClick={() => setScope(item)}
               >
-                {getScopeLabel(item)}
+                {getScopeLabel(item, locale)}
               </button>
             ))}
           </div>
@@ -769,14 +913,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               className={`search-sort-btn ${sortMode === 'relevance' ? 'active' : ''}`}
               onClick={() => setSortMode('relevance')}
             >
-              Relevance
+              {copy.relevance}
             </button>
             <button
               type="button"
               className={`search-sort-btn ${sortMode === 'path' ? 'active' : ''}`}
               onClick={() => setSortMode('path')}
             >
-              Path
+              {copy.path}
             </button>
           </div>
         </div>
@@ -784,12 +928,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {query.trim() && (
           <div className="search-status-grid">
             <span className="search-status-item">
-              {searchMeta ? `Total ${searchMeta.hitCount} results` : 'Searching...'}
+              {searchMeta ? `${copy.totalResults} ${searchMeta.hitCount}` : copy.searching}
             </span>
-            <span className="search-status-item">Mode: {modeLabel}</span>
-            <span className={`search-status-item confidence-${confidenceTone}`}>Confidence: {confidenceLabel}</span>
-            <span className="search-status-item">Scope: {getScopeLabel(scope)}</span>
-            <span className="search-status-item">Sort: {sortMode === 'relevance' ? 'Relevance' : 'Path'}</span>
+            <span className="search-status-item">{copy.mode}: {modeLabel}</span>
+            <span className={`search-status-item confidence-${confidenceTone}`}>{copy.confidence}: {confidenceLabel}</span>
+            <span className="search-status-item">{copy.scope}: {getScopeLabel(scope, locale)}</span>
+            <span className="search-status-item">{copy.sort}: {sortMode === 'relevance' ? copy.relevance : copy.path}</span>
           </div>
         )}
 
@@ -807,7 +951,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               >
                 {getSuggestionIcon(suggestion.suggestionType)}
                 <span className="suggestion-text">{suggestion.text}</span>
-                <span className="suggestion-type">{formatSuggestionType(suggestion.suggestionType)}</span>
+                <span className="suggestion-type">{formatSuggestionType(suggestion.suggestionType, locale)}</span>
               </div>
             ))}
           </div>
@@ -815,7 +959,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <div className="search-results">
           {query.trim() && !isLoading && visibleResultCount === 0 && (
-            <div className="search-empty">No results found for "{query}"</div>
+            <div className="search-empty">{copy.noResultsPrefix} "{query}"</div>
           )}
 
           {visibleSections.map((section) => (
@@ -845,10 +989,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           {(result.projectName || result.rootLabel) && (
                             <div className="search-result-context">
                               {result.projectName && (
-                                <span className="search-result-context-pill project">Project: {result.projectName}</span>
+                                <span className="search-result-context-pill project">{copy.project}: {result.projectName}</span>
                               )}
                               {result.rootLabel && (
-                                <span className="search-result-context-pill root">Root: {result.rootLabel}</span>
+                                <span className="search-result-context-pill root">{copy.root}: {result.rootLabel}</span>
                               )}
                             </div>
                           )}
@@ -877,18 +1021,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           className={`search-result-action ${onGraphResultSelect ? '' : 'disabled'}`}
                           onClick={(event) => handleGraphResultClick(result, event)}
                           disabled={!onGraphResultSelect}
-                          title={onGraphResultSelect ? 'Open in graph' : 'Graph action unavailable'}
+                          title={onGraphResultSelect ? copy.openInGraph : copy.graphUnavailable}
                         >
-                          Graph
+                          {copy.graph}
                         </button>
                         <button
                           type="button"
                           className={`search-result-action ${onReferencesResultSelect ? '' : 'disabled'}`}
                           onClick={(event) => handleReferencesResultClick(result, event)}
                           disabled={!onReferencesResultSelect}
-                          title={onReferencesResultSelect ? 'Open references' : 'References action unavailable'}
+                          title={onReferencesResultSelect ? copy.openReferences : copy.referencesUnavailable}
                         >
-                          Refs
+                          {copy.refs}
                         </button>
                         {result.category === 'reference' && (
                           <button
@@ -896,7 +1040,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                             className="search-result-action"
                             onClick={(event) => void handleDefinitionResultClick(result, event)}
                           >
-                            Definition
+                            {copy.definition}
                           </button>
                         )}
                         <button
@@ -904,7 +1048,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           className="search-result-action primary"
                           onClick={() => handleResultClick(result)}
                         >
-                          Open
+                          {copy.open}
                         </button>
                       </div>
                     </div>
@@ -918,16 +1062,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <div className="search-footer">
           <span className="search-hint">
-            <kbd>↑↓</kbd> Navigate
+            <kbd>↑↓</kbd> {copy.navigate}
           </span>
           <span className="search-hint">
-            <kbd>Tab</kbd> Autocomplete
+            <kbd>Tab</kbd> {copy.autocomplete}
           </span>
           <span className="search-hint">
-            <kbd>Enter</kbd> Select
+            <kbd>Enter</kbd> {copy.select}
           </span>
           <span className="search-hint">
-            <kbd>Esc</kbd> Close
+            <kbd>Esc</kbd> {copy.close}
           </span>
         </div>
       </div>

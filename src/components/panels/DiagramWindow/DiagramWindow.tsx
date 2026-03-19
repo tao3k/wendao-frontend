@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { renderMermaidSVG } from 'beautiful-mermaid';
+import { api } from '../../../api/client';
+import type { MarkdownAnalysisResponse } from '../../../api/bindings';
 import { TopologyRef, SovereignTopology } from '../../SovereignTopology';
 import './DiagramWindow.css';
 
 interface DiagramWindowProps {
   path: string;
   content: string;
+  locale?: 'en' | 'zh';
+  focusEpoch?: number;
   onNodeClick: (name: string, type: string, id: string) => void;
 }
 
@@ -23,12 +27,369 @@ interface MermaidRenderResult {
   error?: string;
 }
 
-export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps): React.ReactElement {
-  const { kind, mermaidSources } = useMemo(() => getDiagramSignature(path, content), [path, content]);
-  const hasBpmn = kind === 'bpmn' || kind === 'both';
-  const hasMermaid = kind === 'mermaid' || kind === 'both';
+interface DiagramWindowCopy {
+  emptyPreview: string;
+  noDiagramDetected: string;
+  noDiagramHint: string;
+  markdownAnalysisLoading: string;
+  modeTabLabel: string;
+  modeBpmnLabel: string;
+  modeCombinedLabel: string;
+  modeMermaidLabel: string;
+  modeBpmnAria: string;
+  modeCombinedAria: string;
+  modeMermaidAria: string;
+  headingBoth: string;
+  headingBpmn: string;
+  headingMermaid: string;
+  panelBpmn: string;
+  panelMermaid: string;
+  diagramIndexPrefix: string;
+  mermaidRenderFailedPrefix: string;
+  noMermaidBody: string;
+  emptyMermaidSource: string;
+  resetViewLabel: string;
+}
+
+const DIAGRAM_WINDOW_COPY: Record<'en' | 'zh', DiagramWindowCopy> = {
+  en: {
+    emptyPreview: 'Select a file to preview diagram content.',
+    noDiagramDetected: 'No diagram detected',
+    noDiagramHint: 'Current file is not a BPMN XML file and does not contain Mermaid blocks.',
+    markdownAnalysisLoading: 'Analyzing Markdown structure for diagram projection...',
+    modeTabLabel: 'Diagram mode',
+    modeBpmnLabel: 'BPMN',
+    modeCombinedLabel: 'Combined',
+    modeMermaidLabel: 'Mermaid',
+    modeBpmnAria: 'BPMN diagram',
+    modeCombinedAria: 'Combined view',
+    modeMermaidAria: 'Mermaid diagram',
+    headingBoth: 'BPMN + Mermaid Preview',
+    headingBpmn: 'BPMN Diagram',
+    headingMermaid: 'Rendered Mermaid Diagrams',
+    panelBpmn: 'BPMN-js',
+    panelMermaid: 'Mermaid',
+    diagramIndexPrefix: 'Diagram',
+    mermaidRenderFailedPrefix: 'Mermaid render failed',
+    noMermaidBody: 'No Mermaid diagram body was found in this file.',
+    emptyMermaidSource: 'Empty Mermaid diagram source',
+    resetViewLabel: 'Reset view',
+  },
+  zh: {
+    emptyPreview: '请选择文件以预览图示内容。',
+    noDiagramDetected: '未检测到图示',
+    noDiagramHint: '当前文件既不是 BPMN XML，也不包含 Mermaid 代码块。',
+    markdownAnalysisLoading: '正在解析 Markdown 结构并生成图示...',
+    modeTabLabel: '图示模式',
+    modeBpmnLabel: 'BPMN',
+    modeCombinedLabel: '组合',
+    modeMermaidLabel: 'Mermaid',
+    modeBpmnAria: 'BPMN 图示',
+    modeCombinedAria: '组合视图',
+    modeMermaidAria: 'Mermaid 图示',
+    headingBoth: 'BPMN + Mermaid 预览',
+    headingBpmn: 'BPMN 图示',
+    headingMermaid: 'Mermaid 渲染图示',
+    panelBpmn: 'BPMN-js',
+    panelMermaid: 'Mermaid',
+    diagramIndexPrefix: '图示',
+    mermaidRenderFailedPrefix: 'Mermaid 渲染失败',
+    noMermaidBody: '当前文件未找到 Mermaid 图示内容。',
+    emptyMermaidSource: 'Mermaid 图示源码为空',
+    resetViewLabel: '重置视图',
+  },
+};
+
+interface MermaidViewportState {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+interface MermaidDragState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  originX: number;
+  originY: number;
+}
+
+const MERMAID_MIN_SCALE = 0.45;
+const MERMAID_MAX_SCALE = 4.2;
+const MERMAID_ZOOM_STEP = 1.12;
+const MERMAID_FIT_PADDING = 0.9;
+const DEFAULT_MERMAID_VIEW: MermaidViewportState = { scale: 1, x: 0, y: 0 };
+
+function clampMermaidScale(value: number): number {
+  return Math.min(MERMAID_MAX_SCALE, Math.max(MERMAID_MIN_SCALE, value));
+}
+
+function resolveSvgBounds(svg: SVGSVGElement): { minX: number; minY: number; width: number; height: number } | null {
+  const viewBox = svg.viewBox?.baseVal;
+  if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+    return {
+      minX: viewBox.x,
+      minY: viewBox.y,
+      width: viewBox.width,
+      height: viewBox.height,
+    };
+  }
+
+  try {
+    const bbox = svg.getBBox();
+    if (bbox.width > 0 && bbox.height > 0) {
+      return {
+        minX: bbox.x,
+        minY: bbox.y,
+        width: bbox.width,
+        height: bbox.height,
+      };
+    }
+  } catch {
+    // Ignore getBBox runtime errors and fall back to defaults.
+  }
+
+  return null;
+}
+
+function MermaidViewport({
+  svg,
+  ariaLabel,
+  resetToken,
+  focusKey,
+}: {
+  svg: string;
+  ariaLabel: string;
+  resetToken: number;
+  focusKey: string;
+}): React.ReactElement {
+  const [view, setView] = useState<MermaidViewportState>(DEFAULT_MERMAID_VIEW);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<MermaidDragState | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+
+  const computeCenteredView = useCallback((): MermaidViewportState => {
+    const viewportEl = viewportRef.current;
+    const canvasEl = canvasRef.current;
+    const svgEl = canvasEl?.querySelector('svg');
+    if (!viewportEl || !svgEl) {
+      return DEFAULT_MERMAID_VIEW;
+    }
+
+    const viewportRect = viewportEl.getBoundingClientRect();
+    const bounds = resolveSvgBounds(svgEl);
+    if (!bounds || viewportRect.width <= 0 || viewportRect.height <= 0) {
+      return DEFAULT_MERMAID_VIEW;
+    }
+
+    const fitScale = clampMermaidScale(
+      Math.min(
+        (viewportRect.width * MERMAID_FIT_PADDING) / bounds.width,
+        (viewportRect.height * MERMAID_FIT_PADDING) / bounds.height
+      )
+    );
+
+    return {
+      scale: fitScale,
+      x: (viewportRect.width - bounds.width * fitScale) / 2 - bounds.minX * fitScale,
+      y: (viewportRect.height - bounds.height * fitScale) / 2 - bounds.minY * fitScale,
+    };
+  }, []);
+
+  const recenterView = useCallback(() => {
+    setView(computeCenteredView());
+  }, [computeCenteredView]);
+
+  useEffect(() => {
+    recenterView();
+  }, [focusKey, recenterView, resetToken, svg]);
+
+  useEffect(() => {
+    const viewportEl = viewportRef.current;
+    if (!viewportEl || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    let frameId = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        recenterView();
+      });
+    });
+
+    observer.observe(viewportEl);
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [recenterView]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: view.x,
+      originY: view.y,
+    };
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const dx = event.clientX - dragState.startX;
+    const dy = event.clientY - dragState.startY;
+    setView((current) => ({
+      ...current,
+      x: dragState.originX + dx,
+      y: dragState.originY + dy,
+    }));
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current && dragRef.current.pointerId === event.pointerId) {
+      dragRef.current = null;
+      setIsDragging(false);
+    }
+  };
+
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const zoomGesture = event.ctrlKey || event.metaKey;
+    if (!zoomGesture) {
+      setView((current) => ({
+        ...current,
+        x: current.x - event.deltaX,
+        y: current.y - event.deltaY,
+      }));
+      return;
+    }
+
+    const axisDelta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+    const zoomFactor = axisDelta < 0 ? MERMAID_ZOOM_STEP : 1 / MERMAID_ZOOM_STEP;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    setView((current) => {
+      const nextScale = clampMermaidScale(current.scale * zoomFactor);
+      if (nextScale === current.scale) {
+        return current;
+      }
+
+      const ratio = nextScale / current.scale;
+      return {
+        scale: nextScale,
+        x: centerX - (centerX - current.x) * ratio,
+        y: centerY - (centerY - current.y) * ratio,
+      };
+    });
+  };
+
+  return (
+    <div
+      ref={viewportRef}
+      className={`diagram-window__mermaid-viewport ${isDragging ? 'is-dragging' : ''}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onPointerLeave={endDrag}
+      onWheel={handleWheel}
+      onDoubleClick={recenterView}
+      role="img"
+      aria-label={ariaLabel}
+    >
+      <div
+        ref={canvasRef}
+        className="diagram-window__mermaid-canvas"
+        style={{
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+        }}
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+    </div>
+  );
+}
+
+export function DiagramWindow({
+  path,
+  content,
+  locale = 'en',
+  focusEpoch = 0,
+  onNodeClick,
+}: DiagramWindowProps): React.ReactElement {
+  const copy = DIAGRAM_WINDOW_COPY[locale];
+  const baseSignature = useMemo(() => getDiagramSignature(path, content), [path, content]);
+  const [analysisMermaidSources, setAnalysisMermaidSources] = useState<string[]>([]);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const mermaidSources =
+    baseSignature.mermaidSources.length > 0
+      ? baseSignature.mermaidSources
+      : analysisMermaidSources;
+  const hasBpmn = baseSignature.kind === 'bpmn' || baseSignature.kind === 'both';
+  const hasMermaid =
+    baseSignature.kind === 'mermaid' ||
+    baseSignature.kind === 'both' ||
+    mermaidSources.length > 0;
+  const kind: DiagramKind = hasBpmn && hasMermaid ? 'both' : hasBpmn ? 'bpmn' : hasMermaid ? 'mermaid' : 'none';
   const canSplitView = hasBpmn && hasMermaid;
   const topologyRef = useRef<TopologyRef>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const shouldAnalyzeMarkdown =
+      content.length > 0 &&
+      baseSignature.kind === 'none' &&
+      isMarkdownPath(path);
+
+    if (!shouldAnalyzeMarkdown) {
+      setAnalysisMermaidSources([]);
+      setAnalysisLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setAnalysisLoading(true);
+    api
+      .getMarkdownAnalysis(path)
+      .then((analysis) => {
+        if (cancelled) {
+          return;
+        }
+        const source = selectPreferredProjectionSource(analysis);
+        setAnalysisMermaidSources(source ? [source] : []);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setAnalysisMermaidSources([]);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAnalysisLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseSignature.kind, content, path]);
 
   const renderedMermaid = useMemo(
     () =>
@@ -38,7 +399,7 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
         if (!trimmed) {
           return {
             source,
-            svg: '<div class="diagram-window__mermaid-empty">Empty Mermaid diagram source</div>',
+            svg: `<div class="diagram-window__mermaid-empty">${copy.emptyMermaidSource}</div>`,
           } as MermaidRenderResult;
         }
 
@@ -59,11 +420,12 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
           } as MermaidRenderResult;
         }
       }),
-    [mermaidSources]
+    [copy.emptyMermaidSource, mermaidSources]
   );
 
   const initialMode = hasBpmn && hasMermaid ? 'split' : hasBpmn ? 'bpmn' : 'mermaid';
   const [displayMode, setDisplayMode] = useState<DiagramDisplayMode>(initialMode);
+  const [mermaidResetToken, setMermaidResetToken] = useState(0);
 
   useEffect(() => {
     if (!hasBpmn) {
@@ -80,17 +442,22 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
   if (!content) {
     return (
       <div className="diagram-window diagram-window--empty">
-        <div className="diagram-window__empty">Select a file to preview diagram content.</div>
+        <div className="diagram-window__empty">{copy.emptyPreview}</div>
       </div>
     );
   }
 
   if (kind === 'none') {
+    const noDiagramMessage =
+      analysisLoading && isMarkdownPath(path)
+        ? copy.markdownAnalysisLoading
+        : copy.noDiagramHint;
+
     return (
       <div className="diagram-window diagram-window--empty">
-        <h3 className="diagram-window__heading">No diagram detected</h3>
+        <h3 className="diagram-window__heading">{copy.noDiagramDetected}</h3>
         <p className="diagram-window__message">
-          Current file is not a BPMN XML file and does not contain Mermaid blocks.
+          {noDiagramMessage}
         </p>
         <p className="diagram-window__path">{path}</p>
       </div>
@@ -110,16 +477,16 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
         </span>
 
         {canSplitView ? (
-          <div className="diagram-window__mode-switch" role="tablist" aria-label="Diagram mode">
+          <div className="diagram-window__mode-switch" role="tablist" aria-label={copy.modeTabLabel}>
             <button
               type="button"
               className={`diagram-window__mode-button ${displayMode === 'bpmn' ? 'diagram-window__mode-button--active' : ''}`}
               onClick={() => setDisplayMode('bpmn')}
               role="tab"
               aria-selected={displayMode === 'bpmn'}
-              aria-label="BPMN diagram"
+              aria-label={copy.modeBpmnAria}
             >
-              BPMN
+              {copy.modeBpmnLabel}
             </button>
             <button
               type="button"
@@ -127,9 +494,9 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
               onClick={() => setDisplayMode('split')}
               role="tab"
               aria-selected={displayMode === 'split'}
-              aria-label="Combined view"
+              aria-label={copy.modeCombinedAria}
             >
-              Combined
+              {copy.modeCombinedLabel}
             </button>
             <button
               type="button"
@@ -137,16 +504,26 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
               onClick={() => setDisplayMode('mermaid')}
               role="tab"
               aria-selected={displayMode === 'mermaid'}
-              aria-label="Mermaid diagram"
+              aria-label={copy.modeMermaidAria}
             >
-              Mermaid
+              {copy.modeMermaidLabel}
             </button>
           </div>
+        ) : null}
+
+        {hasMermaid ? (
+          <button
+            type="button"
+            className="diagram-window__reset-button"
+            onClick={() => setMermaidResetToken((current) => current + 1)}
+          >
+            {copy.resetViewLabel}
+          </button>
         ) : null}
       </div>
 
       <h3 className="diagram-window__heading">
-        {hasBpmn && hasMermaid ? 'BPMN + Mermaid Preview' : hasBpmn ? 'BPMN Diagram' : 'Rendered Mermaid Diagrams'}
+        {hasBpmn && hasMermaid ? copy.headingBoth : hasBpmn ? copy.headingBpmn : copy.headingMermaid}
       </h3>
 
       <p className="diagram-window__path">{path}</p>
@@ -158,7 +535,7 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
       >
         {showBpmn ? (
           <section className="diagram-window__diagram diagram-window__diagram--bpmn">
-            <div className="diagram-window__panel-title">BPMN-js</div>
+            <div className="diagram-window__panel-title">{copy.panelBpmn}</div>
             <div className="diagram-window__frame diagram-window__frame--bpmn">
               <SovereignTopology
                 ref={topologyRef}
@@ -172,20 +549,22 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
 
         {showMermaid ? (
           <section className="diagram-window__diagram diagram-window__diagram--mermaid">
-            <div className="diagram-window__panel-title">Mermaid</div>
+            <div className="diagram-window__panel-title">{copy.panelMermaid}</div>
             {renderedMermaid.length > 0 ? (
               <div className="diagram-window__mermaid-stack">
                 {renderedMermaid.map((block, index) => (
                   <div key={`mermaid-${index}`} className="diagram-window__mermaid-card">
-                    <div className="diagram-window__block-title">Diagram {index + 1}</div>
+                    <div className="diagram-window__block-title">{copy.diagramIndexPrefix} {index + 1}</div>
                     {block.svg ? (
-                      <div
-                        className="diagram-window__mermaid"
-                        dangerouslySetInnerHTML={{ __html: block.svg }}
+                      <MermaidViewport
+                        svg={block.svg}
+                        ariaLabel={`${copy.modeMermaidAria} ${index + 1}`}
+                        resetToken={mermaidResetToken}
+                        focusKey={`${path}:${focusEpoch}`}
                       />
                     ) : (
                       <>
-                        <div className="diagram-window__mermaid-error">Mermaid render failed: {block.error}</div>
+                        <div className="diagram-window__mermaid-error">{copy.mermaidRenderFailedPrefix}: {block.error}</div>
                         <pre className="diagram-window__mermaid-source">{block.source}</pre>
                       </>
                     )}
@@ -193,7 +572,7 @@ export function DiagramWindow({ path, content, onNodeClick }: DiagramWindowProps
                 ))}
               </div>
             ) : (
-              <p className="diagram-window__message">No Mermaid diagram body was found in this file.</p>
+              <p className="diagram-window__message">{copy.noMermaidBody}</p>
             )}
           </section>
         ) : null}
@@ -232,8 +611,27 @@ function extractMermaidSources(path: string, content: string): string[] {
     return [];
   }
 
-  const matches = [...content.matchAll(/```\\s*mermaid\\n([\\s\\S]*?)```/gi)];
+  const matches = [...content.matchAll(/```\s*mermaid\s*\n([\s\S]*?)```/gi)];
   return matches.map((match) => match[1] || '').filter((source) => source.trim().length > 0);
+}
+
+function isMarkdownPath(path: string): boolean {
+  return /\.(md|markdown)$/i.test(path);
+}
+
+function selectPreferredProjectionSource(analysis: MarkdownAnalysisResponse): string | null {
+  const projection =
+    analysis.projections.find((item) => item.kind === 'flowchart') ??
+    analysis.projections.find((item) => item.kind === 'graph') ??
+    analysis.projections.find((item) => item.kind === 'mindmap') ??
+    null;
+
+  if (!projection) {
+    return null;
+  }
+
+  const source = projection.source.trim();
+  return source.length > 0 ? source : null;
 }
 
 export default DiagramWindow;

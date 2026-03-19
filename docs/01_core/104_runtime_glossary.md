@@ -66,7 +66,7 @@ The dedicated Wendao Studio endpoint `GET /api/search/definition` that resolves 
 
 ### Composed Frontend Action
 
-A frontend capability built by combining existing backend contracts rather than by calling a dedicated backend endpoint. Historical studio example: the pre-native `Definition` flow before `/api/search/definition` landed.
+A frontend capability built by combining existing backend contracts rather than by calling a dedicated backend endpoint. Historical studio examples include temporary UI-only flows before a dedicated backend contract is formalized.
 
 ### Alignment Ledger
 

@@ -49,8 +49,8 @@ describe('MainView', () => {
     expect(screen.getByRole('button', { name: 'Content' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'References' }));
-    expect(screen.getByText('References')).toBeInTheDocument();
-    expect(screen.getByText('Select a file from the project tree to inspect its references.')).toBeInTheDocument();
+    expect(screen.getAllByText('References').length).toBeGreaterThan(0);
+    expect(screen.getByText('Select a file from the project tree to inspect references and content.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }));
     expect(screen.getByTestId('graph-view')).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe('MainView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('References')).toBeInTheDocument();
+      expect(screen.getByText('Focused file')).toBeInTheDocument();
       expect(screen.getByText('skills/writer/SKILL.md')).toBeInTheDocument();
     });
   });

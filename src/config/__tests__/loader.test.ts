@@ -28,10 +28,7 @@ bind = "127.0.0.1:9517"
 
 [link_graph.projects.kernel]
 root = "."
-paths = ["docs", "internal_skills"]
-watch_patterns = ["**/*.md", "**/SKILL.md"]
-include_dirs_auto = true
-include_dirs_auto_candidates = ["docs", "internal_skills"]
+dirs = ["docs", "internal_skills"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -41,23 +38,25 @@ include_dirs_auto_candidates = ["docs", "internal_skills"]
 
       const config = await loadConfig();
 
-      expect(toUiConfig(config).projects).toEqual([
-        {
-          name: 'kernel',
-          root: '.',
-          paths: ['docs', 'internal_skills'],
-          watchPatterns: ['**/*.md', '**/SKILL.md'],
-          includeDirsAuto: true,
-          includeDirsAutoCandidates: ['docs', 'internal_skills'],
-        },
-      ]);
+      expect(toUiConfig(config).projects).toMatchInlineSnapshot(`
+        [
+          {
+            "dirs": [
+              "docs",
+              "internal_skills",
+            ],
+            "name": "kernel",
+            "root": ".",
+          },
+        ]
+      `);
     });
 
     it('should reject when gateway.bind is missing', async () => {
       const mockToml = `
 [link_graph.projects.kernel]
 root = "."
-paths = ["docs"]
+dirs = ["docs"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -92,7 +91,7 @@ bind = "127.0.0.1:9517"
       await expect(loadConfig()).rejects.toThrow('Network error');
     });
 
-    it('should reject projects without paths during ui normalization', async () => {
+    it('should reject projects without dirs during ui normalization', async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -108,7 +107,7 @@ root = "."
 
       const config = await loadConfig();
 
-      expect(() => toUiConfig(config)).toThrow('project "kernel" must define at least one path');
+      expect(() => toUiConfig(config)).toThrow('project "kernel" must define at least one dir');
     });
   });
 
@@ -124,7 +123,7 @@ bind = "127.0.0.1:9517"
 
 [link_graph.projects.cached]
 root = "."
-paths = ["docs"]
+dirs = ["docs"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -137,16 +136,17 @@ paths = ["docs"]
 
       // Fetch should only be called once due to caching
       expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(toUiConfig(config1).projects).toEqual([
-        {
-          name: 'cached',
-          root: '.',
-          paths: ['docs'],
-          watchPatterns: [],
-          includeDirsAuto: false,
-          includeDirsAutoCandidates: [],
-        },
-      ]);
+      expect(toUiConfig(config1).projects).toMatchInlineSnapshot(`
+        [
+          {
+            "dirs": [
+              "docs",
+            ],
+            "name": "cached",
+            "root": ".",
+          },
+        ]
+      `);
       expect(config2).toBe(config1);
     });
   });
@@ -168,7 +168,7 @@ bind = "127.0.0.1:9517"
 
 [link_graph.projects.sync_test]
 root = "."
-paths = ["docs"]
+dirs = ["docs"]
 `;
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -180,18 +180,19 @@ paths = ["docs"]
       const syncConfig = getConfigSync();
 
       expect(syncConfig).not.toBeNull();
-      expect(toUiConfig(syncConfig!)).toEqual({
-        projects: [
-          {
-            name: 'sync_test',
-            root: '.',
-            paths: ['docs'],
-            watchPatterns: [],
-            includeDirsAuto: false,
-            includeDirsAutoCandidates: [],
-          },
-        ],
-      });
+      expect(toUiConfig(syncConfig!)).toMatchInlineSnapshot(`
+        {
+          "projects": [
+            {
+              "dirs": [
+                "docs",
+              ],
+              "name": "sync_test",
+              "root": ".",
+            },
+          ],
+        }
+      `);
     });
   });
 });

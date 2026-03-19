@@ -24,10 +24,7 @@ export interface WendaoConfig {
 
 export interface WendaoProjectConfig {
   root?: string;
-  paths?: string[];
-  watch_patterns?: string[];
-  include_dirs_auto?: boolean;
-  include_dirs_auto_candidates?: string[];
+  dirs?: string[];
 }
 
 export class WendaoConfigError extends Error {
@@ -101,43 +98,26 @@ function normalizePathList(values?: string[]): string[] {
   return out;
 }
 
-function normalizePatternList(values?: string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const value of values ?? []) {
-    const normalized = value?.trim().replaceAll('\\', '/');
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-    seen.add(normalized);
-    out.push(normalized);
-  }
-  return out;
-}
-
 export function toUiConfig(config: WendaoConfig): UiConfig {
   const projects = Object.entries(config.link_graph?.projects ?? {})
     .map(([name, project]): UiProjectConfig | null => {
       const trimmedName = name.trim();
       const root = normalizePath(project.root);
-      const paths = normalizePathList(project.paths);
+      const dirs = normalizePathList(project.dirs);
       if (!trimmedName) {
         throw new WendaoConfigError('wendao.toml contains a project with an empty name');
       }
       if (!root) {
         throw new WendaoConfigError(`project "${trimmedName}" must define root`);
       }
-      if (paths.length === 0) {
-        throw new WendaoConfigError(`project "${trimmedName}" must define at least one path`);
+      if (dirs.length === 0) {
+        throw new WendaoConfigError(`project "${trimmedName}" must define at least one dir`);
       }
 
       return {
         name: trimmedName,
         root,
-        paths,
-        watchPatterns: normalizePatternList(project.watch_patterns),
-        includeDirsAuto: project.include_dirs_auto ?? false,
-        includeDirsAutoCandidates: normalizePathList(project.include_dirs_auto_candidates),
+        dirs,
       };
     })
     .filter((project): project is UiProjectConfig => project !== null);

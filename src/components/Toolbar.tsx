@@ -1,25 +1,23 @@
 import React from 'react';
-import { Save, Undo2, Redo2, Compass } from 'lucide-react';
+import { Compass, Languages } from 'lucide-react';
+
+type UiLocale = 'en' | 'zh';
 
 interface ToolbarProps {
   discoveryOpen: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
+  locale: UiLocale;
   onDiscoveryToggle: () => void;
-  onSave: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
+  onLocaleToggle: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   discoveryOpen,
-  canUndo,
-  canRedo,
+  locale,
   onDiscoveryToggle,
-  onSave,
-  onUndo,
-  onRedo,
+  onLocaleToggle,
 }) => {
+  const discoveryLabel = locale === 'zh' ? '探索' : 'Discovery';
+  const localeToggleLabel = locale === 'zh' ? '切换语言' : 'Toggle language';
   const getButtonClassName = (active = false) =>
     ['btn', 'toolbar-btn', 'neon-glow--blue', active ? 'toolbar-btn--active animate-breathe' : '']
       .filter(Boolean)
@@ -36,41 +34,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         aria-pressed={discoveryOpen}
       >
         <Compass size={14} />
-        Discovery
+        {discoveryLabel}
       </button>
 
       <div className="toolbar-spacer" />
 
       <button
         type="button"
-        className={getButtonClassName()}
-        onClick={onUndo}
-        disabled={!canUndo}
-        title="Undo (⌘Z)"
-        aria-label="Undo"
+        className={getButtonClassName(locale !== 'en')}
+        onClick={onLocaleToggle}
+        title={locale === 'en' ? 'Switch to Chinese' : '切换到英文'}
+        aria-label={localeToggleLabel}
       >
-        <Undo2 size={14} />
-      </button>
-
-      <button
-        type="button"
-        className={getButtonClassName()}
-        onClick={onRedo}
-        disabled={!canRedo}
-        title="Redo (⌘⇧Z)"
-        aria-label="Redo"
-      >
-        <Redo2 size={14} />
-      </button>
-
-      <button
-        type="button"
-        className={getButtonClassName()}
-        onClick={onSave}
-        title="Save (⌘S)"
-        aria-label="Save"
-      >
-        <Save size={14} />
+        <Languages size={14} />
+        {locale === 'en' ? 'EN' : '中文'}
       </button>
     </>
   );

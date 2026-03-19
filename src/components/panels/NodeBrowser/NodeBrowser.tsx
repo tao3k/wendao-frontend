@@ -4,11 +4,15 @@ import { NodeTree, TreeNode } from './NodeTree';
 import { AcademicNode } from '../../../types';
 import '../../../styles/ide/NodeBrowser.css';
 
+type UiLocale = 'en' | 'zh';
+type NodeFilterType = 'task' | 'event' | 'gateway';
+
 interface NodeBrowserProps {
   nodes: AcademicNode[];
   selectedNodeId?: string;
   onNodeSelect: (node: AcademicNode) => void;
   onNodeDoubleClick?: (node: AcademicNode) => void;
+  locale: UiLocale;
 }
 
 // Convert flat node list to tree structure
@@ -23,7 +27,11 @@ function buildNodeTree(nodes: AcademicNode[]): TreeNode[] {
   }));
 }
 
-function filterTree(tree: TreeNode[], searchQuery: string, filterType: string | null): TreeNode[] {
+function filterTree(
+  tree: TreeNode[],
+  searchQuery: string,
+  filterType: NodeFilterType | null
+): TreeNode[] {
   const query = searchQuery.toLowerCase();
 
   return tree.filter((node) => {
@@ -33,11 +41,44 @@ function filterTree(tree: TreeNode[], searchQuery: string, filterType: string | 
   });
 }
 
-const TYPE_FILTERS = [
-  { value: null, label: 'All' },
-  { value: 'task', label: 'Tasks' },
-  { value: 'event', label: 'Events' },
-  { value: 'gateway', label: 'Gateways' },
+const NODE_BROWSER_COPY: Record<
+  UiLocale,
+  {
+    title: string;
+    searchPlaceholder: string;
+    emptyLabel: string;
+    filters: Record<'all' | NodeFilterType, string>;
+  }
+> = {
+  en: {
+    title: 'Nodes',
+    searchPlaceholder: 'Search nodes...',
+    emptyLabel: 'No nodes found',
+    filters: {
+      all: 'All',
+      task: 'Tasks',
+      event: 'Events',
+      gateway: 'Gateways',
+    },
+  },
+  zh: {
+    title: '节点',
+    searchPlaceholder: '搜索节点...',
+    emptyLabel: '未找到节点',
+    filters: {
+      all: '全部',
+      task: '任务',
+      event: '事件',
+      gateway: '网关',
+    },
+  },
+};
+
+const TYPE_FILTERS: Array<{ value: NodeFilterType | null; key: 'all' | NodeFilterType }> = [
+  { value: null, key: 'all' },
+  { value: 'task', key: 'task' },
+  { value: 'event', key: 'event' },
+  { value: 'gateway', key: 'gateway' },
 ];
 
 export const NodeBrowser: React.FC<NodeBrowserProps> = ({
@@ -45,9 +86,11 @@ export const NodeBrowser: React.FC<NodeBrowserProps> = ({
   selectedNodeId,
   onNodeSelect,
   onNodeDoubleClick,
+  locale,
 }) => {
+  const copy = NODE_BROWSER_COPY[locale];
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<NodeFilterType | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Build tree from nodes
@@ -96,7 +139,7 @@ export const NodeBrowser: React.FC<NodeBrowserProps> = ({
       <div className="panel-header">
         <span className="panel-header__title">
           <Layers size={14} style={{ marginRight: 6 }} />
-          Nodes
+          {copy.title}
         </span>
         <span style={{ fontSize: 11, color: 'rgba(230, 243, 255, 0.5)' }}>
           {filteredTree.length} / {nodes.length}
@@ -118,7 +161,7 @@ export const NodeBrowser: React.FC<NodeBrowserProps> = ({
           <input
             type="text"
             className="node-browser__search-input"
-            placeholder="Search nodes..."
+            placeholder={copy.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ paddingLeft: 32 }}
@@ -129,11 +172,11 @@ export const NodeBrowser: React.FC<NodeBrowserProps> = ({
       <div className="node-browser__filter">
         {TYPE_FILTERS.map((filter) => (
           <button
-            key={filter.label}
+            key={filter.key}
             className={`node-browser__filter-btn ${filterType === filter.value ? 'active' : ''}`}
             onClick={() => setFilterType(filter.value)}
           >
-            {filter.label}
+            {copy.filters[filter.key]}
           </button>
         ))}
       </div>
@@ -146,6 +189,7 @@ export const NodeBrowser: React.FC<NodeBrowserProps> = ({
           onToggleExpand={handleToggleExpand}
           onSelect={handleSelect}
           onDoubleClick={handleDoubleClick}
+          emptyLabel={copy.emptyLabel}
         />
       </div>
     </div>

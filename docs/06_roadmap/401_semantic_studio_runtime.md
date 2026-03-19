@@ -13,7 +13,7 @@ The current frontend can hydrate the correct file and panel surface from tree, s
 
 ## Recently Landed
 
-1. **Native Go-to-Definition Endpoint**: `Definition` is now a first-class backend contract instead of a frontend-composed AST lookup.
+1. **Native Go-to-Definition Endpoint**: `Definition` is now a first-class backend contract served by `/api/search/definition` and consumed directly by SearchBar actions.
 2. **Topology Continuity Repair**: the 3D runtime now preserves node coordinates across topology refreshes and uses incremental worker synchronization instead of repeated cold resets.
 
 ## Next Evolutions

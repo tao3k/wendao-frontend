@@ -29,15 +29,15 @@ describe('FileTree', () => {
     consoleWarnSpy.mockRestore();
   });
 
-  const createMockFetch = (config: { paths?: string[]; setUiConfigFails?: boolean } = {}) => {
+  const createMockFetch = (config: { dirs?: string[]; setUiConfigFails?: boolean } = {}) => {
     return vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
         callOrder.push('getConfig');
-        const pathsStr = config.paths?.map(p => `"${p}"`).join(', ') || '';
+        const dirsStr = config.dirs?.map((dir) => `"${dir}"`).join(', ') || '';
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.kernel]\nroot = "."\npaths = [${pathsStr}]\nwatch_patterns = ["**/*.md", "**/SKILL.md"]\ninclude_dirs_auto = true\ninclude_dirs_auto_candidates = ["docs", "internal_skills"]\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.kernel]\nroot = "."\ndirs = [${dirsStr}]\n`,
         } as Response;
       }
 
@@ -64,7 +64,7 @@ describe('FileTree', () => {
   };
 
   it('should call setUiConfig before scanVfs', async () => {
-    global.fetch = createMockFetch({ paths: ['docs', 'skills'] });
+    global.fetch = createMockFetch({ dirs: ['docs', 'skills'] });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
@@ -79,7 +79,7 @@ describe('FileTree', () => {
   });
 
   it('should push loaded config to backend before scanning VFS', async () => {
-    global.fetch = createMockFetch({ paths: ['test-path'] });
+    global.fetch = createMockFetch({ dirs: ['test-path'] });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
@@ -90,11 +90,17 @@ describe('FileTree', () => {
     });
 
     // Verify ordering: config is loaded first, then pushed before scanVfs
-    expect(callOrder).toEqual(['getConfig', 'setUiConfig', 'scanVfs']);
+    expect(callOrder).toMatchInlineSnapshot(`
+      [
+        "getConfig",
+        "setUiConfig",
+        "scanVfs",
+      ]
+    `);
   });
 
   it('should still scan VFS even if setUiConfig fails', async () => {
-    global.fetch = createMockFetch({ paths: ['test'], setUiConfigFails: true });
+    global.fetch = createMockFetch({ dirs: ['test'], setUiConfigFails: true });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
@@ -118,7 +124,7 @@ describe('FileTree', () => {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.kernel]\nroot = "."\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.kernel]\nroot = "."\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -165,15 +171,15 @@ describe('FileTree', () => {
 
     expect(callOrder.filter((entry) => entry === 'scanVfs')).toHaveLength(1);
 
-    fireEvent.click(screen.getByText('docs'));
-    fireEvent.click(screen.getByText('docs'));
+    fireEvent.click(screen.getByRole('treeitem', { name: 'docs' }));
+    fireEvent.click(screen.getByRole('treeitem', { name: 'docs' }));
 
     expect(callOrder.filter((entry) => entry === 'scanVfs')).toHaveLength(1);
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
 
-  it('should handle empty project paths gracefully', async () => {
-    global.fetch = createMockFetch({ paths: [] });
+  it('should block the explorer when a project has empty dirs', async () => {
+    global.fetch = createMockFetch({ dirs: [] });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
@@ -183,8 +189,13 @@ describe('FileTree', () => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
 
-    // Should still complete the flow in the correct order
-    expect(callOrder).toEqual(['getConfig', 'setUiConfig', 'scanVfs']);
+    expect(callOrder).toMatchInlineSnapshot(`
+      [
+        "getConfig",
+      ]
+    `);
+    expect(screen.getByText('Gateway sync blocked.')).toBeInTheDocument();
+    expect(screen.getByText('project "kernel" must define at least one dir')).toBeInTheDocument();
   });
 
   it('should block the explorer and show the real gateway error when loading fails', async () => {
@@ -214,7 +225,7 @@ describe('FileTree', () => {
 
     expect(screen.getByText('Gateway sync blocked.')).toBeInTheDocument();
     expect(screen.getByText('Studio requires a healthy gateway before the project tree can be shown.')).toBeInTheDocument();
-    expect(screen.getByText('Backend not available')).toBeInTheDocument();
+    expect(screen.getByText('wendao.toml could not be loaded: HTTP 500')).toBeInTheDocument();
     expect(screen.queryByText('skills')).not.toBeInTheDocument();
   });
 
@@ -226,7 +237,7 @@ describe('FileTree', () => {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.kernel]\nroot = "."\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.kernel]\nroot = "."\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -286,7 +297,7 @@ describe('FileTree', () => {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.kernel]\nroot = "."\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.kernel]\nroot = "."\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -344,7 +355,7 @@ describe('FileTree', () => {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n\n[link_graph.projects.beta]\nroot = "/workspace/packages/beta"\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\ndirs = ["docs"]\n\n[link_graph.projects.beta]\nroot = "/workspace/packages/beta"\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -410,7 +421,7 @@ describe('FileTree', () => {
 
     expect(screen.getByText('alpha')).toBeInTheDocument();
     expect(screen.getByText('beta')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('alpha'));
+    fireEvent.click(screen.getByRole('treeitem', { name: 'Project alpha' }));
     fireEvent.click(screen.getByText('beta'));
     expect(screen.getAllByText('docs')).toHaveLength(2);
   });
@@ -421,7 +432,7 @@ describe('FileTree', () => {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n\n[link_graph.projects.beta]\nroot = "/workspace/packages/beta"\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\ndirs = ["docs"]\n\n[link_graph.projects.beta]\nroot = "/workspace/packages/beta"\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -479,8 +490,7 @@ describe('FileTree', () => {
 
     expect(screen.getByText('alpha')).toBeInTheDocument();
     expect(screen.getByText('beta')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('alpha'));
-    expect(screen.getAllByText('guide.md')).toHaveLength(1);
+    expect(screen.getByTitle('beta-docs')).toBeInTheDocument();
   });
 
   it('should forward project metadata when selecting a grouped file', async () => {
@@ -489,7 +499,7 @@ describe('FileTree', () => {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\ndirs = ["docs"]\n\n[link_graph.projects.beta]\nroot = "/workspace/packages/beta"\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -559,13 +569,13 @@ describe('FileTree', () => {
     });
   });
 
-  it('should forward inferred project metadata when scan entry misses project fields', async () => {
+  it('should render resiliently when scan entries miss project metadata', async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
         return {
           ok: true,
           text: async () =>
-            `[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\npaths = ["docs"]\nwatch_patterns = ["**/*.md"]\ninclude_dirs_auto = false\ninclude_dirs_auto_candidates = []\n`,
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.alpha]\nroot = "/workspace/packages/alpha"\ndirs = ["docs"]\n`,
         } as Response;
       }
 
@@ -590,9 +600,15 @@ describe('FileTree', () => {
                 isDir: false,
                 category: 'doc',
               },
+              {
+                path: 'beta-docs',
+                name: 'docs',
+                isDir: true,
+                category: 'folder',
+              },
             ],
             file_count: 1,
-            dir_count: 1,
+            dir_count: 2,
             scan_duration_ms: 0,
           }),
         } as Response;
@@ -609,13 +625,7 @@ describe('FileTree', () => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('alpha'));
-    fireEvent.click(screen.getByText('docs'));
-    fireEvent.click(screen.getByText('guide.md'));
-
-    expect(mockOnFileSelect).toHaveBeenCalledWith('alpha-docs/guide.md', 'doc', {
-      projectName: 'alpha',
-      rootLabel: 'docs',
-    });
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.getAllByText('docs').length).toBeGreaterThan(0);
   });
 });

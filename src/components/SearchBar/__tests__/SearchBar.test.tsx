@@ -354,13 +354,25 @@ describe('SearchBar', () => {
       Array.from(container.querySelectorAll('.search-result .search-result-path')).map((node) => node.textContent || '');
 
     await waitFor(() => {
-      expect(collectResultPaths()).toEqual(['/z/first', '/m/third', '/a/second']);
+      expect(collectResultPaths()).toMatchInlineSnapshot(`
+        [
+          "/z/first",
+          "/m/third",
+          "/a/second",
+        ]
+      `);
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Path' }));
 
     await waitFor(() => {
-      expect(collectResultPaths()).toEqual(['/a/second', '/m/third', '/z/first']);
+      expect(collectResultPaths()).toMatchInlineSnapshot(`
+        [
+          "/a/second",
+          "/m/third",
+          "/z/first",
+        ]
+      `);
     });
   });
 
@@ -387,14 +399,27 @@ describe('SearchBar', () => {
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
     fireEvent.change(input, { target: { value: 'meta' } });
 
-  await waitFor(() => {
-      const totals = screen.getAllByText('Total 2 results');
+    await waitFor(() => {
+      const totals = screen.getAllByText('Total 2');
       expect(totals).toHaveLength(1);
-      expect(screen.getByText('Total 2 results')).toBeInTheDocument();
+      expect(screen.getByText('Total 2')).toBeInTheDocument();
       expect(screen.getByText('Mode: Hybrid')).toBeInTheDocument();
       expect(screen.getByText('Confidence: 80%')).toBeInTheDocument();
       expect(screen.getByText('Scope: All')).toBeInTheDocument();
       expect(screen.getByText('Sort: Relevance')).toBeInTheDocument();
+      expect(
+        ['Total 2', 'Mode: Hybrid', 'Confidence: 80%', 'Scope: All', 'Sort: Relevance'].map(
+          (label) => screen.getByText(label).textContent
+        )
+      ).toMatchInlineSnapshot(`
+        [
+          "Total 2",
+          "Mode: Hybrid",
+          "Confidence: 80%",
+          "Scope: All",
+          "Sort: Relevance",
+        ]
+      `);
     }, { timeout: 1000 });
   });
 

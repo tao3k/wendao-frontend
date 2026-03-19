@@ -9,14 +9,13 @@ import { toUiConfig } from '../config/loader';
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === '1' || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
-const qianjiDocPath = 'docs-2/03_features/202_topology_and_graph_navigation.md';
 
 type LiveUiConfig = {
-  projects: Array<{ name: string; root: string; paths: string[] }>;
+  projects: Array<{ name: string; root: string; dirs: string[] }>;
 };
 
 type LiveVfsScanResult = {
-  entries: Array<{ path: string; name: string; kind: string }>;
+  entries: Array<{ path: string; name: string; isDir: boolean; projectName?: string }>;
 };
 
 type LiveGraphNeighbors = {
@@ -30,6 +29,8 @@ type LiveSearchResponse = {
 };
 
 let gatewayOrigin = '';
+let qianjiDocPath = '';
+let targetProjectName = '';
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
   if (process.env.STUDIO_LIVE_GATEWAY_URL) {
@@ -69,6 +70,11 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 liveDescribe('live gateway studio contract', () => {
   beforeAll(async () => {
     const uiConfig = await readLocalUiConfig();
+    targetProjectName =
+      uiConfig.projects.find((project) => project.name === 'main')?.name ||
+      uiConfig.projects.find((project) => project.name !== 'kernel')?.name ||
+      uiConfig.projects[0]?.name ||
+      '';
     await fetchJson<string>('/health');
     await fetchJson<LiveUiConfig>('/ui/config', {
       method: 'POST',
@@ -77,11 +83,21 @@ liveDescribe('live gateway studio contract', () => {
       },
       body: JSON.stringify(uiConfig),
     });
+
+    const scan = await fetchJson<LiveVfsScanResult>('/vfs/scan');
+    const candidate = scan.entries.find(
+      (entry) => entry.projectName === targetProjectName && !entry.isDir && entry.path.endsWith('.md')
+    );
+    expect(
+      candidate,
+      `expected VFS scan to include one ${targetProjectName} markdown entry`
+    ).toBeDefined();
+    qianjiDocPath = candidate!.path;
   });
 
   it('pushes local project config into the live gateway VFS', async () => {
     const config = await fetchJson<LiveUiConfig>('/ui/config');
-    expect(config.projects.map((project) => project.name)).toContain('qianji_studio');
+    expect(config.projects.map((project) => project.name)).toContain(targetProjectName);
 
     const scan = await fetchJson<LiveVfsScanResult>('/vfs/scan');
     expect(scan.entries.some((entry) => entry.path === qianjiDocPath)).toBe(true);

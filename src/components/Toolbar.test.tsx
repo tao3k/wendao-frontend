@@ -5,12 +5,9 @@ import { Toolbar } from './Toolbar';
 describe('Toolbar', () => {
   const baseProps = {
     discoveryOpen: false,
-    canUndo: true,
-    canRedo: true,
+    locale: 'en' as const,
     onDiscoveryToggle: vi.fn(),
-    onSave: vi.fn(),
-    onUndo: vi.fn(),
-    onRedo: vi.fn(),
+    onLocaleToggle: vi.fn(),
   };
 
   it('applies breathing neon styling to active Discovery control', () => {
@@ -22,11 +19,18 @@ describe('Toolbar', () => {
     );
   });
 
-  it('respects disabled history states', () => {
-    render(<Toolbar {...baseProps} canUndo={false} canRedo={false} />);
+  it('keeps toolbar read-only by removing edit actions', () => {
+    render(<Toolbar {...baseProps} />);
 
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Redo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
+  it('renders language switch control', () => {
+    render(<Toolbar {...baseProps} />);
+
+    expect(screen.getByRole('button', { name: 'Toggle language' })).toBeInTheDocument();
+    expect(screen.getByText('EN')).toBeInTheDocument();
   });
 });

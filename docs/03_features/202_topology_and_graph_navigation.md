@@ -20,10 +20,11 @@ Qianji Studio has two live graph-facing surfaces:
 2. `MainView` hosts the `Topology` and `Graph` tabs in the same cockpit shell.
 3. `GraphView` node clicks route back into the shared file hydration pipeline.
 4. Search-side `Graph` actions request the `Graph` tab explicitly while hydrating the selected file.
+5. When `/api/graph/neighbors/<path>` returns `NODE_NOT_FOUND`, `GraphView` requests `/api/analysis/markdown?path=<path>` and projects that deterministic IR into the same graph renderer to avoid a dead-end overlay.
 
 ## Contract Notes
 
-- The graph surface should never invent relationships; all graph data comes from live gateway neighbors.
+- The graph surface should not fabricate frontend-only data. Primary data is `/api/graph/neighbors`, and markdown fallback data is provided by the live gateway `/api/analysis/markdown` contract.
 - Tree, search, and graph selections must converge on the same `selectedFile` state.
 - Graph navigation is valid only when the focused file path is stable and hydrated.
 

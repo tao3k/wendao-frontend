@@ -9,7 +9,6 @@ describe('editorStore', () => {
     useEditorStore.setState({
       selectedNodeId: null,
       selectedNode: null,
-      viewMode: '2d',
       currentXml: '',
       history: [],
       historyIndex: -1,
@@ -58,24 +57,6 @@ describe('editorStore', () => {
       });
 
       expect(useEditorStore.getState().selectedNodeId).toBeNull();
-    });
-  });
-
-  describe('view mode', () => {
-    it('should set view mode to 2d', () => {
-      act(() => {
-        useEditorStore.getState().setViewMode('2d');
-      });
-
-      expect(useEditorStore.getState().viewMode).toBe('2d');
-    });
-
-    it('should set view mode to 3d', () => {
-      act(() => {
-        useEditorStore.getState().setViewMode('3d');
-      });
-
-      expect(useEditorStore.getState().viewMode).toBe('3d');
     });
   });
 

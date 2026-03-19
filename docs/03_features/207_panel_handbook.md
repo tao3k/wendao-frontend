@@ -33,7 +33,7 @@ Operator notes:
 - `Open` should land in `Content`.
 - `Graph` should land in `Graph`.
 - `Refs` should land in `References`.
-- `Definition` should resolve through the native `/api/search/definition` contract rather than by frontend AST composition.
+- `Definition` should resolve through the native `/api/search/definition` contract and follow backend-ranked source location metadata.
 
 ## MainView
 
@@ -68,6 +68,18 @@ Operator notes:
 - Use rich mode when there is no source focus metadata.
 - Use source mode when line metadata is present.
 - Preserve bi-link behavior in both modes.
+
+## DiagramWindow
+
+Purpose:
+
+- Visual diagram surface for BPMN and Mermaid-oriented navigation.
+
+Operator notes:
+
+- Keep BPMN rendering native when the selected file is BPMN XML.
+- Keep embedded Mermaid blocks as first-priority diagram sources.
+- For Markdown without embedded Mermaid, hydrate Mermaid projections from `/api/analysis/markdown` so `Diagram` remains useful for structure-focused docs.
 
 ## PropertyEditor and Status Surfaces
 

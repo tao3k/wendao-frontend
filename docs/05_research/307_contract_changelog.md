@@ -22,7 +22,7 @@ Backend change:
 Frontend impact:
 
 - `SearchBar` `Definition` action now resolves through a dedicated backend contract.
-- Documentation no longer treats `Definition` as a frontend-composed capability.
+- Documentation now records `Definition` as a native backend contract with direct endpoint binding.
 
 ### Added snapshot-backed Wendao Studio contract coverage
 

@@ -13,6 +13,7 @@ interface NodeTreeProps {
   expandedNodes: Set<string>;
   selectedNodeId?: string;
   depth?: number;
+  emptyLabel: string;
   onToggleExpand: (id: string) => void;
   onSelect: (node: TreeNode) => void;
   onDoubleClick?: (node: TreeNode) => void;
@@ -112,12 +113,13 @@ export const NodeTree: React.FC<NodeTreeProps> = ({
   expandedNodes,
   selectedNodeId,
   depth = 0,
+  emptyLabel,
   onToggleExpand,
   onSelect,
   onDoubleClick,
 }) => {
   if (tree.length === 0) {
-    return <div className="node-browser__empty">No nodes found</div>;
+    return <div className="node-browser__empty">{emptyLabel}</div>;
   }
 
   return (

@@ -3,16 +3,73 @@ import App from './App';
 import { api } from './api/client';
 import { getConfig, resetConfig, toUiConfig } from './config/loader';
 
+type UiLocale = 'en' | 'zh';
+
 type BootstrapState =
   | { status: 'loading'; gatewayBind?: string }
   | { status: 'ready' }
   | { status: 'blocked'; gatewayBind?: string; error: string };
 
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Studio bootstrap failed';
+const UI_LOCALE_STORAGE_KEY = 'qianji-ui-locale';
+
+const BOOTSTRAP_COPY: Record<
+  UiLocale,
+  {
+    tag: string;
+    loadingTitle: string;
+    blockedTitle: string;
+    loadingDescription: string;
+    blockedDescription: string;
+    checkingLabel: string;
+    retryLabel: string;
+    errorFallback: string;
+  }
+> = {
+  en: {
+    tag: 'Studio bootstrap',
+    loadingTitle: 'Checking gateway health',
+    blockedTitle: 'Studio startup blocked',
+    loadingDescription:
+      'Qianji Studio now requires a healthy Wendao gateway before the workspace can start.',
+    blockedDescription:
+      'Qianji Studio will not enter the workspace until gateway health, config sync, and VFS scan all succeed.',
+    checkingLabel: 'Checking...',
+    retryLabel: 'Retry studio bootstrap',
+    errorFallback: 'Studio bootstrap failed',
+  },
+  zh: {
+    tag: '工作区引导',
+    loadingTitle: '正在检查 Gateway 健康状态',
+    blockedTitle: '工作区启动被阻止',
+    loadingDescription: 'Qianji Studio 现在要求 Wendao Gateway 健康后才能进入工作区。',
+    blockedDescription: '只有在 Gateway 健康、配置同步和 VFS 扫描全部成功后，Qianji Studio 才会进入工作区。',
+    checkingLabel: '检查中...',
+    retryLabel: '重试工作区引导',
+    errorFallback: '工作区引导失败',
+  },
+};
+
+function resolveUiLocale(): UiLocale {
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
+
+  const storedLocale = window.localStorage.getItem(UI_LOCALE_STORAGE_KEY);
+  if (storedLocale === 'en' || storedLocale === 'zh') {
+    return storedLocale;
+  }
+
+  const systemLocale = (window.navigator.language || '').toLowerCase();
+  return systemLocale.startsWith('zh') ? 'zh' : 'en';
+}
+
+function toErrorMessage(error: unknown, fallbackMessage: string): string {
+  return error instanceof Error ? error.message : fallbackMessage;
 }
 
 export function StudioBootstrap(): React.ReactElement {
+  const locale = resolveUiLocale();
+  const copy = BOOTSTRAP_COPY[locale];
   const [bootstrapState, setBootstrapState] = useState<BootstrapState>({ status: 'loading' });
   const [retryToken, setRetryToken] = useState(0);
 
@@ -47,7 +104,7 @@ export function StudioBootstrap(): React.ReactElement {
           setBootstrapState({
             status: 'blocked',
             gatewayBind,
-            error: toErrorMessage(error),
+            error: toErrorMessage(error, copy.errorFallback),
           });
         }
       }
@@ -58,7 +115,7 @@ export function StudioBootstrap(): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [retryToken]);
+  }, [retryToken, copy.errorFallback]);
 
   if (bootstrapState.status === 'ready') {
     return <App />;
@@ -95,17 +152,13 @@ export function StudioBootstrap(): React.ReactElement {
               color: '#7dcfff',
             }}
           >
-            Studio bootstrap
+            {copy.tag}
           </span>
           <h1 style={{ margin: 0, fontSize: '28px', lineHeight: 1.15 }}>
-            {bootstrapState.status === 'loading'
-              ? 'Checking gateway health'
-              : 'Studio startup blocked'}
+            {bootstrapState.status === 'loading' ? copy.loadingTitle : copy.blockedTitle}
           </h1>
           <p style={{ margin: 0, color: 'rgba(230, 247, 255, 0.78)', lineHeight: 1.6 }}>
-            {bootstrapState.status === 'loading'
-              ? 'Qianji Studio now requires a healthy Wendao gateway before the workspace can start.'
-              : 'Qianji Studio will not enter the workspace until gateway health, config sync, and VFS scan all succeed.'}
+            {bootstrapState.status === 'loading' ? copy.loadingDescription : copy.blockedDescription}
           </p>
           {bootstrapState.gatewayBind ? (
             <div
@@ -150,7 +203,7 @@ export function StudioBootstrap(): React.ReactElement {
                   cursor: 'progress',
                 }}
               >
-                Checking...
+                {copy.checkingLabel}
               </button>
             ) : (
               <button
@@ -165,7 +218,7 @@ export function StudioBootstrap(): React.ReactElement {
                   cursor: 'pointer',
                 }}
               >
-                Retry studio bootstrap
+                {copy.retryLabel}
               </button>
             )}
           </div>

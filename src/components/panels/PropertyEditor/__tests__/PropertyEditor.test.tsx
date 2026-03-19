@@ -23,14 +23,14 @@ describe('PropertyEditor', () => {
   it('should show empty state when no node is selected', () => {
     render(<PropertyEditor node={null} />);
 
-    expect(screen.getByText('选择文件或节点查看详情')).toBeInTheDocument();
+    expect(screen.getByText('Select a file or node to inspect details')).toBeInTheDocument();
   });
 
   it('should render tabs', () => {
     render(<PropertyEditor {...defaultProps} />);
 
-    expect(screen.getByText('属性')).toBeInTheDocument();
-    expect(screen.getByText('关系')).toBeInTheDocument();
+    expect(screen.getByText('Properties')).toBeInTheDocument();
+    expect(screen.getByText('Relationships')).toBeInTheDocument();
   });
 
   it('should display node name as title', () => {
@@ -72,7 +72,7 @@ describe('PropertyEditor', () => {
   it('should show position fields when node has position', () => {
     render(<PropertyEditor {...defaultProps} />);
 
-    expect(screen.getByText('位置')).toBeInTheDocument();
+    expect(screen.getByText('Position')).toBeInTheDocument();
     expect(screen.getByDisplayValue('100')).toBeInTheDocument();
     expect(screen.getByDisplayValue('200')).toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe('PropertyEditor', () => {
 
     render(<PropertyEditor node={nodeWithoutPosition} />);
 
-    expect(screen.queryByText('位置')).not.toBeInTheDocument();
+    expect(screen.queryByText('Position')).not.toBeInTheDocument();
   });
 
   it('should call onUpdate with new position when X is changed', () => {
@@ -159,16 +159,16 @@ describe('PropertyEditor', () => {
     render(<PropertyEditor {...defaultProps} />);
 
     // Expand metadata group
-    fireEvent.click(screen.getByText('元数据'));
+    fireEvent.click(screen.getByText('Metadata'));
 
-    expect(screen.getByText('Z 位置')).toBeInTheDocument();
+    expect(screen.getByText('Z Position')).toBeInTheDocument();
   });
 
   it('should show type in metadata section', () => {
     const { container } = render(<PropertyEditor {...defaultProps} />);
 
     // Expand metadata group
-    fireEvent.click(screen.getByText('元数据'));
+    fireEvent.click(screen.getByText('Metadata'));
 
     // Look for type in the metadata section specifically
     const metadataSection = container.querySelector('.property-editor__metadata');
@@ -191,7 +191,7 @@ describe('PropertyEditor', () => {
     const relationships = [{ type: 'skill', to: 'writer' }];
     render(<PropertyEditor {...defaultProps} relationships={relationships} />);
 
-    fireEvent.click(screen.getByText('关系'));
+    fireEvent.click(screen.getByText('Relationships'));
 
     // Should show relationships count badge
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -200,8 +200,8 @@ describe('PropertyEditor', () => {
   it('should show empty relationships state', () => {
     render(<PropertyEditor {...defaultProps} relationships={[]} />);
 
-    fireEvent.click(screen.getByText('关系'));
+    fireEvent.click(screen.getByText('Relationships'));
 
-    expect(screen.getByText('暂无关系数据')).toBeInTheDocument();
+    expect(screen.getByText('No relationship data available')).toBeInTheDocument();
   });
 });

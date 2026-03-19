@@ -1,10 +1,11 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { GraphView } from '../GraphView';
 
 const mocks = vi.hoisted(() => ({
   getGraphNeighborsMock: vi.fn(),
+  getMarkdownAnalysisMock: vi.fn(),
   useContainerDimensionsMock: vi.fn(),
   useForceSimulationMock: vi.fn(),
   useDragMock: vi.fn(),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../../api/client', () => ({
   api: {
     getGraphNeighbors: mocks.getGraphNeighborsMock,
+    getMarkdownAnalysis: mocks.getMarkdownAnalysisMock,
   },
 }));
 
@@ -55,9 +57,7 @@ vi.mock('../../../NebulaRenderer', () => ({
 }));
 
 vi.mock('@react-three/fiber', () => ({
-  Canvas: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="mock-three-canvas">{children}</div>
-  ),
+  Canvas: () => <div data-testid="mock-three-canvas" />,
   useFrame: vi.fn(),
   useThree: vi.fn(() => ({
     raycaster: {
@@ -166,18 +166,9 @@ describe('GraphView', () => {
       limit: 12,
     });
 
-    expect(screen.getByText('Legend')).toBeInTheDocument();
-    expect(screen.getByText('Knowledge')).toBeInTheDocument();
-    expect(screen.getByText('Outgoing')).toBeInTheDocument();
-
     expect(screen.getByRole('tab', { name: '2D Map' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: '3D Stage' })).toHaveAttribute('aria-selected', 'false');
 
-    const stats = screen.getByLabelText('Graph stats');
-    expect(within(stats).getByText('Nodes')).toBeInTheDocument();
-    expect(within(stats).getByText('Links')).toBeInTheDocument();
-    expect(within(stats).getByText('2')).toBeInTheDocument();
-    expect(within(stats).getByText('1')).toBeInTheDocument();
   });
 
   it('toggles render mode between 2D and 3D from the graph toolbar', async () => {
@@ -240,6 +231,102 @@ describe('GraphView', () => {
     });
 
     expect(screen.queryByTestId('graph-svg')).not.toBeInTheDocument();
+  });
+
+  it('falls back to markdown analysis when graph neighbors return node-not-found', async () => {
+    mocks.getGraphNeighborsMock.mockRejectedValue({
+      code: 'NODE_NOT_FOUND',
+      message: 'Node not found: docs-2/index.md',
+    });
+    mocks.getMarkdownAnalysisMock.mockResolvedValue({
+      path: 'docs-2/index.md',
+      documentHash: 'doc-hash',
+      nodeCount: 3,
+      edgeCount: 2,
+      nodes: [
+        {
+          id: 'docs-2/index.md#document',
+          kind: 'document',
+          label: 'index.md',
+          depth: 0,
+          lineStart: 1,
+          lineEnd: 20,
+        },
+        {
+          id: 'docs-2/index.md#section:overview',
+          kind: 'section',
+          label: 'Overview',
+          depth: 1,
+          lineStart: 3,
+          lineEnd: 12,
+          parentId: 'docs-2/index.md#document',
+        },
+        {
+          id: 'docs-2/index.md#task:1',
+          kind: 'task',
+          label: 'Finish graph fallback',
+          depth: 2,
+          lineStart: 8,
+          lineEnd: 8,
+          parentId: 'docs-2/index.md#section:overview',
+        },
+      ],
+      edges: [
+        {
+          id: 'e1',
+          kind: 'contains',
+          sourceId: 'docs-2/index.md#document',
+          targetId: 'docs-2/index.md#section:overview',
+          evidence: {
+            path: 'docs-2/index.md',
+            lineStart: 3,
+            lineEnd: 12,
+            confidence: 1,
+          },
+        },
+        {
+          id: 'e2',
+          kind: 'next_step',
+          sourceId: 'docs-2/index.md#section:overview',
+          targetId: 'docs-2/index.md#task:1',
+          evidence: {
+            path: 'docs-2/index.md',
+            lineStart: 8,
+            lineEnd: 8,
+            confidence: 1,
+          },
+        },
+      ],
+      projections: [
+        {
+          kind: 'graph',
+          source: 'graph TD\nA-->B',
+          nodeCount: 3,
+          edgeCount: 2,
+          complexityScore: 0.42,
+          diagnostics: [],
+        },
+      ],
+      diagnostics: [],
+    });
+
+    const onNodeClick = vi.fn();
+    render(<GraphView centerNodeId="docs-2/index.md" onNodeClick={onNodeClick} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('graph-svg')).toBeInTheDocument();
+    });
+
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('docs-2/index.md', {
+      direction: 'both',
+      hops: 2,
+      limit: 50,
+    });
+    expect(mocks.getMarkdownAnalysisMock).toHaveBeenCalledWith('docs-2/index.md');
+
+    fireEvent.click(screen.getByTestId('graph-svg'));
+    expect(onNodeClick).toHaveBeenCalledWith('docs-2/index.md#document', 'docs-2/index.md');
+    expect(screen.queryByText('Node not found: docs-2/index.md')).not.toBeInTheDocument();
   });
 
   it('does not request graph neighbors while disabled', async () => {

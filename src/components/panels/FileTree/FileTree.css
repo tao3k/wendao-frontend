@@ -16,8 +16,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   background: linear-gradient(145deg, rgba(24, 30, 46, 0.9), rgba(18, 24, 36, 0.72));
   border-bottom: 1px solid rgba(125, 207, 255, 0.16);
   border-radius: 16px 16px 0 0;
@@ -44,11 +44,11 @@
 }
 
 .file-tree-toolbar-count {
-  padding: 2px 10px;
+  padding: 1px 8px;
   border-radius: 999px;
   border: 1px solid rgba(125, 207, 255, 0.32);
   color: var(--text-primary);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -60,7 +60,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 14px 10px 16px;
+  padding: 8px 6px 10px;
   border-radius: 0 0 15px 15px;
   background: linear-gradient(170deg, rgba(8, 13, 24, 0.88), rgba(8, 13, 24, 0.75));
 }
@@ -125,57 +125,52 @@
 
 .file-tree-node {
   user-select: none;
+  line-height: 1.15;
 }
 
 .file-tree-item {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto;
-  column-gap: 8px;
+  column-gap: 6px;
   align-items: center;
-  margin: 4px 6px;
-  padding: 8px 10px;
-  border-radius: 14px;
+  margin: 1px 0;
+  padding: 4px 6px;
+  border-radius: 7px;
   position: relative;
   overflow: visible;
   cursor: pointer;
   transition: all 120ms ease;
-  line-height: 1.2;
+  line-height: 1.15;
+  min-height: 22px;
   min-width: 0;
 }
 
 .file-tree-item:hover {
-  background: var(--hover-bg);
+  background: rgba(125, 207, 255, 0.1);
 }
 
 .file-tree-item.selected {
   background: var(--selection-bg);
-  box-shadow: inset 0 0 0 1px rgba(125, 207, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(125, 207, 255, 0.22);
 }
 
 .file-tree-item.is-project {
-  margin: 8px 2px 6px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  margin: 5px 0 2px;
+  padding: 5px 6px;
+  border-radius: 8px;
   background: transparent;
   border: 0;
   box-shadow: none;
   position: relative;
-  padding-bottom: 12px;
+  padding-bottom: 5px;
 }
 
 .file-tree-item.is-project::after {
-  content: '';
-  position: absolute;
-  left: 42px;
-  right: 12px;
-  bottom: 5px;
-  height: 1px;
-  opacity: 0.35;
-  background: linear-gradient(90deg, transparent, rgba(125, 207, 255, 0.28), transparent);
+  content: none;
 }
 
 .file-tree-item.is-project:hover {
-  background: rgba(125, 207, 255, 0.05);
+  background: rgba(125, 207, 255, 0.08);
   box-shadow: none;
 }
 
@@ -188,8 +183,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   color: var(--text-muted);
   flex-shrink: 0;
 }
@@ -229,7 +224,7 @@
   width: 100%;
   min-width: 0;
   padding-right: 0;
-  gap: 8px;
+  gap: 6px;
   overflow: hidden;
 }
 
@@ -251,23 +246,23 @@
 .file-tree-item.is-project .file-tree-name {
   text-transform: none;
   letter-spacing: 0.02em;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--neon-purple);
-  font-weight: 700;
+  font-weight: 600;
   min-width: 0;
 }
 
 .file-tree-project-group {
-  margin-top: 10px;
-  padding-top: 4px;
+  margin-top: 6px;
+  padding-top: 1px;
   position: relative;
   isolation: isolate;
   border: 0;
 }
 
 .file-tree-project-group:first-child {
-  padding-top: 2px;
-  margin-top: 2px;
+  padding-top: 0;
+  margin-top: 0;
 }
 
 .file-tree-project-group:last-child::after {
@@ -285,90 +280,82 @@
 }
 
 .file-tree-project-children {
-  margin: 2px 4px 2px 12px;
-  padding: 4px 0 6px 2px;
-  border-radius: 0 0 12px 12px;
+  margin: 0 0 2px 8px;
+  padding: 1px 0 1px 8px;
+  border-radius: 0;
   box-shadow: none;
   background: transparent;
   position: relative;
   overflow: visible;
+  border-left: 1px solid rgba(125, 207, 255, 0.14);
 }
 
 .file-tree-root-meta {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 9px;
   white-space: nowrap;
   color: var(--text-muted);
   border: 1px solid rgba(115, 218, 202, 0.34);
-  background: rgba(36, 40, 59, 0.72);
-  width: 0;
-  max-width: 0;
+  background: rgba(18, 24, 36, 0.94);
+  max-width: min(48%, 280px);
   opacity: 0;
   visibility: hidden;
   overflow: hidden;
   text-overflow: ellipsis;
-  position: static;
-  transform: none;
-  justify-self: end;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  justify-self: auto;
   pointer-events: none;
-  transition: opacity 120ms ease, visibility 120ms ease, max-width 120ms ease, width 120ms ease;
-  transition-delay: 0s, 0s, 0s, 0s;
+  transition: opacity 120ms ease, visibility 120ms ease, transform 120ms ease;
 }
 
-.file-tree-name-wrap:hover + .file-tree-root-meta,
-.file-tree-name-wrap:focus-within + .file-tree-root-meta,
+.file-tree-item:hover .file-tree-root-meta,
 .file-tree-item:focus-within .file-tree-root-meta {
-  max-width: 96px;
-  width: auto;
   opacity: 1;
   visibility: visible;
-  transition-delay: 0.3s, 0.3s, 0s, 0s;
+  transform: translateY(-50%) translateX(0);
 }
 
 .file-tree-project-source {
-  width: 0;
-  max-width: 0;
+  display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 9px;
   white-space: nowrap;
   color: var(--text-muted);
   border: 1px solid rgba(115, 218, 202, 0.34);
-  background: rgba(36, 40, 59, 0.9);
+  background: rgba(18, 24, 36, 0.94);
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  max-width: min(58%, 340px);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 120ms ease, visibility 120ms ease, max-width 120ms ease, width 120ms ease;
-  transition-delay: 0s, 0s, 0s, 0s;
+  transition: opacity 120ms ease, visibility 120ms ease, transform 120ms ease;
   z-index: 10;
   text-overflow: ellipsis;
   overflow: hidden;
-  white-space: nowrap;
   flex-shrink: 0;
 }
 
-.file-tree-name-wrap:hover .file-tree-project-source,
+.file-tree-item:hover .file-tree-project-source,
 .file-tree-item:focus-within .file-tree-project-source,
-.file-tree-name-wrap:focus-within .file-tree-project-source {
-  width: auto;
-  max-width: 320px;
+.file-tree-name-wrap:focus-within + .file-tree-project-source {
   opacity: 1;
   visibility: visible;
-  transition-delay: 0.3s, 0.3s, 0s, 0s;
+  transform: translateY(-50%) translateX(0);
 }
 
-.file-tree-name-wrap,
-.file-tree-name-wrap .file-tree-project-source {
+.file-tree-name-wrap {
   display: inline-flex;
-}
-
-.file-tree-name-wrap .file-tree-project-source {
-  padding: 2px 8px;
-  white-space: nowrap;
 }
 
 .file-tree-children {

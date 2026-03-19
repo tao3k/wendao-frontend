@@ -16,6 +16,7 @@ describe('NodeBrowser', () => {
     nodes: mockNodes,
     onNodeSelect: vi.fn(),
     onNodeDoubleClick: vi.fn(),
+    locale: 'en' as const,
   };
 
   beforeEach(() => {
@@ -150,5 +151,14 @@ describe('NodeBrowser', () => {
     render(<NodeBrowser {...defaultProps} />);
 
     expect(screen.getByText('Nodes')).toBeInTheDocument();
+  });
+
+  it('should render chinese copy when locale is zh', () => {
+    render(<NodeBrowser {...defaultProps} locale="zh" />);
+
+    expect(screen.getByText('节点')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索节点...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '任务' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '全部' })).toBeInTheDocument();
   });
 });

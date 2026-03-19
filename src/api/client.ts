@@ -26,6 +26,14 @@ import type {
   SymbolSearchResponse,
   AutocompleteSuggestion,
   AutocompleteResponse,
+  AnalysisNodeKind,
+  AnalysisEdgeKind,
+  AnalysisEvidence,
+  AnalysisNode,
+  AnalysisEdge,
+  MermaidViewKind,
+  MermaidProjection,
+  MarkdownAnalysisResponse,
 } from './bindings';
 
 // Re-export types for convenience
@@ -50,6 +58,14 @@ export type {
   SymbolSearchResponse,
   AutocompleteSuggestion,
   AutocompleteResponse,
+  AnalysisNodeKind,
+  AnalysisEdgeKind,
+  AnalysisEvidence,
+  AnalysisNode,
+  AnalysisEdge,
+  MermaidViewKind,
+  MermaidProjection,
+  MarkdownAnalysisResponse,
 };
 
 // Import ApiError for use in this module (not re-exported to avoid conflict)
@@ -227,6 +243,17 @@ export const api = {
     const params = new URLSearchParams({ prefix, limit: String(limit) });
     const response = await fetch(`${API_BASE}/search/autocomplete?${params}`);
     return handleResponse<AutocompleteResponse>(response);
+  },
+
+  // === Analysis Endpoints ===
+
+  /**
+   * Compile deterministic Markdown analysis IR and projections for a file path.
+   */
+  async getMarkdownAnalysis(path: string): Promise<MarkdownAnalysisResponse> {
+    const params = new URLSearchParams({ path });
+    const response = await fetch(`${API_BASE}/analysis/markdown?${params}`);
+    return handleResponse<MarkdownAnalysisResponse>(response);
   },
 
   // === UI Config Endpoints ===

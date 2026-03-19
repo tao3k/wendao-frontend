@@ -97,6 +97,7 @@ Completed:
 - line-numbered source mode
 - highlighted ranges
 - auto-scroll
+- Markdown rich-by-default mode with explicit source toggle
 
 Outcome:
 

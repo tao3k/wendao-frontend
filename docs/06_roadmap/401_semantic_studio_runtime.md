@@ -9,12 +9,13 @@
 
 ## Current Baseline
 
-The current frontend can hydrate the correct file and panel surface from tree, search, and graph entry points. It can also resolve a reference result through the native `/api/search/definition` contract and focus a source range in the reader.
+The current frontend can hydrate the correct file and panel surface from tree, search, and graph entry points. It can also resolve a reference result through the native `/api/search/definition` contract and surface source-focus metadata in the reader without degrading Markdown rendering fidelity.
 
 ## Recently Landed
 
 1. **Native Go-to-Definition Endpoint**: `Definition` is now a first-class backend contract served by `/api/search/definition` and consumed directly by SearchBar actions.
 2. **Topology Continuity Repair**: the 3D runtime now preserves node coordinates across topology refreshes and uses incremental worker synchronization instead of repeated cold resets.
+3. **Markdown Reader Mode Hardening**: `DirectReader` now keeps Markdown in rich mode by default under line metadata, with explicit source-mode toggles for line-level inspection.
 
 ## Next Evolutions
 

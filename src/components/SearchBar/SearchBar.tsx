@@ -5,11 +5,14 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, X, FileText, BookOpen, Zap, ArrowRight, Tag, Hash } from 'lucide-react';
+import { Search, X, FileText, BookOpen, Zap, ArrowRight, Tag, Hash, Paperclip } from 'lucide-react';
 import {
   api,
   SearchHit,
   SearchResponse,
+  StudioNavigationTarget,
+  AttachmentSearchHit,
+  AttachmentSearchResponse,
   AstSearchHit,
   AstSearchResponse,
   ReferenceSearchHit,
@@ -21,19 +24,15 @@ import {
 import { useDebouncedValue } from '../../hooks';
 import './SearchBar.css';
 
-type SearchScope = 'all' | 'document' | 'knowledge' | 'tag' | 'symbol' | 'ast' | 'reference';
+type SearchScope = 'all' | 'document' | 'knowledge' | 'tag' | 'symbol' | 'ast' | 'reference' | 'attachment';
 type SearchSort = 'relevance' | 'path';
-type ResultCategory = 'knowledge' | 'skill' | 'tag' | 'document' | 'symbol' | 'ast' | 'reference';
+type ResultCategory = 'knowledge' | 'skill' | 'tag' | 'document' | 'symbol' | 'ast' | 'reference' | 'attachment';
 type UiLocale = 'en' | 'zh';
 
-interface SearchSelection {
-  path: string;
-  category: string;
-  projectName?: string;
-  rootLabel?: string;
-  line?: number;
-  lineEnd?: number;
-  column?: number;
+type SearchSelection = StudioNavigationTarget;
+
+function isNonEmptyString(value: string | undefined): value is string {
+  return typeof value === 'string' && value.length > 0;
 }
 
 interface SearchResult extends SearchHit {
@@ -43,6 +42,7 @@ interface SearchResult extends SearchHit {
   line?: number;
   lineEnd?: number;
   column?: number;
+  navigationTarget: SearchSelection;
 }
 
 interface SearchBarProps {
@@ -51,7 +51,7 @@ interface SearchBarProps {
   onClose: () => void;
   onResultSelect: (selection: SearchSelection) => void;
   onReferencesResultSelect?: (selection: SearchSelection) => void;
-  onGraphResultSelect?: (path: string) => void;
+  onGraphResultSelect?: (selection: SearchSelection) => void;
   onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
 }
 
@@ -67,6 +67,7 @@ interface SearchBarCopy {
   confidence: string;
   scope: string;
   sort: string;
+  attachments: string;
   noResultsPrefix: string;
   project: string;
   root: string;
@@ -98,6 +99,7 @@ const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
     confidence: 'Confidence',
     scope: 'Scope',
     sort: 'Sort',
+    attachments: 'Attachments',
     noResultsPrefix: 'No results found for',
     project: 'Project',
     root: 'Root',
@@ -127,6 +129,7 @@ const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
     confidence: '置信度',
     scope: '范围',
     sort: '排序',
+    attachments: '附件',
     noResultsPrefix: '未找到相关结果',
     project: '项目',
     root: '根',
@@ -159,6 +162,8 @@ function getDocIcon(docType?: string) {
       return <Search size={14} className="search-result-icon ast" />;
     case 'reference':
       return <ArrowRight size={14} className="search-result-icon reference" />;
+    case 'attachment':
+      return <Paperclip size={14} className="search-result-icon doc" />;
     default:
       return <FileText size={14} className="search-result-icon doc" />;
   }
@@ -196,6 +201,8 @@ function getScopeLabel(scope: SearchScope, locale: UiLocale) {
       return 'AST';
     case 'reference':
       return locale === 'zh' ? '引用' : 'References';
+    case 'attachment':
+      return locale === 'zh' ? '附件' : 'Attachments';
     default:
       return locale === 'zh' ? '全部' : 'All';
   }
@@ -240,15 +247,32 @@ function formatSuggestionType(type: string, locale: UiLocale) {
   }
 }
 
-function inferKnowledgeCategory(hit: SearchHit): ResultCategory {
-  if (hit.docType === 'knowledge') return 'knowledge';
-  if (hit.docType === 'skill') return 'skill';
-  if (hit.docType === 'tag') return 'tag';
-  if (hit.tags && hit.tags.length > 0) return 'tag';
-  return 'document';
+function knowledgeResultCategory(hit: SearchHit): ResultCategory {
+  const navigationCategory =
+    hit.navigationTarget?.category
+    ?? (hit.docType === 'knowledge' || hit.docType === 'skill' || hit.docType === 'tag'
+      ? hit.docType
+      : (hit.tags?.length ?? 0) > 0
+        ? 'tag'
+        : 'doc');
+
+  switch (navigationCategory) {
+    case 'knowledge':
+      return 'knowledge';
+    case 'skill':
+      return 'skill';
+    case 'tag':
+      return 'tag';
+    default:
+      return 'document';
+  }
 }
 
 function toSearchSelection(result: SearchResult): SearchSelection {
+  if (result.navigationTarget) {
+    return result.navigationTarget;
+  }
+
   return {
     path: result.path,
     category: result.category === 'knowledge' || result.category === 'skill' ? result.category : 'doc',
@@ -261,9 +285,18 @@ function toSearchSelection(result: SearchResult): SearchSelection {
 }
 
 function normalizeKnowledgeHit(hit: SearchHit): SearchResult {
+  const category = knowledgeResultCategory(hit);
+  const navigationTarget = hit.navigationTarget ?? {
+    path: hit.path,
+    category: category === 'document' ? 'doc' : category,
+  };
+
   return {
     ...hit,
-    category: inferKnowledgeCategory(hit),
+    category,
+    projectName: navigationTarget.projectName,
+    rootLabel: navigationTarget.rootLabel,
+    navigationTarget,
   };
 }
 
@@ -275,7 +308,7 @@ function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
     title: hit.name,
     path: hit.path,
     docType: 'symbol',
-    tags: [hit.kind, hit.language, hit.crateName].filter(Boolean),
+    tags: [hit.kind, hit.language, hit.crateName].filter(isNonEmptyString),
     score: hit.score,
     bestSection: `${hit.kind} · ${hit.language} · line ${hit.line}`,
     matchReason: `${sourceLabel} symbol in ${hit.crateName}`,
@@ -283,21 +316,36 @@ function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
     projectName: hit.projectName ?? hit.crateName,
     rootLabel: hit.rootLabel,
     line: hit.line,
+    navigationTarget: hit.navigationTarget,
   };
 }
 
 function normalizeAstHit(hit: AstSearchHit): SearchResult {
+  const isMarkdownOutline = hit.language.toLowerCase() === 'markdown';
+  const markdownNodeKind = hit.nodeKind?.toLowerCase();
+  const lineSubject = !isMarkdownOutline
+    ? hit.language
+    : markdownNodeKind === 'property'
+      ? 'property drawer'
+      : markdownNodeKind === 'observation'
+        ? 'code observation'
+        : markdownNodeKind === 'task'
+          ? 'markdown task'
+          : 'markdown outline';
+  const ownerSuffix = hit.ownerTitle ? ` · ${hit.ownerTitle}` : '';
   const lineLabel =
     hit.lineStart === hit.lineEnd
-      ? `${hit.language} · line ${hit.lineStart}`
-      : `${hit.language} · lines ${hit.lineStart}-${hit.lineEnd}`;
+      ? `${lineSubject}${ownerSuffix} · line ${hit.lineStart}`
+      : `${lineSubject}${ownerSuffix} · lines ${hit.lineStart}-${hit.lineEnd}`;
 
   return {
     stem: hit.name,
     title: hit.name,
     path: hit.path,
     docType: 'ast',
-    tags: [hit.language, hit.crateName].filter(Boolean),
+    tags: isMarkdownOutline
+      ? [hit.language, hit.nodeKind, hit.rootLabel ?? hit.crateName].filter(isNonEmptyString)
+      : [hit.language, hit.crateName].filter(isNonEmptyString),
     score: hit.score,
     bestSection: lineLabel,
     matchReason: hit.signature,
@@ -306,6 +354,7 @@ function normalizeAstHit(hit: AstSearchHit): SearchResult {
     rootLabel: hit.rootLabel,
     line: hit.lineStart,
     lineEnd: hit.lineEnd,
+    navigationTarget: hit.navigationTarget,
   };
 }
 
@@ -324,6 +373,66 @@ function normalizeReferenceHit(hit: ReferenceSearchHit): SearchResult {
     rootLabel: hit.rootLabel,
     line: hit.line,
     column: hit.column,
+    navigationTarget: hit.navigationTarget,
+  };
+}
+
+function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
+  const sourceLabel = hit.sourceTitle?.trim() || hit.sourceStem;
+  const navigationTarget = hit.navigationTarget ?? {
+    path: hit.sourcePath,
+    category: 'doc',
+  };
+  return {
+    stem: hit.attachmentName,
+    title: hit.attachmentName,
+    path: hit.path,
+    docType: 'attachment',
+    tags: [`kind:${hit.kind}`, `ext:${hit.attachmentExt}`, `org:${hit.sourceId}`],
+    score: hit.score,
+    bestSection: hit.attachmentPath,
+    matchReason: hit.visionSnippet || `Attached to ${sourceLabel}`,
+    category: 'attachment',
+    projectName: navigationTarget.projectName,
+    rootLabel: navigationTarget.rootLabel,
+    navigationTarget,
+  };
+}
+
+function resolveDefinitionSelection(
+  result: SearchResult,
+  response: {
+    navigationTarget?: SearchSelection;
+    definition?: {
+      path: string;
+      crateName?: string;
+      projectName?: string;
+      rootLabel?: string;
+      lineStart?: number;
+      lineEnd?: number;
+      navigationTarget?: SearchSelection;
+    };
+  }
+): SearchSelection {
+  if (response.navigationTarget) {
+    return response.navigationTarget;
+  }
+
+  if (response.definition?.navigationTarget) {
+    return response.definition.navigationTarget;
+  }
+
+  return {
+    path: response.definition?.path ?? result.path,
+    category: 'doc',
+    ...(response.definition?.projectName
+      ? { projectName: response.definition.projectName }
+      : response.definition?.crateName
+        ? { projectName: response.definition.crateName }
+        : {}),
+    ...(response.definition?.rootLabel ? { rootLabel: response.definition.rootLabel } : {}),
+    ...(typeof response.definition?.lineStart === 'number' ? { line: response.definition.lineStart } : {}),
+    ...(typeof response.definition?.lineEnd === 'number' ? { lineEnd: response.definition.lineEnd } : {}),
   };
 }
 
@@ -369,6 +478,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         ? 'ast'
         : scope === 'symbol'
           ? 'symbol'
+          : scope === 'attachment'
+            ? 'attachment'
           : scope === 'all'
             ? 'all'
             : 'knowledge';
@@ -397,7 +508,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       !showSuggestions ||
       scope === 'symbol' ||
       scope === 'ast' ||
-      scope === 'reference'
+      scope === 'reference' ||
+      scope === 'attachment'
     ) {
       setSuggestions([]);
       return;
@@ -444,6 +556,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       skill: [],
       ast: [],
       reference: [],
+      attachment: [],
       tag: [],
       document: [],
       symbol: [],
@@ -458,11 +571,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       { key: 'skill' as const, title: locale === 'zh' ? '技能' : 'Skill', hits: buckets.skill },
       { key: 'ast' as const, title: 'AST', hits: buckets.ast },
       { key: 'reference' as const, title: locale === 'zh' ? '引用' : 'References', hits: buckets.reference },
+      { key: 'attachment' as const, title: copy.attachments, hits: buckets.attachment },
       { key: 'symbol' as const, title: locale === 'zh' ? '符号' : 'Symbols', hits: buckets.symbol },
       { key: 'tag' as const, title: locale === 'zh' ? '标签' : 'Tagged', hits: buckets.tag },
       { key: 'document' as const, title: locale === 'zh' ? '文档' : 'Documents', hits: buckets.document },
     ].filter((section) => section.hits.length > 0);
-  }, [locale, resultCategory, visibleResults]);
+  }, [copy.attachments, locale, resultCategory, visibleResults]);
 
   const visibleSuggestionCount = useMemo(() => (showSuggestions ? suggestions.length : 0), [showSuggestions, suggestions.length]);
   const totalSelectableItems = useMemo(
@@ -496,6 +610,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             hitCount: response.hitCount,
             selectedMode: 'Reference Index',
           });
+        } else if (searchMode === 'attachment') {
+          const response: AttachmentSearchResponse = await api.searchAttachments(debouncedQuery, 10);
+          setResults(response.hits.map(normalizeAttachmentHit));
+          setSearchMeta({
+            query: response.query,
+            hitCount: response.hitCount,
+            selectedMode: 'Attachment Index',
+          });
         } else if (searchMode === 'ast') {
           const response: AstSearchResponse = await api.searchAst(debouncedQuery, 10);
           setResults(response.hits.map(normalizeAstHit));
@@ -518,6 +640,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             api.searchAst(debouncedQuery, 10),
             api.searchReferences(debouncedQuery, 10),
             api.searchSymbols(debouncedQuery, 10),
+            api.searchAttachments(debouncedQuery, 10),
           ]);
           const failures = settled
             .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -564,19 +687,31 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   hitCount: 0,
                   selectedScope: 'project',
                 };
+          const attachmentResponse: AttachmentSearchResponse =
+            settled[4].status === 'fulfilled'
+              ? settled[4].value
+              : {
+                  query: debouncedQuery,
+                  hits: [],
+                  hitCount: 0,
+                  selectedScope: 'attachments',
+                };
           const normalizedAstHits = astResponse.hits.map(normalizeAstHit);
           const normalizedReferenceHits = referenceResponse.hits.map(normalizeReferenceHit);
           const normalizedSymbolHits = symbolResponse.hits.map(normalizeSymbolHit);
+          const normalizedAttachmentHits = attachmentResponse.hits.map(normalizeAttachmentHit);
           setResults([
             ...knowledgeResponse.hits.map(normalizeKnowledgeHit),
             ...normalizedAstHits,
             ...normalizedReferenceHits,
             ...normalizedSymbolHits,
+            ...normalizedAttachmentHits,
           ]);
           const semanticSuffix = [
             astResponse.hitCount > 0 ? 'AST' : null,
             referenceResponse.hitCount > 0 ? 'References' : null,
             symbolResponse.hitCount > 0 ? 'Symbols' : null,
+            attachmentResponse.hitCount > 0 ? 'Attachments' : null,
           ]
             .filter(Boolean)
             .join(' + ');
@@ -586,7 +721,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               knowledgeResponse.hitCount +
               astResponse.hitCount +
               referenceResponse.hitCount +
-              symbolResponse.hitCount,
+              symbolResponse.hitCount +
+              attachmentResponse.hitCount,
             selectedMode: semanticSuffix
               ? `${formatSearchMode(knowledgeResponse.selectedMode, 'en')} + ${semanticSuffix}`
               : knowledgeResponse.selectedMode,
@@ -681,7 +817,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (isComposing || e.isComposing) {
+      if (isComposing || e.nativeEvent.isComposing) {
         return;
       }
 
@@ -752,7 +888,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   );
 
   const handleResultClick = useCallback(
-    (result: SearchResult) => {
+    (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
+      event?.preventDefault();
+      event?.stopPropagation();
       onResultSelect(toSearchSelection(result));
       onClose();
     },
@@ -763,7 +901,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      onGraphResultSelect?.(result.path);
+      onGraphResultSelect?.(toSearchSelection(result));
     },
     [onGraphResultSelect]
   );
@@ -790,16 +928,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           path: result.path,
           ...(typeof result.line === 'number' ? { line: result.line } : {}),
         });
-        const definition = response.definition;
-
-        onResultSelect({
-          path: definition.path,
-          category: 'doc',
-          ...(definition.projectName ? { projectName: definition.projectName } : { projectName: definition.crateName }),
-          ...(definition.rootLabel ? { rootLabel: definition.rootLabel } : {}),
-          line: definition.lineStart,
-          lineEnd: definition.lineEnd,
-        });
+        onResultSelect(resolveDefinitionSelection(result, response));
         onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Definition lookup failed');
@@ -896,7 +1025,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <div className="search-toolbar">
           <div className="search-scope-switch">
-            {(['all', 'document', 'knowledge', 'tag', 'symbol', 'ast', 'reference'] as SearchScope[]).map((item) => (
+            {(['all', 'document', 'knowledge', 'tag', 'symbol', 'ast', 'reference', 'attachment'] as SearchScope[]).map((item) => (
               <button
                 type="button"
                 key={item}
@@ -978,7 +1107,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                     <div
                       key={`${result.docType ?? 'document'}-${result.path}-${result.stem}`}
                       className={`search-result ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleResultClick(result)}
+                      onClick={(event) => handleResultClick(result, event)}
                       onMouseEnter={() => setSelectedIndex(displayIndex)}
                     >
                       <div className="search-result-main">
@@ -1046,7 +1175,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                         <button
                           type="button"
                           className="search-result-action primary"
-                          onClick={() => handleResultClick(result)}
+                          onClick={(event) => handleResultClick(result, event)}
                         >
                           {copy.open}
                         </button>

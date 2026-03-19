@@ -4,7 +4,7 @@
  * Tests buffer creation, node/link data layout, and transferable protocol.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // === Binary Protocol Constants (mirrored from hook) ===
 const NODE_STRIDE = 7; // x, y, z, vx, vy, vz, mass
@@ -330,7 +330,6 @@ describe('usePhysicsWorker Performance', () => {
 
     // Simulate postMessage with transfer
     const transferList = [nodeBuffer.buffer, linkBuffer.buffer];
-    const message = { type: 'init', nodeCount: 10000, linkCount: 50000 };
 
     const endTime = performance.now();
 

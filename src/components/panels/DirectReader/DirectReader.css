@@ -28,6 +28,12 @@
   min-width: 0;
 }
 
+.direct-reader__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .direct-reader__path {
   font-size: 12px;
   font-family: 'JetBrains Mono', monospace;
@@ -59,6 +65,30 @@
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.direct-reader__view-toggle {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid rgba(125, 207, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(125, 207, 255, 0.08);
+  color: var(--tokyo-text);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-out-expo);
+}
+
+.direct-reader__view-toggle:hover {
+  background: rgba(125, 207, 255, 0.16);
+}
+
+.direct-reader__view-toggle:focus-visible {
+  outline: 2px solid rgba(125, 207, 255, 0.55);
+  outline-offset: 2px;
 }
 
 /* Content */
@@ -137,20 +167,22 @@
   margin: 8px 0;
 }
 
+.direct-reader__ul,
+.direct-reader__ol {
+  margin: 8px 0 8px 24px;
+  padding: 0;
+}
+
+.direct-reader__ul > .direct-reader__li {
+  list-style: disc;
+}
+
+.direct-reader__ol > .direct-reader__li {
+  list-style: decimal;
+}
+
 .direct-reader__li {
-  margin: 4px 0 4px 24px;
-  position: relative;
-}
-
-.direct-reader__li::before {
-  content: '•';
-  position: absolute;
-  left: -16px;
-  color: var(--neon-purple);
-}
-
-.direct-reader__li--ordered::before {
-  content: none;
+  margin: 4px 0;
 }
 
 /* Blockquotes - Cyber Blue left border */
@@ -165,6 +197,40 @@
 
 .direct-reader__blockquote p {
   margin: 0;
+}
+
+.direct-reader__table-wrap {
+  margin: 16px 0;
+  overflow-x: auto;
+  border: 1px solid rgba(125, 207, 255, 0.18);
+  border-radius: 10px;
+}
+
+.direct-reader__table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(20, 25, 39, 0.72);
+  min-width: 0;
+}
+
+.direct-reader__th,
+.direct-reader__td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(125, 207, 255, 0.14);
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.direct-reader__th {
+  color: var(--neon-blue);
+  font-weight: 600;
+  background: rgba(125, 207, 255, 0.09);
+}
+
+.direct-reader__tbody .direct-reader__tr:last-child .direct-reader__td {
+  border-bottom: none;
 }
 
 /* Code Blocks - Tokyo Night Storm per blueprint */
@@ -213,6 +279,12 @@
   color: #9aa5ce;
 }
 
+.direct-reader__mermaid-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* Syntax highlighting (Tokyo Night Storm) */
 .direct-reader__code[data-lang="typescript"] code,
 .direct-reader__code[data-lang="javascript"] code {
@@ -226,6 +298,16 @@
   background: rgba(125, 207, 255, 0.1);
   color: var(--neon-blue);
   border-radius: 4px;
+}
+
+.direct-reader__link {
+  color: var(--neon-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.direct-reader__link:hover {
+  color: #9edbff;
 }
 
 /* Math Blocks */

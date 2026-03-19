@@ -2,6 +2,8 @@
  * GraphView type definitions
  */
 
+import type { StudioNavigationTarget } from '../../../api/bindings';
+
 export interface GraphRuntimeStatus {
   tone: 'active' | 'warning' | 'error';
   message: string;
@@ -16,7 +18,10 @@ export interface GraphViewProps {
   /** When false, graph requests and auto-refresh are paused. */
   enabled?: boolean;
   /** Called when a node is clicked */
-  onNodeClick?: (nodeId: string, path: string) => void;
+  onNodeClick?: (
+    nodeId: string,
+    selection: StudioNavigationTarget & { graphPath?: string }
+  ) => void;
   /** Called when graph summary data updates for right-side panel */
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   /** Called when graph runtime status changes */
@@ -45,6 +50,7 @@ export interface SimulatedNode {
   id: string;
   label: string;
   path: string;
+  navigationTarget?: StudioNavigationTarget;
   nodeType: string;
   isCenter: boolean;
   distance: number;

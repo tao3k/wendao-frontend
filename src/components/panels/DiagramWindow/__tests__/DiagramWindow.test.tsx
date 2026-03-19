@@ -1,4 +1,3 @@
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { DiagramWindow } from '../DiagramWindow';
@@ -29,7 +28,7 @@ describe('DiagramWindow', () => {
     vi.clearAllMocks();
     mocks.renderMermaidSVG.mockReturnValue('<svg class="mock-mermaid">diagram</svg>');
     mocks.getMarkdownAnalysis.mockResolvedValue({
-      path: 'docs-2/index.md',
+      path: 'main/docs/index.md',
       documentHash: 'fallback',
       nodeCount: 0,
       edgeCount: 0,
@@ -43,7 +42,7 @@ describe('DiagramWindow', () => {
   it('renders embedded mermaid blocks without markdown analysis fallback', async () => {
     const { container } = render(
       <DiagramWindow
-        path="docs-2/03_features/209_backend_endpoint_cookbook.md"
+        path="main/docs/03_features/209_backend_endpoint_cookbook.md"
         content={'```mermaid\ngraph TD\nA --> B\n```'}
         onNodeClick={vi.fn()}
       />
@@ -59,7 +58,7 @@ describe('DiagramWindow', () => {
 
   it('requests markdown analysis projections when markdown has no embedded mermaid', async () => {
     mocks.getMarkdownAnalysis.mockResolvedValue({
-      path: 'docs-2/03_features/202_topology_and_graph_navigation.md',
+      path: 'main/docs/03_features/202_topology_and_graph_navigation.md',
       documentHash: 'h1',
       nodeCount: 2,
       edgeCount: 1,
@@ -80,7 +79,7 @@ describe('DiagramWindow', () => {
 
     const { container } = render(
       <DiagramWindow
-        path="docs-2/03_features/202_topology_and_graph_navigation.md"
+        path="main/docs/03_features/202_topology_and_graph_navigation.md"
         content={'# Topology and Graph Navigation\n\nRegular markdown body.'}
         onNodeClick={vi.fn()}
       />
@@ -88,7 +87,7 @@ describe('DiagramWindow', () => {
 
     await waitFor(() => {
       expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith(
-        'docs-2/03_features/202_topology_and_graph_navigation.md'
+        'main/docs/03_features/202_topology_and_graph_navigation.md'
       );
     });
 

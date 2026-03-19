@@ -56,6 +56,9 @@ export default defineConfig({
   entry: {
     main: './src/main.tsx',
   },
+  output: {
+    clean: true,
+  },
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
     alias: {
@@ -157,6 +160,13 @@ export default defineConfig({
   },
   experiments: {
     css: true,
+  },
+  performance: {
+    // Keep warnings enabled, but use realistic budgets for a 3D client bundle.
+    hints: 'warning',
+    maxAssetSize: 2_400_000,
+    maxEntrypointSize: 3_800_000,
+    assetFilter: (assetFilename: string) => !assetFilename.endsWith('.map'),
   },
   // Dev server configuration with API proxy
   devServer: isDev

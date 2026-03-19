@@ -67,20 +67,22 @@ Accepted tradeoff:
 
 - Runtime failures are more visible when the gateway is unavailable, but correctness is easier to reason about.
 
-## ADR-005: Switch DirectReader into Source Mode When Line Metadata Exists
+## ADR-005: Preserve Rich Markdown by Default with Explicit Source Focus
 
 Decision:
 
-- `DirectReader` renders a line-numbered source view when line metadata is present and rich mode otherwise.
+- `DirectReader` keeps Markdown documents in rich mode by default when line metadata is present and exposes an explicit source-mode toggle for precise line inspection.
+- For non-Markdown files, line metadata continues to open line-numbered source mode directly.
 
 Why:
 
 - Header-only location hints were not enough for AST and reference-driven navigation.
-- Source focus is the natural terminal surface for definition and reference flows.
+- For Markdown-heavy documents, forcing source mode degraded table and inline formatting readability in normal reading flows.
+- Source focus still needs to remain immediately available for precise inspection.
 
 Accepted tradeoff:
 
-- The reader maintains two modes, but each mode now matches the navigation intent.
+- The reader maintains two modes and a mode toggle for Markdown with source metadata, but this preserves readability while keeping line-level inspection available.
 
 ## ADR-006: Prefer Incremental Worker Sync for Topology Rendering
 

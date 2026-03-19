@@ -96,10 +96,23 @@ Impact:
 Frontend change over stable backend contracts:
 
 - `DirectReader` now supports line-numbered source mode, highlighted ranges, and auto-scroll
+- `DirectReader` now keeps Markdown rich mode by default under line metadata and exposes an explicit `View source`/`View rich` toggle
 
 Impact:
 
-- AST and reference flows now terminate in a reader state that matches the selected source location
+- AST and reference flows retain line-level precision while preserving Markdown readability by default
+
+### Hardened studio directive rendering
+
+Frontend change over stable backend contracts:
+
+- `DirectReader` now recognizes directive families `:OBSERVE_*:` and `:CONTRACT_*:` in addition to base `:OBSERVE:` and `:CONTRACT:`
+- Directive-like lines inside fenced code blocks are preserved as literal code text (no rich-mode rewrite)
+- Fence detection now respects marker boundaries when info strings include the opposite marker (for example ```````~~~`), so post-fence content is not accidentally trapped in code mode
+
+Impact:
+
+- Custom Wendao/Studio markdown syntax remains readable in rich mode without corrupting code examples
 
 ## Changelog Rule
 

@@ -17,7 +17,7 @@ The orchestration contract for Qianji Studio. It defines how `App`, `MainView`, 
 2. **App Orchestration**: `App.tsx` owns hydrated file state, active relationships, and requested panel focus.
 3. **Panel Shell**: `MainView` resolves explicit tab requests for `content`, `graph`, and `references`.
 4. **Selection Pipeline**: Tree selection, search actions, and graph-node clicks all converge on the same file hydration path.
-5. **Reader Focus**: `DirectReader` turns line metadata into visible jump targets and focused source ranges.
+5. **Reader Focus**: `DirectReader` keeps Markdown in rich mode by default and exposes explicit source focus controls when line metadata is available.
 
 ## Stable Contracts
 

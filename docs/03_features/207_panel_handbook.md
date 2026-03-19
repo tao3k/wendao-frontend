@@ -66,7 +66,10 @@ Purpose:
 Operator notes:
 
 - Use rich mode when there is no source focus metadata.
-- Use source mode when line metadata is present.
+- For Markdown with line metadata, keep rich mode as default and use the explicit source toggle when exact line inspection is needed.
+- For non-Markdown with line metadata, open source mode directly.
+- Normalize studio metadata drawers (`:PROPERTIES:`, `:RELATIONS:`, `:FOOTER:`) out of rich mode so document prose stays readable.
+- Render `:OBSERVE:` directives as readable observation blocks in rich mode.
 - Preserve bi-link behavior in both modes.
 
 ## DiagramWindow

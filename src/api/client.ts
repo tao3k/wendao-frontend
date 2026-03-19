@@ -17,6 +17,9 @@ import type {
   UiProjectConfig,
   SearchHit,
   SearchResponse,
+  StudioNavigationTarget,
+  AttachmentSearchHit,
+  AttachmentSearchResponse,
   AstSearchHit,
   AstSearchResponse,
   DefinitionResolveResponse,
@@ -49,6 +52,9 @@ export type {
   UiProjectConfig,
   SearchHit,
   SearchResponse,
+  StudioNavigationTarget,
+  AttachmentSearchHit,
+  AttachmentSearchResponse,
   AstSearchHit,
   AstSearchResponse,
   DefinitionResolveResponse,
@@ -137,6 +143,15 @@ export const api = {
   },
 
   /**
+   * Resolve a display-ready studio navigation target from a semantic or VFS path.
+   */
+  async resolveStudioPath(path: string): Promise<StudioNavigationTarget> {
+    const params = new URLSearchParams({ path });
+    const response = await fetch(`${API_BASE}/vfs/resolve?${params}`);
+    return handleResponse<StudioNavigationTarget>(response);
+  },
+
+  /**
    * Scan VFS directories for files
    */
   async scanVfs(): Promise<VfsScanResult> {
@@ -196,7 +211,35 @@ export const api = {
   },
 
   /**
-   * Search AST-derived definitions from source files
+   * Search markdown attachment references (org-id/org-attachment style owner mapping)
+   */
+  async searchAttachments(
+    query: string,
+    limit: number = 10,
+    options?: { ext?: string[]; kind?: string[]; caseSensitive?: boolean }
+  ): Promise<AttachmentSearchResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    if (options?.ext) {
+      options.ext
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+        .forEach((value) => params.append('ext', value));
+    }
+    if (options?.kind) {
+      options.kind
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+        .forEach((value) => params.append('kind', value));
+    }
+    if (options?.caseSensitive) {
+      params.set('case_sensitive', 'true');
+    }
+    const response = await fetch(`${API_BASE}/search/attachments?${params}`);
+    return handleResponse<AttachmentSearchResponse>(response);
+  },
+
+  /**
+   * Search AST-derived definitions from source files and structured Markdown docs
    */
   async searchAst(query: string, limit: number = 10): Promise<AstSearchResponse> {
     const params = new URLSearchParams({ q: query, limit: String(limit) });

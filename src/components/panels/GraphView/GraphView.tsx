@@ -10,7 +10,7 @@ import { Canvas } from '@react-three/fiber';
 import { Float, OrbitControls, Sparkles, Stars } from '@react-three/drei';
 import { Boxes, SplitSquareHorizontal, Move3d } from 'lucide-react';
 import { api } from '../../../api/client';
-import type { GraphNeighborsResponse, MarkdownAnalysisResponse } from '../../../api/bindings';
+import type { GraphNeighborsResponse, StudioNavigationTarget } from '../../../api/bindings';
 import type { GraphSidebarSummary, GraphViewProps, SimulatedNode, SimulatedLink } from './types';
 import { useContainerDimensions } from './useContainerDimensions';
 import { useForceSimulation } from './useForceSimulation';
@@ -27,7 +27,32 @@ const DEFAULT_OPTIONS = {
   limit: 50,
 };
 
-function RealisticStarfield(): JSX.Element {
+function fallbackGraphCategory(nodeType: string): string {
+  switch (nodeType) {
+    case 'knowledge':
+      return 'knowledge';
+    case 'skill':
+      return 'skill';
+    default:
+      return 'doc';
+  }
+}
+
+function resolveNodeSelection(
+  node: Pick<SimulatedNode, 'path' | 'nodeType' | 'navigationTarget'>
+): StudioNavigationTarget & { graphPath: string } {
+  const navigationTarget = node.navigationTarget ?? {
+    path: node.path,
+    category: fallbackGraphCategory(node.nodeType),
+  };
+
+  return {
+    ...navigationTarget,
+    graphPath: node.path,
+  };
+}
+
+function RealisticStarfield(): React.ReactElement {
   return (
     <>
       <fog attach="fog" args={['#03070f', 56, 300]} />
@@ -182,8 +207,6 @@ const NEBULA_NODE_PALETTE: Record<string, string> = {
 
 const DEFAULT_LAYOUT_MODE: GraphViewLayoutMode = '2d';
 const GRAPH_FETCH_DEBOUNCE_MS = 240;
-const GRAPH_NODE_NOT_FOUND_ERROR_CODE = 'NODE_NOT_FOUND';
-
 const getNebulaNodeColor = (nodeType: string): string => {
   return NEBULA_NODE_PALETTE[nodeType] || NEBULA_NODE_PALETTE.default;
 };
@@ -193,108 +216,6 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
   return 'Failed to load graph data';
-}
-
-function isNodeNotFoundError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-
-  const maybeCode = 'code' in error ? (error as { code?: unknown }).code : undefined;
-  if (
-    typeof maybeCode === 'string' &&
-    maybeCode.toUpperCase() === GRAPH_NODE_NOT_FOUND_ERROR_CODE
-  ) {
-    return true;
-  }
-
-  const maybeMessage = 'message' in error ? (error as { message?: unknown }).message : undefined;
-  return typeof maybeMessage === 'string' && /node not found/i.test(maybeMessage);
-}
-
-function toGraphNodeType(kind: MarkdownAnalysisResponse['nodes'][number]['kind']): string {
-  switch (kind) {
-    case 'document':
-      return 'doc';
-    case 'section':
-      return 'doc';
-    case 'task':
-      return 'knowledge';
-    case 'reference':
-      return 'knowledge';
-    case 'codeblock':
-      return 'other';
-    default:
-      return 'other';
-  }
-}
-
-function toGraphDirection(kind: MarkdownAnalysisResponse['edges'][number]['kind']): string {
-  switch (kind) {
-    case 'contains':
-      return 'outgoing';
-    case 'references':
-      return 'references';
-    case 'next_step':
-      return 'next_step';
-    default:
-      return 'outgoing';
-  }
-}
-
-function toGraphNeighborsFromAnalysis(analysis: MarkdownAnalysisResponse): GraphNeighborsResponse {
-  const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
-
-  const analysisCenterNode =
-    analysis.nodes.find((node) => node.kind === 'document') ??
-    analysis.nodes.reduce<MarkdownAnalysisResponse['nodes'][number] | null>((candidate, node) => {
-      if (!candidate || node.depth < candidate.depth) {
-        return node;
-      }
-      return candidate;
-    }, null);
-
-  const mappedNodes = analysis.nodes.map((node) => ({
-    id: node.id,
-    label: node.label,
-    path: analysis.path,
-    nodeType: toGraphNodeType(node.kind),
-    isCenter: analysisCenterNode ? node.id === analysisCenterNode.id : node.depth === 0,
-    distance: Math.max(0, node.depth),
-  }));
-
-  const fallbackCenter = {
-    id: analysis.path,
-    label: analysis.path.split('/').pop() || analysis.path,
-    path: analysis.path,
-    nodeType: 'doc',
-    isCenter: true,
-    distance: 0,
-  };
-
-  const normalizedNodes = mappedNodes.length > 0 ? mappedNodes : [fallbackCenter];
-  const centerNode =
-    normalizedNodes.find((node) => node.isCenter) || normalizedNodes[0] || fallbackCenter;
-
-  const links = analysis.edges
-    .filter((edge) => nodeById.has(edge.sourceId) && nodeById.has(edge.targetId))
-    .map((edge) => ({
-      source: edge.sourceId,
-      target: edge.targetId,
-      direction: toGraphDirection(edge.kind),
-      distance: Math.max(
-        nodeById.get(edge.sourceId)?.depth ?? 0,
-        nodeById.get(edge.targetId)?.depth ?? 0
-      ),
-    }));
-
-  return {
-    center: centerNode,
-    nodes: normalizedNodes,
-    links,
-    totalNodes: normalizedNodes.length,
-    totalLinks: links.length,
-  };
 }
 
 export const GraphView: React.FC<GraphViewProps> = ({
@@ -359,26 +280,6 @@ export const GraphView: React.FC<GraphViewProps> = ({
         if (cancelled) {
           return;
         }
-
-        if (isNodeNotFoundError(graphError)) {
-          try {
-            const markdownAnalysis = await api.getMarkdownAnalysis(debouncedCenterNodeId);
-            if (cancelled) {
-              return;
-            }
-            setGraphData(toGraphNeighborsFromAnalysis(markdownAnalysis));
-            setError(null);
-            return;
-          } catch (analysisError) {
-            if (cancelled) {
-              return;
-            }
-            setError(getErrorMessage(analysisError));
-            setGraphData(null);
-            return;
-          }
-        }
-
         setError(getErrorMessage(graphError));
         setGraphData(null);
       } finally {
@@ -479,7 +380,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
   const handleNodeClickCallback = useCallback(
     (node: SimulatedNode) => {
       if (onNodeClick) {
-        onNodeClick(node.id, node.path);
+        onNodeClick(node.id, resolveNodeSelection(node));
       }
     },
     [onNodeClick]
@@ -492,7 +393,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
         return;
       }
 
-      onNodeClick(resolvedNode.id, resolvedNode.path);
+      onNodeClick(resolvedNode.id, resolveNodeSelection(resolvedNode));
     },
     [onNodeClick, simulatedNodeById]
   );

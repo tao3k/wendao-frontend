@@ -426,7 +426,7 @@ describe('FileTree', () => {
     expect(screen.getAllByText('docs')).toHaveLength(2);
   });
 
-  it('should use project names from wendao.toml when scan entries miss project metadata', async () => {
+  it('should not synthesize project names from wendao.toml when scan entries miss project metadata', async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
         return {
@@ -488,8 +488,8 @@ describe('FileTree', () => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('alpha')).toBeInTheDocument();
-    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.queryByText('alpha')).not.toBeInTheDocument();
+    expect(screen.queryByText('beta')).not.toBeInTheDocument();
     expect(screen.getByTitle('beta-docs')).toBeInTheDocument();
   });
 
@@ -625,7 +625,62 @@ describe('FileTree', () => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.queryByText('alpha')).not.toBeInTheDocument();
     expect(screen.getAllByText('docs').length).toBeGreaterThan(0);
+  });
+
+  it('should render project provenance from VFS metadata instead of local config inference', async () => {
+    global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+        return {
+          ok: true,
+          text: async () =>
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.alpha]\nroot = "/workspace/ignored-root"\ndirs = ["ignored"]\n`,
+        } as Response;
+      }
+
+      if (url === '/api/ui/config' && options?.method === 'POST') {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+
+      if (url === '/api/vfs/scan') {
+        return {
+          ok: true,
+          json: async () => ({
+            entries: [
+              {
+                path: 'alpha/docs',
+                name: 'docs',
+                isDir: true,
+                category: 'folder',
+                projectName: 'alpha',
+                rootLabel: 'docs',
+                projectRoot: 'packages/actual-alpha',
+                projectDirs: ['docs', 'notes'],
+              },
+            ],
+            file_count: 0,
+            dir_count: 1,
+            scan_duration_ms: 0,
+          }),
+        } as Response;
+      }
+
+      return { ok: false, status: 404 } as Response;
+    }) as typeof fetch;
+
+    await act(async () => {
+      render(<FileTree onFileSelect={mockOnFileSelect} />);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(
+      screen.getByTitle('source: root: packages/actual-alpha · dirs: [docs, notes]')
+    ).toBeInTheDocument();
+    expect(screen.queryByTitle('source: root: /workspace/ignored-root · dirs: [ignored]')).not.toBeInTheDocument();
   });
 });

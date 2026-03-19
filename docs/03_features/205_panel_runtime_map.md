@@ -71,7 +71,8 @@ Gateway dependencies:
 Responsibilities:
 
 - Render rich text when the target is document-oriented.
-- Render line-numbered source focus when search or graph actions provide line metadata.
+- Keep Markdown in rich mode by default when line metadata is present.
+- Render line-numbered source focus for non-Markdown files and for Markdown when the operator selects source mode.
 - Keep bi-link navigation available in both modes.
 
 Gateway dependencies:

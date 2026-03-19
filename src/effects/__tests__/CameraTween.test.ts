@@ -4,7 +4,7 @@
  * Tests easing functions, tween state management, and camera updates.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { easingFunctions, type EasingFunction } from '../CameraTween';
 
 describe('CameraTween Easing Functions', () => {
@@ -137,12 +137,10 @@ describe('CameraTween Easing Functions', () => {
       const ease = easingFunctions.easeOutBack;
       // Find the peak overshoot
       let maxValue = 0;
-      let maxT = 0;
       for (let t = 0; t <= 1; t += 0.01) {
         const val = ease(t);
         if (val > maxValue) {
           maxValue = val;
-          maxT = t;
         }
       }
       // Should overshoot above 1

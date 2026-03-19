@@ -11,7 +11,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { api } from '../../../api/client';
-import { getConfig, resetConfig, toUiConfig, type WendaoConfig } from '../../../config/loader';
+import { getConfig, resetConfig, toUiConfig } from '../../../config/loader';
 import { useEditorStore } from '../../../stores/editorStore';
 import './FileTree.css';
 
@@ -26,7 +26,6 @@ interface FileNode {
   children?: FileNode[];
   level: number;
   isProjectGroup?: boolean;
-  projectOrder?: number;
 }
 
 interface FileTreeProps {
@@ -61,110 +60,12 @@ const FILE_TREE_COPY: Record<'en' | 'zh', FileTreeCopy> = {
   },
 };
 
-interface ProjectHint {
-  name: string;
-  aliasSet: Set<string>;
-  dirSet: Set<string>;
-  root: string;
-  dirs: string[];
-  order: number;
-}
-
-function normalizeProjectSegment(value?: string): string {
-  const normalized = (value ?? '')
-    .replaceAll('\\', '/')
-    .replace(/\/+$/g, '')
-    .replace(/^\.\//, '')
-    .trim();
-  return normalized;
-}
-
-function buildProjectHints(config: WendaoConfig): ProjectHint[] {
-  return toUiConfig(config).projects.map((project, order) => {
-    const normalizedDirs = new Set(
-      (project.dirs ?? []).map((dir) => normalizeProjectSegment(dir)).filter((dir) => dir.length > 0)
-    );
-
-    const aliasSet = new Set<string>([project.name]);
-    for (const dir of normalizedDirs) {
-      aliasSet.add(`${project.name}-${dir}`);
-    }
-    if (normalizedDirs.has(project.name)) {
-      aliasSet.add(project.name);
-    }
-
-    return {
-      name: project.name,
-      aliasSet,
-      dirSet: normalizedDirs,
-      root: project.root,
-      dirs: [...normalizedDirs],
-      order,
-    };
-  });
-}
-
-function inferProjectFromPath(entryPath: string, rootLabel: string | undefined, hints: ProjectHint[]): string | undefined {
-  const topSegment = normalizeProjectSegment(entryPath.split('/')[0]);
-  if (!topSegment || hints.length === 0) {
-    return undefined;
-  }
-
-  const directAliases = hints.filter((hint) => hint.aliasSet.has(topSegment));
-  if (directAliases.length === 1) {
-    return directAliases[0].name;
-  }
-
-  const prefixSeparator = topSegment.lastIndexOf('-');
-  if (prefixSeparator > 0) {
-    const prefixName = topSegment.slice(0, prefixSeparator);
-    const prefixMatch = hints.find((hint) => hint.name === prefixName);
-    if (prefixMatch) {
-      return prefixMatch.name;
-    }
-  }
-
-  const byConfiguredPath = hints.filter((hint) => hint.dirSet.has(topSegment));
-  if (byConfiguredPath.length === 1) {
-    return byConfiguredPath[0].name;
-  }
-
-  if (!rootLabel) {
-    return undefined;
-  }
-
-  const byRootLabel = hints.filter((hint) => hint.dirSet.has(normalizeProjectSegment(rootLabel)));
-  if (byRootLabel.length === 1) {
-    return byRootLabel[0].name;
-  }
-
-  return undefined;
-}
-
-function inferRootLabel(entryPath: string, projectName: string | undefined, hints: ProjectHint[]): string | undefined {
-  const topSegment = normalizeProjectSegment(entryPath.split('/')[0]);
-  if (!topSegment || !projectName) {
-    return undefined;
-  }
-
-  if (topSegment.startsWith(`${projectName}-`)) {
-    return topSegment.slice(projectName.length + 1);
-  }
-
-  const hint = hints.find((item) => item.name === projectName);
-  if (!hint) {
-    return undefined;
-  }
-
-  if (hint.dirSet.size === 1) {
-    return [...hint.dirSet][0];
-  }
-
-  return undefined;
-}
-
-function formatProjectSourceHint(hint: ProjectHint | undefined, locale: 'en' | 'zh'): string | undefined {
-  if (!hint) {
+function formatProjectSourceHint(
+  projectRoot: string | undefined,
+  projectDirs: string[] | undefined,
+  locale: 'en' | 'zh'
+): string | undefined {
+  if (!projectRoot) {
     return undefined;
   }
 
@@ -172,32 +73,26 @@ function formatProjectSourceHint(hint: ProjectHint | undefined, locale: 'en' | '
   const dirsPrefix = locale === 'zh' ? '目录' : 'dirs';
   const sourcePrefix = locale === 'zh' ? '来源' : 'source';
   const emptyRoot = locale === 'zh' ? '（未显式配置）' : '(no explicit root)';
-  const segments = [`${rootPrefix}: ${hint.root || emptyRoot}`];
-  if (hint.dirs.length > 0) {
-    segments.push(`${dirsPrefix}: [${hint.dirs.join(', ')}]`);
+  const segments = [`${rootPrefix}: ${projectRoot || emptyRoot}`];
+  if (projectDirs && projectDirs.length > 0) {
+    segments.push(`${dirsPrefix}: [${projectDirs.join(', ')}]`);
   }
 
   return `${sourcePrefix}: ${segments.join(' · ')}`;
 }
 
-function buildTree(entries: {
+function buildTree(entries: Array<{
   path: string;
   name: string;
   isDir: boolean;
   category: string;
   projectName?: string;
   rootLabel?: string;
-}, projectHints: ProjectHint[], locale: 'en' | 'zh'): FileNode[] {
+  projectRoot?: string;
+  projectDirs?: string[];
+}>, locale: 'en' | 'zh'): FileNode[] {
   const root: FileNode[] = [];
   const nodeMap = new Map<string, FileNode>();
-  const entryMap = new Map(entries.map((entry) => [entry.path, entry]));
-  const projectHintMap = new Map<string, ProjectHint>();
-  const projectOrderMap = new Map<string, number>();
-
-  for (const hint of projectHints) {
-    projectHintMap.set(hint.name, hint);
-    projectOrderMap.set(hint.name, hint.order);
-  }
 
   // Sort entries by path depth
   const sorted = [...entries].sort((a, b) => {
@@ -207,11 +102,8 @@ function buildTree(entries: {
   });
 
   for (const entry of sorted) {
-    const resolvedProjectName = entry.projectName ?? inferProjectFromPath(entry.path, entry.rootLabel, projectHints);
-    const resolvedProjectHint = resolvedProjectName ? projectHintMap.get(resolvedProjectName) : undefined;
-    const resolvedRootLabel =
-      entry.rootLabel
-      ?? inferRootLabel(entry.path, resolvedProjectName, projectHints);
+    const resolvedProjectName = entry.projectName;
+    const resolvedRootLabel = entry.rootLabel;
 
     const parts = entry.path.split('/');
     const level = parts.length - 1;
@@ -223,7 +115,7 @@ function buildTree(entries: {
       category: entry.category as FileNode['category'],
       projectName: resolvedProjectName,
       rootLabel: resolvedRootLabel,
-      sourceHint: formatProjectSourceHint(resolvedProjectHint, locale),
+      sourceHint: formatProjectSourceHint(entry.projectRoot, entry.projectDirs, locale),
       children: entry.isDir ? [] : undefined,
       level,
     };
@@ -237,6 +129,8 @@ function buildTree(entries: {
       const parent = nodeMap.get(parentPath);
       if (parent && parent.children) {
         parent.children.push(node);
+      } else {
+        root.push(node);
       }
     }
   }
@@ -283,7 +177,6 @@ function buildTree(entries: {
         children: [],
         level: 0,
         isProjectGroup: true,
-        projectOrder: projectOrderMap.get(rootNode.projectName),
       };
       projectGroups.set(rootNode.projectName, projectNode);
     }
@@ -299,11 +192,7 @@ function buildTree(entries: {
     sortChildren(projectNode.children ?? []);
   }
 
-  const sortedProjectGroups = [...projectGroups.values()].sort((a, b) => {
-    return (a.projectOrder ?? Number.MAX_SAFE_INTEGER) - (b.projectOrder ?? Number.MAX_SAFE_INTEGER);
-  });
-
-  groupedRoots.push(...sortedProjectGroups);
+  groupedRoots.push(...projectGroups.values());
   groupedRoots.push(...ungroupedRoots);
   return groupedRoots;
 }
@@ -469,7 +358,6 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
         resetConfig();
         const config = await getConfig();
         const uiConfig = toUiConfig(config);
-        const projectHints = buildProjectHints(config);
 
         // Push config to backend BEFORE scanning, so VFS uses correct dirs
         try {
@@ -482,7 +370,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
 
         // NOW scan VFS - backend will use the pushed config
         const vfsResult = await api.scanVfs();
-        const tree = buildTree(vfsResult.entries, projectHints, locale);
+        const tree = buildTree(vfsResult.entries, locale);
         setTreeData(tree);
 
         // Set expanded tree nodes from wendao.toml config (only if store is empty)

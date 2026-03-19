@@ -128,12 +128,20 @@ describe('GraphView', () => {
           path: 'knowledge/context.md',
           name: 'context.md',
           type: 'knowledge',
+          navigationTarget: {
+            path: 'knowledge/context.md',
+            category: 'knowledge',
+          },
         },
         {
           id: 'skills/writer/SKILL.md',
           path: 'skills/writer/SKILL.md',
           name: 'SKILL.md',
           type: 'skill',
+          navigationTarget: {
+            path: 'skills/writer/SKILL.md',
+            category: 'skill',
+          },
         },
       ],
       links: [
@@ -185,12 +193,20 @@ describe('GraphView', () => {
           path: 'knowledge/context.md',
           name: 'context.md',
           type: 'knowledge',
+          navigationTarget: {
+            path: 'knowledge/context.md',
+            category: 'knowledge',
+          },
         },
         {
           id: 'skills/writer/SKILL.md',
           path: 'skills/writer/SKILL.md',
           name: 'SKILL.md',
           type: 'skill',
+          navigationTarget: {
+            path: 'skills/writer/SKILL.md',
+            category: 'skill',
+          },
         },
       ],
       links: [
@@ -233,100 +249,112 @@ describe('GraphView', () => {
     expect(screen.queryByTestId('graph-svg')).not.toBeInTheDocument();
   });
 
-  it('falls back to markdown analysis when graph neighbors return node-not-found', async () => {
-    mocks.getGraphNeighborsMock.mockRejectedValue({
-      code: 'NODE_NOT_FOUND',
-      message: 'Node not found: docs-2/index.md',
-    });
-    mocks.getMarkdownAnalysisMock.mockResolvedValue({
-      path: 'docs-2/index.md',
-      documentHash: 'doc-hash',
-      nodeCount: 3,
-      edgeCount: 2,
+  it('renders gateway-provided markdown fallback payload without client analysis requests', async () => {
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: {
+        id: 'main/docs/index.md#document',
+        label: 'index.md',
+        path: 'main/docs/index.md',
+        navigationTarget: {
+          path: 'main/docs/index.md',
+          category: 'doc',
+          line: 1,
+          lineEnd: 20,
+          column: 1,
+        },
+        nodeType: 'doc',
+        isCenter: true,
+        distance: 0,
+      },
       nodes: [
         {
-          id: 'docs-2/index.md#document',
-          kind: 'document',
+          id: 'main/docs/index.md#document',
           label: 'index.md',
-          depth: 0,
-          lineStart: 1,
-          lineEnd: 20,
+          path: 'main/docs/index.md',
+          navigationTarget: {
+            path: 'main/docs/index.md',
+            category: 'doc',
+            line: 1,
+            lineEnd: 20,
+            column: 1,
+          },
+          nodeType: 'doc',
+          isCenter: true,
+          distance: 0,
         },
         {
-          id: 'docs-2/index.md#section:overview',
-          kind: 'section',
+          id: 'main/docs/index.md#section:overview',
           label: 'Overview',
-          depth: 1,
-          lineStart: 3,
-          lineEnd: 12,
-          parentId: 'docs-2/index.md#document',
-        },
-        {
-          id: 'docs-2/index.md#task:1',
-          kind: 'task',
-          label: 'Finish graph fallback',
-          depth: 2,
-          lineStart: 8,
-          lineEnd: 8,
-          parentId: 'docs-2/index.md#section:overview',
-        },
-      ],
-      edges: [
-        {
-          id: 'e1',
-          kind: 'contains',
-          sourceId: 'docs-2/index.md#document',
-          targetId: 'docs-2/index.md#section:overview',
-          evidence: {
-            path: 'docs-2/index.md',
-            lineStart: 3,
+          path: 'main/docs/index.md',
+          navigationTarget: {
+            path: 'main/docs/index.md',
+            category: 'doc',
+            line: 3,
             lineEnd: 12,
-            confidence: 1,
+            column: 1,
           },
+          nodeType: 'doc',
+          isCenter: false,
+          distance: 1,
         },
         {
-          id: 'e2',
-          kind: 'next_step',
-          sourceId: 'docs-2/index.md#section:overview',
-          targetId: 'docs-2/index.md#task:1',
-          evidence: {
-            path: 'docs-2/index.md',
-            lineStart: 8,
+          id: 'main/docs/index.md#task:1',
+          label: 'Finish graph fallback',
+          path: 'main/docs/index.md',
+          navigationTarget: {
+            path: 'main/docs/index.md',
+            category: 'doc',
+            line: 8,
             lineEnd: 8,
-            confidence: 1,
+            column: 1,
           },
+          nodeType: 'knowledge',
+          isCenter: false,
+          distance: 2,
         },
       ],
-      projections: [
+      links: [
         {
-          kind: 'graph',
-          source: 'graph TD\nA-->B',
-          nodeCount: 3,
-          edgeCount: 2,
-          complexityScore: 0.42,
-          diagnostics: [],
+          source: 'main/docs/index.md#document',
+          target: 'main/docs/index.md#section:overview',
+          direction: 'outgoing',
+          distance: 1,
+        },
+        {
+          source: 'main/docs/index.md#section:overview',
+          target: 'main/docs/index.md#task:1',
+          direction: 'next_step',
+          distance: 2,
         },
       ],
-      diagnostics: [],
+      totalNodes: 3,
+      totalLinks: 2,
     });
 
     const onNodeClick = vi.fn();
-    render(<GraphView centerNodeId="docs-2/index.md" onNodeClick={onNodeClick} />);
+    render(<GraphView centerNodeId="main/docs/index.md" onNodeClick={onNodeClick} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('graph-svg')).toBeInTheDocument();
     });
 
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('docs-2/index.md', {
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('main/docs/index.md', {
       direction: 'both',
       hops: 2,
       limit: 50,
     });
-    expect(mocks.getMarkdownAnalysisMock).toHaveBeenCalledWith('docs-2/index.md');
+    expect(mocks.getMarkdownAnalysisMock).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('graph-svg'));
-    expect(onNodeClick).toHaveBeenCalledWith('docs-2/index.md#document', 'docs-2/index.md');
-    expect(screen.queryByText('Node not found: docs-2/index.md')).not.toBeInTheDocument();
+    expect(onNodeClick).toHaveBeenCalledWith(
+      'main/docs/index.md#document',
+      expect.objectContaining({
+        path: 'main/docs/index.md',
+        category: 'doc',
+        graphPath: 'main/docs/index.md',
+      })
+    );
+    expect(screen.queryByText('Node not found: main/docs/index.md')).not.toBeInTheDocument();
   });
 
   it('does not request graph neighbors while disabled', async () => {
@@ -343,6 +371,10 @@ describe('GraphView', () => {
           path: 'knowledge/context.md',
           name: 'context.md',
           type: 'knowledge',
+          navigationTarget: {
+            path: 'knowledge/context.md',
+            category: 'knowledge',
+          },
         },
       ],
       links: [],
@@ -377,6 +409,10 @@ describe('GraphView', () => {
           path: 'knowledge/context.md',
           name: 'context.md',
           type: 'knowledge',
+          navigationTarget: {
+            path: 'knowledge/context.md',
+            category: 'knowledge',
+          },
         },
       ],
       links: [],
@@ -394,6 +430,58 @@ describe('GraphView', () => {
 
     fireEvent.click(screen.getByTestId('graph-svg'));
 
-    expect(onNodeClick).toHaveBeenCalledWith('knowledge/context.md', 'knowledge/context.md');
+    expect(onNodeClick).toHaveBeenCalledWith(
+      'knowledge/context.md',
+      expect.objectContaining({
+        path: 'knowledge/context.md',
+        category: 'knowledge',
+        graphPath: 'knowledge/context.md',
+      })
+    );
+  });
+
+  it('falls back to node path when graph payload omits navigationTarget', async () => {
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      centerNode: {
+        id: 'main/docs/index.md#document',
+        path: 'main/docs/index.md',
+        name: 'index.md',
+        type: 'document',
+      },
+      nodes: [
+        {
+          id: 'main/docs/index.md#document',
+          path: 'main/docs/index.md',
+          label: 'index.md',
+          name: 'index.md',
+          nodeType: 'document',
+          type: 'document',
+          isCenter: true,
+          distance: 0,
+        },
+      ],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    const onNodeClick = vi.fn();
+
+    render(<GraphView centerNodeId="main/docs/index.md" onNodeClick={onNodeClick} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('graph-svg')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('graph-svg'));
+
+    expect(onNodeClick).toHaveBeenCalledWith(
+      'main/docs/index.md#document',
+      expect.objectContaining({
+        path: 'main/docs/index.md',
+        category: 'doc',
+        graphPath: 'main/docs/index.md',
+      })
+    );
   });
 });

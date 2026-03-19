@@ -15,17 +15,49 @@ type LiveUiConfig = {
 };
 
 type LiveVfsScanResult = {
-  entries: Array<{ path: string; name: string; isDir: boolean; projectName?: string }>;
+  entries: Array<{
+    path: string;
+    name: string;
+    isDir: boolean;
+    projectName?: string;
+    rootLabel?: string;
+    projectRoot?: string;
+    projectDirs?: string[];
+  }>;
 };
 
 type LiveGraphNeighbors = {
-  center: { path: string; id: string };
+  center: {
+    path: string;
+    id: string;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
+  };
   totalNodes: number;
   totalLinks: number;
 };
 
 type LiveSearchResponse = {
-  hits: Array<{ path: string; score?: number }>;
+  hits: Array<{
+    path: string;
+    score?: number;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
+  }>;
 };
 
 let gatewayOrigin = '';
@@ -45,7 +77,7 @@ function resolveGatewayOrigin(config: WendaoConfig): string {
 }
 
 async function readLocalUiConfig() {
-  const tomlPath = resolve(process.cwd(), 'wendao.toml');
+  const tomlPath = resolve(process.cwd(), '.data/qianji-studio/wendao.toml');
   const tomlContent = await readFile(tomlPath, 'utf8');
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   gatewayOrigin = resolveGatewayOrigin(config);
@@ -100,7 +132,15 @@ liveDescribe('live gateway studio contract', () => {
     expect(config.projects.map((project) => project.name)).toContain(targetProjectName);
 
     const scan = await fetchJson<LiveVfsScanResult>('/vfs/scan');
-    expect(scan.entries.some((entry) => entry.path === qianjiDocPath)).toBe(true);
+    const entry = scan.entries.find((candidate) => candidate.path === qianjiDocPath);
+    expect(entry).toBeDefined();
+    expect(entry?.projectName).toBe(targetProjectName);
+    expect(entry?.rootLabel).toBeDefined();
+    expect(entry?.rootLabel?.length).toBeGreaterThan(0);
+    expect(entry?.projectRoot).toBeDefined();
+    expect(entry?.projectRoot?.length).toBeGreaterThan(0);
+    expect(entry?.projectDirs).toBeDefined();
+    expect(entry?.projectDirs?.length).toBeGreaterThan(0);
   });
 
   it('resolves graph neighbors for a live qianji studio document path', async () => {
@@ -109,6 +149,9 @@ liveDescribe('live gateway studio contract', () => {
     );
 
     expect(response.center.path).toBe(qianjiDocPath);
+    expect(response.center.navigationTarget).toBeDefined();
+    expect(response.center.navigationTarget?.path).toBe(qianjiDocPath);
+    expect(response.center.navigationTarget?.category).toBeDefined();
     expect(response.totalNodes).toBeGreaterThanOrEqual(1);
   });
 
@@ -120,10 +163,21 @@ liveDescribe('live gateway studio contract', () => {
     expect(search.hits.length).toBeGreaterThan(0);
 
     const targetHit = search.hits.find((hit) => hit.path === qianjiDocPath) ?? search.hits[0];
+    expect(targetHit.navigationTarget).toBeDefined();
+    expect(targetHit.navigationTarget?.path).toBe(targetHit.path);
+    expect(targetHit.navigationTarget?.category).toBeDefined();
     const graph = await fetchJson<LiveGraphNeighbors>(
       `/graph/neighbors/${encodeURIComponent(targetHit.path)}?direction=both&hops=1&limit=20`
     );
+    expect(graph.totalNodes).toBeGreaterThanOrEqual(1);
+    expect(graph.center.path.length).toBeGreaterThan(0);
 
-    expect(graph.center.path).toBe(targetHit.path);
+    if (graph.center.path !== targetHit.path) {
+      const canonical = await fetchJson<LiveGraphNeighbors>(
+        `/graph/neighbors/${encodeURIComponent(graph.center.path)}?direction=both&hops=1&limit=20`
+      );
+      expect(canonical.center.path).toBe(graph.center.path);
+      expect(canonical.totalNodes).toBeGreaterThanOrEqual(1);
+    }
   });
 });

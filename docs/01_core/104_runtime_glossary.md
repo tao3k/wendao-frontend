@@ -34,15 +34,19 @@ An explicit tab-focus request passed into `MainView` so that search and graph ac
 
 ### Source Focus
 
-Line and optional column metadata attached to a selected file. When present, `DirectReader` uses source mode rather than rich mode.
+Line and optional column metadata attached to a selected file. For Markdown files, `DirectReader` keeps rich mode by default and offers an explicit source-mode toggle; for non-Markdown files, source mode opens directly.
 
 ### Rich Mode
 
-The `DirectReader` rendering mode for document-oriented content when no source focus metadata is present.
+The `DirectReader` rendering mode for document-oriented content. Markdown files remain in rich mode by default even when source focus metadata is present.
 
 ### Source Mode
 
-The `DirectReader` rendering mode for line-numbered content when source focus metadata is present.
+The `DirectReader` rendering mode for line-numbered content used for precise line inspection. It is default for non-Markdown source focus and optional for Markdown via explicit toggle.
+
+### Studio Directive Block
+
+In rich mode, `DirectReader` normalizes supported studio directives (`:OBSERVE:`, `:OBSERVE_*:`, `:CONTRACT:`, `:CONTRACT_*:`) into readable blockquotes. Directive-like lines inside fenced code blocks remain literal source text.
 
 ### Live Gateway Path
 

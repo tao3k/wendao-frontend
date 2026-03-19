@@ -88,7 +88,7 @@ function normalizePathList(values?: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const value of values ?? []) {
-    const normalized = normalizePath(value);
+    const normalized = normalizeDirEntry(value);
     if (!normalized || seen.has(normalized)) {
       continue;
     }
@@ -96,6 +96,54 @@ function normalizePathList(values?: string[]): string[] {
     out.push(normalized);
   }
   return out;
+}
+
+function normalizeDirEntry(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith('re:')) {
+    const pattern = trimmed.slice('re:'.length).trim();
+    return pattern.length > 0 ? `re:${pattern}` : null;
+  }
+
+  if (trimmed.startsWith('regex:')) {
+    const pattern = trimmed.slice('regex:'.length).trim();
+    return pattern.length > 0 ? `re:${pattern}` : null;
+  }
+
+  const normalizedGlob = normalizeGlobEntry(trimmed);
+  if (normalizedGlob) {
+    return normalizedGlob;
+  }
+
+  return normalizePath(trimmed);
+}
+
+function normalizeGlobEntry(value: string): string | null {
+  const normalized = value.replaceAll('\\', '/');
+  if (normalized.startsWith('glob:')) {
+    const pattern = normalized.slice('glob:'.length).trim();
+    return pattern.length > 0 ? `glob:${pattern}` : null;
+  }
+  if (normalized.startsWith('!glob:')) {
+    const pattern = normalized.slice('!glob:'.length).trim();
+    return pattern.length > 0 ? `glob:!${pattern}` : null;
+  }
+  if (normalized.startsWith('!')) {
+    const pattern = normalized.slice(1).trim();
+    return pattern.length > 0 ? `glob:!${pattern}` : null;
+  }
+  if (containsGlobMagic(normalized)) {
+    return `glob:${normalized}`;
+  }
+  return null;
+}
+
+function containsGlobMagic(value: string): boolean {
+  return /[*?\[\]{}]/.test(value);
 }
 
 export function toUiConfig(config: WendaoConfig): UiConfig {

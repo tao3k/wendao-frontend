@@ -17,6 +17,8 @@ export interface VfsEntry {
   contentType?: string;
   projectName?: string;
   rootLabel?: string;
+  projectRoot?: string;
+  projectDirs?: string[];
 }
 
 export type VfsCategory = 'folder' | 'skill' | 'doc' | 'knowledge' | 'other';
@@ -33,6 +35,8 @@ export interface VfsScanEntry {
   wendaoId?: string;
   projectName?: string;
   rootLabel?: string;
+  projectRoot?: string;
+  projectDirs?: string[];
 }
 
 export interface VfsScanResult {
@@ -63,6 +67,7 @@ export interface GraphNode {
   id: string;
   label: string;
   path: string;
+  navigationTarget?: StudioNavigationTarget;
   nodeType: string;
   isCenter: boolean;
   distance: number;
@@ -140,6 +145,7 @@ export interface SearchHit {
   score: number;
   bestSection?: string;
   matchReason?: string;
+  navigationTarget?: StudioNavigationTarget;
 }
 
 export interface SearchResponse {
@@ -150,6 +156,39 @@ export interface SearchResponse {
   selectedMode?: string;
 }
 
+export type AttachmentSearchKind =
+  | 'image'
+  | 'pdf'
+  | 'gpg'
+  | 'document'
+  | 'archive'
+  | 'audio'
+  | 'video'
+  | 'other';
+
+export interface AttachmentSearchHit {
+  path: string;
+  sourceId: string;
+  sourceStem: string;
+  sourceTitle?: string;
+  navigationTarget?: StudioNavigationTarget;
+  sourcePath: string;
+  attachmentId: string;
+  attachmentPath: string;
+  attachmentName: string;
+  attachmentExt: string;
+  kind: AttachmentSearchKind;
+  score: number;
+  visionSnippet?: string;
+}
+
+export interface AttachmentSearchResponse {
+  query: string;
+  hits: AttachmentSearchHit[];
+  hitCount: number;
+  selectedScope: string;
+}
+
 export interface AstSearchHit {
   name: string;
   signature: string;
@@ -158,6 +197,9 @@ export interface AstSearchHit {
   crateName: string;
   projectName?: string;
   rootLabel?: string;
+  nodeKind?: string;
+  ownerTitle?: string;
+  navigationTarget: StudioNavigationTarget;
   lineStart: number;
   lineEnd: number;
   score: number;
@@ -174,9 +216,20 @@ export interface DefinitionResolveResponse {
   query: string;
   sourcePath?: string;
   sourceLine?: number;
+  navigationTarget?: StudioNavigationTarget;
   definition: AstSearchHit;
   candidateCount: number;
   selectedScope: string;
+}
+
+export interface StudioNavigationTarget {
+  path: string;
+  category: string;
+  projectName?: string;
+  rootLabel?: string;
+  line?: number;
+  lineEnd?: number;
+  column?: number;
 }
 
 export interface ReferenceSearchHit {
@@ -186,6 +239,7 @@ export interface ReferenceSearchHit {
   crateName: string;
   projectName?: string;
   rootLabel?: string;
+  navigationTarget: StudioNavigationTarget;
   line: number;
   column: number;
   lineText: string;
@@ -211,6 +265,7 @@ export interface SymbolSearchHit {
   crateName: string;
   projectName?: string;
   rootLabel?: string;
+  navigationTarget: StudioNavigationTarget;
   source: SymbolSearchSource;
   score: number;
 }

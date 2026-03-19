@@ -37,6 +37,7 @@ interface FileSelection extends FileSelectionLocation {
   category: string;
   projectName?: string;
   rootLabel?: string;
+  graphPath?: string;
 }
 
 interface MainViewTabRequest {
@@ -60,18 +61,6 @@ function resolveInitialLocale(): UiLocale {
 
   const systemLocale = (window.navigator.language || '').toLowerCase();
   return systemLocale.startsWith('zh') ? 'zh' : 'en';
-}
-
-function inferFileCategory(path: string): string {
-  if (path.startsWith('knowledge/')) {
-    return 'knowledge';
-  }
-
-  if (path.endsWith('SKILL.md')) {
-    return 'skill';
-  }
-
-  return 'doc';
 }
 
 const EMPTY_TOPOLOGY: AcademicTopology = {
@@ -239,27 +228,44 @@ function App() {
         nonce: (current?.nonce ?? 0) + 1,
       }));
 
+      let resolutionError: unknown = null;
       try {
         const neighbors = await api.getGraphNeighbors(link, {
           direction: 'both',
           hops: 1,
           limit: 1,
         });
-        if (neighbors.center?.path) {
+        const centerSelection = neighbors.center
+          ? neighbors.center.navigationTarget ?? {
+              path: neighbors.center.path,
+              category:
+                neighbors.center.nodeType === 'knowledge'
+                  ? 'knowledge'
+                  : neighbors.center.nodeType === 'skill'
+                    ? 'skill'
+                    : 'doc',
+            }
+          : null;
+        if (centerSelection && neighbors.center) {
           await hydrateSelectedFile({
-            path: neighbors.center.path,
-            category: inferFileCategory(neighbors.center.path),
+            ...centerSelection,
+            graphPath: neighbors.center.path,
           });
           return;
         }
       } catch (err) {
-        console.warn('Bi-link graph resolution failed, falling back to direct path hydration.', err);
+        resolutionError = err;
       }
 
-      await hydrateSelectedFile({
-        path: link,
-        category: inferFileCategory(link),
-      });
+      if (resolutionError) {
+        console.warn(
+          'Bi-link graph resolution failed, falling back to gateway path resolution.',
+          resolutionError
+        );
+      }
+
+      const resolvedTarget = await api.resolveStudioPath(link);
+      await hydrateSelectedFile(resolvedTarget);
     },
     [hydrateSelectedFile]
   );
@@ -278,16 +284,13 @@ function App() {
   );
 
   const handleSearchResultGraphSelect = useCallback(
-    (path: string) => {
+    (selection: FileSelection) => {
       setSearchOpen(false);
       setMainViewTabRequest((current) => ({
         tab: 'graph',
         nonce: (current?.nonce ?? 0) + 1,
       }));
-      void hydrateSelectedFile({
-        path,
-        category: inferFileCategory(path),
-      });
+      void hydrateSelectedFile(selection);
     },
     [hydrateSelectedFile]
   );
@@ -305,11 +308,14 @@ function App() {
   );
 
   const handleGraphFileSelect = useCallback(
-    (path: string) => {
-      void hydrateSelectedFile({
-        path,
-        category: inferFileCategory(path),
-      });
+    (selection: FileSelection) => {
+      if (selection.graphPath && selection.graphPath !== selection.path) {
+        setMainViewTabRequest((current) => ({
+          tab: 'content',
+          nonce: (current?.nonce ?? 0) + 1,
+        }));
+      }
+      void hydrateSelectedFile(selection);
     },
     [hydrateSelectedFile]
   );

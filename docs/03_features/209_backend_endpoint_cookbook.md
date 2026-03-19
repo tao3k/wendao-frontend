@@ -72,6 +72,19 @@ Frontend consumers:
 
 - `FileTree`
 
+Expected metadata:
+
+- `projectName`
+- `rootLabel`
+- `projectRoot`
+- `projectDirs`
+
+Notes:
+
+- Qianji Studio now treats this payload as the authoritative source for explorer grouping and hover provenance.
+- Frontend path recovery from `wendao.toml` is no longer part of the steady-state FileTree contract.
+- The live gateway contract now also locks these fields through `src/api/liveGateway.test.ts`, so `projectName`, `rootLabel`, `projectRoot`, and `projectDirs` are treated as stable runtime metadata rather than fixture-only expectations.
+
 ## Graph and Topology
 
 ### `GET /api/graph/neighbors/<path>?direction=<dir>&hops=<n>&limit=<n>`
@@ -92,6 +105,15 @@ Typical Qianji usage:
 - `hops=1` for references
 - `hops=2` for the graph view
 
+Expected metadata:
+
+- `center.navigationTarget`
+- `nodes[*].navigationTarget` when the node represents an openable document or resolved symbol target
+
+Notes:
+
+- The graph contract is now backend-first end to end. Qianji Studio still keeps a small fallback when a node omits `navigationTarget`, but live gateway verification now treats `navigationTarget` as the intended steady-state payload.
+
 ### `GET /api/topology/3d`
 
 Typical purpose:
@@ -105,6 +127,11 @@ Frontend consumers:
 
 ## Search Surface
 
+General rule:
+
+- Backend-provided `navigationTarget` metadata is the primary navigation contract for studio search actions.
+- Qianji Studio keeps a minimal fallback path for older or incomplete payloads, but new gateway responses should populate `navigationTarget` whenever a hit is expected to open another file or jump target.
+
 ### `GET /api/search?q=<query>&limit=<n>`
 
 Typical purpose:
@@ -115,6 +142,14 @@ Frontend consumers:
 
 - `SearchBar` knowledge mode
 - `SearchBar` all mode
+
+Expected metadata:
+
+- `hits[*].navigationTarget`
+
+Notes:
+
+- The live gateway contract now verifies that knowledge hits carry `navigationTarget` in addition to the frontend fallback behavior kept for transitional payloads.
 
 ### `GET /api/search/autocomplete?prefix=<prefix>&limit=<n>`
 
@@ -141,7 +176,13 @@ Frontend consumers:
 
 Typical purpose:
 
-- AST-derived definition search.
+- AST-derived definition search across source files and configured Markdown structure.
+
+Notes:
+
+- Configured doc roots now contribute Markdown heading and task nodes to this endpoint, so `SearchBar` AST mode can surface `qianji-studio/docs` without a dedicated secondary API.
+- When multiple projects expose the same root label such as `docs`, the studio path contract now resolves them as `project/root/...` instead of numeric aliases such as `docs-2/...`.
+- Property drawers are also indexed into this endpoint now, including entries such as `:ID:`, relation attributes, and `:OBSERVE:` code-observation directives, so Markdown AST search can bridge documentation metadata and code-facing observations.
 
 Frontend consumers:
 
@@ -157,6 +198,11 @@ Typical purpose:
 Frontend consumers:
 
 - `SearchBar` `Definition` action
+
+Notes:
+
+- The preferred contract is a top-level `navigationTarget`.
+- Qianji Studio also accepts `definition.navigationTarget` or bare definition coordinates as a resilience fallback, but this should be treated as compatibility behavior rather than the primary payload shape.
 
 ### `GET /api/search/references?q=<query>&limit=<n>`
 

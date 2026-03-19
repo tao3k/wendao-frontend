@@ -15,6 +15,7 @@ import { SearchBar } from '../SearchBar';
 vi.mock('../../../api/client', () => ({
   api: {
     searchKnowledge: vi.fn(),
+    searchAttachments: vi.fn(),
     searchAst: vi.fn(),
     resolveDefinition: vi.fn(),
     searchReferences: vi.fn(),
@@ -35,6 +36,7 @@ describe('SearchBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedApi.searchAutocomplete.mockResolvedValue(createMockAutocompleteResponse([]));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('', []));
     mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
     mockedApi.resolveDefinition.mockResolvedValue(createMockDefinitionResponse('', {
       name: '',
@@ -59,6 +61,15 @@ describe('SearchBar', () => {
     score: number;
     bestSection?: string;
     matchReason?: string;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
   }>) => ({
     query,
     hits: hits.map((h) => ({
@@ -70,6 +81,17 @@ describe('SearchBar', () => {
       score: h.score,
       bestSection: h.bestSection,
       matchReason: h.matchReason,
+      navigationTarget: h.navigationTarget || {
+        path: h.path,
+        category:
+          h.docType === 'knowledge'
+            ? 'knowledge'
+            : h.docType === 'skill'
+              ? 'skill'
+              : h.docType === 'tag' || (h.tags || []).length > 0
+                ? 'tag'
+                : 'doc',
+      },
     })),
     hitCount: hits.length,
     graphConfidenceScore: 0.8,
@@ -95,6 +117,15 @@ describe('SearchBar', () => {
     crateName: string;
     projectName?: string;
     rootLabel?: string;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
     source?: 'project' | 'external';
     score: number;
   }>) => ({
@@ -109,11 +140,57 @@ describe('SearchBar', () => {
       crateName: hit.crateName,
       projectName: hit.projectName,
       rootLabel: hit.rootLabel,
+      navigationTarget: hit.navigationTarget || {
+        path: hit.path,
+        category: 'doc',
+        ...(hit.projectName ? { projectName: hit.projectName } : { projectName: hit.crateName }),
+        ...(hit.rootLabel ? { rootLabel: hit.rootLabel } : {}),
+        line: hit.line,
+        lineEnd: hit.line,
+      },
       source: hit.source || 'project',
       score: hit.score,
     })),
     hitCount: hits.length,
     selectedScope: 'project',
+  });
+
+  const createMockAttachmentResponse = (query: string, hits: Array<{
+    path: string;
+    sourceId: string;
+    sourceStem: string;
+    sourceTitle?: string;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
+    sourcePath: string;
+    attachmentId: string;
+    attachmentPath: string;
+    attachmentName: string;
+    attachmentExt: string;
+    kind: 'image' | 'pdf' | 'gpg' | 'document' | 'archive' | 'audio' | 'video' | 'other';
+    score: number;
+    visionSnippet?: string;
+  }>) => ({
+    query,
+    hits: hits.map((hit) => ({
+      ...hit,
+      navigationTarget: hit.navigationTarget || {
+        path: hit.sourcePath,
+        category: 'doc',
+        line: undefined,
+        lineEnd: undefined,
+        column: undefined,
+      },
+    })),
+    hitCount: hits.length,
+    selectedScope: 'attachments',
   });
 
   const createMockAstResponse = (query: string, hits: Array<{
@@ -124,6 +201,17 @@ describe('SearchBar', () => {
     crateName: string;
     projectName?: string;
     rootLabel?: string;
+    nodeKind?: string;
+    ownerTitle?: string;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
     lineStart: number;
     lineEnd: number;
     score: number;
@@ -133,6 +221,16 @@ describe('SearchBar', () => {
       ...hit,
       projectName: hit.projectName,
       rootLabel: hit.rootLabel,
+      nodeKind: hit.nodeKind,
+      ownerTitle: hit.ownerTitle,
+      navigationTarget: hit.navigationTarget || {
+        path: hit.path,
+        category: 'doc',
+        ...(hit.projectName ? { projectName: hit.projectName } : { projectName: hit.crateName }),
+        ...(hit.rootLabel ? { rootLabel: hit.rootLabel } : {}),
+        line: hit.lineStart,
+        lineEnd: hit.lineEnd,
+      },
     })),
     hitCount: hits.length,
     selectedScope: 'definitions',
@@ -145,6 +243,15 @@ describe('SearchBar', () => {
     crateName: string;
     projectName?: string;
     rootLabel?: string;
+    navigationTarget?: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+    };
     line: number;
     column: number;
     lineText: string;
@@ -155,6 +262,15 @@ describe('SearchBar', () => {
       ...hit,
       projectName: hit.projectName,
       rootLabel: hit.rootLabel,
+      navigationTarget: hit.navigationTarget || {
+        path: hit.path,
+        category: 'doc',
+        ...(hit.projectName ? { projectName: hit.projectName } : { projectName: hit.crateName }),
+        ...(hit.rootLabel ? { rootLabel: hit.rootLabel } : {}),
+        line: hit.line,
+        lineEnd: hit.line,
+        column: hit.column,
+      },
     })),
     hitCount: hits.length,
     selectedScope: 'references',
@@ -175,7 +291,25 @@ describe('SearchBar', () => {
     query,
     sourcePath: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
     sourceLine: 21,
-    definition,
+    navigationTarget: {
+      path: definition.path,
+      category: 'doc',
+      ...(definition.projectName ? { projectName: definition.projectName } : { projectName: definition.crateName }),
+      ...(definition.rootLabel ? { rootLabel: definition.rootLabel } : {}),
+      line: definition.lineStart,
+      lineEnd: definition.lineEnd,
+    },
+    definition: {
+      ...definition,
+      navigationTarget: {
+        path: definition.path,
+        category: 'doc',
+        ...(definition.projectName ? { projectName: definition.projectName } : { projectName: definition.crateName }),
+        ...(definition.rootLabel ? { rootLabel: definition.rootLabel } : {}),
+        line: definition.lineStart,
+        lineEnd: definition.lineEnd,
+      },
+    },
     candidateCount: definition.name ? 1 : 0,
     selectedScope: 'definition',
   });
@@ -478,7 +612,10 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }));
-    expect(mockOnGraphResultSelect).toHaveBeenCalledWith('/graph/path');
+    expect(mockOnGraphResultSelect).toHaveBeenCalledWith({
+      path: '/graph/path',
+      category: 'doc',
+    });
   });
 
   it('should switch to symbol search and render symbol metadata', async () => {
@@ -523,6 +660,146 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
   });
 
+  it('should switch to attachment search and render attachment metadata', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('topology', []));
+    mockedApi.searchAttachments.mockResolvedValue(
+      createMockAttachmentResponse('topology', [
+        {
+          path: 'docs/alpha.md',
+          sourceId: 'docs/alpha',
+          sourceStem: 'alpha',
+          sourceTitle: 'Alpha',
+          sourcePath: 'docs/alpha.md',
+          attachmentId: 'att://docs/alpha/assets/topology.png',
+          attachmentPath: 'assets/topology.png',
+          attachmentName: 'topology.png',
+          attachmentExt: 'png',
+          kind: 'image',
+          score: 0.91,
+          visionSnippet: 'Architecture topology screenshot',
+        },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'topology' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchAttachments).toHaveBeenCalledWith('topology', 10);
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getByText('docs/alpha.md')).toBeInTheDocument();
+      expect(screen.getByText('assets/topology.png')).toBeInTheDocument();
+      expect(screen.getByText('Architecture topology screenshot')).toBeInTheDocument();
+      expect(screen.getByText('Mode: Attachment Index')).toBeInTheDocument();
+      expect(screen.getByText('Scope: Attachments')).toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('should use backend navigation target when opening an attachment result', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('topology', []));
+    mockedApi.searchAttachments.mockResolvedValue(
+      createMockAttachmentResponse('topology', [
+        {
+          path: 'kernel/docs/index.md',
+          sourceId: 'GraphProtocol',
+          sourceStem: 'index',
+          sourceTitle: 'Studio Index',
+          navigationTarget: {
+            path: 'kernel/docs/attachments/topology-owner.md',
+            category: 'knowledge',
+            projectName: 'kernel',
+            rootLabel: 'docs',
+            line: 14,
+            lineEnd: 18,
+            column: 2,
+          },
+          sourcePath: 'kernel/docs/index.md',
+          attachmentId: 'att://GraphProtocol/assets/topology.png',
+          attachmentPath: 'assets/topology.png',
+          attachmentName: 'topology.png',
+          attachmentExt: 'png',
+          kind: 'image',
+          score: 0.92,
+        },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'topology' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('kernel/docs/index.md')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+
+    expect(mockOnResultSelect).toHaveBeenCalledWith({
+      path: 'kernel/docs/attachments/topology-owner.md',
+      category: 'knowledge',
+      projectName: 'kernel',
+      rootLabel: 'docs',
+      line: 14,
+      lineEnd: 18,
+      column: 2,
+    });
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should render and open attachment hits even when navigationTarget is missing', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('topology', []));
+    mockedApi.searchAttachments.mockResolvedValue({
+      query: 'topology',
+      hits: [
+        {
+          path: 'docs/alpha.md',
+          sourceId: 'docs/alpha',
+          sourceStem: 'alpha',
+          sourceTitle: 'Alpha',
+          sourcePath: 'docs/alpha.md',
+          attachmentId: 'att://docs/alpha/assets/topology.png',
+          attachmentPath: 'assets/topology.png',
+          attachmentName: 'topology.png',
+          attachmentExt: 'png',
+          kind: 'image',
+          score: 0.91,
+          visionSnippet: 'Architecture topology screenshot',
+        },
+      ],
+      hitCount: 1,
+      selectedScope: 'attachments',
+    });
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'topology' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('docs/alpha.md')).toBeInTheDocument();
+      expect(screen.getByText('assets/topology.png')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+
+    expect(mockOnResultSelect).toHaveBeenCalledWith({
+      path: 'docs/alpha.md',
+      category: 'doc',
+    });
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
   it('should switch to AST search and render AST metadata', async () => {
     mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('repo', []));
     mockedApi.searchAst.mockResolvedValue(
@@ -564,6 +841,105 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
   });
 
+  it('should render markdown AST doc hits in AST mode', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('ast', []));
+    mockedApi.searchAst.mockResolvedValue(
+      createMockAstResponse('ast', [
+        {
+          name: 'AST Search',
+          signature: '## AST Search',
+          path: 'docs/03_features/204_gateway_api_contracts.md',
+          language: 'markdown',
+          crateName: 'docs',
+          projectName: 'main',
+          rootLabel: 'docs',
+          lineStart: 3,
+          lineEnd: 3,
+          score: 0.92,
+        },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'AST' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'ast' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchAst).toHaveBeenCalledWith('ast', 10);
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getByText('docs/03_features/204_gateway_api_contracts.md')).toBeInTheDocument();
+      expect(screen.getByText('markdown outline · line 3')).toBeInTheDocument();
+      expect(screen.getByText('## AST Search')).toBeInTheDocument();
+      expect(screen.getByText('Project: main')).toBeInTheDocument();
+      expect(screen.getByText('Root: docs')).toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('should render markdown property drawer and observation hits in AST mode', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('SearchBar', []));
+    mockedApi.searchAst.mockResolvedValue(
+      createMockAstResponse('SearchBar', [
+        {
+          name: 'ID',
+          signature: ':ID: SearchBarProtocol',
+          path: 'main/docs/index.md',
+          language: 'markdown',
+          crateName: 'docs',
+          projectName: 'main',
+          rootLabel: 'docs',
+          nodeKind: 'property',
+          ownerTitle: 'Studio Functional Ledger',
+          lineStart: 3,
+          lineEnd: 6,
+          score: 0.95,
+        },
+        {
+          name: 'OBSERVE',
+          signature:
+            ':OBSERVE: lang:typescript scope:"src/components/SearchBar/**" "export const SearchBar: React.FC<SearchBarProps> = ({ $$$ })"',
+          path: 'main/docs/index.md',
+          language: 'markdown',
+          crateName: 'docs',
+          projectName: 'main',
+          rootLabel: 'docs',
+          nodeKind: 'observation',
+          ownerTitle: 'Studio Functional Ledger',
+          lineStart: 3,
+          lineEnd: 6,
+          score: 0.97,
+        },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'AST' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'SearchBar' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchAst).toHaveBeenCalledWith('SearchBar', 10);
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('main/docs/index.md')).toHaveLength(2);
+      expect(screen.getByText('property drawer · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
+      expect(screen.getByText(':ID: SearchBarProtocol')).toBeInTheDocument();
+      expect(screen.getByText('code observation · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          ':OBSERVE: lang:typescript scope:"src/components/SearchBar/**" "export const SearchBar: React.FC<SearchBarProps> = ({ $$$ })"'
+        )
+      ).toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
   it('should pass structured jump metadata when opening an AST result', async () => {
     mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('RepoScanner', []));
     mockedApi.searchAst.mockResolvedValue(
@@ -594,7 +970,7 @@ describe('SearchBar', () => {
       expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    fireEvent.click(screen.getByText('RepoScanner'));
 
     expect(mockOnResultSelect).toHaveBeenCalledWith({
       path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
@@ -659,6 +1035,15 @@ describe('SearchBar', () => {
           crateName: 'xiuxian-wendao',
           projectName: 'kernel',
           rootLabel: 'packages',
+          navigationTarget: {
+            path: 'kernel/docs/navigation/repo-scanner.md',
+            category: 'doc',
+            projectName: 'semantic-kernel',
+            rootLabel: 'gateway',
+            line: 42,
+            lineEnd: 45,
+            column: 7,
+          },
           lineStart: 10,
           lineEnd: 12,
           score: 0.94,
@@ -687,12 +1072,65 @@ describe('SearchBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refs' }));
 
     expect(mockOnReferencesResultSelect).toHaveBeenCalledWith({
-      path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+      path: 'kernel/docs/navigation/repo-scanner.md',
       category: 'doc',
-      projectName: 'kernel',
-      rootLabel: 'packages',
-      line: 10,
-      lineEnd: 12,
+      projectName: 'semantic-kernel',
+      rootLabel: 'gateway',
+      line: 42,
+      lineEnd: 45,
+      column: 7,
+    });
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should use backend navigation target when opening a symbol result', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('RepoScanner', []));
+    mockedApi.searchSymbols.mockResolvedValue(
+      createMockSymbolResponse('RepoScanner', [
+        {
+          name: 'RepoScanner',
+          kind: 'struct',
+          path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+          line: 10,
+          language: 'rust',
+          crateName: 'xiuxian-wendao',
+          projectName: 'kernel',
+          rootLabel: 'packages',
+          navigationTarget: {
+            path: 'kernel/docs/navigation/repo-scanner.md',
+            category: 'doc',
+            projectName: 'semantic-kernel',
+            rootLabel: 'gateway',
+            line: 42,
+            lineEnd: 45,
+            column: 11,
+          },
+          score: 0.94,
+        },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Symbols' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'RepoScanner' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+
+    expect(mockOnResultSelect).toHaveBeenCalledWith({
+      path: 'kernel/docs/navigation/repo-scanner.md',
+      category: 'doc',
+      projectName: 'semantic-kernel',
+      rootLabel: 'gateway',
+      line: 42,
+      lineEnd: 45,
+      column: 11,
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -716,18 +1154,29 @@ describe('SearchBar', () => {
       ])
     );
     mockedApi.resolveDefinition.mockResolvedValue(
-      createMockDefinitionResponse('AlphaService', {
-        name: 'AlphaService',
-        signature: 'pub struct AlphaService {',
-        path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
-        language: 'rust',
-        crateName: 'xiuxian-wendao',
-        projectName: 'kernel',
-        rootLabel: 'packages',
-        lineStart: 8,
-        lineEnd: 14,
-        score: 0.98,
-      })
+      {
+        ...createMockDefinitionResponse('AlphaService', {
+          name: 'AlphaService',
+          signature: 'pub struct AlphaService {',
+          path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+          language: 'rust',
+          crateName: 'xiuxian-wendao',
+          projectName: 'kernel',
+          rootLabel: 'packages',
+          lineStart: 8,
+          lineEnd: 14,
+          score: 0.98,
+        }),
+        navigationTarget: {
+          path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+          category: 'doc',
+          projectName: 'kernel',
+          rootLabel: 'packages',
+          line: 8,
+          lineEnd: 14,
+          column: 3,
+        },
+      }
     );
 
     render(
@@ -764,6 +1213,133 @@ describe('SearchBar', () => {
       rootLabel: 'packages',
       line: 8,
       lineEnd: 14,
+      column: 3,
+    });
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should fall back to definition payload when resolveDefinition navigationTarget is missing', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('AlphaService', []));
+    mockedApi.searchReferences.mockResolvedValue(
+      createMockReferenceResponse('AlphaService', [
+        {
+          name: 'AlphaService',
+          path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+          language: 'rust',
+          crateName: 'xiuxian-wendao',
+          projectName: 'kernel',
+          rootLabel: 'packages',
+          line: 21,
+          column: 15,
+          lineText: 'let service = AlphaService::new();',
+          score: 0.9,
+        },
+      ])
+    );
+    mockedApi.resolveDefinition.mockResolvedValue({
+      query: 'AlphaService',
+      sourcePath: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+      sourceLine: 21,
+      navigationTarget: undefined as never,
+      definition: {
+        name: 'AlphaService',
+        signature: 'pub struct AlphaService {',
+        path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+        language: 'rust',
+        crateName: 'xiuxian-wendao',
+        projectName: 'kernel',
+        rootLabel: 'packages',
+        navigationTarget: {
+          path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+          category: 'doc',
+          projectName: 'kernel',
+          rootLabel: 'packages',
+          line: 8,
+          lineEnd: 14,
+        },
+        lineStart: 8,
+        lineEnd: 14,
+        score: 0.98,
+      },
+      candidateCount: 1,
+      selectedScope: 'definition',
+    });
+
+    render(
+      <SearchBar
+        isOpen={true}
+        onClose={mockOnClose}
+        onResultSelect={mockOnResultSelect}
+        onReferencesResultSelect={mockOnReferencesResultSelect}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'References' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'AlphaService' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Definition' }));
+
+    await waitFor(() => {
+      expect(mockedApi.resolveDefinition).toHaveBeenCalledWith('AlphaService', {
+        path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+        line: 21,
+      });
+    }, { timeout: 1000 });
+
+    expect(mockOnResultSelect).toHaveBeenCalledWith({
+      path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+      category: 'doc',
+      projectName: 'kernel',
+      rootLabel: 'packages',
+      line: 8,
+      lineEnd: 14,
+    });
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should render and open knowledge hits even when navigationTarget is missing', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue({
+      query: 'context',
+      hits: [
+        {
+          stem: 'context',
+          title: 'Context Note',
+          path: '/knowledge/context.md',
+          docType: 'knowledge',
+          tags: [],
+          score: 0.91,
+          bestSection: 'Working context',
+          matchReason: 'Knowledge note',
+        },
+      ],
+      hitCount: 1,
+      graphConfidenceScore: 0.8,
+      selectedMode: 'hybrid',
+    } as any);
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'context' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('/knowledge/context.md')).toBeInTheDocument();
+      expect(
+        screen.getByText((_content, node) => node?.textContent === 'Context Note')
+      ).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByText((_content, node) => node?.textContent === 'Context Note'));
+
+    expect(mockOnResultSelect).toHaveBeenCalledWith({
+      path: '/knowledge/context.md',
+      category: 'knowledge',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });

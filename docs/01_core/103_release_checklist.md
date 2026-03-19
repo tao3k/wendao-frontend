@@ -40,7 +40,9 @@ direnv exec . env INSTA_UPDATE=always cargo test -p xiuxian-wendao gateway::stud
 3. Confirm `Graph` lands in `Graph`.
 4. Confirm `Refs` lands in `References`.
 5. Confirm `Definition` resolves through `/api/search/definition` into an AST-backed source location.
-6. Confirm source focus opens in line-numbered mode inside `DirectReader`.
+6. Confirm source focus behavior inside `DirectReader`:
+   - non-Markdown files open line-numbered source mode directly.
+   - Markdown files stay in rich mode by default and expose `View source` for exact line inspection.
 
 ## Targeted Frontend Validation
 

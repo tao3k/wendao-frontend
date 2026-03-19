@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MainView } from './MainView';
@@ -6,6 +5,7 @@ import type { AcademicTopology } from '../../../types';
 
 const directReaderSpy = vi.fn();
 const graphViewSpy = vi.fn();
+const diagramWindowSpy = vi.fn();
 
 vi.mock('../GraphView', () => ({
   GraphView: (props: Record<string, unknown>) => {
@@ -21,6 +21,13 @@ vi.mock('../DirectReader', () => ({
   },
 }));
 
+vi.mock('../DiagramWindow', () => ({
+  DiagramWindow: (props: Record<string, unknown>) => {
+    diagramWindowSpy(props);
+    return <div data-testid="diagram-window" />;
+  },
+}));
+
 describe('MainView', () => {
   const topology: AcademicTopology = {
     nodes: [{ id: 'T1', name: 'Target', type: 'task', position: [12, -4, 18] }],
@@ -30,9 +37,10 @@ describe('MainView', () => {
   beforeEach(() => {
     directReaderSpy.mockClear();
     graphViewSpy.mockClear();
+    diagramWindowSpy.mockClear();
   });
 
-  it('renders cockpit tabs and guidance text', () => {
+  it('renders cockpit tabs and guidance text', async () => {
     render(
       <MainView
         topology={topology}
@@ -53,7 +61,9 @@ describe('MainView', () => {
     expect(screen.getByText('Select a file from the project tree to inspect references and content.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }));
-    expect(screen.getByTestId('graph-view')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('graph-view')).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Content' }));
     expect(screen.getByText('Select a file from the project tree to open its content.')).toBeInTheDocument();
@@ -92,7 +102,7 @@ describe('MainView', () => {
     expect(screen.getByText('incoming')).toBeInTheDocument();
   });
 
-  it('forwards search jump metadata into DirectReader on the content tab', () => {
+  it('forwards search jump metadata into DirectReader on the content tab', async () => {
     render(
       <MainView
         topology={topology}
@@ -113,6 +123,10 @@ describe('MainView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Content' }));
 
+    await waitFor(() => {
+      expect(directReaderSpy).toHaveBeenCalled();
+    });
+
     const lastDirectReaderCall = directReaderSpy.mock.calls.at(-1)?.[0] as
       | { path: string; line?: number; lineEnd?: number; column?: number; content?: string }
       | undefined;
@@ -126,7 +140,46 @@ describe('MainView', () => {
     });
   });
 
-  it('forwards graph node selections to the parent file hydration callback', () => {
+  it('renders empty file content instead of treating it as no selection', async () => {
+    render(
+      <MainView
+        topology={topology}
+        isVfsLoading={false}
+        selectedFile={{
+          path: 'docs/empty.md',
+          category: 'knowledge',
+          content: '',
+        }}
+        relationships={[]}
+        selectedNode={null}
+        onNodeClick={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(diagramWindowSpy).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByText('Select a file from the project tree to inspect its diagram.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Content' }));
+
+    await waitFor(() => {
+      expect(directReaderSpy).toHaveBeenCalled();
+    });
+
+    const lastDirectReaderCall = directReaderSpy.mock.calls.at(-1)?.[0] as
+      | { path: string; content?: string }
+      | undefined;
+
+    expect(lastDirectReaderCall).toMatchObject({
+      path: 'docs/empty.md',
+      content: '',
+    });
+    expect(screen.queryByText('Select a file from the project tree to open its content.')).not.toBeInTheDocument();
+  });
+
+  it('forwards graph node selections to the parent file hydration callback', async () => {
     const onGraphFileSelect = vi.fn();
 
     render(
@@ -143,14 +196,37 @@ describe('MainView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }));
 
+    await waitFor(() => {
+      expect(graphViewSpy).toHaveBeenCalled();
+    });
+
     const lastGraphViewCall = graphViewSpy.mock.calls.at(-1)?.[0] as
-      | { onNodeClick: (nodeId: string, path: string) => void; enabled?: boolean }
+      | {
+          onNodeClick: (
+            nodeId: string,
+            selection: {
+              path: string;
+              category: string;
+              line?: number;
+              lineEnd?: number;
+              column?: number;
+              graphPath?: string;
+            }
+          ) => void;
+          enabled?: boolean;
+        }
       | undefined;
 
     expect(lastGraphViewCall?.enabled).toBe(true);
-    lastGraphViewCall?.onNodeClick('skills/writer/SKILL.md', 'skills/writer/SKILL.md');
+    lastGraphViewCall?.onNodeClick('skills/writer/SKILL.md', {
+      path: 'skills/writer/SKILL.md',
+      category: 'skill',
+    });
 
-    expect(onGraphFileSelect).toHaveBeenCalledWith('skills/writer/SKILL.md');
+    expect(onGraphFileSelect).toHaveBeenCalledWith({
+      path: 'skills/writer/SKILL.md',
+      category: 'skill',
+    });
   });
 
   it('activates the requested graph tab when App asks for graph focus', async () => {

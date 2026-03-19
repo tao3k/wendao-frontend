@@ -226,6 +226,18 @@
   font-style: italic;
 }
 
+.main-view-panel-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  height: 100%;
+  color: rgba(125, 207, 255, 0.8);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Sovereign cockpit overrides */
 
 .main-view-tabs {

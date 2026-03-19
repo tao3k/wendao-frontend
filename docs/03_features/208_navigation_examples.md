@@ -69,7 +69,7 @@ Expected runtime:
 1. `SearchBar` calls `/api/search/definition` with the symbol and source context.
 2. The backend returns the best-ranked definition as a structured source location.
 3. `App` hydrates that file and requests the `Content` tab.
-4. `DirectReader` opens in source mode and focuses the target line range.
+4. `DirectReader` opens with source focus metadata visible; Markdown stays rich by default with an explicit `View source` toggle, while non-Markdown opens directly in source mode.
 
 ## Example 5: Continue from Graph into Content
 

@@ -1,11 +1,27 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { GraphView } from '../GraphView';
-import { DirectReader } from '../DirectReader';
-import { DiagramWindow } from '../DiagramWindow';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { AcademicNode, AcademicTopology } from '../../../types';
 import type { GraphSidebarSummary } from '../GraphView/types';
 import type { RuntimeStatus } from '../../StatusBar';
 import './MainView.css';
+
+const loadGraphView = () => import('../GraphView');
+const loadDirectReader = () => import('../DirectReader');
+const loadDiagramWindow = () => import('../DiagramWindow');
+
+const GraphView = lazy(async () => {
+  const module = await loadGraphView();
+  return { default: module.GraphView };
+});
+
+const DirectReader = lazy(async () => {
+  const module = await loadDirectReader();
+  return { default: module.DirectReader };
+});
+
+const DiagramWindow = lazy(async () => {
+  const module = await loadDiagramWindow();
+  return { default: module.DiagramWindow };
+});
 
 type ViewTab = 'diagram' | 'references' | 'graph' | 'content';
 type UiLocale = 'en' | 'zh';
@@ -26,6 +42,7 @@ interface MainViewCopy {
   noReferences: string;
   noReferencesFile: string;
   noContentFile: string;
+  panelLoading: string;
 }
 
 const MAIN_VIEW_COPY: Record<UiLocale, MainViewCopy> = {
@@ -45,6 +62,7 @@ const MAIN_VIEW_COPY: Record<UiLocale, MainViewCopy> = {
     noReferences: 'No live references were returned for this file.',
     noReferencesFile: 'Select a file from the project tree to inspect its references.',
     noContentFile: 'Select a file from the project tree to open its content.',
+    panelLoading: 'Loading panel...',
   },
   zh: {
     tabDiagram: '图示',
@@ -62,6 +80,7 @@ const MAIN_VIEW_COPY: Record<UiLocale, MainViewCopy> = {
     noReferences: '当前文件没有返回实时引用关系。',
     noReferencesFile: '请先从项目树选择文件以查看引用。',
     noContentFile: '请先从项目树选择文件以打开内容。',
+    panelLoading: '正在加载面板...',
   },
 };
 
@@ -89,7 +108,18 @@ interface MainViewProps {
     tab: ViewTab;
     nonce: number;
   } | null;
-  onGraphFileSelect?: (path: string) => void;
+  onGraphFileSelect?: (
+    selection: {
+      path: string;
+      category: string;
+      projectName?: string;
+      rootLabel?: string;
+      line?: number;
+      lineEnd?: number;
+      column?: number;
+      graphPath?: string;
+    }
+  ) => void;
   onNodeClick: (name: string, type: string, id: string) => void;
   /** Callback when a bi-link is clicked in the content viewer */
   onBiLinkClick?: (link: string) => void;
@@ -99,7 +129,7 @@ interface MainViewProps {
 
 export const MainView: React.FC<MainViewProps> = ({
   locale = 'en',
-  isVfsLoading,
+  isVfsLoading: _isVfsLoading,
   selectedFile,
   relationships = [],
   requestedTab,
@@ -114,6 +144,7 @@ export const MainView: React.FC<MainViewProps> = ({
   const copy = MAIN_VIEW_COPY[locale];
   const isGraphTabActive = activeTab === 'graph';
   const graphCenterNodeId = isGraphTabActive ? selectedFile?.path ?? null : null;
+  const hasSelectedContent = selectedFile?.content !== undefined;
   const graphOptions = useMemo(
     () => ({
       direction: 'both' as const,
@@ -144,6 +175,26 @@ export const MainView: React.FC<MainViewProps> = ({
     }
   }, [activeTab]);
 
+  const preloadTab = (tab: ViewTab) => {
+    if (tab === 'diagram') {
+      void loadDiagramWindow();
+      return;
+    }
+    if (tab === 'graph') {
+      void loadGraphView();
+      return;
+    }
+    if (tab === 'content') {
+      void loadDirectReader();
+    }
+  };
+
+  const panelLoadingFallback = (
+    <div className="main-view-panel-loading" role="status" aria-live="polite">
+      {copy.panelLoading}
+    </div>
+  );
+
   return (
     <div className="main-view">
       {/* Tab Bar */}
@@ -151,6 +202,8 @@ export const MainView: React.FC<MainViewProps> = ({
         <button
           className={`main-view-tab ${activeTab === 'diagram' ? 'active animate-breathe neon-glow--blue' : ''}`}
           onClick={() => setActiveTab('diagram')}
+          onMouseEnter={() => preloadTab('diagram')}
+          onFocus={() => preloadTab('diagram')}
         >
           {copy.tabDiagram}
         </button>
@@ -163,12 +216,16 @@ export const MainView: React.FC<MainViewProps> = ({
         <button
           className={`main-view-tab ${activeTab === 'graph' ? 'active animate-breathe neon-glow--blue' : ''}`}
           onClick={() => setActiveTab('graph')}
+          onMouseEnter={() => preloadTab('graph')}
+          onFocus={() => preloadTab('graph')}
         >
           {copy.tabGraph}
         </button>
         <button
           className={`main-view-tab ${activeTab === 'content' ? 'active animate-breathe neon-glow--blue' : ''}`}
           onClick={() => setActiveTab('content')}
+          onMouseEnter={() => preloadTab('content')}
+          onFocus={() => preloadTab('content')}
         >
           {copy.tabContent}
         </button>
@@ -179,14 +236,16 @@ export const MainView: React.FC<MainViewProps> = ({
         {/* Diagram Tab - BPMN.js + Mermaid */}
         {activeTab === 'diagram' && (
           <div className="main-view-diagram">
-            {selectedFile?.content ? (
-              <DiagramWindow
-                path={selectedFile.path}
-                content={selectedFile.content}
-                locale={locale}
-                focusEpoch={diagramFocusEpoch}
-                onNodeClick={onNodeClick}
-              />
+            {hasSelectedContent ? (
+              <Suspense fallback={panelLoadingFallback}>
+                <DiagramWindow
+                  path={selectedFile.path}
+                  content={selectedFile.content}
+                  locale={locale}
+                  focusEpoch={diagramFocusEpoch}
+                  onNodeClick={onNodeClick}
+                />
+              </Suspense>
             ) : (
               <div className="no-file-selected">{copy.noDiagramFile}</div>
             )}
@@ -254,19 +313,21 @@ export const MainView: React.FC<MainViewProps> = ({
         {activeTab === 'graph' && (
           <div className="main-view-graph">
             <div className="main-view-graph-shell">
-              <GraphView
-                centerNodeId={graphCenterNodeId}
-                onNodeClick={(_nodeId, path) => {
-                  if (path) {
-                    onGraphFileSelect?.(path);
-                  }
-                }}
-                enabled={isGraphTabActive}
-                options={graphOptions}
-                locale={locale}
-                onSidebarSummaryChange={onSidebarSummaryChange}
-                onRuntimeStatusChange={onGraphRuntimeStatusChange}
-              />
+              <Suspense fallback={panelLoadingFallback}>
+                <GraphView
+                  centerNodeId={graphCenterNodeId}
+                  onNodeClick={(_nodeId, selection) => {
+                    if (selection.path) {
+                      onGraphFileSelect?.(selection);
+                    }
+                  }}
+                  enabled={isGraphTabActive}
+                  options={graphOptions}
+                  locale={locale}
+                  onSidebarSummaryChange={onSidebarSummaryChange}
+                  onRuntimeStatusChange={onGraphRuntimeStatusChange}
+                />
+              </Suspense>
             </div>
           </div>
         )}
@@ -274,16 +335,18 @@ export const MainView: React.FC<MainViewProps> = ({
         {/* Content Tab - DirectReader with bi-link support */}
         {activeTab === 'content' && (
           <div className="main-view-content-raw">
-          {selectedFile?.content ? (
-              <DirectReader
-                content={selectedFile.content}
-                path={selectedFile.path}
-                locale={locale}
-                line={selectedFile.line}
-                lineEnd={selectedFile.lineEnd}
-                column={selectedFile.column}
-                onBiLinkClick={onBiLinkClick}
-              />
+          {hasSelectedContent ? (
+              <Suspense fallback={panelLoadingFallback}>
+                <DirectReader
+                  content={selectedFile.content}
+                  path={selectedFile.path}
+                  locale={locale}
+                  line={selectedFile.line}
+                  lineEnd={selectedFile.lineEnd}
+                  column={selectedFile.column}
+                  onBiLinkClick={onBiLinkClick}
+                />
+              </Suspense>
             ) : (
               <div className="no-file-selected">{copy.noContentFile}</div>
             )}

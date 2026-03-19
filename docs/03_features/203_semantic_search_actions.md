@@ -29,7 +29,7 @@ Qianji Studio exposes a blended search surface across knowledge, symbols, AST de
 
 ## Source Focus
 
-When line metadata is present, `DirectReader` switches into a line-numbered source view and highlights the target line range instead of only showing a header hint.
+When line metadata is present, `DirectReader` keeps Markdown documents in rich mode by default while exposing `View source` for exact line inspection. Non-Markdown files open directly in line-numbered source mode and highlight the target line range.
 
 :RELATIONS:
 :LINKS: [[01_core/101_studio_surface_protocol]], [[03_features/202_topology_and_graph_navigation]], [[05_research/301_wendao_surface_alignment]]

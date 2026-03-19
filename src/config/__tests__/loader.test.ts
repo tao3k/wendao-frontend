@@ -52,6 +52,32 @@ dirs = ["docs", "internal_skills"]
       `);
     });
 
+    it('should canonicalize glob dirs and preserve regex compatibility', async () => {
+      const mockToml = `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs", "**/*.md", "!docs/private/**", "regex:^docs/[^/]+\\\\.md$"]
+`;
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(mockToml),
+      });
+
+      const config = await loadConfig();
+
+      expect(toUiConfig(config).projects).toEqual([
+        {
+          name: 'kernel',
+          root: '.',
+          dirs: ['docs', 'glob:**/*.md', 'glob:!docs/private/**', 're:^docs/[^/]+\\.md$'],
+        },
+      ]);
+    });
+
     it('should reject when gateway.bind is missing', async () => {
       const mockToml = `
 [link_graph.projects.kernel]

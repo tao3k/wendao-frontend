@@ -8,7 +8,7 @@ import React from 'react';
 import { FloatingPanel } from './FloatingPanel';
 
 // Mock useAccessibility hook
-vi.mock('../../../hooks/useAccessibility', () => ({
+vi.mock('../../../hooks', () => ({
   useAccessibility: () => ({
     prefersReducedMotion: false,
     getTransition: (t: string) => t,

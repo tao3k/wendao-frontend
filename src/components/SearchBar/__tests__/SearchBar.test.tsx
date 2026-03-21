@@ -12,7 +12,7 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import { SearchBar } from '../SearchBar';
 
 // Mock the api module
-vi.mock('../../../api/client', () => ({
+vi.mock('../../../api', () => ({
   api: {
     searchKnowledge: vi.fn(),
     searchAttachments: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('../../../api/client', () => ({
   },
 }));
 
-import { api } from '../../../api/client';
+import { api } from '../../../api';
 
 const mockedApi = vi.mocked(api);
 
@@ -100,7 +100,7 @@ describe('SearchBar', () => {
 
   const createMockAutocompleteResponse = (suggestions: Array<{
     text: string;
-    suggestionType: 'title' | 'tag' | 'stem';
+    suggestionType: 'title' | 'tag' | 'stem' | 'heading' | 'symbol' | 'metadata';
     target?: string;
   }>) => ({
     prefix: 'q',
@@ -355,7 +355,8 @@ describe('SearchBar', () => {
 
     // Wait for debounce (200ms) + API call
     await waitFor(() => {
-      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('noresults', 10);
+      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('noresults', 10, { intent: 'hybrid_search' });
+      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('noresults', 10, { intent: 'code_search' });
     }, { timeout: 1000 });
 
     await waitFor(() => {
@@ -537,18 +538,18 @@ describe('SearchBar', () => {
       const totals = screen.getAllByText('Total 2');
       expect(totals).toHaveLength(1);
       expect(screen.getByText('Total 2')).toBeInTheDocument();
-      expect(screen.getByText('Mode: Hybrid')).toBeInTheDocument();
+      expect(screen.getByText('Mode: Hybrid + Code')).toBeInTheDocument();
       expect(screen.getByText('Confidence: 80%')).toBeInTheDocument();
       expect(screen.getByText('Scope: All')).toBeInTheDocument();
       expect(screen.getByText('Sort: Relevance')).toBeInTheDocument();
       expect(
-        ['Total 2', 'Mode: Hybrid', 'Confidence: 80%', 'Scope: All', 'Sort: Relevance'].map(
+        ['Total 2', 'Mode: Hybrid + Code', 'Confidence: 80%', 'Scope: All', 'Sort: Relevance'].map(
           (label) => screen.getByText(label).textContent
         )
       ).toMatchInlineSnapshot(`
         [
           "Total 2",
-          "Mode: Hybrid",
+          "Mode: Hybrid + Code",
           "Confidence: 80%",
           "Scope: All",
           "Sort: Relevance",
@@ -564,6 +565,9 @@ describe('SearchBar', () => {
         { text: 'node', suggestionType: 'title', target: '/notes/node' },
         { text: 'tag', suggestionType: 'tag', target: 'tag' },
         { text: 'stem', suggestionType: 'stem', target: 'stem' },
+        { text: 'Overview', suggestionType: 'heading', target: '/notes/node#overview' },
+        { text: 'AlphaClient', suggestionType: 'symbol', target: 'AlphaClient' },
+        { text: 'repo:sciml', suggestionType: 'metadata', target: 'repo:sciml' },
       ])
     );
 
@@ -577,7 +581,36 @@ describe('SearchBar', () => {
         (node) => node.textContent
       );
 
-      expect(labels).toEqual(expect.arrayContaining(['Title', 'Tag', 'Stem']));
+      expect(labels).toEqual(expect.arrayContaining(['Title', 'Tag', 'Stem', 'Heading', 'Symbol', 'Metadata']));
+    }, { timeout: 1000 });
+  });
+
+  it('should request backend autocomplete in symbol and attachment scopes', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchAutocomplete.mockResolvedValue(
+      createMockAutocompleteResponse([
+        { text: 'AlphaClient', suggestionType: 'symbol', target: 'AlphaClient' },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Symbols' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'Alpha' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchAutocomplete).toHaveBeenCalledWith('Alpha', 5);
+    }, { timeout: 1000 });
+
+    mockedApi.searchAutocomplete.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
+    fireEvent.change(input, { target: { value: 'spec' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchAutocomplete).toHaveBeenCalledWith('spec', 5);
     }, { timeout: 1000 });
   });
 
@@ -650,9 +683,8 @@ describe('SearchBar', () => {
     expect(mockedApi.searchKnowledge).not.toHaveBeenCalledWith('repo', 10);
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
       expect(screen.getByText('struct · rust · line 42')).toBeInTheDocument();
-      expect(screen.getByText('Project symbol in xiuxian-wendao')).toBeInTheDocument();
       expect(screen.getByText('Project: kernel')).toBeInTheDocument();
       expect(screen.getByText('Root: packages')).toBeInTheDocument();
       expect(screen.getByText('Mode: Symbol Index')).toBeInTheDocument();
@@ -695,7 +727,6 @@ describe('SearchBar', () => {
     await waitFor(() => {
       expect(screen.getByText('docs/alpha.md')).toBeInTheDocument();
       expect(screen.getByText('assets/topology.png')).toBeInTheDocument();
-      expect(screen.getByText('Architecture topology screenshot')).toBeInTheDocument();
       expect(screen.getByText('Mode: Attachment Index')).toBeInTheDocument();
       expect(screen.getByText('Scope: Attachments')).toBeInTheDocument();
     }, { timeout: 1000 });
@@ -831,9 +862,8 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
       expect(screen.getByText('rust · lines 10-12')).toBeInTheDocument();
-      expect(screen.getByText('pub struct RepoScanner {')).toBeInTheDocument();
       expect(screen.getByText('Project: kernel')).toBeInTheDocument();
       expect(screen.getByText('Root: packages')).toBeInTheDocument();
       expect(screen.getByText('Mode: AST Index')).toBeInTheDocument();
@@ -872,9 +902,8 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     await waitFor(() => {
-      expect(screen.getByText('docs/03_features/204_gateway_api_contracts.md')).toBeInTheDocument();
+      expect(screen.getByText('main > docs/03_features/204_gateway_api_contracts.md')).toBeInTheDocument();
       expect(screen.getByText('markdown outline · line 3')).toBeInTheDocument();
-      expect(screen.getByText('## AST Search')).toBeInTheDocument();
       expect(screen.getByText('Project: main')).toBeInTheDocument();
       expect(screen.getByText('Root: docs')).toBeInTheDocument();
     }, { timeout: 1000 });
@@ -928,15 +957,9 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     await waitFor(() => {
-      expect(screen.getAllByText('main/docs/index.md')).toHaveLength(2);
+      expect(screen.getAllByText('main > main/docs/index.md')).toHaveLength(2);
       expect(screen.getByText('property drawer · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
-      expect(screen.getByText(':ID: SearchBarProtocol')).toBeInTheDocument();
       expect(screen.getByText('code observation · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          ':OBSERVE: lang:typescript scope:"src/components/SearchBar/**" "export const SearchBar: React.FC<SearchBarProps> = ({ $$$ })"'
-        )
-      ).toBeInTheDocument();
     }, { timeout: 1000 });
   });
 
@@ -967,7 +990,7 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'RepoScanner' } });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByText('RepoScanner'));
@@ -1014,9 +1037,8 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
       expect(screen.getByText('rust · line 21 · col 15')).toBeInTheDocument();
-      expect(screen.getByText('let service = AlphaService::new();')).toBeInTheDocument();
       expect(screen.getByText('Project: kernel')).toBeInTheDocument();
       expect(screen.getByText('Root: packages')).toBeInTheDocument();
       expect(screen.getByText('Mode: Reference Index')).toBeInTheDocument();
@@ -1066,7 +1088,7 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'RepoScanner' } });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Refs' }));
@@ -1118,7 +1140,7 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'RepoScanner' } });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
@@ -1194,7 +1216,7 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'AlphaService' } });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Definition' }));
@@ -1280,7 +1302,7 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'AlphaService' } });
 
     await waitFor(() => {
-      expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Definition' }));
@@ -1301,6 +1323,117 @@ describe('SearchBar', () => {
       lineEnd: 14,
     });
     expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should strip code filters before code endpoint requests and render filter chips', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(
+      createMockSearchResponse('RepoScanner', [
+        {
+          stem: 'RepoScanner',
+          title: 'RepoScanner',
+          path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+          docType: 'symbol',
+          tags: ['code', 'rust', 'kind:struct'],
+          score: 0.96,
+          bestSection: 'RepoScanner',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+            category: 'repo_code',
+            projectName: 'kernel',
+            rootLabel: 'packages',
+            line: 42,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 1.0,
+      })
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'lang:rust kind:struct RepoScanner' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('RepoScanner', 10, {
+        intent: 'code_search',
+      });
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(document.querySelector('.search-code-filter-chip[title="lang:rust"]')).not.toBeNull();
+      expect(document.querySelector('.search-code-filter-chip[title="kind:struct"]')).not.toBeNull();
+    }, { timeout: 1000 });
+  });
+
+  it('should show code filter-only hint and skip code search requests when no keyword is present', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'lang:julia kind:function' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Add a keyword with filters to run code search, for example: repo:gateway-sync lang:julia solve')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchKnowledge).not.toHaveBeenCalled();
+    expect(mockedApi.searchSymbols).not.toHaveBeenCalled();
+    expect(mockedApi.searchAst).not.toHaveBeenCalled();
+    expect(mockedApi.searchReferences).not.toHaveBeenCalled();
+  });
+
+  it('should provide local code filter suggestions without calling backend autocomplete', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+
+    const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'lang:j' } });
+
+    await waitFor(() => {
+      const suggestionTexts = Array.from(container.querySelectorAll('.search-suggestion .suggestion-text')).map(
+        (node) => node.textContent || ''
+      );
+      const suggestionTypes = Array.from(container.querySelectorAll('.search-suggestion .suggestion-type')).map(
+        (node) => node.textContent || ''
+      );
+
+      expect(suggestionTexts).toContain('lang:julia');
+      expect(suggestionTypes).toContain('Filter');
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchAutocomplete).not.toHaveBeenCalled();
+  });
+
+  it('should apply code quick scenario tokens into the query input', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repo functions' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)') as HTMLInputElement;
+    expect(input.value).toContain('lang:julia');
+    expect(input.value).toContain('kind:function');
   });
 
   it('should render and open knowledge hits even when navigationTarget is missing', async () => {

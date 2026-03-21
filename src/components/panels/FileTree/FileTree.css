@@ -179,6 +179,15 @@
   box-shadow: none;
 }
 
+.file-tree-item.is-project-placeholder {
+  cursor: default;
+  opacity: 0.86;
+}
+
+.file-tree-item.is-project-placeholder:hover {
+  background: rgba(125, 207, 255, 0.04);
+}
+
 .file-tree-chevron {
   display: flex;
   align-items: center;
@@ -250,6 +259,12 @@
   color: var(--neon-purple);
   font-weight: 600;
   min-width: 0;
+}
+
+.file-tree-name-placeholder {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
 }
 
 .file-tree-project-group {

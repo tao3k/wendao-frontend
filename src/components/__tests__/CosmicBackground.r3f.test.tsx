@@ -76,7 +76,7 @@ vi.mock('../../effects', () => ({
   }),
 }));
 
-vi.mock('../../hooks/useSpatialLayout', () => ({
+vi.mock('../../hooks', () => ({
   useSpatialLayout: () => ({
     nodes: [],
     clusters: [],

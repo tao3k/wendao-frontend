@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   graphSvgSpy: vi.fn(),
 }));
 
-vi.mock('../../../../api/client', () => ({
+vi.mock('../../../../api', () => ({
   api: {
     getGraphNeighbors: mocks.getGraphNeighborsMock,
     getMarkdownAnalysis: mocks.getMarkdownAnalysisMock,

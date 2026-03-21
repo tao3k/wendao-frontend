@@ -5,18 +5,15 @@
  * Supports 2D SVG rendering and 3D spatial rendering via NebulaRenderer.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Float, OrbitControls, Sparkles, Stars } from '@react-three/drei';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Boxes, SplitSquareHorizontal, Move3d } from 'lucide-react';
-import { api } from '../../../api/client';
+import { api } from '../../../api';
 import type { GraphNeighborsResponse, StudioNavigationTarget } from '../../../api/bindings';
 import type { GraphSidebarSummary, GraphViewProps, SimulatedNode, SimulatedLink } from './types';
 import { useContainerDimensions } from './useContainerDimensions';
 import { useForceSimulation } from './useForceSimulation';
 import { useDrag } from './useDrag';
 import { GraphSVG } from './GraphSVG';
-import { NebulaRenderer } from '../../NebulaRenderer';
 import { useDebouncedValue } from '../../../hooks';
 import './GraphView.css';
 
@@ -26,6 +23,12 @@ const DEFAULT_OPTIONS = {
   hops: 2,
   limit: 50,
 };
+
+const loadGraphView3DStage = () => import('./GraphView3DStage');
+const GraphView3DStage = lazy(async () => {
+  const module = await loadGraphView3DStage();
+  return { default: module.GraphView3DStage };
+});
 
 function fallbackGraphCategory(nodeType: string): string {
   switch (nodeType) {
@@ -50,70 +53,6 @@ function resolveNodeSelection(
     ...navigationTarget,
     graphPath: node.path,
   };
-}
-
-function RealisticStarfield(): React.ReactElement {
-  return (
-    <>
-      <fog attach="fog" args={['#03070f', 56, 300]} />
-      <Float
-        speed={0.18}
-        rotationIntensity={0.007}
-        floatIntensity={0.03}
-        floatingRange={[-0.08, 0.08]}
-      >
-        <Stars radius={110} depth={140} count={3200} factor={2.3} saturation={0.18} fade speed={0.09} />
-        <Stars radius={214} depth={240} count={1700} factor={1.45} saturation={0.07} fade speed={0.07} />
-      </Float>
-      <Float
-        speed={0.42}
-        rotationIntensity={0.015}
-        floatIntensity={0.09}
-        floatingRange={[-0.1, 0.1]}
-      >
-        <Stars radius={328} depth={430} count={820} factor={1.02} saturation={0.02} fade speed={0.035} />
-        <Stars radius={470} depth={700} count={420} factor={0.68} saturation={0} fade speed={0.025} />
-      </Float>
-      <Float
-        speed={0.96}
-        rotationIntensity={0.05}
-        floatIntensity={0.18}
-        floatingRange={[-0.2, 0.2]}
-      >
-        <Sparkles
-          count={220}
-          scale={190}
-          size={1.15}
-          speed={0.16}
-          noise={1.1}
-          color="#ffe1a8"
-        />
-        <Sparkles
-          count={80}
-          scale={[124, 56, 124] as [number, number, number]}
-          size={1.75}
-          speed={0.11}
-          noise={1.75}
-          color="#f8f0ff"
-        />
-      </Float>
-      <Float
-        speed={0.2}
-        rotationIntensity={0.025}
-        floatIntensity={0.04}
-        floatingRange={[-0.07, 0.07]}
-      >
-        <Sparkles
-          count={36}
-          scale={[430, 160, 430] as [number, number, number]}
-          size={3}
-          speed={0.05}
-          noise={2.5}
-          color="#d6e2ff"
-        />
-      </Float>
-    </>
-  );
 }
 
 const NEBULA_WORLD_SCALE = 0.0048;
@@ -611,6 +550,9 @@ export const GraphView: React.FC<GraphViewProps> = ({
   const show2DGraph = (layoutMode === '2d' || layoutMode === 'split') && has2DView;
   const show3DGraph = (layoutMode === '3d' || layoutMode === 'split') && has3DView;
   const split2DWidth = dimensions.width / (layoutMode === 'split' ? 2 : 1);
+  const preload3DStage = useCallback(() => {
+    void loadGraphView3DStage();
+  }, []);
 
   const showOverlay = Boolean(error);
   const showEmptyCornerHint = Boolean(
@@ -753,6 +695,8 @@ export const GraphView: React.FC<GraphViewProps> = ({
           role="tab"
           aria-selected={layoutMode === '3d'}
           onClick={() => setLayoutMode('3d')}
+          onMouseEnter={preload3DStage}
+          onFocus={preload3DStage}
         >
           <Move3d size={11} aria-hidden="true" />
           <span>{copy.tab3d}</span>
@@ -765,9 +709,12 @@ export const GraphView: React.FC<GraphViewProps> = ({
           disabled={!canSplitView}
           onClick={() => {
             if (canSplitView) {
+              preload3DStage();
               setLayoutMode('split');
             }
           }}
+          onMouseEnter={preload3DStage}
+          onFocus={preload3DStage}
         >
           <SplitSquareHorizontal size={11} aria-hidden="true" />
           <span>{copy.tabHybrid}</span>
@@ -793,32 +740,25 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
         {show3DGraph && (
           <section className="graph-view-stage-panel graph-view-stage-panel--3d" aria-label={copy.aria3dMap}>
-            <div className="graph-view-3d-canvas">
-              <Canvas
-                camera={{ position: [0, 0, 44], fov: 55 }}
-                gl={{ antialias: true }}
-                dpr={[1, 1.5]}
-              >
-                <color attach="background" args={['#0d1117']} />
-                <ambientLight intensity={0.18} />
-                <pointLight position={[14, 16, 16]} intensity={0.36} color="#ffecd8" />
-                <pointLight position={[-12, -14, -22]} intensity={0.2} color="#7dcfff" />
-                <pointLight position={[0, -18, 10]} intensity={0.09} color="#ff915b" />
-                <NebulaRenderer
-                  nodes={nebulaNodes}
-                  links={nebulaLinks}
-                  onNodeClick={handleNebulaNodeClick}
-                  onNodeHover={handleNebulaNodeHover}
-                  onNodeDrag={(nodeId, worldPos) =>
-                    handleNebulaNodeDrag(nodeId, worldPos.x, worldPos.y)
-                  }
-                  layoutMode="static"
-                />
-              <RealisticStarfield />
-              <OrbitControls enableDamping enablePan />
-            </Canvas>
-
-            </div>
+            <Suspense
+              fallback={
+                <div className="graph-view-3d-canvas">
+                  <div className="graph-view-corner-hint" role="status" aria-live="polite">
+                    {copy.runtimePreparing}
+                  </div>
+                </div>
+              }
+            >
+              <GraphView3DStage
+                nodes={nebulaNodes}
+                links={nebulaLinks}
+                onNodeClick={handleNebulaNodeClick}
+                onNodeHover={handleNebulaNodeHover}
+                onNodeDrag={(nodeId, worldPos) =>
+                  handleNebulaNodeDrag(nodeId, worldPos.x, worldPos.y)
+                }
+              />
+            </Suspense>
           </section>
         )}
       </div>

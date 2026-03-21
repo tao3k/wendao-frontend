@@ -7,7 +7,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useAccessibility } from '../../../hooks/useAccessibility';
+import { useAccessibility } from '../../../hooks';
 import './FloatingPanel.css';
 
 export interface FloatingPanelProps {

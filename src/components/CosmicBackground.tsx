@@ -10,7 +10,7 @@ import { Stars, OrbitControls } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { AcademicTopology } from '../types';
-import { useSpatialLayout } from '../hooks/useSpatialLayout';
+import { useSpatialLayout } from '../hooks';
 import { NebulaRenderer } from './NebulaRenderer';
 import { topologyShapeSignature } from '../utils/topologyContinuity';
 import {

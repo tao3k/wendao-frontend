@@ -3,4 +3,12 @@
  */
 
 export { GraphView } from './GraphView';
-export type { GraphViewProps, SimulatedNode, SimulatedLink } from './types';
+export type {
+  GraphRuntimeStatus,
+  GraphViewProps,
+  GraphLayerSummary,
+  GraphSidebarSummary,
+  SimulatedNode,
+  SimulatedLink,
+  DragState,
+} from './types';

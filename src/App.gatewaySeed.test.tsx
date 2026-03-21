@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('./components/layout', () => ({
+vi.mock('./components', () => ({
   AppLayout: ({ leftPanel, centerPanel, rightPanel, toolbar, statusBar }: Record<string, React.ReactNode>) => (
     <div>
       <div>{toolbar}</div>
@@ -36,40 +36,22 @@ vi.mock('./components/layout', () => ({
       <div>{statusBar}</div>
     </div>
   ),
-}));
-
-vi.mock('./components/panels/FileTree', () => ({
   FileTree: () => <div data-testid="file-tree" />,
-}));
-
-vi.mock('./components/panels/MainView', () => ({
   MainView: () => <div data-testid="main-view" />,
-}));
-
-vi.mock('./components/panels/PropertyEditor', () => ({
   PropertyEditor: () => <div data-testid="property-editor" />,
-}));
-
-vi.mock('./components/Toolbar', () => ({
   Toolbar: () => <div data-testid="toolbar" />,
-}));
-
-vi.mock('./components/SearchBar', () => ({
   SearchBar: () => <div data-testid="search-bar" />,
-}));
-
-vi.mock('./components/StatusBar', () => ({
   StatusBar: (props: Record<string, unknown>) => {
     mocks.statusBarSpy(props);
     return <div data-testid="status-bar" />;
   },
 }));
 
-vi.mock('./stores/editorStore', () => ({
+vi.mock('./stores', () => ({
   useEditorStore: () => mocks.editorStore,
 }));
 
-vi.mock('./hooks/useAccessibility', () => ({
+vi.mock('./hooks', () => ({
   useAccessibility: () => ({
     prefersReducedMotion: false,
     prefersHighContrast: false,
@@ -78,13 +60,10 @@ vi.mock('./hooks/useAccessibility', () => ({
     getDuration: (duration: number) => duration,
     getTransition: (transition: string) => transition,
   }),
-}));
-
-vi.mock('./hooks/useKeyboardShortcuts', () => ({
   useKeyboardShortcuts: vi.fn(),
 }));
 
-vi.mock('./api/client', () => ({
+vi.mock('./api', () => ({
   api: {
     get3DTopology: mocks.get3DTopologyMock,
     getVfsContent: mocks.getVfsContentMock,

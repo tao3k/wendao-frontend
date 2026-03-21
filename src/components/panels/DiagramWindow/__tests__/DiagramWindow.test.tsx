@@ -5,15 +5,17 @@ import { DiagramWindow } from '../DiagramWindow';
 const mocks = vi.hoisted(() => ({
   renderMermaidSVG: vi.fn(),
   getMarkdownAnalysis: vi.fn(),
+  getCodeAstAnalysis: vi.fn(),
 }));
 
 vi.mock('beautiful-mermaid', () => ({
   renderMermaidSVG: (...args: unknown[]) => mocks.renderMermaidSVG(...args),
 }));
 
-vi.mock('../../../../api/client', () => ({
+vi.mock('../../../../api', () => ({
   api: {
     getMarkdownAnalysis: mocks.getMarkdownAnalysis,
+    getCodeAstAnalysis: mocks.getCodeAstAnalysis,
   },
 }));
 
@@ -30,6 +32,17 @@ describe('DiagramWindow', () => {
     mocks.getMarkdownAnalysis.mockResolvedValue({
       path: 'main/docs/index.md',
       documentHash: 'fallback',
+      nodeCount: 0,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+    });
+    mocks.getCodeAstAnalysis.mockResolvedValue({
+      repoId: 'sciml',
+      path: 'src/BaseModelica.jl',
+      language: 'julia',
       nodeCount: 0,
       edgeCount: 0,
       nodes: [],
@@ -96,5 +109,43 @@ describe('DiagramWindow', () => {
     });
 
     expect(screen.queryByText('No diagram detected')).not.toBeInTheDocument();
+  });
+
+  it('requests code ast projections when code file has no embedded mermaid', async () => {
+    mocks.getCodeAstAnalysis.mockResolvedValue({
+      repoId: 'sciml',
+      path: 'src/BaseModelica.jl',
+      language: 'julia',
+      nodeCount: 2,
+      edgeCount: 1,
+      nodes: [],
+      edges: [],
+      projections: [
+        {
+          kind: 'structure',
+          source: 'graph TD\nRoot --> Module',
+          nodeCount: 2,
+          edgeCount: 1,
+          diagnostics: [],
+        },
+      ],
+      diagnostics: [],
+    });
+
+    const { container } = render(
+      <DiagramWindow
+        path="sciml/src/BaseModelica.jl"
+        content={'module BaseModelica\nend'}
+        onNodeClick={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith('sciml/src/BaseModelica.jl');
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('.mock-mermaid')).toBeTruthy();
+    });
   });
 });

@@ -8,7 +8,7 @@
  */
 
 import * as TOML from 'smol-toml';
-import type { UiConfig, UiProjectConfig } from '../api/bindings';
+import type { UiConfig, UiProjectConfig, UiRepoProjectConfig } from '../api/bindings';
 
 /**
  * Qianji Studio configuration schema
@@ -25,6 +25,10 @@ export interface WendaoConfig {
 export interface WendaoProjectConfig {
   root?: string;
   dirs?: string[];
+  url?: string;
+  ref?: string;
+  refresh?: string;
+  plugins?: string[];
 }
 
 export class WendaoConfigError extends Error {
@@ -82,6 +86,25 @@ function normalizePath(value: string | undefined): string | null {
     .replace(/\/+$/g, '')
     .replace(/^\.\//, '');
   return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeNonemptyString(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizePluginList(values?: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values ?? []) {
+    const normalized = normalizeNonemptyString(value);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
 }
 
 function normalizePathList(values?: string[]): string[] {
@@ -147,13 +170,19 @@ function containsGlobMagic(value: string): boolean {
 }
 
 export function toUiConfig(config: WendaoConfig): UiConfig {
-  const projects = Object.entries(config.link_graph?.projects ?? {})
+  const projectEntries = Object.entries(config.link_graph?.projects ?? {});
+  const projects = projectEntries
     .map(([name, project]): UiProjectConfig | null => {
       const trimmedName = name.trim();
       const root = normalizePath(project.root);
       const dirs = normalizePathList(project.dirs);
+      const hasRepoIntelligenceOnlySource =
+        !!normalizePath(project.url) || (project.plugins?.length ?? 0) > 0;
       if (!trimmedName) {
         throw new WendaoConfigError('wendao.toml contains a project with an empty name');
+      }
+      if ((!root || dirs.length === 0) && hasRepoIntelligenceOnlySource) {
+        return null;
       }
       if (!root) {
         throw new WendaoConfigError(`project "${trimmedName}" must define root`);
@@ -170,11 +199,32 @@ export function toUiConfig(config: WendaoConfig): UiConfig {
     })
     .filter((project): project is UiProjectConfig => project !== null);
 
+  const repoProjects = projectEntries
+    .map(([name, project]): UiRepoProjectConfig | null => {
+      const id = name.trim();
+      if (!id) {
+        return null;
+      }
+      const root = normalizePath(project.root);
+      const url = normalizeNonemptyString(project.url);
+      const gitRef = normalizeNonemptyString(project.ref);
+      const refresh = normalizeNonemptyString(project.refresh);
+      return {
+        id,
+        ...(root ? { root } : {}),
+        ...(url ? { url } : {}),
+        ...(gitRef ? { gitRef } : {}),
+        ...(refresh ? { refresh } : {}),
+        plugins: normalizePluginList(project.plugins),
+      };
+    })
+    .filter((project): project is UiRepoProjectConfig => project !== null);
+
   if (projects.length === 0) {
     throw new WendaoConfigError('wendao.toml does not contain any valid link_graph.projects entries');
   }
 
-  return { projects };
+  return { projects, repoProjects };
 }
 
 /**

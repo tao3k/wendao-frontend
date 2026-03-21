@@ -1,6 +1,6 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 // @ts-ignore
-import BpmnNavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
+import BpmnViewerCtor from 'bpmn-js/lib/Viewer';
 import '../styles/Topology.css'; // 🚀 Scoped Style
 
 interface Props {
@@ -71,7 +71,7 @@ export const SovereignTopology = forwardRef<TopologyRef, Props>(({ xml, onNodeCl
     if (!containerRef.current) return;
 
     isDestroyedRef.current = false;
-    viewerRef.current = new BpmnNavigatedViewer({
+    viewerRef.current = new BpmnViewerCtor({
       container: containerRef.current,
     });
 

@@ -19,7 +19,7 @@ vi.mock('./App', () => ({
   },
 }));
 
-vi.mock('./api/client', () => ({
+vi.mock('./api', () => ({
   api: {
     health: mocks.health,
     setUiConfig: mocks.setUiConfig,
@@ -61,15 +61,9 @@ describe('StudioBootstrap', () => {
     });
     mocks.health.mockResolvedValue('ok');
     mocks.setUiConfig.mockResolvedValue(undefined);
-    mocks.scanVfs.mockResolvedValue({
-      entries: [],
-      fileCount: 0,
-      dirCount: 0,
-      scanDurationMs: 0,
-    });
   });
 
-  it('renders the studio app after gateway health, config sync, and VFS scan succeed', async () => {
+  it('renders the studio app after gateway health and config sync succeed', async () => {
     render(<StudioBootstrap />);
 
     await waitFor(() => {
@@ -87,7 +81,7 @@ describe('StudioBootstrap', () => {
         },
       ],
     });
-    expect(mocks.scanVfs).toHaveBeenCalledTimes(1);
+    expect(mocks.scanVfs).not.toHaveBeenCalled();
   });
 
   it('blocks studio startup when the gateway health check fails', async () => {
@@ -136,7 +130,29 @@ describe('StudioBootstrap', () => {
     });
 
     expect(mocks.health).toHaveBeenCalledTimes(2);
-    expect(mocks.scanVfs).toHaveBeenCalledTimes(1);
+    expect(mocks.scanVfs).not.toHaveBeenCalled();
+  });
+
+  it('shows the config-sync stage after gateway health succeeds', async () => {
+    let releaseConfigSync: (() => void) | null = null;
+    mocks.setUiConfig.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseConfigSync = resolve;
+        })
+    );
+
+    render(<StudioBootstrap />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Syncing workspace config')).toBeInTheDocument();
+    });
+
+    releaseConfigSync?.();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('studio-app')).toBeInTheDocument();
+    });
   });
 
   it('uses zh copy and localized fallback message when rejected value is not Error', async () => {

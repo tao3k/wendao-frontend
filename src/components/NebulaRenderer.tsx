@@ -11,7 +11,7 @@
 import React, { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { usePhysicsWorker } from '../hooks/usePhysicsWorker';
+import { usePhysicsWorker } from '../hooks';
 import { SovereignRaycaster } from './SovereignRaycaster';
 import { topologyShapeSignature } from '../utils/topologyContinuity';
 

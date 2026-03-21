@@ -136,6 +136,13 @@ export interface KnowledgeSearchResult {
   source: string;
 }
 
+export interface SearchBacklinkItem {
+  id: string;
+  title?: string;
+  path?: string;
+  kind?: string;
+}
+
 export interface SearchHit {
   stem: string;
   title?: string;
@@ -145,6 +152,13 @@ export interface SearchHit {
   score: number;
   bestSection?: string;
   matchReason?: string;
+  hierarchicalUri?: string;
+  hierarchy?: string[];
+  saliencyScore?: number;
+  auditStatus?: string;
+  verificationState?: string;
+  implicitBacklinks?: string[];
+  implicitBacklinkItems?: SearchBacklinkItem[];
   navigationTarget?: StudioNavigationTarget;
 }
 
@@ -154,6 +168,13 @@ export interface SearchResponse {
   hitCount: number;
   graphConfidenceScore?: number;
   selectedMode?: string;
+  intent?: string;
+  intentConfidence?: number;
+  searchMode?: string;
+  partial?: boolean;
+  indexingState?: string;
+  pendingRepos?: string[];
+  skippedRepos?: string[];
 }
 
 export type AttachmentSearchKind =
@@ -275,6 +296,9 @@ export interface SymbolSearchResponse {
   hits: SymbolSearchHit[];
   hitCount: number;
   selectedScope: string;
+  partial?: boolean;
+  indexingState?: string;
+  indexError?: string;
 }
 
 export type AutocompleteSuggestionType = 'title' | 'tag' | 'stem';
@@ -345,6 +369,51 @@ export interface MarkdownAnalysisResponse {
   diagnostics: string[];
 }
 
+export type CodeAstNodeKind = 'file' | 'module' | 'symbol' | 'external_symbol';
+
+export type CodeAstEdgeKind = 'contains' | 'declares' | 'uses';
+
+export type CodeAstProjectionKind = 'structure' | 'calls' | 'flow';
+
+export interface CodeAstNode {
+  id: string;
+  kind: CodeAstNodeKind;
+  label: string;
+  path: string;
+  lineStart?: number;
+  lineEnd?: number;
+  parentId?: string;
+}
+
+export interface CodeAstEdge {
+  id: string;
+  kind: CodeAstEdgeKind;
+  sourceId: string;
+  targetId: string;
+  label?: string;
+}
+
+export interface CodeAstProjection {
+  kind: CodeAstProjectionKind;
+  source: string;
+  nodeCount: number;
+  edgeCount: number;
+  diagnostics: string[];
+}
+
+export interface CodeAstAnalysisResponse {
+  repoId: string;
+  path: string;
+  language: string;
+  nodeCount: number;
+  edgeCount: number;
+  nodes: CodeAstNode[];
+  edges: CodeAstEdge[];
+  projections: CodeAstProjection[];
+  focusNodeId?: string;
+  diagnostics: string[];
+}
+
 // === UI Config Types ===
 
 export interface UiProjectConfig {
@@ -353,8 +422,18 @@ export interface UiProjectConfig {
   dirs: string[];
 }
 
+export interface UiRepoProjectConfig {
+  id: string;
+  root?: string;
+  url?: string;
+  gitRef?: string;
+  refresh?: string;
+  plugins: string[];
+}
+
 export interface UiConfig {
   projects: UiProjectConfig[];
+  repoProjects?: UiRepoProjectConfig[];
 }
 
 // === Error Types ===
@@ -363,4 +442,38 @@ export interface ApiError {
   code: string;
   message: string;
   details?: string;
+}
+
+// === Projection Types ===
+
+export type ProjectionPageKind = 'reference' | 'how_to' | 'tutorial' | 'explanation';
+
+export interface ProjectedPageIndexSection {
+  heading_path: string;
+  title: string;
+  level: number;
+  line_range: [number, number];
+  attributes: [string, string][];
+}
+
+export interface ProjectedPageIndexNode {
+  node_id: string;
+  title: string;
+  level: number;
+  structural_path: string[];
+  line_range: [number, number];
+  token_count: number;
+  is_thinned: boolean;
+  text: string;
+  children: ProjectedPageIndexNode[];
+}
+
+export interface ProjectedPageIndexTree {
+  repo_id: string;
+  page_id: string;
+  path: string;
+  doc_id: string;
+  title: string;
+  root_count: number;
+  roots: ProjectedPageIndexNode[];
 }

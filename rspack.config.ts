@@ -133,26 +133,77 @@ export default defineConfig({
         react: {
           test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
           name: 'react',
+          chunks: 'initial',
           priority: 40,
         },
-        // Three.js ecosystem - heavy, separate chunk
+        // Three.js ecosystem - keep async to avoid polluting first paint
         three: {
           test: /[\\/]node_modules[\\/](@react-three|three)[\\/]/,
           name: 'three',
-          priority: 30,
+          chunks: 'async',
+          priority: 35,
+          reuseExistingChunk: true,
         },
-        // Other vendors
+        // BPMN runtime is only needed when diagram tab opens
+        bpmn: {
+          test: /[\\/]node_modules[\\/](bpmn-js|bpmn-moddle|bpmn-auto-layout|diagram-js|min-dash|tiny-svg|moddle|moddle-xml|ids|path-intersection)[\\/]/,
+          name: 'bpmn',
+          chunks: 'async',
+          priority: 34,
+          reuseExistingChunk: true,
+        },
+        // Markdown/math renderers are loaded with content panel
+        markdown: {
+          test: /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|katex|beautiful-mermaid|mermaid|elkjs|web-worker)[\\/]/,
+          name: 'markdown',
+          chunks: 'async',
+          priority: 33,
+          reuseExistingChunk: true,
+        },
+        // Initial vendor baseline for app shell
         vendors: {
           test: /[\\/]node_modules[\\/]/,
           name: 'vendors',
+          chunks: 'initial',
           priority: 20,
           reuseExistingChunk: true,
         },
-        // Common application code
+        // Shared async vendor fallback for dependencies reused by multiple lazy chunks
+        vendorsAsyncShared: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors-async-shared',
+          chunks: 'async',
+          minChunks: 4,
+          priority: 16,
+          reuseExistingChunk: true,
+        },
+        // Route-scoped async vendors to avoid a single giant async payload
+        vendorsAsync: {
+          test: /[\\/]node_modules[\\/]/,
+          chunks: 'async',
+          minChunks: 1,
+          name: (_module, chunks) => {
+            const rawChunkName = String(chunks[0]?.name ?? 'misc');
+            const normalizedChunkName = rawChunkName.replace(/[^a-zA-Z0-9_-]/g, '_');
+            return `vendors-async-${normalizedChunkName}`;
+          },
+          priority: 15,
+          reuseExistingChunk: true,
+        },
+        // Common initial application code
         common: {
           minChunks: 2,
           name: 'common',
+          chunks: 'initial',
           priority: 10,
+          reuseExistingChunk: true,
+        },
+        // Common async application code shared by lazy modules
+        commonAsync: {
+          minChunks: 2,
+          name: 'common-async',
+          chunks: 'async',
+          priority: 9,
           reuseExistingChunk: true,
         },
       },

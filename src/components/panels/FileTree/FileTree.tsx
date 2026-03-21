@@ -10,9 +10,12 @@ import {
   BookOpen,
   Zap,
 } from 'lucide-react';
-import { api } from '../../../api/client';
-import { getConfig, resetConfig, toUiConfig } from '../../../config/loader';
-import { useEditorStore } from '../../../stores/editorStore';
+import { api } from '../../../api';
+import type { UiProjectConfig, UiRepoProjectConfig } from '../../../api/bindings';
+import { getConfig, toUiConfig } from '../../../config/loader';
+import { useEditorStore } from '../../../stores';
+import type { RepoIndexStatus, VfsStatus } from '../../StatusBar';
+import { startRepoIndexStatusPolling } from './repoIndexStatus';
 import './FileTree.css';
 
 interface FileNode {
@@ -26,27 +29,37 @@ interface FileNode {
   children?: FileNode[];
   level: number;
   isProjectGroup?: boolean;
+  isProjectPlaceholder?: boolean;
 }
 
 interface FileTreeProps {
   onFileSelect: (path: string, category: string, metadata?: { projectName?: string; rootLabel?: string }) => void;
   selectedPath?: string | null;
   locale?: 'en' | 'zh';
-  onStatusChange?: (status: { isLoading: boolean; error: string | null }) => void;
+  onStatusChange?: (status: { vfsStatus: VfsStatus; repoIndexStatus: RepoIndexStatus | null }) => void;
 }
 
 interface FileTreeCopy {
   toolbarTitle: string;
   rootsSuffix: string;
+  emptyProjectHint: string;
   gatewayBlocked: string;
   gatewayHint: string;
   retry: string;
+}
+
+interface ConfiguredProjectGroup {
+  name: string;
+  root?: string;
+  dirs?: string[];
+  sourceHint?: string;
 }
 
 const FILE_TREE_COPY: Record<'en' | 'zh', FileTreeCopy> = {
   en: {
     toolbarTitle: 'File Tree',
     rootsSuffix: 'roots',
+    emptyProjectHint: 'No indexed roots (check project root/dirs)',
     gatewayBlocked: 'Gateway sync blocked.',
     gatewayHint: 'Studio requires a healthy gateway before the project tree can be shown.',
     retry: 'Retry gateway sync',
@@ -54,6 +67,7 @@ const FILE_TREE_COPY: Record<'en' | 'zh', FileTreeCopy> = {
   zh: {
     toolbarTitle: '文件树',
     rootsSuffix: '个根节点',
+    emptyProjectHint: '暂无索引根（请检查项目 root/dirs）',
     gatewayBlocked: '网关同步被阻塞。',
     gatewayHint: 'Studio 需要可用网关后才能显示项目树。',
     retry: '重试网关同步',
@@ -81,6 +95,37 @@ function formatProjectSourceHint(
   return `${sourcePrefix}: ${segments.join(' · ')}`;
 }
 
+function formatRepoProjectSourceHint(
+  repoProject: UiRepoProjectConfig,
+  locale: 'en' | 'zh'
+): string | undefined {
+  const sourcePrefix = locale === 'zh' ? '来源' : 'source';
+  const repoPrefix = locale === 'zh' ? '仓库' : 'repo';
+  const rootPrefix = locale === 'zh' ? '根目录' : 'root';
+  const refPrefix = locale === 'zh' ? '引用' : 'ref';
+  const pluginsPrefix = locale === 'zh' ? '插件' : 'plugins';
+  const segments: string[] = [];
+
+  if (repoProject.root) {
+    segments.push(`${rootPrefix}: ${repoProject.root}`);
+  }
+  if (repoProject.url) {
+    segments.push(`${repoPrefix}: ${repoProject.url}`);
+  }
+  if (repoProject.gitRef) {
+    segments.push(`${refPrefix}: ${repoProject.gitRef}`);
+  }
+  if (repoProject.plugins.length > 0) {
+    segments.push(`${pluginsPrefix}: [${repoProject.plugins.join(', ')}]`);
+  }
+
+  if (segments.length === 0) {
+    return undefined;
+  }
+
+  return `${sourcePrefix}: ${segments.join(' · ')}`;
+}
+
 function buildTree(entries: Array<{
   path: string;
   name: string;
@@ -90,7 +135,7 @@ function buildTree(entries: Array<{
   rootLabel?: string;
   projectRoot?: string;
   projectDirs?: string[];
-}>, locale: 'en' | 'zh'): FileNode[] {
+}>, locale: 'en' | 'zh', configuredProjects: ConfiguredProjectGroup[], emptyProjectHint: string): FileNode[] {
   const root: FileNode[] = [];
   const nodeMap = new Map<string, FileNode>();
 
@@ -192,7 +237,59 @@ function buildTree(entries: Array<{
     sortChildren(projectNode.children ?? []);
   }
 
-  groupedRoots.push(...projectGroups.values());
+  for (const project of configuredProjects) {
+    const projectName = project.name.trim();
+    if (!projectName) {
+      continue;
+    }
+    let projectNode = projectGroups.get(projectName);
+    if (!projectNode) {
+      projectNode = {
+        name: projectName,
+        path: `__project__/${projectName}`,
+        isDir: true,
+        category: 'folder',
+        sourceHint: project.sourceHint ?? formatProjectSourceHint(project.root, project.dirs, locale),
+        children: [],
+        level: 0,
+        isProjectGroup: true,
+      };
+      projectGroups.set(projectName, projectNode);
+    } else if (!projectNode.sourceHint) {
+      projectNode.sourceHint = project.sourceHint ?? formatProjectSourceHint(project.root, project.dirs, locale);
+    }
+
+    if ((projectNode.children?.length ?? 0) === 0) {
+      projectNode.children?.push({
+        name: emptyProjectHint,
+        path: `__project__/${projectName}/__empty__`,
+        isDir: false,
+        category: 'other',
+        projectName,
+        sourceHint: projectNode.sourceHint,
+        children: undefined,
+        level: 1,
+        isProjectPlaceholder: true,
+      });
+    }
+  }
+
+  const orderedProjectNames = new Set<string>();
+  for (const project of configuredProjects) {
+    const projectName = project.name.trim();
+    const projectNode = projectGroups.get(projectName);
+    if (!projectNode || orderedProjectNames.has(projectName)) {
+      continue;
+    }
+    groupedRoots.push(projectNode);
+    orderedProjectNames.add(projectName);
+  }
+  for (const [projectName, projectNode] of projectGroups.entries()) {
+    if (orderedProjectNames.has(projectName)) {
+      continue;
+    }
+    groupedRoots.push(projectNode);
+  }
   groupedRoots.push(...ungroupedRoots);
   return groupedRoots;
 }
@@ -242,11 +339,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
   const hasChildren = node.children && node.children.length > 0;
+  const isProjectPlaceholder = node.isProjectPlaceholder === true;
   const groupSummary = node.rootLabel && node.rootLabel !== node.name && !node.isProjectGroup ? node.rootLabel : null;
 
   const isDir = node.isDir;
 
   const handleClick = useCallback(() => {
+    if (isProjectPlaceholder) {
+      return;
+    }
+
     if (isDir) {
       toggleExpand(node.path);
       return;
@@ -256,12 +358,12 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       ...(node.projectName ? { projectName: node.projectName } : {}),
       ...(node.rootLabel ? { rootLabel: node.rootLabel } : {}),
     });
-  }, [node, toggleExpand, onFileSelect]);
+  }, [isDir, isProjectPlaceholder, node, onFileSelect, toggleExpand]);
 
   return (
     <div className={`file-tree-node ${node.isProjectGroup ? 'file-tree-project-group' : ''}`}>
       <div
-        className={`file-tree-item ${isSelected ? 'selected' : ''} ${node.isProjectGroup ? 'is-project' : ''}`}
+        className={`file-tree-item ${isSelected ? 'selected' : ''} ${node.isProjectGroup ? 'is-project' : ''} ${isProjectPlaceholder ? 'is-project-placeholder' : ''}`}
         style={{ paddingLeft: `${Math.min(node.level, 8) * 8 + 6}px` }}
         onClick={handleClick}
         role="treeitem"
@@ -304,7 +406,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             ) : null}
           </>
         ) : (
-          <span className="file-tree-name" title={node.name}>
+          <span className={`file-tree-name ${isProjectPlaceholder ? 'file-tree-name-placeholder' : ''}`} title={node.name}>
             {node.name}
           </span>
         )}
@@ -339,6 +441,7 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
   const [treeData, setTreeData] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [repoIndexStatus, setRepoIndexStatus] = useState<RepoIndexStatus | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   // Use Zustand store for sidebar state persistence across 2D/3D toggle
@@ -350,14 +453,31 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let stopRepoIndexPolling: (() => void) | null = null;
+
     const loadTree = async () => {
       setIsLoading(true);
       setError(null);
+      setRepoIndexStatus(null);
       try {
         // Load config from wendao.toml FIRST
-        resetConfig();
         const config = await getConfig();
         const uiConfig = toUiConfig(config);
+        const repoProjects = uiConfig.repoProjects ?? [];
+        const configuredProjects: ConfiguredProjectGroup[] = [
+          ...uiConfig.projects.map((project: UiProjectConfig) => ({
+            name: project.name,
+            root: project.root,
+            dirs: project.dirs,
+            sourceHint: formatProjectSourceHint(project.root, project.dirs, locale),
+          })),
+          ...(uiConfig.repoProjects ?? []).map((project: UiRepoProjectConfig) => ({
+            name: project.id,
+            root: project.root,
+            sourceHint: formatRepoProjectSourceHint(project, locale),
+          })),
+        ];
 
         // Push config to backend BEFORE scanning, so VFS uses correct dirs
         try {
@@ -368,9 +488,20 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
           console.warn('Failed to push config to backend:', pushErr);
         }
 
+        if (onStatusChange && repoProjects.length > 0) {
+          stopRepoIndexPolling = startRepoIndexStatusPolling((status) => {
+            if (!cancelled) {
+              setRepoIndexStatus(status);
+            }
+          });
+        }
+
         // NOW scan VFS - backend will use the pushed config
         const vfsResult = await api.scanVfs();
-        const tree = buildTree(vfsResult.entries, locale);
+        const tree = buildTree(vfsResult.entries, locale, configuredProjects, copy.emptyProjectHint);
+        if (cancelled) {
+          return;
+        }
         setTreeData(tree);
 
         // Set expanded tree nodes from wendao.toml config (only if store is empty)
@@ -378,15 +509,25 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
           storeSetExpandedPaths(tree.map((node) => node.path));
         }
       } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        setRepoIndexStatus(null);
         setError(err instanceof Error ? err.message : 'Failed to load file tree');
         setTreeData([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     void loadTree();
-  }, [locale, reloadToken, storeSetExpandedPaths]);
+    return () => {
+      cancelled = true;
+      stopRepoIndexPolling?.();
+    };
+  }, [locale, onStatusChange, reloadToken, storeSetExpandedPaths]);
 
   useEffect(() => {
     if (!error) {
@@ -408,8 +549,11 @@ export const FileTree: React.FC<FileTreeProps> = ({ onFileSelect, selectedPath, 
   }, [error, retryGatewaySync]);
 
   useEffect(() => {
-    onStatusChange?.({ isLoading, error });
-  }, [error, isLoading, onStatusChange]);
+    onStatusChange?.({
+      vfsStatus: { isLoading, error },
+      repoIndexStatus,
+    });
+  }, [error, isLoading, onStatusChange, repoIndexStatus]);
 
   const toggleExpand = useCallback((path: string) => {
     const current = new Set(useEditorStore.getState().expandedPaths);

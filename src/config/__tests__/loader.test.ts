@@ -50,6 +50,13 @@ dirs = ["docs", "internal_skills"]
           },
         ]
       `);
+      expect(toUiConfig(config).repoProjects).toEqual([
+        {
+          id: 'kernel',
+          root: '.',
+          plugins: [],
+        },
+      ]);
     });
 
     it('should canonicalize glob dirs and preserve regex compatibility', async () => {
@@ -135,6 +142,52 @@ root = "."
 
       expect(() => toUiConfig(config)).toThrow('project "kernel" must define at least one dir');
     });
+
+    it('should ignore repo intelligence only projects during ui normalization', async () => {
+      const mockToml = `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+
+[link_graph.projects.sciml]
+url = "https://github.com/SciML/DifferentialEquations.jl.git"
+plugins = ["julia"]
+`;
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(mockToml),
+      });
+
+      const config = await loadConfig();
+
+      expect(toUiConfig(config).projects).toMatchInlineSnapshot(`
+        [
+          {
+            "dirs": [
+              "docs",
+            ],
+            "name": "kernel",
+            "root": ".",
+          },
+        ]
+      `);
+      expect(toUiConfig(config).repoProjects).toEqual([
+        {
+          id: 'kernel',
+          root: '.',
+          plugins: [],
+        },
+        {
+          id: 'sciml',
+          url: 'https://github.com/SciML/DifferentialEquations.jl.git',
+          plugins: ['julia'],
+        },
+      ]);
+    });
   });
 
   describe('getConfig', () => {
@@ -173,6 +226,13 @@ dirs = ["docs"]
           },
         ]
       `);
+      expect(toUiConfig(config1).repoProjects).toEqual([
+        {
+          id: 'cached',
+          root: '.',
+          plugins: [],
+        },
+      ]);
       expect(config2).toBe(config1);
     });
   });
@@ -214,6 +274,13 @@ dirs = ["docs"]
                 "docs",
               ],
               "name": "sync_test",
+              "root": ".",
+            },
+          ],
+          "repoProjects": [
+            {
+              "id": "sync_test",
+              "plugins": [],
               "root": ".",
             },
           ],

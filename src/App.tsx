@@ -1,18 +1,22 @@
 import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
-import { AppLayout } from './components/layout';
-import { FileTree } from './components/panels/FileTree';
-import { MainView } from './components/panels/MainView';
-import { PropertyEditor } from './components/panels/PropertyEditor';
-import { Toolbar } from './components/Toolbar';
-import { StatusBar, type RuntimeStatus, type VfsStatus } from './components/StatusBar';
-import { SearchBar } from './components/SearchBar';
-import { useEditorStore } from './stores/editorStore';
-import { useAccessibility } from './hooks/useAccessibility';
-import { useKeyboardShortcuts, ShortcutDefinition } from './hooks/useKeyboardShortcuts';
+import {
+  AppLayout,
+  FileTree,
+  MainView,
+  PropertyEditor,
+  SearchBar,
+  StatusBar,
+  Toolbar,
+  type GraphSidebarSummary,
+  type RepoIndexStatus,
+  type RuntimeStatus,
+  type VfsStatus,
+} from './components';
+import { useEditorStore } from './stores';
+import { useAccessibility, useKeyboardShortcuts, type ShortcutDefinition } from './hooks';
 import { AcademicTopology } from './types';
-import type { GraphSidebarSummary } from './components/panels/GraphView/types';
-import { api } from './api/client';
-import { buildPositionCache, mergeTopologyPositions } from './utils/topologyContinuity';
+import { api } from './api';
+import { buildPositionCache, mergeTopologyPositions } from './utils';
 import './styles/UI.css';
 
 interface Relationship {
@@ -68,11 +72,41 @@ const EMPTY_TOPOLOGY: AcademicTopology = {
   links: [],
 };
 
+function normalizeSelectionPathForVfs(selection: {
+  path: string;
+  category: string;
+  projectName?: string;
+  rootLabel?: string;
+}): string {
+  const normalizedPath = selection.path.trim().replace(/\\/g, '/');
+  if (selection.category !== 'repo_code' || normalizedPath.length === 0) {
+    return normalizedPath;
+  }
+
+  const candidatePrefixes = [selection.rootLabel, selection.projectName]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  for (const prefix of candidatePrefixes) {
+    if (normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)) {
+      return normalizedPath;
+    }
+  }
+
+  const prefix = candidatePrefixes[0];
+  if (!prefix) {
+    return normalizedPath;
+  }
+
+  return `${prefix}/${normalizedPath.replace(/^\/+/, '')}`;
+}
+
 function App() {
   const topologyPositionCacheRef = useRef(buildPositionCache(EMPTY_TOPOLOGY.nodes));
   const accessibility = useAccessibility();
   const [uiLocale, setUiLocale] = useState<UiLocale>(resolveInitialLocale);
   const [vfsStatus, setVfsStatus] = useState<VfsStatus>({ isLoading: false, error: null });
+  const [repoIndexStatus, setRepoIndexStatus] = useState<RepoIndexStatus | null>(null);
   const [searchRuntimeStatus, setSearchRuntimeStatus] = useState<RuntimeStatus | null>(null);
   const [graphRuntimeStatus, setGraphRuntimeStatus] = useState<RuntimeStatus | null>(null);
   const [topology, setTopology] = useState<AcademicTopology>(EMPTY_TOPOLOGY);
@@ -148,7 +182,14 @@ function App() {
   // Handle file selection from FileTree
   const hydrateSelectedFile = useCallback(
     async ({ path, category, line, lineEnd, column, projectName, rootLabel }: FileSelection) => {
-      setSelectedFilePath(path);
+      const resolvedPath = normalizeSelectionPathForVfs({
+        path,
+        category,
+        projectName,
+        rootLabel,
+      });
+
+      setSelectedFilePath(resolvedPath);
       setSelectedFileCategory(category);
       setSelectedFileLocation(
         typeof line === 'number' || typeof lineEnd === 'number' || typeof column === 'number'
@@ -167,16 +208,17 @@ function App() {
             }
           : null
       );
-      console.log('File selected:', path, category);
+      console.log('File selected:', resolvedPath, category);
 
       try {
-        const { content } = await api.getVfsContent(path);
+        const { content } = await api.getVfsContent(resolvedPath);
         setSelectedFileContent(content);
-        const isMermaidFile = /\\.(mmd|mermaid)$/i.test(path) || /```\\s*mermaid[\\s\\S]*?```/i.test(content);
+        const isMermaidFile =
+          /\\.(mmd|mermaid)$/i.test(resolvedPath) || /```\\s*mermaid[\\s\\S]*?```/i.test(content);
         const isBpmnFile = /<\\s*bpmn:definitions\\b/i.test(content);
 
         try {
-          const neighbors = await api.getGraphNeighbors(path, {
+          const neighbors = await api.getGraphNeighbors(resolvedPath, {
             direction: 'both',
             hops: 1,
             limit: 20,
@@ -320,8 +362,12 @@ function App() {
     [hydrateSelectedFile]
   );
 
-  const handleVfsStatusChange = useCallback((status: VfsStatus) => {
-    setVfsStatus(status);
+  const handleFileTreeStatusChange = useCallback((status: {
+    vfsStatus: VfsStatus;
+    repoIndexStatus: RepoIndexStatus | null;
+  }) => {
+    setVfsStatus(status.vfsStatus);
+    setRepoIndexStatus(status.repoIndexStatus);
   }, []);
 
   const handleSearchRuntimeStatusChange = useCallback((status: RuntimeStatus | null) => {
@@ -438,7 +484,7 @@ function App() {
           onFileSelect={handleFileSelect}
           selectedPath={selectedFilePath}
           locale={uiLocale}
-          onStatusChange={handleVfsStatusChange}
+          onStatusChange={handleFileTreeStatusChange}
         />
       }
       centerPanel={
@@ -501,6 +547,7 @@ function App() {
           nodeCount={topology.nodes.length}
           selectedNodeId={selectedNode?.id}
           vfsStatus={vfsStatus}
+          repoIndexStatus={repoIndexStatus}
           runtimeStatus={runtimeStatus}
         />
       }

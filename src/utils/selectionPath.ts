@@ -1,0 +1,40 @@
+export interface SelectionPathLike {
+  path: string;
+  category: string;
+  projectName?: string;
+  rootLabel?: string;
+}
+
+const INTERNAL_WORKSPACE_MARKER = '.data/wendao-frontend/';
+
+function stripInternalWorkspacePrefix(path: string): string {
+  const normalizedPath = path.trim().replace(/\\/g, '/');
+  if (normalizedPath.length === 0) {
+    return normalizedPath;
+  }
+
+  const markerIndex = normalizedPath.indexOf(INTERNAL_WORKSPACE_MARKER);
+  if (markerIndex >= 0) {
+    return normalizedPath.slice(markerIndex + INTERNAL_WORKSPACE_MARKER.length).replace(/^\/+/, '');
+  }
+
+  return normalizedPath.replace(/^\/+/, '');
+}
+
+export function normalizeSelectionPathForVfs(selection: SelectionPathLike): string {
+  const normalizedPath = stripInternalWorkspacePrefix(selection.path);
+  if (normalizedPath.length === 0) {
+    return normalizedPath;
+  }
+
+  const projectName = selection.projectName?.trim();
+  if (!projectName) {
+    return normalizedPath;
+  }
+
+  if (normalizedPath === projectName || normalizedPath.startsWith(`${projectName}/`)) {
+    return normalizedPath;
+  }
+
+  return `${projectName}/${normalizedPath.replace(/^\/+/, '')}`;
+}

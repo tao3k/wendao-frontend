@@ -11,6 +11,7 @@ import {
 import { useDiagramWindowViewModel } from './useDiagramWindowViewModel';
 import { DiagramWindowToolbar } from './DiagramWindowToolbar';
 import { DiagramWindowWorkspace, preloadDiagramWindowTopology } from './DiagramWindowWorkspace';
+import { MarkdownWaterfall } from '../DirectReader/MarkdownWaterfall';
 import './DiagramWindow.css';
 
 interface DiagramWindowProps {
@@ -67,6 +68,16 @@ export function DiagramWindow({
   }
 
   if (kind === 'none') {
+    if (isMarkdownPath(path)) {
+      return (
+        <div className="diagram-window diagram-window--markdown">
+          <div className="diagram-window__markdown-waterfall">
+            <MarkdownWaterfall content={content} path={path} locale={locale} />
+          </div>
+        </div>
+      );
+    }
+
     const noDiagramMessage = resolveNoDiagramMessage(
       copy,
       isMarkdownPath(path),

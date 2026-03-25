@@ -1,0 +1,1505 @@
+schema_version = "2"
+generated_at = "2026-03-25T00:25:16.569Z"
+gateway_url = "http://127.0.0.1:9517"
+openapi_path = "/Users/guangtao/projects/xiuxian-artisan-workshop/packages/rust/crates/xiuxian-wendao/resources/openapi/wendao_gateway.openapi.json"
+workspace_config = "/Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao-frontend/wendao.toml"
+repo_count = 177
+openapi_operation_count = 64
+
+[settings]
+concurrency = 6
+limit = 20
+timeout_ms = 30000
+min_repo_count = 150
+stress_concurrency = 96
+stress_duration_ms = 60000
+stress_max_requests = 12000
+
+[coverage_summary]
+total_operations = 64
+benchmark_operations = 4
+smoke_operations = 58
+skipped_operations = 2
+passed_operations = 60
+failed_operations = 2
+
+[discovery]
+ready_repo_id = "ADTypes.jl"
+repo_query = "ADTypes"
+repo_file_path = "src/ADTypes.jl"
+markdown_file_path = "README.md"
+vfs_root_path = "ADTypes.jl"
+vfs_file_path = "ADTypes.jl/src/ADTypes.jl"
+page_id = "repo:ADTypes.jl:projection:explanation:doc:repo:ADTypes.jl:doc:src/ADTypes.jl#module:ADTypes"
+node_id = "explanation/adtypes-d895bfadba04#adtypes"
+gap_id = "repo:ADTypes.jl:projection-gap:symbol_reference_without_documentation:repo:ADTypes.jl:symbol:ADTypes.AutoChainRules"
+gap_kind = "symbol_reference_without_documentation"
+page_kind = "explanation"
+family_kind = "reference"
+topology_node_id = "kernel/docs/01_core/101_studio_surface_protocol.md"
+
+[aggregate_repo_index_status]
+suite = "repo_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/repo/index/status"
+elapsed_ms = 4.59
+ok = true
+status = 200
+attempts = 1
+total = 177
+ready = 6
+
+[repo_index_snapshot]
+total = 177
+active = 2
+queued = 164
+checking = 0
+syncing = 0
+indexing = 2
+ready = 6
+unsupported = 1
+failed = 4
+target_concurrency = 2
+max_concurrency = 15
+sync_concurrency_limit = 1
+current_repo_id = "DiffEqBase.jl"
+
+[aggregate_search_index_status]
+suite = "search_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/search/index/status"
+elapsed_ms = 53.33
+ok = true
+status = 200
+attempts = 1
+total = 6
+ready = 0
+
+[search_index_snapshot]
+total = 6
+idle = 4
+indexing = 2
+ready = 0
+degraded = 0
+failed = 0
+compaction_pending = 0
+status_reason_code = "repo_index_failed"
+status_reason_severity = "warning"
+status_reason_action = "inspect_repo_sync"
+affected_corpus_count = 2
+readable_corpus_count = 2
+blocking_corpus_count = 0
+
+[[summaries]]
+suite = "repo_index_status"
+requests = 178
+ok = 178
+failed = 0
+avg_ms = 0.44
+p50_ms = 0.32
+p95_ms = 1.09
+max_ms = 4.59
+
+[[summaries]]
+suite = "repo_sync_status"
+requests = 177
+ok = 177
+failed = 0
+avg_ms = 2.19
+p50_ms = 2.18
+p95_ms = 2.79
+max_ms = 3.01
+
+[[summaries]]
+suite = "code_search"
+requests = 177
+ok = 177
+failed = 0
+avg_ms = 185.25
+p50_ms = 174.00
+p95_ms = 264.58
+max_ms = 317.53
+non_empty_hit_count = 40
+
+[[summaries]]
+suite = "search_index_status"
+requests = 1
+ok = 1
+failed = 0
+avg_ms = 53.33
+p50_ms = 53.33
+p95_ms = 53.33
+max_ms = 53.33
+
+[[summaries]]
+suite = "openapi_smoke"
+requests = 58
+ok = 56
+failed = 2
+avg_ms = 1802.46
+p50_ms = 1857.81
+p95_ms = 5635.63
+max_ms = 6307.27
+non_empty_hit_count = 15
+
+[[stress_summaries]]
+suite = "stress_code_search"
+configured_duration_ms = 60000
+actual_duration_ms = 62311.42
+concurrency = 96
+max_requests = 12000
+requests = 847
+ok = 13
+failed = 834
+success_rate = 0.02
+throughput_rps = 13.59
+avg_ms = 2284.05
+p50_ms = 1723.30
+p95_ms = 5628.91
+p99_ms = 7561.54
+max_ms = 10317.24
+capped = false
+non_empty_hit_count = 3
+
+[[stress_summaries]]
+suite = "stress_mixed_user_hotset"
+configured_duration_ms = 60000
+actual_duration_ms = 62457.46
+concurrency = 96
+max_requests = 12000
+requests = 2602
+ok = 1296
+failed = 1306
+success_rate = 0.50
+throughput_rps = 41.66
+avg_ms = 799.35
+p50_ms = 689.97
+p95_ms = 2014.55
+p99_ms = 2780.31
+max_ms = 4174.84
+capped = false
+non_empty_hit_count = 11
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/analysis/code-ast"
+operation_id = "studioCodeAstAnalysis"
+mode = "smoke"
+status = "failed"
+suite = "openapi_smoke"
+label = "studioCodeAstAnalysis"
+url = "http://127.0.0.1:9517/api/analysis/code-ast?repo=ADTypes.jl&path=src%2FADTypes.jl&line=1"
+elapsed_ms = 771.61
+http_status = 500
+attempts = 3
+error = "{\"code\":\"REPO_INTELLIGENCE_FAILED\",\"message\":\"Repo intelligence task failed\",\"details\":\"failed to refresh managed mirror `ADTypes.jl` from `https://github.com/SciML/ADTypes.jl.git`: failed to connect to github.com: Can't assign requested address; class=Os (2)\"}"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/analysis/markdown"
+operation_id = "studioMarkdownAnalysis"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioMarkdownAnalysis"
+url = "http://127.0.0.1:9517/api/analysis/markdown?path=README.md"
+elapsed_ms = 2.14
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-cluster"
+operation_id = "studioDocsFamilyCluster"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilyCluster"
+url = "http://127.0.0.1:9517/api/docs/family-cluster?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&kind=explanation&limit=5"
+elapsed_ms = 2315.97
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-context"
+operation_id = "studioDocsFamilyContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilyContext"
+url = "http://127.0.0.1:9517/api/docs/family-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&per_kind_limit=3"
+elapsed_ms = 3823.64
+http_status = 200
+attempts = 3
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-search"
+operation_id = "studioDocsFamilySearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilySearch"
+url = "http://127.0.0.1:9517/api/docs/family-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5&per_kind_limit=3"
+elapsed_ms = 6087.12
+http_status = 200
+attempts = 3
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/navigation-search"
+operation_id = "studioDocsNavigationSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsNavigationSearch"
+url = "http://127.0.0.1:9517/api/docs/navigation-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&family_kind=reference&limit=5&related_limit=5&family_limit=3"
+elapsed_ms = 5635.63
+http_status = 200
+attempts = 2
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/navigation"
+operation_id = "studioDocsNavigation"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsNavigation"
+url = "http://127.0.0.1:9517/api/docs/navigation?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 6307.27
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/page"
+operation_id = "studioDocsPage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPage"
+url = "http://127.0.0.1:9517/api/docs/page?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 6102.17
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-item"
+operation_id = "studioDocsPlannerItem"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerItem"
+url = "http://127.0.0.1:9517/api/docs/planner-item?repo=ADTypes.jl&gap_id=repo%3AADTypes.jl%3Aprojection-gap%3Asymbol_reference_without_documentation%3Arepo%3AADTypes.jl%3Asymbol%3AADTypes.AutoChainRules&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 4117.92
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-queue"
+operation_id = "studioDocsPlannerQueue"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerQueue"
+url = "http://127.0.0.1:9517/api/docs/planner-queue?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&per_kind_limit=3"
+elapsed_ms = 2524.70
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-rank"
+operation_id = "studioDocsPlannerRank"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerRank"
+url = "http://127.0.0.1:9517/api/docs/planner-rank?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&limit=5"
+elapsed_ms = 2172.77
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-search"
+operation_id = "studioDocsPlannerSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerSearch"
+url = "http://127.0.0.1:9517/api/docs/planner-search?repo=ADTypes.jl&query=ADTypes&gap_kind=symbol_reference_without_documentation&page_kind=explanation&limit=5"
+elapsed_ms = 2117.15
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-workset"
+operation_id = "studioDocsPlannerWorkset"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerWorkset"
+url = "http://127.0.0.1:9517/api/docs/planner-workset?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&per_kind_limit=3&limit=5&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 2097.51
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/projected-gap-report"
+operation_id = "studioDocsProjectedGapReport"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsProjectedGapReport"
+url = "http://127.0.0.1:9517/api/docs/projected-gap-report?repo=ADTypes.jl"
+elapsed_ms = 1761.39
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval-context"
+operation_id = "studioDocsRetrievalContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrievalContext"
+url = "http://127.0.0.1:9517/api/docs/retrieval-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&related_limit=5"
+elapsed_ms = 1813.23
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval-hit"
+operation_id = "studioDocsRetrievalHit"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrievalHit"
+url = "http://127.0.0.1:9517/api/docs/retrieval-hit?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 2843.08
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval"
+operation_id = "studioDocsRetrieval"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrieval"
+url = "http://127.0.0.1:9517/api/docs/retrieval?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2799.25
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/search"
+operation_id = "studioDocsSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsSearch"
+url = "http://127.0.0.1:9517/api/docs/search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2778.15
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/graph/neighbors/{id}"
+operation_id = "studioGraphNeighbors"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGraphNeighbors"
+url = "http://127.0.0.1:9517/api/graph/neighbors/kernel%2Fdocs%2F01_core%2F101_studio_surface_protocol.md"
+elapsed_ms = 406.82
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/health"
+operation_id = "gatewayHealth"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayHealth"
+url = "http://127.0.0.1:9517/api/health"
+elapsed_ms = 0.25
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/neighbors/{id}"
+operation_id = "studioNodeNeighbors"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioNodeNeighbors"
+url = "http://127.0.0.1:9517/api/neighbors/kernel%2Fdocs%2F01_core%2F101_studio_surface_protocol.md"
+elapsed_ms = 252.29
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/notify"
+operation_id = "gatewayNotifyStatus"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayNotifyStatus"
+url = "http://127.0.0.1:9517/api/notify"
+elapsed_ms = 0.70
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/doc-coverage"
+operation_id = "studioRepoDocCoverage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoDocCoverage"
+url = "http://127.0.0.1:9517/api/repo/doc-coverage?repo=ADTypes.jl"
+elapsed_ms = 2116.03
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/example-search"
+operation_id = "studioRepoExampleSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoExampleSearch"
+url = "http://127.0.0.1:9517/api/repo/example-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 1841.51
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/index/status"
+operation_id = "studioRepoIndexStatus"
+mode = "benchmark"
+status = "passed"
+suite = "repo_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/repo/index/status"
+elapsed_ms = 4.59
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "POST"
+path = "/api/repo/index"
+operation_id = "studioRepoIndexEnqueue"
+mode = "skip"
+status = "skipped"
+skip_reason = "mutating OpenAPI operation is intentionally skipped in live benchmark"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/module-search"
+operation_id = "studioRepoModuleSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoModuleSearch"
+url = "http://127.0.0.1:9517/api/repo/module-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 1864.17
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/overview"
+operation_id = "studioRepoOverview"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoOverview"
+url = "http://127.0.0.1:9517/api/repo/overview?repo=ADTypes.jl"
+elapsed_ms = 1849.95
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-gap-report"
+operation_id = "studioRepoProjectedGapReport"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedGapReport"
+url = "http://127.0.0.1:9517/api/repo/projected-gap-report?repo=ADTypes.jl"
+elapsed_ms = 1764.06
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-cluster"
+operation_id = "studioRepoProjectedPageFamilyCluster"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilyCluster"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-cluster?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&kind=explanation&limit=5"
+elapsed_ms = 1741.82
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-context"
+operation_id = "studioRepoProjectedPageFamilyContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilyContext"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&per_kind_limit=3"
+elapsed_ms = 1719.92
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-search"
+operation_id = "studioRepoProjectedPageFamilySearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilySearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5&per_kind_limit=3"
+elapsed_ms = 1772.93
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-node"
+operation_id = "studioRepoProjectedPageIndexNode"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexNode"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-node?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 1896.27
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-tree-search"
+operation_id = "studioRepoProjectedPageIndexTreeSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTreeSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-tree-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2797.93
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-tree"
+operation_id = "studioRepoProjectedPageIndexTree"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTree"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-tree?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 2764.48
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-trees"
+operation_id = "studioRepoProjectedPageIndexTrees"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTrees"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-trees?repo=ADTypes.jl"
+elapsed_ms = 2737.39
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-navigation-search"
+operation_id = "studioRepoProjectedPageNavigationSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageNavigationSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-navigation-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&family_kind=reference&limit=5&related_limit=5&family_limit=3"
+elapsed_ms = 2703.05
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-navigation"
+operation_id = "studioRepoProjectedPageNavigation"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageNavigation"
+url = "http://127.0.0.1:9517/api/repo/projected-page-navigation?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 1867.49
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-search"
+operation_id = "studioRepoProjectedPageSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2330.74
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page"
+operation_id = "studioRepoProjectedPage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPage"
+url = "http://127.0.0.1:9517/api/repo/projected-page?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 2328.56
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-pages"
+operation_id = "studioRepoProjectedPages"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPages"
+url = "http://127.0.0.1:9517/api/repo/projected-pages?repo=ADTypes.jl"
+elapsed_ms = 2329.30
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval-context"
+operation_id = "studioRepoProjectedRetrievalContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrievalContext"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&related_limit=5"
+elapsed_ms = 2229.92
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval-hit"
+operation_id = "studioRepoProjectedRetrievalHit"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrievalHit"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval-hit?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 1857.81
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval"
+operation_id = "studioRepoProjectedRetrieval"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrieval"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1891.32
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/symbol-search"
+operation_id = "studioRepoSymbolSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoSymbolSearch"
+url = "http://127.0.0.1:9517/api/repo/symbol-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 2733.21
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/sync"
+operation_id = "studioRepoSync"
+mode = "benchmark"
+status = "passed"
+suite = "repo_sync_status"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/repo/sync?repo=ADTypes.jl&mode=status"
+elapsed_ms = 1.82
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/ast"
+operation_id = "studioSearchAst"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAst"
+url = "http://127.0.0.1:9517/api/search/ast?q=ADTypes"
+elapsed_ms = 523.93
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/attachments"
+operation_id = "studioSearchAttachments"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAttachments"
+url = "http://127.0.0.1:9517/api/search/attachments?q=ADTypes&limit=5"
+elapsed_ms = 225.05
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/autocomplete"
+operation_id = "studioSearchAutocomplete"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAutocomplete"
+url = "http://127.0.0.1:9517/api/search/autocomplete?prefix=ADTypes"
+elapsed_ms = 6.95
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/definition"
+operation_id = "studioSearchDefinition"
+mode = "smoke"
+status = "failed"
+suite = "openapi_smoke"
+label = "studioSearchDefinition"
+url = "http://127.0.0.1:9517/api/search/definition?q=ADTypes"
+elapsed_ms = 15.38
+http_status = 404
+attempts = 1
+error = "{\"code\":\"NOT_FOUND\",\"message\":\"Definition not found\"}"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/index/status"
+operation_id = "studioSearchIndexStatus"
+mode = "benchmark"
+status = "passed"
+suite = "search_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/search/index/status"
+elapsed_ms = 53.33
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/intent"
+operation_id = "studioSearchKnowledgeIntent"
+mode = "benchmark"
+status = "passed"
+suite = "code_search"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ADTypes&limit=20"
+elapsed_ms = 206.55
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/references"
+operation_id = "studioSearchReferences"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchReferences"
+url = "http://127.0.0.1:9517/api/search/references?q=ADTypes"
+elapsed_ms = 30.92
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/symbols"
+operation_id = "studioSearchSymbols"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchSymbols"
+url = "http://127.0.0.1:9517/api/search/symbols?q=ADTypes"
+elapsed_ms = 0.63
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search"
+operation_id = "studioSearchKnowledge"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchKnowledge"
+url = "http://127.0.0.1:9517/api/search?q=ADTypes&intent=code_search&limit=5"
+elapsed_ms = 761.94
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/stats"
+operation_id = "gatewayStats"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayStats"
+url = "http://127.0.0.1:9517/api/stats"
+elapsed_ms = 0.27
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/topology/3d"
+operation_id = "studioTopology3d"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioTopology3d"
+url = "http://127.0.0.1:9517/api/topology/3d"
+elapsed_ms = 264.93
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/ui/capabilities"
+operation_id = "studioGetUiCapabilities"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGetUiCapabilities"
+url = "http://127.0.0.1:9517/api/ui/capabilities"
+elapsed_ms = 0.46
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/ui/config"
+operation_id = "studioGetUiConfig"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGetUiConfig"
+url = "http://127.0.0.1:9517/api/ui/config"
+elapsed_ms = 0.64
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "POST"
+path = "/api/ui/config"
+operation_id = "studioSetUiConfig"
+mode = "skip"
+status = "skipped"
+skip_reason = "mutating OpenAPI operation is intentionally skipped in live benchmark"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/{path}"
+operation_id = "studioVfsEntry"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsEntry"
+url = "http://127.0.0.1:9517/api/vfs/ADTypes.jl%2Fsrc%2FADTypes.jl"
+elapsed_ms = 75.87
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/cat"
+operation_id = "studioVfsCat"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsCat"
+url = "http://127.0.0.1:9517/api/vfs/cat?path=ADTypes.jl%2Fsrc%2FADTypes.jl"
+elapsed_ms = 72.97
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/scan"
+operation_id = "studioVfsScan"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsScan"
+url = "http://127.0.0.1:9517/api/vfs/scan"
+elapsed_ms = 578.70
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs"
+operation_id = "studioVfsRootEntries"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsRootEntries"
+url = "http://127.0.0.1:9517/api/vfs"
+elapsed_ms = 115.40
+http_status = 200
+attempts = 1
+
+[[failures]]
+suite = "openapi_smoke"
+label = "studioCodeAstAnalysis"
+url = "http://127.0.0.1:9517/api/analysis/code-ast?repo=ADTypes.jl&path=src%2FADTypes.jl&line=1"
+elapsed_ms = 771.61
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_INTELLIGENCE_FAILED\",\"message\":\"Repo intelligence task failed\",\"details\":\"failed to refresh managed mirror `ADTypes.jl` from `https://github.com/SciML/ADTypes.jl.git`: failed to connect to github.com: Can't assign requested address; class=Os (2)\"}"
+
+[[failures]]
+suite = "openapi_smoke"
+label = "studioSearchDefinition"
+url = "http://127.0.0.1:9517/api/search/definition?q=ADTypes"
+elapsed_ms = 15.38
+ok = false
+status = 404
+attempts = 1
+error = "{\"code\":\"NOT_FOUND\",\"message\":\"Definition not found\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDevDocs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDevDocs&limit=10"
+elapsed_ms = 408.25
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ColPrac"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ColPrac&limit=10"
+elapsed_ms = 587.81
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "BlackBoxOptim.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=BlackBoxOptim&limit=10"
+elapsed_ms = 493.26
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "ConcreteStructs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ConcreteStructs&limit=10"
+elapsed_ms = 690.11
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "IfElse.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=IfElse&limit=10"
+elapsed_ms = 570.55
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "AutoOptimize.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=AutoOptimize&limit=10"
+elapsed_ms = 446.06
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "Corleone.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=Corleone&limit=10"
+elapsed_ms = 618.05
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ComplementaritySolve.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ComplementaritySolve&limit=10"
+elapsed_ms = 752.02
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqPhysics.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqPhysics&limit=10"
+elapsed_ms = 492.90
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqGPU.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqGPU&limit=10"
+elapsed_ms = 643.65
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "GlobalDiffEq.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=GlobalDiffEq&limit=10"
+elapsed_ms = 734.90
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "Catalyst.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=Catalyst&limit=10"
+elapsed_ms = 664.37
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqFlux.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqFlux&limit=10"
+elapsed_ms = 840.35
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ADTypes&limit=10"
+elapsed_ms = 790.43
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqOnlineServer"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqOnlineServer&limit=10"
+elapsed_ms = 788.85
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqParamEstim.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqParamEstim&limit=10"
+elapsed_ms = 853.64
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "BipartiteGraphs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=BipartiteGraphs&limit=10"
+elapsed_ms = 721.82
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDevTools.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDevTools&limit=10"
+elapsed_ms = 870.05
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DifferentialEquations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DifferentialEquations&limit=10"
+elapsed_ms = 755.22
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "FindFirstFunctions.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FindFirstFunctions&limit=10"
+elapsed_ms = 753.50
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqProblemLibrary.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqProblemLibrary&limit=10"
+elapsed_ms = 890.71
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "BoundaryValueDiffEq.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=BoundaryValueDiffEq&limit=10"
+elapsed_ms = 1043.48
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "HelicopterSciML.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=HelicopterSciML&limit=10"
+elapsed_ms = 573.32
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: Dataset at path Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/repo_entity_repo_64cce6d6e8b4dbc4e9308b7d433a9eb9776aa62400faddae2b43d31b7b875e41_5ca14ebf3eaf0c6c.lance was not fou..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DataCollocations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DataCollocations&limit=10"
+elapsed_ms = 870.17
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: Dataset at path Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/repo_entity_repo_f550324b71ff00b4e1f00a413d50ecc6ad5b05f862c3264c3423ec9b65818d3e_9258e3d8a338cba2.lance was not fou..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "JumpProcesses.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=JumpProcesses&limit=10"
+elapsed_ms = 625.26
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: Dataset at path Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/repo_entity_repo_82b04366673289e7f7a6383ccad522d5625f2405f78ccd8d480b08b89c722eae_de64ab7b2629ae34.lance was not fou..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqWebBase.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqWebBase&limit=10"
+elapsed_ms = 727.60
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "LabelledArrays.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=LabelledArrays&limit=10"
+elapsed_ms = 893.16
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FiniteVolumeMethod1D.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FiniteVolumeMethod1D&limit=10"
+elapsed_ms = 1334.84
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FiniteStateProjection.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FiniteStateProjection&limit=10"
+elapsed_ms = 1432.61
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "JuliaCon2022_Catalyst_Workshop"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=JuliaCon2022+Catalyst+Workshop&limit=10"
+elapsed_ms = 1073.32
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqFinancial.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqFinancial&limit=10"
+elapsed_ms = 1377.40
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DASKR.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DASKR&limit=10"
+elapsed_ms = 1721.84
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DataInterpolations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DataInterpolations&limit=10"
+elapsed_ms = 1246.53
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FEniCS.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FEniCS&limit=10"
+elapsed_ms = 1007.21
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: Dataset at path Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/repo_entity_repo_4cdd1b92efb0f263f65c7c2e671bbb79416a0f60b65c8bede0e26a6b5aa55445_5856949dc8dd9775.lance was not fou..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqPy.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqPy&limit=10"
+elapsed_ms = 677.86
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "HighDimPDE.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=HighDimPDE&limit=10"
+elapsed_ms = 1852.48
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "AutoOffload.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=AutoOffload&limit=10"
+elapsed_ms = 2184.63
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FunctionWrappersWrappers.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FunctionWrappersWrappers&limit=10"
+elapsed_ms = 1025.81
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: Dataset at path Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/repo_entity_repo_17518d409407b68a6bde4ef8395dbb4e87b6eb2e1c433d4587e677d1330153e7_d8790d98e3edeb40.lance was not fou..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "FastSolvers.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FastSolvers&limit=10"
+elapsed_ms = 2178.37
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FiniteVolumeMethod.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FiniteVolumeMethod&limit=10"
+elapsed_ms = 830.66
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ComponentArrays.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ComponentArrays&limit=10"
+elapsed_ms = 1380.71
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "LightweightStats.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=LightweightStats&limit=10"
+elapsed_ms = 2301.10
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqOperators.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqOperators&limit=10"
+elapsed_ms = 1551.62
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: Dataset at path Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/repo_entity_repo_64cce6d6e8b4dbc4e9308b7d433a9eb9776aa62400faddae2b43d31b7b875e41_5ca14ebf3eaf0c6c.lance was not fou..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "DeepEquilibriumNetworks.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DeepEquilibriumNetworks&limit=10"
+elapsed_ms = 2281.25
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "MethodOfLines.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=MethodOfLines&limit=10"
+elapsed_ms = 953.32
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDocs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDocs&limit=10"
+elapsed_ms = 2385.04
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FluxNeuralOperators.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FluxNeuralOperators&limit=10"
+elapsed_ms = 2445.85
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Generic N/A error: Cloned error: Cloned error: LanceError(IO): Generic LocalFileSystem error: Unable to open file /Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao/search_plane/c2cf63816037fe04d8b8eda1a16534ea4afef6473792de0b40fe58a42097f918/repo_entity/r..."
+
+[[failures]]
+suite = "stress_code_search"
+label = "FiniteElementDiffEq.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FiniteElementDiffEq&limit=10"
+elapsed_ms = 2483.51
+ok = false
+status = 500
+attempts = 3
+error = "{\"code\":\"REPO_ENTITY_SEARCH_FAILED\",\"message\":\"Failed to query repo entity search plane\",\"details\":\"LanceDB error: LanceError(IO): Too many open files (os error 24), /Users/guangtao/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lance-io-3.0.1/src/local.rs:133:24\"}"

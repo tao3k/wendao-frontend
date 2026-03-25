@@ -47,10 +47,12 @@ export interface MainViewProps {
   topology?: AcademicTopology;
   isVfsLoading: boolean;
   selectedFile?: MainViewSelectedFile | null;
+  graphCenterNodeId?: string | null;
   relationships?: MainViewRelationship[];
   selectedNode?: AcademicNode | null;
   requestedTab?: MainViewRequestedTab | null;
   onGraphFileSelect?: (selection: MainViewGraphSelection) => void;
+  onGraphCenterNodeInvalid?: (nodeId: string) => void;
   onNodeClick: (name: string, type: string, id: string) => void;
   onBiLinkClick?: (link: string) => void;
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;

@@ -30,7 +30,7 @@ Decision:
 
 Why:
 
-- Search actions such as `Open`, `Graph`, and `Refs` need deterministic panel focus.
+- Zen Search actions such as `Open`, `Graph`, and `Refs` need deterministic panel focus.
 - Implicit tab switching based only on content shape is too ambiguous.
 
 Accepted tradeoff:

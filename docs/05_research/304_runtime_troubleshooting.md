@@ -52,7 +52,7 @@ Current recovery path:
 
 1. Confirm whether the failure happens in the topology surface, the graph surface, or both.
 2. Confirm the runtime is using live gateway data rather than an inconsistent fallback path.
-3. Re-run the targeted frontend suite around `App`, `MainView`, `GraphView`, `SearchBar`, and `DirectReader`.
+3. Re-run the targeted frontend suite around `App`, `MainView`, `GraphView`, `ZenSearch`, and `DirectReader`.
 4. If the failure is reproducible only in a browser session and not in the tests, isolate the rendering path before changing the data contract.
 
 ## Symptom: Search actions land in the wrong panel
@@ -64,7 +64,7 @@ Current interpretation:
 Current recovery path:
 
 1. Re-run `src/App.test.tsx` and `src/components/panels/MainView/MainView.test.tsx`.
-2. Verify whether the failure affects `Open`, `Graph`, `Refs`, or `Definition`.
+2. Verify whether the failure affects `Open`, `Graph`, `Refs`, or `Definition` in Zen Search.
 3. Keep the fix inside the shared selection pipeline instead of creating a special-case branch.
 
 ## Symptom: 3D topology flickers after refresh or polling

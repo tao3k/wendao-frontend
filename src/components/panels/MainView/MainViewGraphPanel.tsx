@@ -12,6 +12,7 @@ interface MainViewGraphPanelProps {
   locale: MainViewLocale;
   panelLoadingFallback: React.ReactNode;
   onGraphFileSelect?: (selection: MainViewGraphSelection) => void;
+  onGraphCenterNodeInvalid?: (nodeId: string) => void;
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   onGraphRuntimeStatusChange?: (status: RuntimeStatus | null) => void;
 }
@@ -23,6 +24,7 @@ export function MainViewGraphPanel({
   locale,
   panelLoadingFallback,
   onGraphFileSelect,
+  onGraphCenterNodeInvalid,
   onSidebarSummaryChange,
   onGraphRuntimeStatusChange,
 }: MainViewGraphPanelProps): React.ReactElement {
@@ -40,6 +42,7 @@ export function MainViewGraphPanel({
             enabled={enabled}
             options={options}
             locale={locale}
+            onCenterNodeInvalid={onGraphCenterNodeInvalid}
             onSidebarSummaryChange={onSidebarSummaryChange}
             onRuntimeStatusChange={onGraphRuntimeStatusChange}
           />

@@ -9,6 +9,7 @@ import type {
   SearchHit,
   SymbolSearchHit,
 } from '../../api';
+import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
 import type { ResultCategory, SearchResult, SearchSelection } from './types';
 
 function isNonEmptyString(value: string | undefined): value is string {
@@ -226,16 +227,42 @@ function knowledgeResultCategory(hit: SearchHit): ResultCategory {
   }
 }
 
+function canonicalizeSearchSelection(selection: SearchSelection): SearchSelection {
+  const canonicalPath = normalizeSelectionPathForVfs({
+    path: selection.path,
+    category: selection.category,
+    projectName: selection.projectName,
+  });
+  const canonicalGraphPath = normalizeSelectionPathForVfs({
+    path: selection.graphPath ?? selection.path,
+    category: selection.category,
+    projectName: selection.projectName,
+  });
+
+  return {
+    ...selection,
+    path: canonicalPath,
+    graphPath: canonicalGraphPath,
+  };
+}
+
 export function isCodeSearchResult(result: SearchResult): boolean {
   return result.category === 'ast' || result.category === 'symbol' || result.category === 'reference';
 }
 
+export function canOpenGraphForSearchResult(result: SearchResult): boolean {
+  return result.category === 'document' || result.category === 'knowledge' || result.category === 'skill' || result.category === 'tag';
+}
+
 export function toSearchSelection(result: SearchResult): SearchSelection {
   if (result.navigationTarget) {
-    return result.navigationTarget;
+    return canonicalizeSearchSelection({
+      ...result.navigationTarget,
+      graphPath: result.navigationTarget.path ?? result.path,
+    });
   }
 
-  return {
+  return canonicalizeSearchSelection({
     path: result.path,
     category: result.category === 'knowledge' || result.category === 'skill' ? result.category : 'doc',
     ...(result.projectName ? { projectName: result.projectName } : {}),
@@ -243,7 +270,8 @@ export function toSearchSelection(result: SearchResult): SearchSelection {
     ...(typeof result.line === 'number' ? { line: result.line } : {}),
     ...(typeof result.lineEnd === 'number' ? { lineEnd: result.lineEnd } : {}),
     ...(typeof result.column === 'number' ? { column: result.column } : {}),
-  };
+    graphPath: result.path,
+  });
 }
 
 export function normalizeKnowledgeHit(hit: SearchHit): SearchResult {
@@ -540,14 +568,20 @@ export function resolveDefinitionSelection(
   }
 ): SearchSelection {
   if (response.navigationTarget) {
-    return response.navigationTarget;
+    return canonicalizeSearchSelection({
+      ...response.navigationTarget,
+      graphPath: response.navigationTarget.path,
+    });
   }
 
   if (response.definition?.navigationTarget) {
-    return response.definition.navigationTarget;
+    return canonicalizeSearchSelection({
+      ...response.definition.navigationTarget,
+      graphPath: response.definition.navigationTarget.path,
+    });
   }
 
-  return {
+  return canonicalizeSearchSelection({
     path: response.definition?.path ?? result.path,
     category: 'doc',
     ...(response.definition?.projectName
@@ -558,7 +592,8 @@ export function resolveDefinitionSelection(
     ...(response.definition?.rootLabel ? { rootLabel: response.definition.rootLabel } : {}),
     ...(typeof response.definition?.lineStart === 'number' ? { line: response.definition.lineStart } : {}),
     ...(typeof response.definition?.lineEnd === 'number' ? { lineEnd: response.definition.lineEnd } : {}),
-  };
+    graphPath: response.definition?.path ?? result.path,
+  });
 }
 
 export function errorMessage(error: unknown): string {

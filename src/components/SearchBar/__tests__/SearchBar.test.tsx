@@ -8,8 +8,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import { SearchBar } from '../SearchBar';
+
+
+const mocks = vi.hoisted(() => ({
+  getUiCapabilitiesSync: vi.fn(),
+  getVfsContent: vi.fn(),
+  getGraphNeighbors: vi.fn(),
+  getCodeAstAnalysis: vi.fn(),
+}));
 
 // Mock the api module
 vi.mock('../../../api', () => ({
@@ -21,7 +29,17 @@ vi.mock('../../../api', () => ({
     searchReferences: vi.fn(),
     searchSymbols: vi.fn(),
     searchAutocomplete: vi.fn(),
+    searchRepoModules: vi.fn(),
+    searchRepoSymbols: vi.fn(),
+    searchRepoExamples: vi.fn(),
+    getRepoOverview: vi.fn(),
+    getRepoDocCoverage: vi.fn(),
+    getRepoProjectedPageIndexTree: vi.fn(),
+    getVfsContent: mocks.getVfsContent,
+    getGraphNeighbors: mocks.getGraphNeighbors,
+    getCodeAstAnalysis: mocks.getCodeAstAnalysis,
   },
+  getUiCapabilitiesSync: mocks.getUiCapabilitiesSync,
 }));
 
 import { api } from '../../../api';
@@ -32,9 +50,21 @@ describe('SearchBar', () => {
   const mockOnResultSelect = vi.fn();
   const mockOnReferencesResultSelect = vi.fn();
   const mockOnClose = vi.fn();
+  const openAdvancedScopes = () => {
+    const toggle = screen.getByRole('button', { name: /Show filters|Hide filters/i });
+    if (toggle.getAttribute('aria-expanded') !== 'true') {
+      fireEvent.click(toggle);
+    }
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getUiCapabilitiesSync.mockReset();
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia'],
+      supportedRepositories: ['kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
     mockedApi.searchAutocomplete.mockResolvedValue(createMockAutocompleteResponse([]));
     mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('', []));
     mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
@@ -50,6 +80,33 @@ describe('SearchBar', () => {
     }));
     mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
     mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.getVfsContent.mockResolvedValue({
+      content: '# Documentation Index',
+      contentType: 'markdown',
+    });
+    mockedApi.getGraphNeighbors.mockResolvedValue({
+      center: {
+        id: 'main/docs/index.md',
+        label: 'Documentation Index',
+        path: 'main/docs/index.md',
+        nodeType: 'knowledge',
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+    mockedApi.getCodeAstAnalysis.mockResolvedValue({
+      repoId: 'kernel',
+      path: 'kernel/src/lib.rs',
+      language: 'rust',
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+    });
   });
 
   const createMockSearchResponse = (query: string, hits: Array<{
@@ -61,6 +118,8 @@ describe('SearchBar', () => {
     score: number;
     bestSection?: string;
     matchReason?: string;
+    codeRepo?: string;
+    projectionPageIds?: string[];
     navigationTarget?: {
       path: string;
       category: string;
@@ -81,6 +140,8 @@ describe('SearchBar', () => {
       score: h.score,
       bestSection: h.bestSection,
       matchReason: h.matchReason,
+      codeRepo: h.codeRepo,
+      projectionPageIds: h.projectionPageIds,
       navigationTarget: h.navigationTarget || {
         path: h.path,
         category:
@@ -153,6 +214,45 @@ describe('SearchBar', () => {
     })),
     hitCount: hits.length,
     selectedScope: 'project',
+  });
+
+  const createMockRepoModulesResponse = (repoId: string, modules: Array<{
+    repoId: string;
+    moduleId: string;
+    qualifiedName: string;
+    kind: string;
+    path: string;
+    score?: number;
+    rank?: number;
+    saliencyScore?: number;
+    hierarchicalUri?: string;
+    hierarchy?: string[];
+    implicitBacklinks?: string[];
+    implicitBacklinkItems?: Array<{ id: string; relation: string; target: string }>;
+    projectionPageIds?: string[];
+    auditStatus?: string;
+    verificationState?: string;
+  }>) => ({
+    repoId,
+    modules,
+  });
+
+  const createMockRepoExamplesResponse = (repoId: string, examples: Array<{
+    repoId: string;
+    exampleId: string;
+    title: string;
+    path: string;
+    score?: number;
+    rank?: number;
+    saliencyScore?: number;
+    hierarchicalUri?: string;
+    hierarchy?: string[];
+    implicitBacklinks?: string[];
+    implicitBacklinkItems?: Array<{ id: string; relation: string; target: string }>;
+    projectionPageIds?: string[];
+  }>) => ({
+    repoId,
+    examples,
   });
 
   const createMockAttachmentResponse = (query: string, hits: Array<{
@@ -234,6 +334,30 @@ describe('SearchBar', () => {
     })),
     hitCount: hits.length,
     selectedScope: 'definitions',
+  });
+
+  const createMockRepoSymbolResponse = (repoId: string, symbols: Array<{
+    repoId: string;
+    symbolId: string;
+    moduleId?: string;
+    name: string;
+    qualifiedName: string;
+    kind: string;
+    signature?: string;
+    path: string;
+    score?: number;
+    rank?: number;
+    saliencyScore?: number;
+    hierarchicalUri?: string;
+    hierarchy?: string[];
+    implicitBacklinks?: string[];
+    implicitBacklinkItems?: Array<{ id: string; relation: string; target: string }>;
+    projectionPageIds?: string[];
+    auditStatus?: string;
+    verificationState?: string;
+  }>) => ({
+    repoId,
+    symbols,
   });
 
   const createMockReferenceResponse = (query: string, hits: Array<{
@@ -386,8 +510,6 @@ describe('SearchBar', () => {
     await waitFor(() => {
       expect(screen.getByText('/knowledge/context.md')).toBeInTheDocument();
     }, { timeout: 1000 });
-
-    expect(screen.getByText(/Partial search results: AST unavailable/)).toBeInTheDocument();
   });
 
   it('should filter results by selected scope', async () => {
@@ -432,17 +554,20 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'scope' } });
 
     await waitFor(() => {
-      expect(screen.getByText('/notes/knowledge')).toBeInTheDocument();
-      expect(screen.getByText('/docs/guide')).toBeInTheDocument();
+      const main = screen.getByTestId('zen-search-main');
+      expect(within(main).getByText('/notes/knowledge')).toBeInTheDocument();
+      expect(within(main).getByText('/docs/guide')).toBeInTheDocument();
     }, { timeout: 1000 });
 
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Documents' }));
 
     await waitFor(() => {
-      expect(screen.getByText('/docs/guide')).toBeInTheDocument();
-      expect(screen.queryByText('/notes/knowledge')).not.toBeInTheDocument();
-      expect(screen.queryByText('/skills/agent')).not.toBeInTheDocument();
-      expect(screen.queryByText('/notes/tagged')).not.toBeInTheDocument();
+      const main = screen.getByTestId('zen-search-main');
+      expect(within(main).getByText('/docs/guide')).toBeInTheDocument();
+      expect(within(main).queryByText('/notes/knowledge')).not.toBeInTheDocument();
+      expect(within(main).queryByText('/skills/agent')).not.toBeInTheDocument();
+      expect(within(main).queryByText('/notes/tagged')).not.toBeInTheDocument();
     }, { timeout: 1000 });
   });
 
@@ -498,6 +623,7 @@ describe('SearchBar', () => {
       `);
     });
 
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Path' }));
 
     await waitFor(() => {
@@ -595,6 +721,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Symbols' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -606,6 +734,8 @@ describe('SearchBar', () => {
 
     mockedApi.searchAutocomplete.mockClear();
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
     fireEvent.change(input, { target: { value: 'spec' } });
 
@@ -646,8 +776,9 @@ describe('SearchBar', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Graph' }));
     expect(mockOnGraphResultSelect).toHaveBeenCalledWith({
-      path: '/graph/path',
+      path: 'graph/path',
       category: 'doc',
+      graphPath: 'graph/path',
     });
   });
 
@@ -671,6 +802,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Symbols' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -715,6 +848,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -725,8 +860,9 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     await waitFor(() => {
-      expect(screen.getByText('docs/alpha.md')).toBeInTheDocument();
-      expect(screen.getByText('assets/topology.png')).toBeInTheDocument();
+      const main = screen.getByTestId('zen-search-main');
+      expect(within(main).getByText('docs/alpha.md')).toBeInTheDocument();
+      expect(within(main).getByText('assets/topology.png')).toBeInTheDocument();
       expect(screen.getByText('Mode: Attachment Index')).toBeInTheDocument();
       expect(screen.getByText('Scope: Attachments')).toBeInTheDocument();
     }, { timeout: 1000 });
@@ -763,6 +899,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -782,6 +920,7 @@ describe('SearchBar', () => {
       line: 14,
       lineEnd: 18,
       column: 2,
+      graphPath: 'kernel/docs/attachments/topology-owner.md',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -812,14 +951,17 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Attachments' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
     fireEvent.change(input, { target: { value: 'topology' } });
 
     await waitFor(() => {
-      expect(screen.getByText('docs/alpha.md')).toBeInTheDocument();
-      expect(screen.getByText('assets/topology.png')).toBeInTheDocument();
+      const main = screen.getByTestId('zen-search-main');
+      expect(within(main).getByText('docs/alpha.md')).toBeInTheDocument();
+      expect(within(main).getByText('assets/topology.png')).toBeInTheDocument();
     }, { timeout: 1000 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
@@ -827,6 +969,7 @@ describe('SearchBar', () => {
     expect(mockOnResultSelect).toHaveBeenCalledWith({
       path: 'docs/alpha.md',
       category: 'doc',
+      graphPath: 'docs/alpha.md',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -852,6 +995,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'AST' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -892,6 +1037,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'AST' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -947,6 +1094,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'AST' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -960,6 +1109,95 @@ describe('SearchBar', () => {
       expect(screen.getAllByText('main > main/docs/index.md')).toHaveLength(2);
       expect(screen.getByText('property drawer · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
       expect(screen.getByText('code observation · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('should render the code AST waterfall when previewing a repo code result', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(
+      createMockSearchResponse('RepoScanner', [
+        {
+          stem: 'RepoScanner',
+          title: 'RepoScanner',
+          path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+          docType: 'symbol',
+          tags: ['code', 'rust', 'kind:struct'],
+          score: 0.96,
+          bestSection: 'RepoScanner',
+          matchReason: 'repo_symbol_search',
+          codeRepo: 'kernel',
+          projectionPageIds: ['page-1'],
+          navigationTarget: {
+            path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+            category: 'repo_code',
+            projectName: 'kernel',
+            rootLabel: 'packages',
+            line: 42,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 1.0,
+      })
+    );
+    mockedApi.getVfsContent.mockResolvedValue({
+      content: [
+        'pub fn repo_scanner(input: &[u8], config: &Config) -> Result<Processed> {',
+        '  if input.is_empty() {',
+        '    return Err(Empty);',
+        '  }',
+        '',
+        '  let parsed = config.parse(input);',
+        '  Ok(Processed { data: parsed })',
+        '}',
+      ].join('\n'),
+      contentType: 'rust',
+    });
+    mockedApi.getCodeAstAnalysis.mockResolvedValue({
+      repoId: 'kernel',
+      path: 'kernel/packages/rust/crates/xiuxian-wendao/src/repo.rs',
+      language: 'rust',
+      nodes: [
+        {
+          id: 'fn:repo_scanner',
+          label: 'repo_scanner',
+          kind: 'function',
+          path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+          line: 1,
+        },
+      ],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+    });
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    openAdvancedScopes();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'RepoScanner' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('RepoScanner', 10, { intent: 'code_search' });
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await waitFor(() => {
+      expect(mockedApi.getCodeAstAnalysis).toHaveBeenCalledWith(
+        'kernel/packages/rust/crates/xiuxian-wendao/src/repo.rs',
+        { repo: 'kernel', line: 42 }
+      );
+      expect(screen.getByTestId('structured-code-inspector')).toBeInTheDocument();
+      expect(screen.getByTestId('code-ast-waterfall')).toBeInTheDocument();
+      expect(screen.getByText('Code AST Waterfall')).toBeInTheDocument();
     }, { timeout: 1000 });
   });
 
@@ -984,24 +1222,28 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'AST' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
     fireEvent.change(input, { target: { value: 'RepoScanner' } });
 
     await waitFor(() => {
-      expect(screen.getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+      const main = screen.getByTestId('zen-search-main');
+      expect(within(main).getByText('kernel > packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
     }, { timeout: 1000 });
 
-    fireEvent.click(screen.getByText('RepoScanner'));
+    fireEvent.click(within(screen.getByTestId('zen-search-main')).getByRole('button', { name: 'Open' }));
 
     expect(mockOnResultSelect).toHaveBeenCalledWith({
-      path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+      path: 'kernel/packages/rust/crates/xiuxian-wendao/src/repo.rs',
       category: 'doc',
       projectName: 'kernel',
       rootLabel: 'packages',
       line: 10,
       lineEnd: 12,
+      graphPath: 'kernel/packages/rust/crates/xiuxian-wendao/src/repo.rs',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -1027,6 +1269,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'References' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1082,6 +1326,8 @@ describe('SearchBar', () => {
       />
     );
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'AST' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1094,13 +1340,14 @@ describe('SearchBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refs' }));
 
     expect(mockOnReferencesResultSelect).toHaveBeenCalledWith({
-      path: 'kernel/docs/navigation/repo-scanner.md',
+      path: 'semantic-kernel/kernel/docs/navigation/repo-scanner.md',
       category: 'doc',
       projectName: 'semantic-kernel',
       rootLabel: 'gateway',
       line: 42,
       lineEnd: 45,
       column: 7,
+      graphPath: 'semantic-kernel/kernel/docs/navigation/repo-scanner.md',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -1134,6 +1381,8 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Symbols' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1146,13 +1395,14 @@ describe('SearchBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
 
     expect(mockOnResultSelect).toHaveBeenCalledWith({
-      path: 'kernel/docs/navigation/repo-scanner.md',
+      path: 'semantic-kernel/kernel/docs/navigation/repo-scanner.md',
       category: 'doc',
       projectName: 'semantic-kernel',
       rootLabel: 'gateway',
       line: 42,
       lineEnd: 45,
       column: 11,
+      graphPath: 'semantic-kernel/kernel/docs/navigation/repo-scanner.md',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -1210,6 +1460,8 @@ describe('SearchBar', () => {
       />
     );
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'References' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1229,13 +1481,14 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     expect(mockOnResultSelect).toHaveBeenCalledWith({
-      path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+      path: 'kernel/packages/rust/crates/xiuxian-wendao/src/service.rs',
       category: 'doc',
       projectName: 'kernel',
       rootLabel: 'packages',
       line: 8,
       lineEnd: 14,
       column: 3,
+      graphPath: 'kernel/packages/rust/crates/xiuxian-wendao/src/service.rs',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -1296,6 +1549,8 @@ describe('SearchBar', () => {
       />
     );
 
+    openAdvancedScopes();
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'References' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1315,12 +1570,13 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     expect(mockOnResultSelect).toHaveBeenCalledWith({
-      path: 'packages/rust/crates/xiuxian-wendao/src/service.rs',
+      path: 'kernel/packages/rust/crates/xiuxian-wendao/src/service.rs',
       category: 'doc',
       projectName: 'kernel',
       rootLabel: 'packages',
       line: 8,
       lineEnd: 14,
+      graphPath: 'kernel/packages/rust/crates/xiuxian-wendao/src/service.rs',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });
@@ -1355,6 +1611,7 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Code' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1377,6 +1634,7 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Code' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1400,6 +1658,7 @@ describe('SearchBar', () => {
 
     const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Code' }));
 
     const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
@@ -1420,6 +1679,87 @@ describe('SearchBar', () => {
     expect(mockedApi.searchAutocomplete).not.toHaveBeenCalled();
   });
 
+  it('should include modelica in gateway lang filter suggestions', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia', 'modelica'],
+      supportedRepositories: ['kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+
+    const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    openAdvancedScopes();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'lang:m' } });
+
+    await waitFor(() => {
+      const suggestionTexts = Array.from(container.querySelectorAll('.search-suggestion .suggestion-text')).map(
+        (node) => node.textContent || ''
+      );
+      expect(suggestionTexts).toContain('lang:modelica');
+    }, { timeout: 1000 });
+  });
+
+  it('should include gateway repos in repo filter suggestions', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia'],
+      supportedRepositories: ['kernel', 'sciml'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+
+    const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    openAdvancedScopes();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'repo:s' } });
+
+    await waitFor(() => {
+      const suggestionTexts = Array.from(container.querySelectorAll('.search-suggestion .suggestion-text')).map(
+        (node) => node.textContent || ''
+      );
+      expect(suggestionTexts).toContain('repo:sciml');
+    }, { timeout: 1000 });
+  });
+
+  it('should include gateway kind suggestions in local kind filter suggestions', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia'],
+      supportedRepositories: ['kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+
+    const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    openAdvancedScopes();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'kind:f' } });
+
+    await waitFor(() => {
+      const suggestionTexts = Array.from(container.querySelectorAll('.search-suggestion .suggestion-text')).map(
+        (node) => node.textContent || ''
+      );
+      expect(suggestionTexts).toContain('kind:function');
+    }, { timeout: 1000 });
+  });
+
   it('should apply code quick scenario tokens into the query input', async () => {
     mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
     mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
@@ -1428,6 +1768,7 @@ describe('SearchBar', () => {
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
+    openAdvancedScopes();
     fireEvent.click(screen.getByRole('button', { name: 'Code' }));
     fireEvent.click(screen.getByRole('button', { name: 'Repo functions' }));
 
@@ -1462,17 +1803,19 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'context' } });
 
     await waitFor(() => {
-      expect(screen.getByText('/knowledge/context.md')).toBeInTheDocument();
+      const main = screen.getByTestId('zen-search-main');
+      expect(within(main).getByText('/knowledge/context.md')).toBeInTheDocument();
       expect(
         screen.getByText((_content, node) => node?.textContent === 'Context Note')
       ).toBeInTheDocument();
     }, { timeout: 1000 });
 
-    fireEvent.click(screen.getByText((_content, node) => node?.textContent === 'Context Note'));
+    fireEvent.click(within(screen.getByTestId('zen-search-main')).getByRole('button', { name: 'Open' }));
 
     expect(mockOnResultSelect).toHaveBeenCalledWith({
-      path: '/knowledge/context.md',
+      path: 'knowledge/context.md',
       category: 'knowledge',
+      graphPath: 'knowledge/context.md',
     });
     expect(mockOnClose).toHaveBeenCalled();
   });

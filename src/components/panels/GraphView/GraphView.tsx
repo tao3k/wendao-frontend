@@ -42,7 +42,7 @@ function fallbackGraphCategory(nodeType: string): string {
 }
 
 function resolveNodeSelection(
-  node: Pick<SimulatedNode, 'path' | 'nodeType' | 'navigationTarget'>
+  node: Pick<SimulatedNode, 'id' | 'path' | 'nodeType' | 'navigationTarget'>
 ): StudioNavigationTarget & { graphPath: string } {
   const navigationTarget = node.navigationTarget ?? {
     path: node.path,
@@ -51,7 +51,7 @@ function resolveNodeSelection(
 
   return {
     ...navigationTarget,
-    graphPath: node.path,
+    graphPath: node.id,
   };
 }
 
@@ -157,12 +157,60 @@ function getErrorMessage(error: unknown): string {
   return 'Failed to load graph data';
 }
 
+function isMissingGraphNodeError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const normalized = message.trim().toLowerCase();
+  return normalized.includes('graph node') && normalized.includes('was not found');
+}
+
+function buildEmptyGraphResponse(centerNodeId: string): GraphNeighborsResponse {
+  return {
+    center: {
+      id: centerNodeId,
+      label: centerNodeId.split('/').pop() || centerNodeId,
+      path: centerNodeId,
+      nodeType: 'doc',
+      isCenter: true,
+      distance: 0,
+      navigationTarget: {
+        path: centerNodeId,
+        category: 'doc',
+      },
+    },
+    nodes: [],
+    links: [],
+    totalNodes: 0,
+    totalLinks: 0,
+  };
+}
+
+function normalizeGraphNeighborsResponse(payload: GraphNeighborsResponse): GraphNeighborsResponse {
+  const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+  const links = Array.isArray(payload.links) ? payload.links : [];
+  const normalizedTotalNodes = Number.isFinite(payload.totalNodes)
+    ? Math.max(payload.totalNodes, nodes.length)
+    : nodes.length;
+  const normalizedTotalLinks = Number.isFinite(payload.totalLinks)
+    ? Math.max(payload.totalLinks, links.length)
+    : links.length;
+
+  return {
+    ...payload,
+    nodes,
+    links,
+    totalNodes: normalizedTotalNodes,
+    totalLinks: normalizedTotalLinks,
+  };
+}
+
 export const GraphView: React.FC<GraphViewProps> = ({
   centerNodeId,
   locale = 'en',
   onNodeClick,
   onSidebarSummaryChange,
   onRuntimeStatusChange,
+  onCenterNodeInvalid,
   enabled = true,
   options = DEFAULT_OPTIONS,
 }) => {
@@ -214,13 +262,19 @@ export const GraphView: React.FC<GraphViewProps> = ({
         if (cancelled) {
           return;
         }
-        setGraphData(data);
+        setGraphData(normalizeGraphNeighborsResponse(data));
       } catch (graphError) {
         if (cancelled) {
           return;
         }
-        setError(getErrorMessage(graphError));
-        setGraphData(null);
+        if (isMissingGraphNodeError(graphError)) {
+          onCenterNodeInvalid?.(debouncedCenterNodeId);
+          setError(null);
+          setGraphData(buildEmptyGraphResponse(debouncedCenterNodeId));
+        } else {
+          setError(getErrorMessage(graphError));
+          setGraphData(null);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -233,7 +287,15 @@ export const GraphView: React.FC<GraphViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [centerNodeId, debouncedCenterNodeId, debouncedOptions, enabled, onRuntimeStatusChange, onSidebarSummaryChange]);
+  }, [
+    centerNodeId,
+    debouncedCenterNodeId,
+    debouncedOptions,
+    enabled,
+    onCenterNodeInvalid,
+    onRuntimeStatusChange,
+    onSidebarSummaryChange,
+  ]);
 
   useEffect(() => {
     setHoveredNode(null);

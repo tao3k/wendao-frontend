@@ -5,7 +5,9 @@ export type SearchSort = 'relevance' | 'path';
 export type ResultCategory = 'knowledge' | 'skill' | 'tag' | 'document' | 'symbol' | 'ast' | 'reference' | 'attachment';
 export type UiLocale = 'en' | 'zh';
 
-export type SearchSelection = StudioNavigationTarget;
+export type SearchSelection = StudioNavigationTarget & {
+  graphPath?: string;
+};
 
 export interface SearchResult extends SearchHit {
   category: ResultCategory;

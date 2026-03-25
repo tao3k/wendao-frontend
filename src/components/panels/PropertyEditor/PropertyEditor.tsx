@@ -107,6 +107,7 @@ interface PropertyEditorCopy {
   totalLinks: string;
   core: string;
   layerPrefix: string;
+  ringPrefix: string;
   layerNodesCompact: string;
   localPeak: string;
   totalShare: string;
@@ -140,25 +141,26 @@ const PROPERTY_EDITOR_COPY: Record<'en' | 'zh', PropertyEditorCopy> = {
     typeLabel: 'Type',
     zPosition: 'Z Position',
     noRelationships: 'No relationship data available',
-    graphInsights: 'Graph Insights',
-    snapshot: 'Snapshot',
+    graphInsights: 'Graph Summary',
+    snapshot: 'Focused Layer',
     activeLayer: 'Active Layer',
     layerNodes: 'Layer Nodes',
     density: 'Density',
     legend: 'Legend',
-    stageLayers: 'Stage Layers',
-    global: 'Global',
+    stageLayers: 'Layer Breakdown',
+    global: 'Share',
     noStageData: 'No stage data.',
-    coreLayers: 'Core Layers',
+    coreLayers: 'Overview',
     layerCoverage: 'Layer Coverage',
-    relativeToPeak: 'relative to active peak',
+    relativeToPeak: 'relative to the peak layer',
     totalNodes: 'Total Nodes',
     totalLinks: 'Total Links',
     core: 'Core',
     layerPrefix: 'Layer',
+    ringPrefix: 'Ring',
     layerNodesCompact: 'Layer Nodes',
-    localPeak: 'local peak',
-    totalShare: 'total share',
+    localPeak: 'peak layer',
+    totalShare: 'of total',
     nodesUnit: 'nodes',
     linksUnit: 'links',
     skillLabel: 'Skill',
@@ -187,24 +189,25 @@ const PROPERTY_EDITOR_COPY: Record<'en' | 'zh', PropertyEditorCopy> = {
     typeLabel: '类型',
     zPosition: 'Z 位置',
     noRelationships: '暂无关系数据',
-    graphInsights: '图谱洞察',
-    snapshot: '快照',
+    graphInsights: '图谱摘要',
+    snapshot: '焦点层',
     activeLayer: '当前层',
     layerNodes: '层节点',
     density: '密度',
     legend: '图例',
-    stageLayers: '阶段层',
-    global: '全局',
+    stageLayers: '层级分布',
+    global: '占比',
     noStageData: '暂无阶段数据。',
-    coreLayers: '核心层',
+    coreLayers: '总览',
     layerCoverage: '层覆盖率',
-    relativeToPeak: '相对于当前峰值',
+    relativeToPeak: '相对于峰值层',
     totalNodes: '总节点',
     totalLinks: '总连线',
     core: '核心',
     layerPrefix: '层',
+    ringPrefix: '环',
     layerNodesCompact: '层节点',
-    localPeak: '局部峰值',
+    localPeak: '峰值层',
     totalShare: '全局占比',
     nodesUnit: '节点',
     linksUnit: '连线',
@@ -223,6 +226,17 @@ const PROPERTY_EDITOR_COPY: Record<'en' | 'zh', PropertyEditorCopy> = {
   },
 };
 
+const formatGraphLayerLabel = (
+  layer: number,
+  copy: Pick<PropertyEditorCopy, 'core' | 'ringPrefix' | 'layerPrefix'>
+): string => {
+  if (layer <= 0) {
+    return copy.core;
+  }
+
+  return `${copy.ringPrefix || copy.layerPrefix} ${layer}`;
+};
+
 export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   node,
   relationships = [],
@@ -232,6 +246,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   onUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState<PropertyTab>('properties');
+  const [selectedGraphLayer, setSelectedGraphLayer] = useState<number | null>(null);
   const copy = PROPERTY_EDITOR_COPY[locale];
 
   const handleNameChange = (name: string) => {
@@ -253,16 +268,35 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const hasContent = Boolean(node || selectedFile || relationships.length > 0);
   const hasGraphSummary = Boolean(graphSummary);
   const stageLayerSummaries = (graphSummary?.layerSummaries ?? []).slice().sort((a, b) => a.layer - b.layer);
+  const nonCoreLayerSummaries = stageLayerSummaries.filter((layer) => layer.layer > 0);
   const maxStageCount = Math.max(1, ...stageLayerSummaries.map((layer) => layer.count));
-  const totalNodes = graphSummary?.totalNodes ?? 0;
+  const layerSummaryNodeTotal = stageLayerSummaries.reduce((sum, layer) => sum + layer.count, 0);
+  const totalNodes = Math.max(graphSummary?.totalNodes ?? 0, layerSummaryNodeTotal);
   const totalLinks = graphSummary?.totalLinks ?? 0;
-  const hoveredLayer = graphSummary?.hoveredLayer ?? 0;
-  const hoveredLayerNodes =
-    stageLayerSummaries.find((item) => item.layer === hoveredLayer)?.count ??
+  const defaultFocusedLayer =
+    (nonCoreLayerSummaries.length > 0
+      ? nonCoreLayerSummaries.reduce((best, layer) => {
+          if (layer.count > best.count) {
+            return layer;
+          }
+          if (layer.count === best.count && layer.layer < best.layer) {
+            return layer;
+          }
+          return best;
+        }).layer
+      : stageLayerSummaries.find((item) => item.layer === 0)?.layer) ?? 0;
+  const manualFocusedLayer =
+    selectedGraphLayer !== null &&
+    stageLayerSummaries.some((layer) => layer.layer === selectedGraphLayer)
+      ? selectedGraphLayer
+      : null;
+  const focusedLayer = graphSummary?.hoveredLayer ?? manualFocusedLayer ?? defaultFocusedLayer;
+  const focusedLayerNodes =
+    stageLayerSummaries.find((item) => item.layer === focusedLayer)?.count ??
     stageLayerSummaries.find((item) => item.layer === 0)?.count ??
     0;
-  const activeLayerPercent = asSafePercent(hoveredLayerNodes, maxStageCount);
-  const activeLayerShare = asSafePercent(hoveredLayerNodes, totalNodes);
+  const activeLayerPercent = asSafePercent(focusedLayerNodes, maxStageCount);
+  const activeLayerShare = asSafePercent(focusedLayerNodes, totalNodes);
   const graphDensity = totalNodes <= 1 ? 0 : asSafePercent(totalLinks, (totalNodes * (totalNodes - 1)) / 2);
 
   return (
@@ -433,14 +467,12 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                 <div className="property-editor__snapshot-cell">
                   <span className="property-editor__snapshot-label">{copy.activeLayer}</span>
                   <span className="property-editor__snapshot-value">
-                    {graphSummary?.hoveredLayer == null
-                      ? copy.core
-                      : `${copy.layerPrefix} ${graphSummary.hoveredLayer}`}
+                    {formatGraphLayerLabel(focusedLayer, copy)}
                   </span>
                 </div>
                 <div className="property-editor__snapshot-cell">
                   <span className="property-editor__snapshot-label">{copy.layerNodes}</span>
-                  <span className="property-editor__snapshot-value">{hoveredLayerNodes}</span>
+                  <span className="property-editor__snapshot-value">{focusedLayerNodes}</span>
                 </div>
                 <div className="property-editor__snapshot-cell">
                   <span className="property-editor__snapshot-label">
@@ -514,13 +546,29 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                     return (
                       <div
                         className={`property-editor__stage-row ${
-                          graphSummary?.hoveredLayer === layer.layer ? 'is-active' : ''
+                          focusedLayer === layer.layer ? 'is-active' : ''
                         }`}
                         key={`layer-${layer.layer}-${layer.count}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={focusedLayer === layer.layer}
+                        onClick={() =>
+                          setSelectedGraphLayer((current) =>
+                            current === layer.layer ? null : layer.layer
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedGraphLayer((current) =>
+                              current === layer.layer ? null : layer.layer
+                            );
+                          }
+                        }}
                       >
                         <div className="property-editor__stage-row-head">
                           <span className="property-editor__stage-row-label">
-                            {copy.layerPrefix} {layer.layer}
+                            {formatGraphLayerLabel(layer.layer, copy)}
                           </span>
                           <span className="property-editor__stage-row-count">{layer.count}</span>
                           <span className="property-editor__stage-row-percent">{ratio}%</span>
@@ -533,7 +581,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                         <div className="property-editor__stage-row-bar">
                           <span
                             className={`property-editor__stage-row-fill ${
-                              graphSummary?.hoveredLayer === layer.layer ? 'is-active' : ''
+                              focusedLayer === layer.layer ? 'is-active' : ''
                             }`}
                             style={{ width: `${ratio}%` }}
                           />
@@ -561,23 +609,21 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                 </div>
                 <div className="property-editor__core-cell property-editor__core-cell--nodes">
                   <span className="property-editor__core-cell-label">{copy.totalNodes}</span>
-                  <span className="property-editor__core-cell-value">{graphSummary?.totalNodes ?? 0}</span>
+                  <span className="property-editor__core-cell-value">{totalNodes}</span>
                 </div>
                 <div className="property-editor__core-cell property-editor__core-cell--links">
                   <span className="property-editor__core-cell-label">{copy.totalLinks}</span>
-                  <span className="property-editor__core-cell-value">{graphSummary?.totalLinks ?? 0}</span>
+                  <span className="property-editor__core-cell-value">{totalLinks}</span>
                 </div>
                 <div className="property-editor__core-cell property-editor__core-cell--active">
                   <span className="property-editor__core-cell-label">{copy.activeLayer}</span>
                   <span className="property-editor__core-cell-value">
-                    {graphSummary?.hoveredLayer == null
-                      ? copy.core
-                      : `${copy.layerPrefix} ${graphSummary.hoveredLayer}`}
+                    {formatGraphLayerLabel(focusedLayer, copy)}
                   </span>
                 </div>
                 <div className="property-editor__core-cell property-editor__core-cell--focus">
                   <span className="property-editor__core-cell-label">{copy.layerNodesCompact}</span>
-                  <span className="property-editor__core-cell-value">{hoveredLayerNodes}</span>
+                  <span className="property-editor__core-cell-value">{focusedLayerNodes}</span>
                   <div
                     className="property-editor__core-cell-meter"
                     role="progressbar"

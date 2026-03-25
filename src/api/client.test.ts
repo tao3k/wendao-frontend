@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { api } from './client';
+import { api, getUiCapabilitiesSync, resetUiCapabilitiesCache } from './client';
 
 describe('api client repo search normalization', () => {
   afterEach(() => {
@@ -7,7 +7,7 @@ describe('api client repo search normalization', () => {
   });
 
   it('parses snake_case symbol_hits metadata in a backward-compatible shape', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       new Response(
         JSON.stringify({
           repo_id: 'gateway-sync',
@@ -58,7 +58,7 @@ describe('api client repo search normalization', () => {
   });
 
   it('parses camelCase moduleHits metadata in a backward-compatible shape', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       new Response(
         JSON.stringify({
           repoId: 'gateway-sync',
@@ -100,13 +100,149 @@ describe('api client repo search normalization', () => {
   });
 });
 
+describe('api client ui capabilities contract', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetUiCapabilitiesCache();
+  });
+
+  it('loads gateway-supported languages from /api/ui/capabilities and caches them', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          supportedLanguages: ['julia', 'modelica'],
+          supportedRepositories: ['kernel', 'sciml'],
+          supportedKinds: ['function', 'module', 'struct'],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const capabilities = await api.getUiCapabilities();
+
+    expect(fetchSpy).toHaveBeenCalledWith('/api/ui/capabilities');
+    expect(capabilities.supportedLanguages).toEqual(['julia', 'modelica']);
+    expect(capabilities.supportedRepositories).toEqual(['kernel', 'sciml']);
+    expect(capabilities.supportedKinds).toEqual(['function', 'module', 'struct']);
+    expect(getUiCapabilitiesSync()).toEqual({
+      supportedLanguages: ['julia', 'modelica'],
+      supportedRepositories: ['kernel', 'sciml'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+  });
+});
+
+describe('api client graph neighbors contract', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('passes through canonical graph neighbors payload', async () => {
+    const payload = {
+      center: {
+        id: 'main/docs/index.md',
+        label: 'index.md',
+        path: 'main/docs/index.md',
+        navigationTarget: {
+          path: 'main/docs/index.md',
+          category: 'doc',
+        },
+        nodeType: 'doc',
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [
+        {
+          id: 'main/docs/index.md',
+          label: 'index.md',
+          path: 'main/docs/index.md',
+          navigationTarget: {
+            path: 'main/docs/index.md',
+            category: 'doc',
+          },
+          nodeType: 'doc',
+          isCenter: true,
+          distance: 0,
+        },
+        {
+          id: 'main/docs/overview.md',
+          label: 'overview.md',
+          path: 'main/docs/overview.md',
+          navigationTarget: {
+            path: 'main/docs/overview.md',
+            category: 'doc',
+          },
+          nodeType: 'doc',
+          isCenter: false,
+          distance: 1,
+        },
+      ],
+      links: [
+        {
+          source: 'main/docs/index.md',
+          target: 'main/docs/overview.md',
+          direction: 'outgoing',
+          distance: 1,
+        },
+      ],
+      totalNodes: 2,
+      totalLinks: 1,
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify(payload),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const response = await api.getGraphNeighbors('main/docs/index.md', {
+      direction: 'both',
+      hops: 1,
+      limit: 20,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/graph/neighbors/main%2Fdocs%2Findex.md?direction=both&hops=1&limit=20'
+    );
+    expect(response).toEqual(payload);
+  });
+
+  it('uses bare graph endpoint url when options are omitted', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          center: {
+            id: 'main/docs/missing.md',
+            label: 'missing.md',
+            path: 'main/docs/missing.md',
+            nodeType: 'doc',
+            isCenter: true,
+            distance: 0,
+          },
+          nodes: [],
+          links: [],
+          totalNodes: 0,
+          totalLinks: 0,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const response = await api.getGraphNeighbors('main/docs/missing.md');
+
+    expect(fetchSpy).toHaveBeenCalledWith('/api/graph/neighbors/main%2Fdocs%2Fmissing.md');
+    expect(response.totalNodes).toBe(0);
+  });
+});
+
 describe('api client knowledge search intent contract', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('calls /api/search/intent with intent query parameter when provided', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       new Response(
         JSON.stringify({
           query: 'solve',
@@ -123,7 +259,7 @@ describe('api client knowledge search intent contract', () => {
   });
 
   it('calls /api/search/intent without intent query parameter when omitted', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       new Response(
         JSON.stringify({
           query: 'solve',
@@ -140,7 +276,7 @@ describe('api client knowledge search intent contract', () => {
   });
 
   it('calls /api/search/intent with repo query parameter when provided', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       new Response(
         JSON.stringify({
           query: 'solve',

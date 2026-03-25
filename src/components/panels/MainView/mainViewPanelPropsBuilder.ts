@@ -58,6 +58,7 @@ export function buildMainViewGraphPanelProps(params: {
   locale: MainViewLocale;
   panelLoadingFallback: ReactNode;
   onGraphFileSelect?: (selection: MainViewGraphSelection) => void;
+  onGraphCenterNodeInvalid?: (nodeId: string) => void;
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   onGraphRuntimeStatusChange?: (status: RuntimeStatus | null) => void;
 }): {
@@ -67,6 +68,7 @@ export function buildMainViewGraphPanelProps(params: {
   locale: MainViewLocale;
   panelLoadingFallback: ReactNode;
   onGraphFileSelect?: (selection: MainViewGraphSelection) => void;
+  onGraphCenterNodeInvalid?: (nodeId: string) => void;
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   onGraphRuntimeStatusChange?: (status: RuntimeStatus | null) => void;
 } {
@@ -77,6 +79,7 @@ export function buildMainViewGraphPanelProps(params: {
     locale: params.locale,
     panelLoadingFallback: params.panelLoadingFallback,
     onGraphFileSelect: params.onGraphFileSelect,
+    onGraphCenterNodeInvalid: params.onGraphCenterNodeInvalid,
     onSidebarSummaryChange: params.onSidebarSummaryChange,
     onGraphRuntimeStatusChange: params.onGraphRuntimeStatusChange,
   };

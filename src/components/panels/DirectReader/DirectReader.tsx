@@ -16,11 +16,15 @@ import type { Plugin } from 'unified';
 import type { VFile } from 'vfile';
 import 'katex/dist/katex.min.css';
 import { renderMermaidSVG } from 'beautiful-mermaid';
+import { CodeSyntaxHighlighter, normalizeCodeLanguage } from '../../code-syntax';
+import { MarkdownWaterfall } from './MarkdownWaterfall';
 import './DirectReader.css';
 
 export interface DirectReaderProps {
   /** Content to render (markdown or plain text) */
-  content?: string;
+  content?: string | null;
+  /** Optional MIME-like content type from VFS */
+  contentType?: string | null;
   /** File path being displayed */
   path?: string;
   /** UI locale */
@@ -102,6 +106,42 @@ function isMarkdownDocumentPath(targetPath?: string): boolean {
     return false;
   }
   return /\.(md|markdown)$/i.test(targetPath);
+}
+
+function inferSourceSyntaxLanguage(targetPath?: string): string | null {
+  if (!targetPath) {
+    return null;
+  }
+
+  const extension = targetPath.split('.').pop()?.toLowerCase();
+  const languageByExtension: Record<string, string | null> = {
+    bash: 'bash',
+    css: 'css',
+    cjs: 'javascript',
+    html: 'html',
+    ini: 'ini',
+    js: 'javascript',
+    jsx: 'jsx',
+    json: 'json',
+    jl: 'julia',
+    md: 'markdown',
+    markdown: 'markdown',
+    ts: 'typescript',
+    tsx: 'tsx',
+    toml: 'toml',
+    mjs: 'javascript',
+    py: 'python',
+    rs: 'rust',
+    scss: 'scss',
+    sh: 'bash',
+    sql: 'sql',
+    txt: null,
+    yml: 'yaml',
+    yaml: 'yaml',
+    zsh: 'bash',
+  };
+
+  return normalizeCodeLanguage(languageByExtension[extension || '']);
 }
 
 function isLikelyMarkdownContent(content: string): boolean {
@@ -524,7 +564,8 @@ function renderMermaidNode(source: string, copy: DirectReaderCopy): React.ReactE
 }
 
 export function DirectReader({
-  content = '',
+  content: rawContent = '',
+  contentType = null,
   path,
   locale = 'en',
   line,
@@ -535,12 +576,22 @@ export function DirectReader({
   onBiLinkClick,
   className = '',
 }: DirectReaderProps): React.ReactElement {
+  const content = typeof rawContent === 'string' ? rawContent : '';
   const copy = DIRECT_READER_COPY[locale];
   const lineRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [preferSourceForMarkdown, setPreferSourceForMarkdown] = useState(false);
 
   const sourceLines = useMemo(() => (content ? content.split('\n') : []), [content]);
-  const isMarkdownDocument = isMarkdownDocumentPath(path) || isLikelyMarkdownContent(content);
+  const normalizedContentType = contentType?.trim().toLowerCase() ?? null;
+  const contentTypeIsMarkdown = Boolean(normalizedContentType && normalizedContentType.includes('markdown'));
+  const contentTypeIsSource = Boolean(normalizedContentType && !contentTypeIsMarkdown);
+  const contentLooksMarkdown = contentTypeIsMarkdown || (!contentTypeIsSource && isLikelyMarkdownContent(content));
+  const isMarkdownDocument = isMarkdownDocumentPath(path) || contentLooksMarkdown;
+  const sourceSyntaxLanguage = useMemo(() => inferSourceSyntaxLanguage(path), [path]);
+  const isSourceDocument =
+    Boolean(sourceSyntaxLanguage && sourceSyntaxLanguage !== 'markdown') &&
+    !contentLooksMarkdown &&
+    !contentTypeIsMarkdown;
   const renderedMarkdownContent = useMemo(
     () => (isMarkdownDocument ? stripStudioMetadataDrawers(content) : content),
     [content, isMarkdownDocument]
@@ -548,7 +599,8 @@ export function DirectReader({
   const hasLineLocation = typeof line === 'number' && line > 0 && sourceLines.length > 0;
   const showMarkdownViewToggle = isMarkdownDocument && hasLineLocation;
   const focusedLineEnd = typeof lineEnd === 'number' && typeof line === 'number' ? Math.max(lineEnd, line) : line;
-  const hasSourceFocus = hasLineLocation && (!isMarkdownDocument || preferSourceForMarkdown);
+  const hasSourceFocus =
+    isSourceDocument || (hasLineLocation && (!isMarkdownDocument || preferSourceForMarkdown));
 
   useEffect(() => {
     if (!showMarkdownViewToggle) {
@@ -689,7 +741,11 @@ export function DirectReader({
           return (
             <pre className="direct-reader__code" data-lang={language}>
               <code className={codeClassName}>
-                {value}
+                <CodeSyntaxHighlighter
+                  source={value}
+                  language={language}
+                  sourcePath={path}
+                />
               </code>
             </pre>
           );
@@ -706,7 +762,13 @@ export function DirectReader({
   }, [copy, onBiLinkClick]);
 
   const renderSourceLine = useCallback(
-    (sourceLine: string, lineNumber: number) => {
+    (sourceLine: string, lineNumber: number, syntaxLanguage: string | null) => {
+      if (syntaxLanguage) {
+        return (
+          <CodeSyntaxHighlighter source={sourceLine} language={syntaxLanguage} sourcePath={path} />
+        );
+      }
+
       const parts: React.ReactNode[] = [];
       const regex = /\[\[([^\]]+)\]\]/g;
       let lastIndex = 0;
@@ -775,6 +837,7 @@ export function DirectReader({
     const langMap: Record<string, string> = {
       md: 'Markdown',
       markdown: 'Markdown',
+      jl: 'Julia',
       toml: 'TOML',
       yaml: 'YAML',
       yml: 'YAML',
@@ -843,7 +906,9 @@ export function DirectReader({
                 data-testid={`direct-reader-line-${lineNumber}`}
               >
                 <span className="direct-reader__source-gutter">{lineNumber}</span>
-                <div className="direct-reader__source-content">{renderSourceLine(sourceLine, lineNumber)}</div>
+                <div className="direct-reader__source-content">
+                  {renderSourceLine(sourceLine, lineNumber, sourceSyntaxLanguage)}
+                </div>
               </div>
             );
           })}
@@ -851,14 +916,23 @@ export function DirectReader({
       ) : (
         <div className="direct-reader__content">
           {content ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath, remarkBiLinks]}
-              rehypePlugins={[rehypeKatex]}
-              urlTransform={directReaderUrlTransform}
-              components={markdownComponents}
-            >
-              {renderedMarkdownContent}
-            </ReactMarkdown>
+            isMarkdownDocument ? (
+              <MarkdownWaterfall
+                content={renderedMarkdownContent}
+                path={path}
+                locale={locale}
+                onBiLinkClick={onBiLinkClick}
+              />
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath, remarkBiLinks]}
+                rehypePlugins={[rehypeKatex]}
+                urlTransform={directReaderUrlTransform}
+                components={markdownComponents}
+              >
+                {renderedMarkdownContent}
+              </ReactMarkdown>
+            )
           ) : (
             <div className="direct-reader__empty">{copy.emptyContent}</div>
           )}

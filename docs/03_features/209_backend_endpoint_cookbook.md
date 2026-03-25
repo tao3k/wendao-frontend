@@ -140,8 +140,8 @@ Typical purpose:
 
 Frontend consumers:
 
-- `SearchBar` knowledge mode
-- `SearchBar` all mode
+- `ZenSearch` knowledge mode
+- `ZenSearch` all mode
 
 Expected metadata:
 
@@ -159,7 +159,7 @@ Typical purpose:
 
 Frontend consumers:
 
-- `SearchBar` suggestion lane
+- `ZenSearch` suggestion lane
 
 ### `GET /api/search/symbols?q=<query>&limit=<n>`
 
@@ -169,8 +169,8 @@ Typical purpose:
 
 Frontend consumers:
 
-- `SearchBar` symbols mode
-- `SearchBar` all mode
+- `ZenSearch` symbols mode
+- `ZenSearch` all mode
 
 ### `GET /api/search/ast?q=<query>&limit=<n>`
 
@@ -180,14 +180,14 @@ Typical purpose:
 
 Notes:
 
-- Configured doc roots now contribute Markdown heading and task nodes to this endpoint, so `SearchBar` AST mode can surface `qianji-studio/docs` without a dedicated secondary API.
+- Configured doc roots now contribute Markdown heading and task nodes to this endpoint, so `ZenSearch` AST mode can surface `qianji-studio/docs` without a dedicated secondary API.
 - When multiple projects expose the same root label such as `docs`, the studio path contract now resolves them as `project/root/...` instead of numeric aliases such as `docs-2/...`.
 - Property drawers are also indexed into this endpoint now, including entries such as `:ID:`, relation attributes, and `:OBSERVE:` code-observation directives, so Markdown AST search can bridge documentation metadata and code-facing observations.
 
 Frontend consumers:
 
-- `SearchBar` AST mode
-- `SearchBar` all mode
+- `ZenSearch` AST mode
+- `ZenSearch` all mode
 
 ### `GET /api/search/definition?q=<query>&path=<path>&line=<n>`
 
@@ -197,7 +197,7 @@ Typical purpose:
 
 Frontend consumers:
 
-- `SearchBar` `Definition` action
+- `ZenSearch` `Definition` action
 
 Notes:
 
@@ -212,8 +212,8 @@ Typical purpose:
 
 Frontend consumers:
 
-- `SearchBar` references mode
-- `SearchBar` all mode
+- `ZenSearch` references mode
+- `ZenSearch` all mode
 - `Refs` action source selection
 
 ## Cookbook Rule

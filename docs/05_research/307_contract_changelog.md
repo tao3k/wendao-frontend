@@ -21,7 +21,7 @@ Backend change:
 
 Frontend impact:
 
-- `SearchBar` `Definition` action now resolves through a dedicated backend contract.
+- `ZenSearch` `Definition` action now resolves through a dedicated backend contract.
 - Documentation now records `Definition` as a native backend contract with direct endpoint binding.
 
 ### Added snapshot-backed Wendao Studio contract coverage
@@ -43,7 +43,7 @@ Backend change:
 
 Frontend impact:
 
-- Added `Symbols` scope to `SearchBar`
+- Added `Symbols` scope to `ZenSearch`
 - Mixed symbol hits into the `All` search surface
 
 ### Added AST definition search
@@ -54,7 +54,7 @@ Backend change:
 
 Frontend impact:
 
-- Added `AST` scope to `SearchBar`
+- Added `AST` scope to `ZenSearch`
 - Enabled definition-oriented source navigation
 
 ### Added references search
@@ -65,7 +65,7 @@ Backend change:
 
 Frontend impact:
 
-- Added `References` scope to `SearchBar`
+- Added `References` scope to `ZenSearch`
 - Enabled references-oriented result actions and source usage navigation
 
 ### Unified selection entry points

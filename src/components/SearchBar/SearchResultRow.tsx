@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { buildCodeMetaPills, resolveHierarchyHint } from './searchResultMetadata';
+import { canOpenGraphForSearchResult } from './searchResultNormalization';
 import type { SearchBarCopy, SearchResult } from './types';
 import { SkepticBadge } from './SkepticBadge';
 import { SaliencyIndicator } from './SaliencyIndicator';
@@ -16,9 +17,11 @@ interface SearchResultRowProps {
   previewExpanded: boolean;
   canOpenReferences: boolean;
   canOpenGraph: boolean;
+  openOnSelect?: boolean;
   renderIcon: (docType?: string) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onHover: () => void;
+  onSelect: (result: SearchResult, event: React.MouseEvent<HTMLDivElement>) => void;
   onOpen: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
   onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenReferences: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -37,9 +40,11 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
   previewExpanded,
   canOpenReferences,
   canOpenGraph,
+  openOnSelect = true,
   renderIcon,
   renderTitle,
   onHover,
+  onSelect,
   onOpen,
   onOpenDefinition,
   onOpenReferences,
@@ -50,11 +55,17 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
   const displayPath = isCodeResultRow && result.codeRepo ? `${result.codeRepo} > ${result.path}` : result.path;
   const codeMetaPills = isCodeResultRow ? buildCodeMetaPills(result, lineRange) : [];
   const hierarchyHint = isCodeResultRow ? resolveHierarchyHint(result) : null;
+  const graphActionAvailable = canOpenGraph && canOpenGraphForSearchResult(result);
 
   return (
     <div
       className={`search-result ${isSelected ? 'selected' : ''} ${isCodeResultRow ? 'search-result-code' : ''}`}
-      onClick={(event) => onOpen(result, event)}
+      onClick={(event) => {
+        onSelect(result, event);
+        if (openOnSelect) {
+          onOpen(result, event);
+        }
+      }}
       onMouseEnter={onHover}
     >
       <div className="search-result-main">
@@ -151,15 +162,16 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
           >
             {copy.refs}
           </button>
-          <button
-            type="button"
-            className="search-result-action"
-            onClick={(event) => onOpenGraph(result, event)}
-            disabled={!canOpenGraph}
-            title={canOpenGraph ? copy.openInGraph : copy.graphUnavailable}
-          >
-            {copy.graph}
-          </button>
+          {graphActionAvailable && (
+            <button
+              type="button"
+              className="search-result-action"
+              onClick={(event) => onOpenGraph(result, event)}
+              title={copy.openInGraph}
+            >
+              {copy.graph}
+            </button>
+          )}
         </div>
       </div>
     </div>

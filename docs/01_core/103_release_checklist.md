@@ -49,8 +49,10 @@ direnv exec . env INSTA_UPDATE=always cargo test -p xiuxian-wendao gateway::stud
 Run the current high-value targeted suite:
 
 ```bash
-direnv exec . npm test -- src/App.test.tsx src/components/panels/MainView/MainView.test.tsx src/components/panels/GraphView/__tests__/GraphView.test.tsx src/components/SearchBar/__tests__/SearchBar.test.tsx src/components/panels/DirectReader/DirectReader.test.tsx
+direnv exec . npm test -- src/App.test.tsx src/components/ZenSearch/__tests__/ZenSearchWindow.test.tsx src/components/ZenSearch/__tests__/ZenSearchLayout.test.tsx src/components/ZenSearch/__tests__/ZenSearchWorkspace.test.tsx src/components/ZenSearch/__tests__/ZenSearchPreviewPane.test.tsx src/components/panels/MainView/MainView.test.tsx src/components/panels/GraphView/__tests__/GraphView.test.tsx src/components/SearchBar/__tests__/SearchBar.test.tsx src/components/panels/DirectReader/DirectReader.test.tsx
 ```
+
+Zen Search is the primary user-facing target in this command; `SearchBar` remains a compatibility coverage target only.
 
 ## Documentation Sync
 

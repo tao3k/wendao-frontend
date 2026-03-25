@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, Sparkles, X } from 'lucide-react';
 import type { SearchBarCopy, UiLocale } from './types';
 
 interface SearchInputHeaderProps {
@@ -48,21 +48,14 @@ export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
       />
       <button
         type="button"
-        className={`search-toolbar-btn ${showSuggestions ? 'active' : ''}`}
+        className={`search-toolbar-btn search-toolbar-btn-icon ${showSuggestions ? 'active' : ''}`}
         onClick={onToggleSuggestions}
         title={copy.toggleSuggestions}
         aria-pressed={showSuggestions}
         aria-label={copy.toggleSuggestions}
       >
-        <span className="search-toolbar-btn-label">{copy.suggestions}</span>
-        <span className="search-suggestions-toggle">
-          <span className="search-suggestions-toggle-track">
-            <span className={`search-suggestions-toggle-knob ${showSuggestions ? 'on' : 'off'}`} />
-          </span>
-          <span className={`search-toolbar-btn-state ${showSuggestions ? 'active' : 'inactive'}`}>
-            {showSuggestions ? (locale === 'zh' ? '开' : 'ON') : locale === 'zh' ? '关' : 'OFF'}
-          </span>
-        </span>
+        <Sparkles size={14} className="search-toolbar-btn-icon-symbol" aria-hidden="true" />
+        <span className={`search-toolbar-btn-indicator ${showSuggestions ? 'active' : 'inactive'}`} aria-hidden="true" />
       </button>
       <span className={`search-loading ${isLoading ? 'is-visible' : ''}`}>{copy.searching}</span>
       <button className="search-close" onClick={onClose}>

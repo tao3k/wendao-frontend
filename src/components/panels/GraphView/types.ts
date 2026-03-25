@@ -26,6 +26,8 @@ export interface GraphViewProps {
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   /** Called when graph runtime status changes */
   onRuntimeStatusChange?: (status: GraphRuntimeStatus | null) => void;
+  /** Called when the requested center node no longer exists in the graph index. */
+  onCenterNodeInvalid?: (nodeId: string) => void;
   /** Graph traversal options */
   options?: {
     direction?: 'incoming' | 'outgoing' | 'both';

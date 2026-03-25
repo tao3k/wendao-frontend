@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react';
-import { DirectReader } from './mainViewLazyPanels';
+import React from 'react';
+import { DirectReader } from '../DirectReader';
 import type { MainViewSelectedFile } from './mainViewProps';
 import type { MainViewLocale } from './mainViewTypes';
 
@@ -19,21 +19,22 @@ export function MainViewContentPanel({
   onBiLinkClick,
 }: MainViewContentPanelProps): React.ReactElement {
   const hasSelectedContent = selectedFile?.content !== undefined;
+  const isLoadingSelectedFile = Boolean(selectedFile && selectedFile.content === undefined);
 
   return (
     <div className="main-view-content-raw">
       {hasSelectedContent ? (
-        <Suspense fallback={panelLoadingFallback}>
-          <DirectReader
-            content={selectedFile.content}
-            path={selectedFile.path}
-            locale={locale}
-            line={selectedFile.line}
-            lineEnd={selectedFile.lineEnd}
-            column={selectedFile.column}
-            onBiLinkClick={onBiLinkClick}
-          />
-        </Suspense>
+        <DirectReader
+          content={selectedFile.content}
+          path={selectedFile.path}
+          locale={locale}
+          line={selectedFile.line}
+          lineEnd={selectedFile.lineEnd}
+          column={selectedFile.column}
+          onBiLinkClick={onBiLinkClick}
+        />
+      ) : isLoadingSelectedFile ? (
+        panelLoadingFallback
       ) : (
         <div className="no-file-selected">{noContentFile}</div>
       )}

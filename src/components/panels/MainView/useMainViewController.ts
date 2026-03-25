@@ -6,7 +6,7 @@ import type { MainViewTab } from './mainViewTypes';
 
 interface UseMainViewControllerParams {
   requestedTab?: MainViewRequestedTab | null;
-  selectedFilePath?: string | null;
+  graphCenterNodeId?: string | null;
   initialTab?: MainViewTab;
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   onGraphRuntimeStatusChange?: (status: RuntimeStatus | null) => void;
@@ -22,7 +22,7 @@ interface UseMainViewControllerResult {
 
 export function useMainViewController({
   requestedTab,
-  selectedFilePath,
+  graphCenterNodeId,
   initialTab = 'diagram',
   onSidebarSummaryChange,
   onGraphRuntimeStatusChange,
@@ -52,13 +52,13 @@ export function useMainViewController({
   }, [activeTab]);
 
   const isGraphTabActive = activeTab === 'graph';
-  const graphCenterNodeId = isGraphTabActive ? selectedFilePath ?? null : null;
+  const resolvedGraphCenterNodeId = isGraphTabActive ? graphCenterNodeId ?? null : null;
 
   return {
     activeTab,
     setActiveTab,
     diagramFocusEpoch,
     isGraphTabActive,
-    graphCenterNodeId,
+    graphCenterNodeId: resolvedGraphCenterNodeId,
   };
 }

@@ -23,8 +23,8 @@ const CODE_FILTER_PREFIX_BY_KEY: Record<keyof SearchFilters, string> = {
 };
 
 const CODE_FILTER_DEFAULT_VALUES: Record<keyof SearchFilters, string[]> = {
-  language: ['julia', 'rust', 'python', 'typescript', 'go'],
-  kind: ['function', 'method', 'struct', 'module', 'class'],
+  language: [],
+  kind: [],
   repo: [],
   path: [],
 };
@@ -233,7 +233,8 @@ export function buildActiveCodeFilterEntries(filters: SearchFilters): Array<{ ke
 }
 
 export function buildCodeQuickExampleTokens(catalog: SearchFilters): string[] {
-  const languageToken = `lang:${catalog.language[0] || 'julia'}`;
+  const preferredLanguage = catalog.language.find((value) => value === 'julia') || catalog.language[0] || 'julia';
+  const languageToken = `lang:${preferredLanguage}`;
   const kindToken = `kind:${catalog.kind[0] || 'function'}`;
   const repoToken = `repo:${catalog.repo[0] || 'xiuxian-wendao'}`;
   const pathToken = `path:${catalog.path.find((value) => value.includes('/')) || catalog.path[0] || 'src/'}`;

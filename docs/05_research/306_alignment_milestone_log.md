@@ -69,7 +69,7 @@ Outcome:
 Completed:
 
 - `FileTree` selection
-- `SearchBar` open actions
+- `ZenSearch` open actions
 - `GraphView` node clicks
 
 Outcome:
@@ -131,7 +131,7 @@ Completed:
 
 - `/api/search/definition`
 - snapshot-backed definition payload
-- native `SearchBar` definition action
+- native `ZenSearch` definition action
 
 Outcome:
 

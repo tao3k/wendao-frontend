@@ -1,0 +1,16 @@
+.code-syntax-highlighter {
+  display: inline;
+  white-space: pre;
+  font: inherit;
+  color: inherit;
+  tab-size: 2;
+  -moz-tab-size: 2;
+}
+
+.code-syntax-highlighter__token {
+  white-space: pre;
+}
+
+.code-syntax-highlighter--plain {
+  color: inherit;
+}

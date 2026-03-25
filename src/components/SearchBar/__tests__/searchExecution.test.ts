@@ -1,11 +1,28 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../../api';
 import { normalizeCodeSearchHit, normalizeKnowledgeHit } from '../searchResultNormalization';
 import { executeSearchQuery } from '../searchExecution';
 import { dedupeSearchResults } from '../searchResultIdentity';
+import { resetRepoIndexPriorityForTest } from '../../repoIndexPriority';
 
 describe('searchExecution repo intelligence routing', () => {
+  beforeEach(() => {
+    resetRepoIndexPriorityForTest();
+    vi.spyOn(api, 'enqueueRepoIndex').mockResolvedValue({
+      total: 0,
+      queued: 0,
+      checking: 0,
+      syncing: 0,
+      indexing: 0,
+      ready: 0,
+      unsupported: 0,
+      failed: 0,
+      repos: [],
+    });
+  });
+
   afterEach(() => {
+    resetRepoIndexPriorityForTest();
     vi.restoreAllMocks();
   });
 
@@ -104,6 +121,7 @@ describe('searchExecution repo intelligence routing', () => {
     expect(api.searchRepoSymbols).toHaveBeenCalledWith('gateway-sync', 'solve', 10);
     expect(api.searchRepoModules).toHaveBeenCalledWith('gateway-sync', 'solve', 10);
     expect(api.searchRepoExamples).toHaveBeenCalledWith('gateway-sync', 'solve', 10);
+    expect(api.enqueueRepoIndex).toHaveBeenCalledWith({ repo: 'gateway-sync' });
     expect(api.searchKnowledge).toHaveBeenCalledWith('solve', 10, {
       intent: 'code_search',
       repo: 'gateway-sync',
@@ -211,6 +229,7 @@ describe('searchExecution repo intelligence routing', () => {
     expect(astSpy).not.toHaveBeenCalled();
     expect(referenceSpy).not.toHaveBeenCalled();
     expect(repoSpy).not.toHaveBeenCalled();
+    expect(api.enqueueRepoIndex).not.toHaveBeenCalled();
     expect(result.meta.selectedMode).toBe('code_search');
     expect(result.meta.searchMode).toBe('code_search');
     expect(result.meta.intent).toBe('code_search');
@@ -522,5 +541,53 @@ describe('searchExecution repo intelligence routing', () => {
     expect(results).toHaveLength(1);
     expect(results[0]?.category).toBe('symbol');
     expect(results[0]?.score).toBe(0.92);
+  });
+
+  it('surfaces partial runtime warnings in all mode when a semantic branch fails', async () => {
+    const knowledgeSpy = vi.spyOn(api, 'searchKnowledge').mockResolvedValue({
+      query: 'context',
+      hitCount: 1,
+      hits: [
+        {
+          stem: 'Context',
+          title: 'Context',
+          path: '/knowledge/context.md',
+          docType: 'knowledge',
+          tags: [],
+          score: 0.95,
+          bestSection: 'Working context',
+          matchReason: 'Knowledge note',
+        },
+      ],
+      selectedMode: 'hybrid',
+      searchMode: 'hybrid',
+      intent: 'hybrid_search',
+      intentConfidence: 0.8,
+    });
+    vi.spyOn(api, 'searchAst').mockRejectedValue(new Error('AST unavailable'));
+    vi.spyOn(api, 'searchReferences').mockResolvedValue({
+      query: 'context',
+      hitCount: 0,
+      selectedScope: 'references',
+      hits: [],
+    });
+    vi.spyOn(api, 'searchSymbols').mockResolvedValue({
+      query: 'context',
+      hitCount: 0,
+      selectedScope: 'project',
+      hits: [],
+    });
+    vi.spyOn(api, 'searchAttachments').mockResolvedValue({
+      query: 'context',
+      hitCount: 0,
+      selectedScope: 'attachments',
+      hits: [],
+    });
+
+    const result = await executeSearchQuery('context', 'all');
+
+    expect(knowledgeSpy).toHaveBeenCalledWith('context', 10, { intent: 'hybrid_search' });
+    expect(result.meta.hitCount).toBe(1);
+    expect(result.meta.runtimeWarning).toContain('Partial search results: AST unavailable');
   });
 });

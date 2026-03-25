@@ -204,4 +204,71 @@ describe('PropertyEditor', () => {
 
     expect(screen.getByText('No relationship data available')).toBeInTheDocument();
   });
+
+  it('surfaces the densest non-core graph layer by default when nothing is hovered', () => {
+    const { container } = render(
+      <PropertyEditor
+        node={null}
+        graphSummary={{
+          totalNodes: 12,
+          totalLinks: 9,
+          hoveredLayer: null,
+          layerSummaries: [
+            { layer: 0, count: 1 },
+            { layer: 1, count: 4 },
+            { layer: 2, count: 7 },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Graph Summary')).toBeInTheDocument();
+    expect(container.textContent).toContain('Ring 2');
+    expect(container.textContent).toContain('12');
+    expect(container.textContent).toContain('9');
+  });
+
+  it('keeps the hovered layer as the active graph insight focus', () => {
+    const { container } = render(
+      <PropertyEditor
+        node={null}
+        graphSummary={{
+          totalNodes: 12,
+          totalLinks: 9,
+          hoveredLayer: 1,
+          layerSummaries: [
+            { layer: 0, count: 1 },
+            { layer: 1, count: 4 },
+            { layer: 2, count: 7 },
+          ],
+        }}
+      />
+    );
+
+    expect(container.textContent).toContain('Ring 1');
+  });
+
+  it('derives total nodes from layer summaries when the summary total is under-reported', () => {
+    const { container } = render(
+      <PropertyEditor
+        node={null}
+        graphSummary={{
+          totalNodes: 1,
+          totalLinks: 9,
+          hoveredLayer: null,
+          layerSummaries: [
+            { layer: 0, count: 1 },
+            { layer: 1, count: 4 },
+            { layer: 2, count: 7 },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Graph Summary')).toBeInTheDocument();
+    expect(
+      screen.getByText((_, node) => node?.textContent === '12 nodes / 9 links')
+    ).toBeInTheDocument();
+    expect(container.textContent).toContain('Total Nodes12');
+  });
 });

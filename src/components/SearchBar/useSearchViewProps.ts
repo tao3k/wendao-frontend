@@ -4,22 +4,20 @@ import type {
   Dispatch,
   KeyboardEvent,
   MouseEvent,
-  ReactNode,
   RefObject,
   SetStateAction,
 } from 'react';
 import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
 import { SearchResultsPanel } from './SearchResultsPanel';
 import { buildSearchResultsPanelProps, buildSearchShellProps } from './searchBarPanelPropsBuilder';
+import type { SearchBarControllerShellProps } from './searchBarControllerTypes';
 import type { SearchMeta } from './searchExecution';
 import type { ConfidenceTone } from './searchStateUtils';
 import type { SearchResultSection } from './searchResultSections';
-import { SearchShell } from './SearchShell';
 import type { SearchBarCopy, SearchResult, SearchScope, SearchSort, UiLocale } from './types';
 import type { RepoOverviewStatusSnapshot } from './useRepoOverviewStatus';
 import type { RepoSyncStatusSnapshot } from './useRepoSyncStatus';
 
-type SearchShellViewProps = Omit<ComponentProps<typeof SearchShell>, 'children'>;
 type SearchResultsPanelViewProps = ComponentProps<typeof SearchResultsPanel>;
 
 interface UseSearchViewStateParams {
@@ -46,9 +44,8 @@ interface UseSearchViewStateParams {
   canOpenReferences: boolean;
   canOpenGraph: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
-  renderIcon: (docType?: string) => ReactNode;
-  renderTitle: (text: string, query: string) => ReactNode;
-  isDrawerOpen?: boolean;
+  renderIcon: (docType?: string) => React.ReactNode;
+  renderTitle: (text: string, query: string) => React.ReactNode;
 }
 
 interface UseSearchViewActionsParams {
@@ -69,7 +66,6 @@ interface UseSearchViewActionsParams {
   onOpenGraph: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void;
   onTogglePreview: (result: SearchResult) => void;
   onPreview: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void;
-  renderDrawer?: () => ReactNode;
 }
 
 interface UseSearchViewPropsParams {
@@ -104,7 +100,6 @@ export function useSearchViewProps({
     isResultPreviewExpanded,
     renderIcon,
     renderTitle,
-    isDrawerOpen,
   },
   actions: {
     onRestoreFallbackQuery,
@@ -124,10 +119,9 @@ export function useSearchViewProps({
     onOpenGraph,
     onTogglePreview,
     onPreview,
-    renderDrawer,
   },
 }: UseSearchViewPropsParams): {
-  searchShellProps: SearchShellViewProps;
+  searchShellProps: SearchBarControllerShellProps;
   searchResultsPanelProps: SearchResultsPanelViewProps;
 } {
   return useMemo(() => {
@@ -158,8 +152,6 @@ export function useSearchViewProps({
       onCompositionEnd,
       onScopeChange,
       onSortModeChange,
-      isDrawerOpen,
-      renderDrawer,
     });
 
     const searchResultsPanelProps = buildSearchResultsPanelProps({
@@ -230,8 +222,6 @@ export function useSearchViewProps({
     sortMode,
     suggestionCount,
     visibleSections,
-    isDrawerOpen,
     onPreview,
-    renderDrawer,
   ]);
 }

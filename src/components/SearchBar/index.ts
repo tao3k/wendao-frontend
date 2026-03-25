@@ -1,12 +1,10 @@
 export { SearchBar } from './SearchBar';
-export { SearchBarModalContent } from './SearchBarModalContent';
 export { useSearchBarController } from './useSearchBarController';
 export { useSearchBarControllerState } from './useSearchBarControllerState';
 export {
   buildSearchBarInteractionProps,
   createSearchBarModalClickHandler,
 } from './searchBarInteractionPropsBuilder';
-export { buildSearchBarModalContentProps } from './searchBarModalContentProps';
 export { assembleSearchBarControllerResult } from './searchBarControllerAssembler';
 export { buildSearchDataFlowParams } from './searchDataFlowParamsBuilder';
 export {
@@ -19,14 +17,12 @@ export {
 export type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerModalProps,
-  SearchBarControllerOverlayProps,
   SearchBarControllerResult,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
   UseSearchBarControllerParams,
 } from './searchBarControllerTypes';
-export type { SearchBarModalContentProps } from './searchBarModalContentProps';
 export type { UseSearchBarViewModelParams, UseSearchBarViewModelResult } from './searchBarViewModelTypes';
 export type {
   SearchBarInteractionState,
@@ -44,3 +40,4 @@ export {
   buildSearchBarControllerResult,
   buildSuggestionsPanelProps,
 } from './searchBarPanelPropsBuilder';
+export { ZenSearchWindow } from './ZenSearchWindow';

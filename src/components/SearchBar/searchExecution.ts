@@ -19,6 +19,7 @@ import {
 import { executeRepoIntelligenceCodeSearch } from './repoIntelligenceSearchExecution';
 import { formatSearchMode } from './searchPresentation';
 import { dedupeSearchResults } from './searchResultIdentity';
+import { requestRepoIndexPriority } from '../repoIndexPriority';
 import type { SearchResult } from './types';
 
 export type SearchExecutionMode = 'all' | 'knowledge' | 'symbol' | 'ast' | 'reference' | 'attachment' | 'code';
@@ -98,6 +99,7 @@ export async function executeSearchQuery(
   if (mode === 'code') {
     const repoFilter = options.repoFilter?.trim();
     if (repoFilter) {
+      requestRepoIndexPriority(repoFilter);
       const repoFacet = options.repoFacet ?? null;
       const [repoIntelligenceSettled, codeIntentSettled] = await Promise.allSettled([
         executeRepoIntelligenceCodeSearch(queryToSearch, repoFilter, {

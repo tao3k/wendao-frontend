@@ -1,7 +1,11 @@
 import { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { api } from '../../api';
-import { resolveDefinitionSelection, toSearchSelection } from './searchResultNormalization';
+import {
+  canOpenGraphForSearchResult,
+  resolveDefinitionSelection,
+  toSearchSelection,
+} from './searchResultNormalization';
 import type { SearchResult, SearchSelection } from './types';
 
 interface UseSearchResultActionsParams {
@@ -45,6 +49,9 @@ export function useSearchResultActions({
     (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
+      if (!canOpenGraphForSearchResult(result)) {
+        return;
+      }
       onGraphResultSelect?.(toSearchSelection(result));
     },
     [onGraphResultSelect]

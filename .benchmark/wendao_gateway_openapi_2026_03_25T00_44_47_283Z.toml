@@ -1,0 +1,1487 @@
+schema_version = "2"
+generated_at = "2026-03-25T00:44:47.283Z"
+gateway_url = "http://127.0.0.1:9517"
+openapi_path = "/Users/guangtao/projects/xiuxian-artisan-workshop/packages/rust/crates/xiuxian-wendao/resources/openapi/wendao_gateway.openapi.json"
+workspace_config = "/Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao-frontend/wendao.toml"
+repo_count = 177
+openapi_operation_count = 64
+
+[settings]
+concurrency = 6
+limit = 20
+timeout_ms = 30000
+min_repo_count = 150
+stress_concurrency = 96
+stress_duration_ms = 60000
+stress_max_requests = 12000
+
+[coverage_summary]
+total_operations = 64
+benchmark_operations = 4
+smoke_operations = 58
+skipped_operations = 5
+passed_operations = 58
+failed_operations = 1
+
+[discovery]
+ready_repo_id = "ADTypes.jl"
+repo_query = "ADTypes"
+markdown_file_path = "README.md"
+vfs_root_path = "ADTypes.jl"
+page_id = "repo:ADTypes.jl:projection:explanation:doc:repo:ADTypes.jl:doc:src/ADTypes.jl#module:ADTypes"
+node_id = "explanation/adtypes-d895bfadba04#adtypes"
+gap_id = "repo:ADTypes.jl:projection-gap:symbol_reference_without_documentation:repo:ADTypes.jl:symbol:ADTypes.AutoChainRules"
+gap_kind = "symbol_reference_without_documentation"
+page_kind = "explanation"
+family_kind = "reference"
+topology_node_id = "kernel/docs/01_core/101_studio_surface_protocol.md"
+
+[aggregate_repo_index_status]
+suite = "repo_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/repo/index/status"
+elapsed_ms = 4.09
+ok = true
+status = 200
+attempts = 1
+total = 177
+ready = 5
+
+[repo_index_snapshot]
+total = 177
+active = 3
+queued = 167
+checking = 0
+syncing = 1
+indexing = 2
+ready = 5
+unsupported = 0
+failed = 2
+target_concurrency = 3
+max_concurrency = 15
+sync_concurrency_limit = 1
+current_repo_id = "ComponentArrays.jl"
+
+[aggregate_search_index_status]
+suite = "search_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/search/index/status"
+elapsed_ms = 50.04
+ok = true
+status = 200
+attempts = 1
+total = 6
+ready = 0
+
+[search_index_snapshot]
+total = 6
+idle = 4
+indexing = 2
+ready = 0
+degraded = 0
+failed = 0
+compaction_pending = 0
+status_reason_code = "repo_index_failed"
+status_reason_severity = "warning"
+status_reason_action = "inspect_repo_sync"
+affected_corpus_count = 2
+readable_corpus_count = 2
+blocking_corpus_count = 0
+
+[[summaries]]
+suite = "repo_index_status"
+requests = 178
+ok = 178
+failed = 0
+avg_ms = 0.44
+p50_ms = 0.31
+p95_ms = 1.28
+max_ms = 4.09
+
+[[summaries]]
+suite = "repo_sync_status"
+requests = 177
+ok = 177
+failed = 0
+avg_ms = 1.97
+p50_ms = 1.96
+p95_ms = 2.43
+max_ms = 2.76
+
+[[summaries]]
+suite = "code_search"
+requests = 177
+ok = 177
+failed = 0
+avg_ms = 546.54
+p50_ms = 567.18
+p95_ms = 743.98
+max_ms = 795.80
+non_empty_hit_count = 42
+
+[[summaries]]
+suite = "search_index_status"
+requests = 1
+ok = 1
+failed = 0
+avg_ms = 50.04
+p50_ms = 50.04
+p95_ms = 50.04
+max_ms = 50.04
+
+[[summaries]]
+suite = "openapi_smoke"
+requests = 55
+ok = 54
+failed = 1
+avg_ms = 1852.40
+p50_ms = 1980.54
+p95_ms = 4084.25
+max_ms = 4581.24
+non_empty_hit_count = 15
+
+[[stress_summaries]]
+suite = "stress_code_search"
+configured_duration_ms = 60000
+actual_duration_ms = 78307.58
+concurrency = 96
+max_requests = 12000
+requests = 288
+ok = 200
+failed = 88
+success_rate = 0.69
+throughput_rps = 3.68
+avg_ms = 25741.40
+p50_ms = 26863.30
+p95_ms = 30001.73
+p99_ms = 30002.05
+max_ms = 30004.47
+capped = false
+non_empty_hit_count = 73
+
+[[stress_summaries]]
+suite = "stress_mixed_user_hotset"
+configured_duration_ms = 60000
+actual_duration_ms = 65721.86
+concurrency = 96
+max_requests = 12000
+requests = 757
+ok = 215
+failed = 542
+success_rate = 0.28
+throughput_rps = 11.52
+avg_ms = 7727.63
+p50_ms = 7.03
+p95_ms = 30010.26
+p99_ms = 30048.29
+max_ms = 30063.86
+capped = false
+non_empty_hit_count = 15
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/analysis/code-ast"
+operation_id = "studioCodeAstAnalysis"
+mode = "smoke"
+status = "skipped"
+skip_reason = "missing discovery seed: repo_file_path"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/analysis/markdown"
+operation_id = "studioMarkdownAnalysis"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioMarkdownAnalysis"
+url = "http://127.0.0.1:9517/api/analysis/markdown?path=README.md"
+elapsed_ms = 2.02
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-cluster"
+operation_id = "studioDocsFamilyCluster"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilyCluster"
+url = "http://127.0.0.1:9517/api/docs/family-cluster?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&kind=explanation&limit=5"
+elapsed_ms = 4084.25
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-context"
+operation_id = "studioDocsFamilyContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilyContext"
+url = "http://127.0.0.1:9517/api/docs/family-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&per_kind_limit=3"
+elapsed_ms = 4581.24
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-search"
+operation_id = "studioDocsFamilySearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilySearch"
+url = "http://127.0.0.1:9517/api/docs/family-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5&per_kind_limit=3"
+elapsed_ms = 1529.68
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/navigation-search"
+operation_id = "studioDocsNavigationSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsNavigationSearch"
+url = "http://127.0.0.1:9517/api/docs/navigation-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&family_kind=reference&limit=5&related_limit=5&family_limit=3"
+elapsed_ms = 4285.71
+http_status = 200
+attempts = 2
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/navigation"
+operation_id = "studioDocsNavigation"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsNavigation"
+url = "http://127.0.0.1:9517/api/docs/navigation?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 4169.30
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/page"
+operation_id = "studioDocsPage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPage"
+url = "http://127.0.0.1:9517/api/docs/page?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 3074.17
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-item"
+operation_id = "studioDocsPlannerItem"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerItem"
+url = "http://127.0.0.1:9517/api/docs/planner-item?repo=ADTypes.jl&gap_id=repo%3AADTypes.jl%3Aprojection-gap%3Asymbol_reference_without_documentation%3Arepo%3AADTypes.jl%3Asymbol%3AADTypes.AutoChainRules&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 3014.40
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-queue"
+operation_id = "studioDocsPlannerQueue"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerQueue"
+url = "http://127.0.0.1:9517/api/docs/planner-queue?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&per_kind_limit=3"
+elapsed_ms = 2901.58
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-rank"
+operation_id = "studioDocsPlannerRank"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerRank"
+url = "http://127.0.0.1:9517/api/docs/planner-rank?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&limit=5"
+elapsed_ms = 2835.41
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-search"
+operation_id = "studioDocsPlannerSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerSearch"
+url = "http://127.0.0.1:9517/api/docs/planner-search?repo=ADTypes.jl&query=ADTypes&gap_kind=symbol_reference_without_documentation&page_kind=explanation&limit=5"
+elapsed_ms = 1862.88
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-workset"
+operation_id = "studioDocsPlannerWorkset"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerWorkset"
+url = "http://127.0.0.1:9517/api/docs/planner-workset?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&per_kind_limit=3&limit=5&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 1881.12
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/projected-gap-report"
+operation_id = "studioDocsProjectedGapReport"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsProjectedGapReport"
+url = "http://127.0.0.1:9517/api/docs/projected-gap-report?repo=ADTypes.jl"
+elapsed_ms = 1893.03
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval-context"
+operation_id = "studioDocsRetrievalContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrievalContext"
+url = "http://127.0.0.1:9517/api/docs/retrieval-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&related_limit=5"
+elapsed_ms = 1881.68
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval-hit"
+operation_id = "studioDocsRetrievalHit"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrievalHit"
+url = "http://127.0.0.1:9517/api/docs/retrieval-hit?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 1903.91
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval"
+operation_id = "studioDocsRetrieval"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrieval"
+url = "http://127.0.0.1:9517/api/docs/retrieval?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1979.83
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/search"
+operation_id = "studioDocsSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsSearch"
+url = "http://127.0.0.1:9517/api/docs/search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1994.59
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/graph/neighbors/{id}"
+operation_id = "studioGraphNeighbors"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGraphNeighbors"
+url = "http://127.0.0.1:9517/api/graph/neighbors/kernel%2Fdocs%2F01_core%2F101_studio_surface_protocol.md"
+elapsed_ms = 256.67
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/health"
+operation_id = "gatewayHealth"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayHealth"
+url = "http://127.0.0.1:9517/api/health"
+elapsed_ms = 0.39
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/neighbors/{id}"
+operation_id = "studioNodeNeighbors"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioNodeNeighbors"
+url = "http://127.0.0.1:9517/api/neighbors/kernel%2Fdocs%2F01_core%2F101_studio_surface_protocol.md"
+elapsed_ms = 265.04
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/notify"
+operation_id = "gatewayNotifyStatus"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayNotifyStatus"
+url = "http://127.0.0.1:9517/api/notify"
+elapsed_ms = 0.38
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/doc-coverage"
+operation_id = "studioRepoDocCoverage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoDocCoverage"
+url = "http://127.0.0.1:9517/api/repo/doc-coverage?repo=ADTypes.jl"
+elapsed_ms = 2329.96
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/example-search"
+operation_id = "studioRepoExampleSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoExampleSearch"
+url = "http://127.0.0.1:9517/api/repo/example-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 2816.04
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/index/status"
+operation_id = "studioRepoIndexStatus"
+mode = "benchmark"
+status = "passed"
+suite = "repo_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/repo/index/status"
+elapsed_ms = 4.09
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "POST"
+path = "/api/repo/index"
+operation_id = "studioRepoIndexEnqueue"
+mode = "skip"
+status = "skipped"
+skip_reason = "mutating OpenAPI operation is intentionally skipped in live benchmark"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/module-search"
+operation_id = "studioRepoModuleSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoModuleSearch"
+url = "http://127.0.0.1:9517/api/repo/module-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 2734.01
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/overview"
+operation_id = "studioRepoOverview"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoOverview"
+url = "http://127.0.0.1:9517/api/repo/overview?repo=ADTypes.jl"
+elapsed_ms = 2746.89
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-gap-report"
+operation_id = "studioRepoProjectedGapReport"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedGapReport"
+url = "http://127.0.0.1:9517/api/repo/projected-gap-report?repo=ADTypes.jl"
+elapsed_ms = 1876.21
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-cluster"
+operation_id = "studioRepoProjectedPageFamilyCluster"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilyCluster"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-cluster?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&kind=explanation&limit=5"
+elapsed_ms = 2398.74
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-context"
+operation_id = "studioRepoProjectedPageFamilyContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilyContext"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&per_kind_limit=3"
+elapsed_ms = 3197.52
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-search"
+operation_id = "studioRepoProjectedPageFamilySearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilySearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5&per_kind_limit=3"
+elapsed_ms = 3210.62
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-node"
+operation_id = "studioRepoProjectedPageIndexNode"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexNode"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-node?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 3267.47
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-tree-search"
+operation_id = "studioRepoProjectedPageIndexTreeSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTreeSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-tree-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2731.40
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-tree"
+operation_id = "studioRepoProjectedPageIndexTree"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTree"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-tree?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 2406.67
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-trees"
+operation_id = "studioRepoProjectedPageIndexTrees"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTrees"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-trees?repo=ADTypes.jl"
+elapsed_ms = 2374.47
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-navigation-search"
+operation_id = "studioRepoProjectedPageNavigationSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageNavigationSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-navigation-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&family_kind=reference&limit=5&related_limit=5&family_limit=3"
+elapsed_ms = 2407.40
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-navigation"
+operation_id = "studioRepoProjectedPageNavigation"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageNavigation"
+url = "http://127.0.0.1:9517/api/repo/projected-page-navigation?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 2455.74
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-search"
+operation_id = "studioRepoProjectedPageSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1980.54
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page"
+operation_id = "studioRepoProjectedPage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPage"
+url = "http://127.0.0.1:9517/api/repo/projected-page?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 1975.03
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-pages"
+operation_id = "studioRepoProjectedPages"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPages"
+url = "http://127.0.0.1:9517/api/repo/projected-pages?repo=ADTypes.jl"
+elapsed_ms = 2814.27
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval-context"
+operation_id = "studioRepoProjectedRetrievalContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrievalContext"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&related_limit=5"
+elapsed_ms = 2773.16
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval-hit"
+operation_id = "studioRepoProjectedRetrievalHit"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrievalHit"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval-hit?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 2827.60
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval"
+operation_id = "studioRepoProjectedRetrieval"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrieval"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2876.11
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/symbol-search"
+operation_id = "studioRepoSymbolSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoSymbolSearch"
+url = "http://127.0.0.1:9517/api/repo/symbol-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 2411.96
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/sync"
+operation_id = "studioRepoSync"
+mode = "benchmark"
+status = "passed"
+suite = "repo_sync_status"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/repo/sync?repo=ADTypes.jl&mode=status"
+elapsed_ms = 1.88
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/ast"
+operation_id = "studioSearchAst"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAst"
+url = "http://127.0.0.1:9517/api/search/ast?q=ADTypes"
+elapsed_ms = 522.81
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/attachments"
+operation_id = "studioSearchAttachments"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAttachments"
+url = "http://127.0.0.1:9517/api/search/attachments?q=ADTypes&limit=5"
+elapsed_ms = 255.86
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/autocomplete"
+operation_id = "studioSearchAutocomplete"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAutocomplete"
+url = "http://127.0.0.1:9517/api/search/autocomplete?prefix=ADTypes"
+elapsed_ms = 7.40
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/definition"
+operation_id = "studioSearchDefinition"
+mode = "smoke"
+status = "failed"
+suite = "openapi_smoke"
+label = "studioSearchDefinition"
+url = "http://127.0.0.1:9517/api/search/definition?q=ADTypes"
+elapsed_ms = 15.52
+http_status = 404
+attempts = 1
+error = "{\"code\":\"NOT_FOUND\",\"message\":\"Definition not found\"}"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/index/status"
+operation_id = "studioSearchIndexStatus"
+mode = "benchmark"
+status = "passed"
+suite = "search_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/search/index/status"
+elapsed_ms = 50.04
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/intent"
+operation_id = "studioSearchKnowledgeIntent"
+mode = "benchmark"
+status = "passed"
+suite = "code_search"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ADTypes&limit=20"
+elapsed_ms = 346.76
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/references"
+operation_id = "studioSearchReferences"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchReferences"
+url = "http://127.0.0.1:9517/api/search/references?q=ADTypes"
+elapsed_ms = 30.63
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/symbols"
+operation_id = "studioSearchSymbols"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchSymbols"
+url = "http://127.0.0.1:9517/api/search/symbols?q=ADTypes"
+elapsed_ms = 1.02
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search"
+operation_id = "studioSearchKnowledge"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchKnowledge"
+url = "http://127.0.0.1:9517/api/search?q=ADTypes&intent=code_search&limit=5"
+elapsed_ms = 894.91
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/stats"
+operation_id = "gatewayStats"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayStats"
+url = "http://127.0.0.1:9517/api/stats"
+elapsed_ms = 0.26
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/topology/3d"
+operation_id = "studioTopology3d"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioTopology3d"
+url = "http://127.0.0.1:9517/api/topology/3d"
+elapsed_ms = 307.14
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/ui/capabilities"
+operation_id = "studioGetUiCapabilities"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGetUiCapabilities"
+url = "http://127.0.0.1:9517/api/ui/capabilities"
+elapsed_ms = 1.11
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/ui/config"
+operation_id = "studioGetUiConfig"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGetUiConfig"
+url = "http://127.0.0.1:9517/api/ui/config"
+elapsed_ms = 1.34
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "POST"
+path = "/api/ui/config"
+operation_id = "studioSetUiConfig"
+mode = "skip"
+status = "skipped"
+skip_reason = "mutating OpenAPI operation is intentionally skipped in live benchmark"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/{path}"
+operation_id = "studioVfsEntry"
+mode = "smoke"
+status = "skipped"
+skip_reason = "missing discovery seed: vfs_file_path"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/cat"
+operation_id = "studioVfsCat"
+mode = "smoke"
+status = "skipped"
+skip_reason = "missing discovery seed: vfs_file_path"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/scan"
+operation_id = "studioVfsScan"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsScan"
+url = "http://127.0.0.1:9517/api/vfs/scan"
+elapsed_ms = 760.06
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs"
+operation_id = "studioVfsRootEntries"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsRootEntries"
+url = "http://127.0.0.1:9517/api/vfs"
+elapsed_ms = 75.02
+http_status = 200
+attempts = 1
+
+[[failures]]
+suite = "openapi_smoke"
+label = "studioSearchDefinition"
+url = "http://127.0.0.1:9517/api/search/definition?q=ADTypes"
+elapsed_ms = 15.52
+ok = false
+status = 404
+attempts = 1
+error = "{\"code\":\"NOT_FOUND\",\"message\":\"Definition not found\"}"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ComponentArrays.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ComponentArrays&limit=10"
+elapsed_ms = 30004.47
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ConcreteStructs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ConcreteStructs&limit=10"
+elapsed_ms = 30000.36
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "Corleone.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=Corleone&limit=10"
+elapsed_ms = 30001.41
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "CurveFit.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=CurveFit&limit=10"
+elapsed_ms = 30001.73
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DASKR.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DASKR&limit=10"
+elapsed_ms = 30001.41
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DASSL.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DASSL&limit=10"
+elapsed_ms = 30001.74
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DEDataArrays.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DEDataArrays&limit=10"
+elapsed_ms = 30002.11
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DataCollocations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DataCollocations&limit=10"
+elapsed_ms = 30001.52
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DataDrivenDiffEq.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DataDrivenDiffEq&limit=10"
+elapsed_ms = 30001.61
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DataInterpolations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DataInterpolations&limit=10"
+elapsed_ms = 30001.83
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DataInterpolationsND.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DataInterpolationsND&limit=10"
+elapsed_ms = 30001.40
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DeepEquilibriumNetworks.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DeepEquilibriumNetworks&limit=10"
+elapsed_ms = 30000.34
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DelayDiffEq.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DelayDiffEq&limit=10"
+elapsed_ms = 30001.50
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqApproxFun.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqApproxFun&limit=10"
+elapsed_ms = 30001.15
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqBase.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqBase&limit=10"
+elapsed_ms = 30001.00
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqBayes.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqBayes&limit=10"
+elapsed_ms = 30001.78
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqCallbacks.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqCallbacks&limit=10"
+elapsed_ms = 30001.20
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDSL.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDSL&limit=10"
+elapsed_ms = 30001.73
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDevDocs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDevDocs&limit=10"
+elapsed_ms = 30000.61
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDevTools.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDevTools&limit=10"
+elapsed_ms = 30001.13
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDiagrams.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDiagrams&limit=10"
+elapsed_ms = 30002.05
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqDocs.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqDocs&limit=10"
+elapsed_ms = 30002.01
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqFinancial.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqFinancial&limit=10"
+elapsed_ms = 30000.48
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqFlux.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqFlux&limit=10"
+elapsed_ms = 30001.24
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqGPU.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqGPU&limit=10"
+elapsed_ms = 30001.90
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqIO.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqIO&limit=10"
+elapsed_ms = 30002.15
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqMonteCarlo.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqMonteCarlo&limit=10"
+elapsed_ms = 30001.01
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqNoiseProcess.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqNoiseProcess&limit=10"
+elapsed_ms = 30001.60
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqOnlineServer"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqOnlineServer&limit=10"
+elapsed_ms = 30001.11
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqOperators.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqOperators&limit=10"
+elapsed_ms = 30001.10
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqParamEstim.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqParamEstim&limit=10"
+elapsed_ms = 30001.46
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqPhysics.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqPhysics&limit=10"
+elapsed_ms = 30001.44
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqProblemLibrary.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqProblemLibrary&limit=10"
+elapsed_ms = 30001.47
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqPy.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqPy&limit=10"
+elapsed_ms = 30000.73
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DiffEqWebBase.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DiffEqWebBase&limit=10"
+elapsed_ms = 30000.12
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DifferenceEquations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DifferenceEquations&limit=10"
+elapsed_ms = 30001.43
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DifferentialEquations.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DifferentialEquations&limit=10"
+elapsed_ms = 30000.37
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "DimensionalPlotRecipes.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=DimensionalPlotRecipes&limit=10"
+elapsed_ms = 30000.76
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "EasyModelAnalysis.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=EasyModelAnalysis&limit=10"
+elapsed_ms = 30001.67
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "EllipsisNotation.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=EllipsisNotation&limit=10"
+elapsed_ms = 30001.41
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "Expmv.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=Expmv&limit=10"
+elapsed_ms = 29999.99
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "ExponentialUtilities.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ExponentialUtilities&limit=10"
+elapsed_ms = 29999.91
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FEniCS.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FEniCS&limit=10"
+elapsed_ms = 30001.62
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FastAlmostBandedMatrices.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FastAlmostBandedMatrices&limit=10"
+elapsed_ms = 30001.49
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FastPower.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FastPower&limit=10"
+elapsed_ms = 30000.96
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FastSolvers.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FastSolvers&limit=10"
+elapsed_ms = 30000.21
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FindFirstFunctions.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FindFirstFunctions&limit=10"
+elapsed_ms = 30001.09
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FiniteElementDiffEq.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FiniteElementDiffEq&limit=10"
+elapsed_ms = 30001.12
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"
+
+[[failures]]
+suite = "stress_code_search"
+label = "FiniteStateProjection.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=FiniteStateProjection&limit=10"
+elapsed_ms = 30001.06
+ok = false
+status = 0
+attempts = 1
+error = "request timed out after 30000ms"

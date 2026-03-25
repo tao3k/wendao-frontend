@@ -3,7 +3,17 @@ import type { SearchFilters } from './codeSearchUtils';
 import { isCodeSearchResult } from './searchResultNormalization';
 import type { SearchResult } from './types';
 
-export function useCodeFilterCatalog(results: SearchResult[]): SearchFilters {
+function normalizeCatalogValue(value?: string): string | null {
+  const normalized = value?.trim().toLowerCase();
+  return normalized ? normalized : null;
+}
+
+export function useCodeFilterCatalog(
+  results: SearchResult[],
+  supportedLanguages: string[] = [],
+  supportedRepos: string[] = [],
+  supportedKinds: string[] = []
+): SearchFilters {
   return useMemo<SearchFilters>(() => {
     const catalog: SearchFilters = {
       language: [],
@@ -20,12 +30,15 @@ export function useCodeFilterCatalog(results: SearchResult[]): SearchFilters {
       catalog[key].push(normalized);
     };
 
+    const addValues = (key: keyof SearchFilters, values: string[]) => {
+      values.forEach((value) => addValue(key, value));
+    };
+
     results.forEach((result) => {
       if (!isCodeSearchResult(result)) {
         return;
       }
 
-      addValue('language', result.codeLanguage);
       addValue('kind', result.codeKind);
       addValue('repo', result.codeRepo ?? result.projectName);
 
@@ -40,6 +53,10 @@ export function useCodeFilterCatalog(results: SearchResult[]): SearchFilters {
       addValue('path', normalizedPath);
     });
 
+    addValues('language', supportedLanguages);
+    addValues('repo', supportedRepos);
+    addValues('kind', supportedKinds);
+
     return catalog;
-  }, [results]);
+  }, [results, supportedLanguages, supportedRepos, supportedKinds]);
 }

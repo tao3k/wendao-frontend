@@ -11,13 +11,12 @@ import {
 } from './searchBarViewModelParamsBuilder';
 import { SEARCH_BAR_COPY } from './searchPresentation';
 import { getDocIcon, highlightMatch } from './searchRenderUtils';
+import { getSearchResultIdentity } from './searchResultIdentity';
 import { useSearchBarResetOnOpen } from './useSearchBarResetOnOpen';
 import { useSearchBarRepoSlice } from './useSearchBarRepoSlice';
 import { useSearchBarControllerState } from './useSearchBarControllerState';
 import { useSearchBarViewModel } from './useSearchBarViewModel';
 import { useSearchDataFlow } from './useSearchDataFlow';
-import { useDrawerState } from './useDrawerState';
-import { EntityDrawerContent } from './EntityDrawerContent';
 import type { SearchBarControllerResult, UseSearchBarControllerParams } from './searchBarControllerTypes';
 
 export function useSearchBarController({
@@ -55,16 +54,6 @@ export function useSearchBarController({
     debouncedQuery,
     debouncedAutocomplete,
   } = useSearchBarControllerState();
-
-  const {
-    isDrawerOpen,
-    drawerResult,
-    isDrawerLoading,
-    projectedTree,
-    drawerError,
-    openDrawer,
-    closeDrawer,
-  } = useDrawerState();
 
   const copy = SEARCH_BAR_COPY[locale];
   const inputRef = useRef<HTMLInputElement>(null);
@@ -171,44 +160,20 @@ export function useSearchBarController({
     setScope,
     onClose,
     onResultSelect,
-    onPreviewSelect: openDrawer,
+    onPreviewSelect: (result) => {
+      const targetIdentity = getSearchResultIdentity(result);
+      const previewIndex = visibleResults.findIndex(
+        (candidate) => getSearchResultIdentity(candidate) === targetIdentity
+      );
+      if (previewIndex >= 0) {
+        setSelectedIndex(previewIndex);
+      }
+    },
     onReferencesResultSelect,
     onGraphResultSelect,
     setIsLoading,
     setError,
   });
-
-  const renderDrawer = useCallback(() => {
-    if (!drawerResult) return null;
-    return (
-      <div className="search-drawer-content">
-        <div className="search-drawer-header">
-          <div className="search-drawer-title">{drawerResult.title || drawerResult.stem}</div>
-          <button className="search-drawer-close" onClick={closeDrawer}>&times;</button>
-        </div>
-        <div className="search-drawer-body">
-          {isDrawerLoading ? (
-            <div className="search-drawer-loading">
-              <div className="skeleton-item skeleton-title" />
-              <div className="skeleton-item skeleton-text" />
-              <div className="skeleton-item skeleton-text" />
-              <div className="skeleton-item skeleton-rect" />
-              <div className="skeleton-item skeleton-text" />
-            </div>
-          ) : drawerError ? (
-            <div className="search-drawer-error">{drawerError}</div>
-          ) : projectedTree ? (
-            <EntityDrawerContent 
-              tree={projectedTree} 
-              result={drawerResult} 
-            />
-          ) : (
-            <div className="search-drawer-empty">No detailed information available for this entity.</div>
-          )}
-        </div>
-      </div>
-    );
-  }, [drawerResult, closeDrawer, isDrawerLoading, drawerError, projectedTree]);
 
   const viewState = buildSearchBarViewState({
     inputRef,
@@ -235,7 +200,6 @@ export function useSearchBarController({
     canOpenGraph: Boolean(onGraphResultSelect),
     renderIcon: getDocIcon,
     renderTitle: highlightMatch,
-    isDrawerOpen,
   });
   const viewActions = buildSearchBarViewActions({
     onQueryChange: setQuery,
@@ -244,8 +208,15 @@ export function useSearchBarController({
     onScopeChange: setScope,
     onSortModeChange: setSortMode,
     setSelectedIndex,
-    onPreview: openDrawer,
-    renderDrawer,
+    onPreview: (result) => {
+      const targetIdentity = getSearchResultIdentity(result);
+      const previewIndex = visibleResults.findIndex(
+        (candidate) => getSearchResultIdentity(candidate) === targetIdentity
+      );
+      if (previewIndex >= 0) {
+        setSelectedIndex(previewIndex);
+      }
+    },
   });
 
   const {
@@ -268,7 +239,6 @@ export function useSearchBarController({
     })
   );
   const interactionProps = buildSearchBarInteractionProps({
-    onClose,
     onModalKeyDownCapture: handleModalKeyDown,
   });
 

@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { FileTree } from '../FileTree';
 import { resetConfig } from '../../../../config/loader';
+import { resetRepoIndexPriorityForTest } from '../../../repoIndexPriority';
 
 const originalFetch = global.fetch;
 
@@ -20,6 +21,8 @@ describe('FileTree', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetConfig();
+    resetRepoIndexPriorityForTest();
+    window.localStorage.clear();
     callOrder = [];
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -28,6 +31,8 @@ describe('FileTree', () => {
   afterEach(() => {
     global.fetch = originalFetch;
     resetConfig();
+    resetRepoIndexPriorityForTest();
+    window.localStorage.clear();
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
   });
@@ -121,6 +126,79 @@ describe('FileTree', () => {
     expect(callOrder.indexOf('scanVfs')).toBeGreaterThan(callOrder.indexOf('setUiConfig-failed'));
   });
 
+  it('prioritizes repo indexing when opening a repo-project group', async () => {
+    const enqueueBodies: string[] = [];
+    global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+        return {
+          ok: true,
+          text: async () => `[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+
+[link_graph.projects.sciml]
+url = "https://github.com/SciML/BaseModelica.jl"
+plugins = ["julia"]
+`,
+        } as Response;
+      }
+
+      if (url === '/api/ui/config' && options?.method === 'POST') {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+
+      if (url === '/api/repo/index' && options?.method === 'POST') {
+        enqueueBodies.push(String(options.body ?? ''));
+        return {
+          ok: true,
+          json: async () => ({
+            total: 1,
+            queued: 1,
+            checking: 0,
+            syncing: 0,
+            indexing: 0,
+            ready: 0,
+            unsupported: 0,
+            failed: 0,
+            repos: [],
+          }),
+        } as Response;
+      }
+
+      if (url === '/api/vfs/scan') {
+        return {
+          ok: true,
+          json: async () => ({
+            entries: [],
+            file_count: 0,
+            dir_count: 0,
+            scan_duration_ms: 0,
+          }),
+        } as Response;
+      }
+
+      return { ok: false, status: 404 } as Response;
+    }) as typeof fetch;
+
+    await act(async () => {
+      render(<FileTree onFileSelect={mockOnFileSelect} />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('sciml')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('sciml'));
+
+    await waitFor(() => {
+      expect(enqueueBodies).toContain(JSON.stringify({ repo: 'sciml' }));
+    });
+    expect(mockOnFileSelect).not.toHaveBeenCalled();
+  });
+
   it('does not rescan the VFS when expanding or collapsing folders', async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
@@ -179,6 +257,189 @@ describe('FileTree', () => {
 
     expect(callOrder.filter((entry) => entry === 'scanVfs')).toHaveLength(1);
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  it('derives unsupported layout summaries from repo index status payloads', async () => {
+    let statusCallCount = 0;
+    global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+        return {
+          ok: true,
+          text: async () => `[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+plugins = []
+
+[link_graph.projects.sciml]
+url = "https://github.com/SciML/BaseModelica.jl"
+plugins = ["julia"]
+`,
+        } as Response;
+      }
+
+      if (url === '/api/ui/config' && options?.method === 'POST') {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+
+      if (url === '/api/repo/index/status') {
+        statusCallCount += 1;
+        return {
+          ok: true,
+          json: async () => ({
+            total: 3,
+            queued: 0,
+            checking: 0,
+            syncing: 0,
+            indexing: 0,
+            ready: 1,
+            unsupported: 2,
+            failed: 0,
+            repos: [
+              {
+                repo_id: 'StokesDiffEq.jl',
+                phase: 'unsupported',
+                last_error: "repo 'StokesDiffEq.jl' has unsupported layout: missing Project.toml",
+                attempt_count: 1,
+              },
+              {
+                repo_id: 'TensorFlowDiffEq.jl',
+                phase: 'unsupported',
+                last_error: "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
+                attempt_count: 1,
+              },
+            ],
+          }),
+        } as Response;
+      }
+
+      if (url === '/api/vfs/scan') {
+        return {
+          ok: true,
+          json: async () => ({
+            entries: [],
+            file_count: 0,
+            dir_count: 0,
+            scan_duration_ms: 0,
+          }),
+        } as Response;
+      }
+
+      return { ok: false, status: 404 } as Response;
+    }) as typeof fetch;
+
+    const onStatusChange = vi.fn();
+    await act(async () => {
+      render(<FileTree onFileSelect={mockOnFileSelect} onStatusChange={onStatusChange} />);
+    });
+
+    await waitFor(() => {
+      expect(statusCallCount).toBeGreaterThan(0);
+    });
+    await waitFor(() => {
+      expect(onStatusChange).toHaveBeenCalledWith({
+        vfsStatus: { isLoading: false, error: null },
+        repoIndexStatus: expect.objectContaining({
+          unsupported: 2,
+          unsupportedReasons: [
+            {
+              reason: 'missing Project.toml',
+              count: 2,
+              repoIds: ['StokesDiffEq.jl', 'TensorFlowDiffEq.jl'],
+            },
+          ],
+        }),
+      });
+    });
+  });
+
+  it('does not render repo index diagnostics inside the sidebar anymore', async () => {
+    global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+        return {
+          ok: true,
+          text: async () => `[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+
+[link_graph.projects.sciml]
+url = "https://github.com/SciML/BaseModelica.jl"
+plugins = ["julia"]
+`,
+        } as Response;
+      }
+
+      if (url === '/api/ui/config' && options?.method === 'POST') {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+
+      if (url === '/api/repo/index/status') {
+        return {
+          ok: true,
+          json: async () => ({
+            total: 4,
+            queued: 0,
+            checking: 0,
+            syncing: 0,
+            indexing: 0,
+            ready: 1,
+            unsupported: 2,
+            failed: 1,
+            repos: [
+              {
+                repo_id: 'StokesDiffEq.jl',
+                phase: 'unsupported',
+                last_error: "repo 'StokesDiffEq.jl' has unsupported layout: missing Project.toml",
+                attempt_count: 1,
+              },
+              {
+                repo_id: 'TensorFlowDiffEq.jl',
+                phase: 'unsupported',
+                last_error: "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
+                attempt_count: 1,
+              },
+              {
+                repo_id: 'mcl',
+                phase: 'failed',
+                last_error: "repo intelligence plugin `modelica` is not registered",
+                attempt_count: 2,
+              },
+            ],
+          }),
+        } as Response;
+      }
+
+      if (url === '/api/vfs/scan') {
+        return {
+          ok: true,
+          json: async () => ({
+            entries: [],
+            file_count: 0,
+            dir_count: 0,
+            scan_duration_ms: 0,
+          }),
+        } as Response;
+      }
+
+      return { ok: false, status: 404 } as Response;
+    }) as typeof fetch;
+
+    await act(async () => {
+      render(<FileTree onFileSelect={mockOnFileSelect} />);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Repo index diagnostics')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open diagnostics' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open full diagnostics' })).not.toBeInTheDocument();
   });
 
   it('should block the explorer when a project has empty dirs', async () => {
@@ -240,7 +501,7 @@ describe('FileTree', () => {
 
     expect(screen.getByText('kernel')).toBeInTheDocument();
     expect(screen.getByText('main')).toBeInTheDocument();
-    expect(screen.getByText('No indexed roots (check project root/dirs)')).toBeInTheDocument();
+    expect(screen.getAllByText('No indexed roots (check project root/dirs)').length).toBeGreaterThan(0);
   });
 
   it('renders configured repo project groups even when a repo project has no indexed entries', async () => {
@@ -282,7 +543,7 @@ describe('FileTree', () => {
 
     expect(screen.getByText('kernel')).toBeInTheDocument();
     expect(screen.getByText('sciml')).toBeInTheDocument();
-    expect(screen.getByText('No indexed roots (check project root/dirs)')).toBeInTheDocument();
+    expect(screen.getAllByText('No indexed roots (check project root/dirs)').length).toBeGreaterThan(0);
   });
 
   it('reports repo index status separately from VFS status', async () => {
@@ -312,6 +573,9 @@ describe('FileTree', () => {
             ready: 0,
             unsupported: 0,
             failed: 0,
+            target_concurrency: 3,
+            max_concurrency: 15,
+            sync_concurrency_limit: 2,
             current_repo_id: 'sciml',
             repos: [],
           }),
@@ -353,9 +617,63 @@ describe('FileTree', () => {
           ready: 0,
           unsupported: 0,
           failed: 0,
+          targetConcurrency: 3,
+          maxConcurrency: 15,
+          syncConcurrencyLimit: 2,
           currentRepoId: 'sciml',
+          linkGraphOnlyProjectCount: 1,
+          linkGraphOnlyProjectIds: ['kernel'],
         },
       });
+    });
+  });
+
+  it('does not poll repo index when config only contains link-graph-only projects', async () => {
+    const onStatusChange = vi.fn();
+    global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+        return {
+          ok: true,
+          text: async () =>
+            `[gateway]\nbind = "127.0.0.1:9517"\n\n[link_graph.projects.kernel]\nroot = "."\ndirs = ["docs"]\nplugins = []\n`,
+        } as Response;
+      }
+
+      if (url === '/api/ui/config' && options?.method === 'POST') {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+
+      if (url === '/api/vfs/scan') {
+        return {
+          ok: true,
+          json: async () => ({
+            entries: [],
+            file_count: 0,
+            dir_count: 0,
+            scan_duration_ms: 0,
+          }),
+        } as Response;
+      }
+
+      return { ok: false, status: 404 } as Response;
+    }) as typeof fetch;
+
+    await act(async () => {
+      render(<FileTree onFileSelect={mockOnFileSelect} onStatusChange={onStatusChange} />);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    });
+
+    expect(
+      (global.fetch as unknown as { mock: { calls: Array<[string]> } }).mock.calls.some(
+        ([url]) => url === '/api/repo/index/status'
+      )
+    ).toBe(false);
+    expect(onStatusChange).toHaveBeenLastCalledWith({
+      vfsStatus: { isLoading: false, error: null },
+      repoIndexStatus: null,
     });
   });
 
@@ -727,6 +1045,7 @@ describe('FileTree', () => {
     expect(mockOnFileSelect).toHaveBeenCalledWith('alpha-docs/guide.md', 'doc', {
       projectName: 'alpha',
       rootLabel: 'docs',
+      graphPath: 'alpha-docs/guide.md',
     });
   });
 

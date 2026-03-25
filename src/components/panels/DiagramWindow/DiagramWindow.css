@@ -8,6 +8,17 @@
   color: var(--text-primary);
 }
 
+.diagram-window--markdown {
+  overflow: hidden;
+}
+
+.diagram-window__markdown-waterfall {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 2px 2px;
+}
+
 .diagram-window--empty {
   justify-content: center;
   align-items: center;

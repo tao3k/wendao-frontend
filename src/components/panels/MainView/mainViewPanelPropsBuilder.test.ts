@@ -56,6 +56,7 @@ describe('mainViewPanelPropsBuilder', () => {
 
   it('builds graph panel props', () => {
     const onGraphFileSelect = vi.fn();
+    const onGraphCenterNodeInvalid = vi.fn();
     const onSidebarSummaryChange = vi.fn();
     const onGraphRuntimeStatusChange = vi.fn();
     const options = { direction: 'both' as const, hops: 2, limit: 50 };
@@ -67,6 +68,7 @@ describe('mainViewPanelPropsBuilder', () => {
       locale: 'zh',
       panelLoadingFallback: 'loading',
       onGraphFileSelect,
+      onGraphCenterNodeInvalid,
       onSidebarSummaryChange,
       onGraphRuntimeStatusChange,
     });
@@ -78,6 +80,7 @@ describe('mainViewPanelPropsBuilder', () => {
       locale: 'zh',
       panelLoadingFallback: 'loading',
       onGraphFileSelect,
+      onGraphCenterNodeInvalid,
       onSidebarSummaryChange,
       onGraphRuntimeStatusChange,
     });

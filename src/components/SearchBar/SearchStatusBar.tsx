@@ -52,97 +52,125 @@ export const SearchStatusBar: React.FC<SearchStatusBarProps> = ({
     return null;
   }
 
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const intentLabel = locale === 'zh' ? '意图' : 'Intent';
   const intentValue = searchMeta?.intent?.trim();
   const intentConfidenceLabel =
     typeof searchMeta?.intentConfidence === 'number'
       ? ` (${Math.round(Math.min(1, Math.max(0, searchMeta.intentConfidence)) * 100)}%)`
       : '';
+  const summaryPrefix = locale === 'zh' ? '搜索状态' : 'Search status';
+  const summaryCount = searchMeta ? `${searchMeta.hitCount} results` : copy.searching;
+  const showDetailsLabel = locale === 'zh' ? '显示详情' : 'Show details';
+  const hideDetailsLabel = locale === 'zh' ? '隐藏详情' : 'Hide details';
 
   return (
-    <div className={`search-status-grid ${fallbackLabel ? 'has-fallback' : ''} ${repoSyncStatus ? 'has-repo-sync' : ''} ${repoOverviewStatus ? 'has-repo-overview' : ''}`}>
-      <span className="search-status-item">
-        {searchMeta ? `${copy.totalResults} ${searchMeta.hitCount}` : copy.searching}
-      </span>
-      <span className="search-status-item">{copy.mode}: {modeLabel}</span>
-      <span className={`search-status-item confidence-${confidenceTone}`}>{copy.confidence}: {confidenceLabel}</span>
-      {intentValue && <span className="search-status-item intent">{intentLabel}: {intentValue}{intentConfidenceLabel}</span>}
-      {fallbackLabel && (
-        <span className="search-status-item repo-fallback">
-          <button
-            type="button"
-            className="search-status-fallback-action"
-            onClick={onRestoreFallbackQuery}
-            disabled={!onRestoreFallbackQuery}
-            title={copy.fallbackRestore}
-            aria-label={copy.fallbackRestore}
-          >
-            {copy.fallback}: {fallbackLabel}
-          </button>
-        </span>
-      )}
-      {repoOverviewStatus && (
-        <span className="search-status-item repo-overview">
-          <span>{copy.repoIndex}: {repoOverviewStatus.repoId}</span>
-          <span className="search-status-mini-actions">
-            <button
-              type="button"
-              className="search-status-mini-action"
-              onClick={() => onApplyRepoFacet?.('module')}
-              disabled={repoOverviewStatus.moduleCount <= 0}
-              title={`${copy.repoIndexModules}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'module')}`}
-              aria-label={copy.repoIndexModules}
-            >
-              M{repoOverviewStatus.moduleCount}
-            </button>
-            <button
-              type="button"
-              className="search-status-mini-action"
-              onClick={() => onApplyRepoFacet?.('symbol')}
-              disabled={repoOverviewStatus.symbolCount <= 0}
-              title={`${copy.repoIndexSymbols}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'symbol')}`}
-              aria-label={copy.repoIndexSymbols}
-            >
-              S{repoOverviewStatus.symbolCount}
-            </button>
-            <button
-              type="button"
-              className="search-status-mini-action"
-              onClick={() => onApplyRepoFacet?.('example')}
-              disabled={repoOverviewStatus.exampleCount <= 0}
-              title={`${copy.repoIndexExamples}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'example')}`}
-              aria-label={copy.repoIndexExamples}
-            >
-              E{repoOverviewStatus.exampleCount}
-            </button>
-            <button
-              type="button"
-              className="search-status-mini-action"
-              onClick={() => onApplyRepoFacet?.('doc')}
-              disabled={repoOverviewStatus.docCount <= 0}
-              title={`${copy.repoIndexDocs}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'doc')}`}
-              aria-label={copy.repoIndexDocs}
-            >
-              D{repoOverviewStatus.docCount}
-            </button>
+    <div className="search-status-shell">
+      <button
+        type="button"
+        className="search-status-summary"
+        aria-expanded={isExpanded}
+        aria-controls="search-status-details"
+        onClick={() => setIsExpanded((value) => !value)}
+      >
+        <span className="search-status-summary-prefix">{summaryPrefix}</span>
+        <span className="search-status-summary-text">{summaryCount}</span>
+        <span className="search-status-summary-toggle">{isExpanded ? hideDetailsLabel : showDetailsLabel}</span>
+      </button>
+
+      <div
+        id="search-status-details"
+        className={`search-status-grid ${isExpanded ? 'is-expanded' : 'is-collapsed'} ${fallbackLabel ? 'has-fallback' : ''} ${repoSyncStatus ? 'has-repo-sync' : ''} ${repoOverviewStatus ? 'has-repo-overview' : ''}`}
+        aria-hidden={!isExpanded}
+      >
+        <div className="search-status-row search-status-row-primary">
+          <span className="search-status-item">
+            {searchMeta ? `${copy.totalResults} ${searchMeta.hitCount}` : copy.searching}
           </span>
-        </span>
-      )}
-      {repoSyncStatus && (
-        <>
-          <span className={`search-status-item repo-sync health tone-${resolveRepoSyncHealthTone(repoSyncStatus)}`}>
-            {copy.repoSync}: {formatRepoSyncHealthLabel(repoSyncStatus)}
-          </span>
-          <span className={`search-status-item repo-sync freshness tone-${resolveRepoSyncFreshnessTone(repoSyncStatus)}`}>
-            {copy.freshness}: {formatRepoSyncFreshnessLabel(repoSyncStatus)}
-          </span>
-          <span className={`search-status-item repo-sync drift tone-${resolveRepoSyncDriftTone(repoSyncStatus)}`}>
-            {copy.drift}: {formatRepoSyncDriftLabel(repoSyncStatus)}
-          </span>
-        </>
-      )}
-      <span className="search-status-item">{copy.scope}: {getScopeLabel(scope, locale)}</span>
-      <span className="search-status-item">{copy.sort}: {sortMode === 'relevance' ? copy.relevance : copy.path}</span>
+          <span className="search-status-item">{copy.mode}: {modeLabel}</span>
+          <span className={`search-status-item confidence-${confidenceTone}`}>{copy.confidence}: {confidenceLabel}</span>
+          {intentValue && <span className="search-status-item intent">{intentLabel}: {intentValue}{intentConfidenceLabel}</span>}
+          {fallbackLabel && (
+            <span className="search-status-item repo-fallback">
+              <button
+                type="button"
+                className="search-status-fallback-action"
+                onClick={onRestoreFallbackQuery}
+                disabled={!onRestoreFallbackQuery}
+                title={copy.fallbackRestore}
+                aria-label={copy.fallbackRestore}
+              >
+                {copy.fallback}: {fallbackLabel}
+              </button>
+            </span>
+          )}
+        </div>
+
+        <div className="search-status-row search-status-row-secondary">
+          {repoOverviewStatus && (
+            <span className="search-status-item repo-overview">
+              <span>{copy.repoIndex}: {repoOverviewStatus.repoId}</span>
+              <span className="search-status-mini-actions">
+                <button
+                  type="button"
+                  className="search-status-mini-action"
+                  onClick={() => onApplyRepoFacet?.('module')}
+                  disabled={repoOverviewStatus.moduleCount <= 0}
+                  title={`${copy.repoIndexModules}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'module')}`}
+                  aria-label={copy.repoIndexModules}
+                >
+                  M{repoOverviewStatus.moduleCount}
+                </button>
+                <button
+                  type="button"
+                  className="search-status-mini-action"
+                  onClick={() => onApplyRepoFacet?.('symbol')}
+                  disabled={repoOverviewStatus.symbolCount <= 0}
+                  title={`${copy.repoIndexSymbols}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'symbol')}`}
+                  aria-label={copy.repoIndexSymbols}
+                >
+                  S{repoOverviewStatus.symbolCount}
+                </button>
+                <button
+                  type="button"
+                  className="search-status-mini-action"
+                  onClick={() => onApplyRepoFacet?.('example')}
+                  disabled={repoOverviewStatus.exampleCount <= 0}
+                  title={`${copy.repoIndexExamples}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'example')}`}
+                  aria-label={copy.repoIndexExamples}
+                >
+                  E{repoOverviewStatus.exampleCount}
+                </button>
+                <button
+                  type="button"
+                  className="search-status-mini-action"
+                  onClick={() => onApplyRepoFacet?.('doc')}
+                  disabled={repoOverviewStatus.docCount <= 0}
+                  title={`${copy.repoIndexDocs}: ${buildRepoOverviewFacetQuery(repoOverviewStatus.repoId, 'doc')}`}
+                  aria-label={copy.repoIndexDocs}
+                >
+                  D{repoOverviewStatus.docCount}
+                </button>
+              </span>
+            </span>
+          )}
+          {repoSyncStatus && (
+            <>
+              <span className={`search-status-item repo-sync health tone-${resolveRepoSyncHealthTone(repoSyncStatus)}`}>
+                {copy.repoSync}: {formatRepoSyncHealthLabel(repoSyncStatus)}
+              </span>
+              <span className={`search-status-item repo-sync freshness tone-${resolveRepoSyncFreshnessTone(repoSyncStatus)}`}>
+                {copy.freshness}: {formatRepoSyncFreshnessLabel(repoSyncStatus)}
+              </span>
+              <span className={`search-status-item repo-sync drift tone-${resolveRepoSyncDriftTone(repoSyncStatus)}`}>
+                {copy.drift}: {formatRepoSyncDriftLabel(repoSyncStatus)}
+              </span>
+            </>
+          )}
+          <span className="search-status-item">{copy.scope}: {getScopeLabel(scope, locale)}</span>
+          <span className="search-status-item">{copy.sort}: {sortMode === 'relevance' ? copy.relevance : copy.path}</span>
+        </div>
+      </div>
     </div>
   );
 };

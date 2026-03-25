@@ -80,8 +80,7 @@ describe('searchBarPanelPropsBuilder', () => {
     expect(result.onClearFilters).toBe(onClearFilters);
   });
 
-  it('builds full controller result with overlay and modal wrappers', () => {
-    const onOverlayClick = vi.fn();
+  it('builds full controller result with modal wrappers', () => {
     const onModalClick = vi.fn();
     const onModalKeyDownCapture = vi.fn();
     const shellProps = { query: 'repo:gateway-sync' } as unknown as SearchBarControllerShellProps;
@@ -90,7 +89,6 @@ describe('searchBarPanelPropsBuilder', () => {
     const codeFilterHelperProps = { prefixes: CODE_FILTER_PREFIXES } as unknown as SearchBarControllerCodeFilterHelperProps;
 
     const result = buildSearchBarControllerResult({
-      onOverlayClick,
       onModalClick,
       onModalKeyDownCapture,
       showCodeFilterHelper: true,
@@ -100,7 +98,6 @@ describe('searchBarPanelPropsBuilder', () => {
       codeFilterHelperProps,
     });
 
-    expect(result.overlayProps.onClick).toBe(onOverlayClick);
     expect(result.modalProps.onClick).toBe(onModalClick);
     expect(result.modalProps.onKeyDownCapture).toBe(onModalKeyDownCapture);
     expect(result.showCodeFilterHelper).toBe(true);

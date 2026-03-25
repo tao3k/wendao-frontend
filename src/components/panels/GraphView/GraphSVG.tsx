@@ -18,6 +18,7 @@ interface GraphSVGProps {
 const NODE_RADIUS_CENTER = 36;
 const NODE_RADIUS = 24;
 const LABEL_MAX_LENGTH = 15;
+const CENTER_LABEL_MAX_LENGTH = 64;
 
 export const GraphSVG = memo(function GraphSVG({
   width,
@@ -91,33 +92,33 @@ export const GraphSVG = memo(function GraphSVG({
 
       {/* Nodes */}
       <g className="nodes-layer">
-        {nodes.map((node) => (
-          <g
-            key={node.id}
-            className={`graph-node-group ${node.isCenter ? 'center-node' : ''}`}
-            transform={`translate(${node.x}, ${node.y})`}
-            onClick={(e) => handleNodeClick(node, e)}
-            onMouseEnter={() => handleNodeMouseEnter(node)}
-            onMouseLeave={handleNodeMouseLeave}
-            onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
-            onTouchStart={(e) => handleNodeTouchStart(node.id, e)}
-            style={{ cursor: 'grab' }}
-          >
-            <circle
-              className={`graph-node node-${node.nodeType}`}
-              r={node.isCenter ? NODE_RADIUS_CENTER : NODE_RADIUS}
-            />
-            <text
-              className="graph-node-label"
-              textAnchor="middle"
-              dy={node.isCenter ? NODE_RADIUS_CENTER + 16 : NODE_RADIUS + 12}
+        {nodes.map((node) => {
+          return (
+            <g
+              key={node.id}
+              className={`graph-node-group ${node.isCenter ? 'center-node' : ''}`}
+              transform={`translate(${node.x}, ${node.y})`}
+              onClick={(e) => handleNodeClick(node, e)}
+              onMouseEnter={() => handleNodeMouseEnter(node)}
+              onMouseLeave={handleNodeMouseLeave}
+              onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
+              onTouchStart={(e) => handleNodeTouchStart(node.id, e)}
+              style={{ cursor: 'grab' }}
             >
-              {node.label.length > LABEL_MAX_LENGTH
-                ? node.label.slice(0, LABEL_MAX_LENGTH) + '...'
-                : node.label}
-            </text>
-          </g>
-        ))}
+              <title>{node.label}</title>
+              <circle className={`graph-node node-${node.nodeType}`} r={node.isCenter ? NODE_RADIUS_CENTER : NODE_RADIUS} />
+              <text className="graph-node-label" textAnchor="middle" dy={node.isCenter ? NODE_RADIUS_CENTER + 16 : NODE_RADIUS + 12}>
+                {node.label.length >
+                (node.isCenter ? CENTER_LABEL_MAX_LENGTH : LABEL_MAX_LENGTH)
+                  ? node.label.slice(
+                      0,
+                      node.isCenter ? CENTER_LABEL_MAX_LENGTH : LABEL_MAX_LENGTH
+                    ) + '...'
+                  : node.label}
+              </text>
+            </g>
+          );
+        })}
       </g>
     </svg>
   );

@@ -1,15 +1,6 @@
-/**
- * SearchBar component with Ctrl+F shortcut and autocomplete
- *
- * Integrates with the LinkGraphIndex search API for knowledge graph search.
- */
-
 import React from 'react';
-import { SearchBarModalContent } from './SearchBarModalContent';
-import { buildSearchBarModalContentProps } from './searchBarModalContentProps';
-import { useSearchBarController } from './useSearchBarController';
 import type { SearchSelection, UiLocale } from './types';
-import './SearchBar.css';
+import { ZenSearchWindow } from '../ZenSearch';
 
 interface SearchBarProps {
   isOpen: boolean;
@@ -30,24 +21,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onGraphResultSelect,
   onRuntimeStatusChange,
 }) => {
-  const controller = useSearchBarController({
-    isOpen,
-    locale,
-    onClose,
-    onResultSelect,
-    onReferencesResultSelect,
-    onGraphResultSelect,
-    onRuntimeStatusChange,
-  });
-  const modalContentProps = buildSearchBarModalContentProps(controller);
-
   if (!isOpen) return null;
 
   return (
-    <div className="search-overlay" {...controller.overlayProps}>
-      <div className="search-modal" {...controller.modalProps}>
-        <SearchBarModalContent {...modalContentProps} />
-      </div>
-    </div>
+    <ZenSearchWindow
+      locale={locale}
+      onClose={onClose}
+      onResultSelect={onResultSelect}
+      onReferencesResultSelect={onReferencesResultSelect}
+      onGraphResultSelect={onGraphResultSelect}
+      onRuntimeStatusChange={onRuntimeStatusChange}
+    />
   );
 };

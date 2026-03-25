@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { within } from '@testing-library/react';
 
 vi.mock('beautiful-mermaid', () => ({
   renderMermaidSVG: vi.fn(),
@@ -46,6 +47,22 @@ describe('DirectReader', () => {
     expect(container.querySelector('.direct-reader__mermaid .mock-mermaid')).toBeTruthy();
   });
 
+  it('highlights fenced code blocks through Shiki', async () => {
+    const { container } = render(
+      <DirectReader
+        content={'```rust\npub fn count() -> usize { 1 } // note\n```'}
+        path="src/demo.ts"
+        contentType="text/markdown"
+      />
+    );
+
+    const codeBlock = container.querySelector('.direct-reader__code');
+    expect(codeBlock).toBeTruthy();
+    await waitFor(() => {
+      expect((codeBlock as HTMLElement).querySelector('.code-syntax-highlighter__token')).toBeTruthy();
+    });
+  });
+
   it('falls back to source block if mermaid renderer throws', () => {
     mockedRenderMermaid.mockImplementationOnce(() => {
       throw new Error('bad mermaid');
@@ -81,9 +98,48 @@ describe('DirectReader', () => {
     expect(screen.getByTestId('direct-reader-line-2')).toHaveAttribute('data-highlighted', 'true');
     expect(screen.getByTestId('direct-reader-line-3')).toHaveAttribute('data-highlighted', 'true');
     expect(screen.getByTestId('direct-reader-line-1')).toHaveAttribute('data-highlighted', 'false');
+    await waitFor(() => {
+      expect(screen.getByTestId('direct-reader-line-1').querySelector('.code-syntax-highlighter__token')).toBeTruthy();
+    });
 
     await waitFor(() => {
       expect(scrollIntoViewMock).toHaveBeenCalled();
+    });
+  });
+
+  it('highlights source lines through Shiki in source mode', async () => {
+    render(
+      <DirectReader
+        content={'export const count: number = 1;\n// note'}
+        path="packages/rust/crates/xiuxian-wendao/src/repo.rs"
+        line={1}
+      />
+    );
+
+    expect(screen.getByText('packages/rust/crates/xiuxian-wendao/src/repo.rs')).toBeInTheDocument();
+    expect(screen.getByText('Rust')).toBeInTheDocument();
+    expect(screen.getByTestId('direct-reader-line-1')).toHaveAttribute('data-highlighted', 'true');
+    await waitFor(() => {
+      expect(screen.getByTestId('direct-reader-line-1').querySelector('.code-syntax-highlighter__token')).toBeTruthy();
+    });
+    expect(screen.queryByRole('button', { name: 'View source' })).toBeNull();
+  });
+
+  it('renders code files in source mode from the file suffix even without line metadata', async () => {
+    render(
+      <DirectReader
+        content={'module ADTypesEnzymeCoreExt\nfunction adapt_rules()\nend'}
+        path="ADTypes.jl/ext/ADTypesEnzymeCoreExt.jl"
+      />
+    );
+
+    expect(screen.getByText('ADTypes.jl/ext/ADTypesEnzymeCoreExt.jl')).toBeInTheDocument();
+    expect(screen.getByText('Julia')).toBeInTheDocument();
+    expect(screen.getByTestId('direct-reader-line-1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View source' })).toBeNull();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('direct-reader-line-1').querySelector('.code-syntax-highlighter__token')).toBeTruthy();
     });
   });
 
@@ -97,6 +153,7 @@ describe('DirectReader', () => {
       />
     );
 
+    expect(screen.getByTestId('markdown-waterfall')).toBeInTheDocument();
     expect(screen.getByText('Heading')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Metric' })).toBeInTheDocument();
     expect(screen.queryByTestId('direct-reader-line-3')).toBeNull();
@@ -131,6 +188,9 @@ describe('DirectReader', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'View source' }));
 
+    await waitFor(() => {
+      expect(screen.getByTestId('direct-reader-line-3').querySelector('.code-syntax-highlighter__token')).toBeTruthy();
+    });
     expect(screen.getByTestId('direct-reader-line-3')).toHaveAttribute('data-highlighted', 'true');
     expect(screen.getByRole('button', { name: 'View rich' })).toBeInTheDocument();
     await waitFor(() => {
@@ -263,7 +323,7 @@ describe('DirectReader', () => {
     expect(screen.queryByRole('button', { name: 'index' })).toBeNull();
   });
 
-  it('keeps raw drawer lines accessible in source mode when toggled for markdown', () => {
+  it('keeps raw drawer lines accessible in source mode when toggled for markdown', async () => {
     render(
       <DirectReader
         content={
@@ -276,6 +336,9 @@ describe('DirectReader', () => {
 
     expect(screen.queryByText(':PROPERTIES:')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'View source' }));
+    await waitFor(() => {
+      expect(screen.getByText(':PROPERTIES:').closest('.code-syntax-highlighter')).toBeTruthy();
+    });
     expect(screen.getByText(':PROPERTIES:')).toBeInTheDocument();
     expect(screen.getByTestId('direct-reader-line-1')).toHaveAttribute('data-highlighted', 'true');
   });
@@ -435,5 +498,12 @@ describe('DirectReader', () => {
     expect(screen.getByRole('columnheader', { name: 'Metric' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: '128' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: '4096' })).toBeInTheDocument();
+  });
+
+  it('treats null content as empty instead of crashing', () => {
+    render(<DirectReader content={null} path="main/docs/index.md" />);
+
+    expect(screen.getByText('main/docs/index.md')).toBeInTheDocument();
+    expect(screen.getByText('Select a file to view its content')).toBeInTheDocument();
   });
 });

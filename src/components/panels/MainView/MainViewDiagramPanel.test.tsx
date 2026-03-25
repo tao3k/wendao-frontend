@@ -28,6 +28,23 @@ describe('MainViewDiagramPanel', () => {
     expect(screen.queryByTestId('diagram-window')).not.toBeInTheDocument();
   });
 
+  it('shows loading fallback while a selected file is still hydrating', () => {
+    render(
+      <MainViewDiagramPanel
+        selectedFile={{ path: 'docs/empty.md', content: undefined }}
+        locale="en"
+        focusEpoch={1}
+        noDiagramFile="unused"
+        panelLoadingFallback={<div>Loading panel...</div>}
+        onNodeClick={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Loading panel...')).toBeInTheDocument();
+    expect(screen.queryByText('unused')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('diagram-window')).not.toBeInTheDocument();
+  });
+
   it('renders DiagramWindow and forwards required props', () => {
     render(
       <MainViewDiagramPanel

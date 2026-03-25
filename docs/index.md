@@ -30,7 +30,7 @@ For a curated human entry point, start with [[README]].
 
 :PROPERTIES:
 :ID: studio-functional-ledger
-:OBSERVE: lang:typescript "export const SearchBar: React.FC<SearchBarProps> = ({ $$$ })"
+:OBSERVE: lang:typescript "export const ZenSearchWindow: React.FC<ZenSearchWindowProps> = ({ $$$ })"
 :END:
 
 - [[03_features/201_indexed_roots_and_vfs]]: Indexed roots, VFS, and live content hydration.

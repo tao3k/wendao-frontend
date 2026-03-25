@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StudioBootstrap } from './StudioBootstrap';
 
 const mocks = vi.hoisted(() => ({
   health: vi.fn(),
   setUiConfig: vi.fn(),
+  getUiCapabilities: vi.fn(),
   scanVfs: vi.fn(),
   getConfig: vi.fn(),
   resetConfig: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('./api', () => ({
   api: {
     health: mocks.health,
     setUiConfig: mocks.setUiConfig,
+    getUiCapabilities: mocks.getUiCapabilities,
     scanVfs: mocks.scanVfs,
   },
 }));
@@ -36,6 +38,7 @@ vi.mock('./config/loader', () => ({
 describe('StudioBootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     window.localStorage.setItem('qianji-ui-locale', 'en');
     mocks.getConfig.mockResolvedValue({
       gateway: {
@@ -61,6 +64,15 @@ describe('StudioBootstrap', () => {
     });
     mocks.health.mockResolvedValue('ok');
     mocks.setUiConfig.mockResolvedValue(undefined);
+    mocks.getUiCapabilities.mockResolvedValue({
+      supportedLanguages: ['julia', 'modelica'],
+      supportedRepositories: ['kernel', 'sciml'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the studio app after gateway health and config sync succeed', async () => {
@@ -81,6 +93,7 @@ describe('StudioBootstrap', () => {
         },
       ],
     });
+    expect(mocks.getUiCapabilities).toHaveBeenCalledTimes(1);
     expect(mocks.scanVfs).not.toHaveBeenCalled();
   });
 
@@ -133,7 +146,7 @@ describe('StudioBootstrap', () => {
     expect(mocks.scanVfs).not.toHaveBeenCalled();
   });
 
-  it('shows the config-sync stage after gateway health succeeds', async () => {
+  it('keeps the bootstrap surface blank while loading so startup does not flash a panel', async () => {
     let releaseConfigSync: (() => void) | null = null;
     mocks.setUiConfig.mockImplementation(
       () =>
@@ -144,15 +157,31 @@ describe('StudioBootstrap', () => {
 
     render(<StudioBootstrap />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Syncing workspace config')).toBeInTheDocument();
+    await act(async () => {
+      await Promise.resolve();
     });
+
+    expect(screen.getByTestId('studio-bootstrap-surface')).toBeInTheDocument();
+    expect(screen.queryByText('Studio bootstrap')).not.toBeInTheDocument();
+    expect(screen.queryByText('Studio startup blocked')).not.toBeInTheDocument();
 
     releaseConfigSync?.();
 
     await waitFor(() => {
       expect(screen.getByTestId('studio-app')).toBeInTheDocument();
     });
+  });
+
+  it('continues startup when gateway capabilities are unavailable', async () => {
+    mocks.getUiCapabilities.mockRejectedValue(new Error('HTTP 404: Not Found'));
+
+    render(<StudioBootstrap />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('studio-app')).toBeInTheDocument();
+    });
+
+    expect(mocks.getUiCapabilities).toHaveBeenCalledTimes(1);
   });
 
   it('uses zh copy and localized fallback message when rejected value is not Error', async () => {

@@ -30,7 +30,6 @@ interface AssembleSearchBarControllerResultParams {
   onApplyScenario: SearchBarControllerCodeFilterHelperProps['onApplyScenario'];
   onRemoveFilter: SearchBarControllerCodeFilterHelperProps['onRemoveFilter'];
   onClearFilters: SearchBarControllerCodeFilterHelperProps['onClearFilters'];
-  onOverlayClick: () => void;
   onModalClick: (event: MouseEvent<HTMLDivElement>) => void;
   onModalKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
   showCodeFilterHelper: boolean;
@@ -55,7 +54,6 @@ export function assembleSearchBarControllerResult({
   onApplyScenario,
   onRemoveFilter,
   onClearFilters,
-  onOverlayClick,
   onModalClick,
   onModalKeyDownCapture,
   showCodeFilterHelper,
@@ -86,7 +84,6 @@ export function assembleSearchBarControllerResult({
   });
 
   return buildSearchBarControllerResult({
-    onOverlayClick,
     onModalClick,
     onModalKeyDownCapture,
     showCodeFilterHelper,

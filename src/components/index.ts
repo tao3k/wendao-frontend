@@ -1,4 +1,5 @@
-export { SearchBar } from './SearchBar';
+export { ZenSearchWindow } from './ZenSearch';
+export { RepoDiagnosticsPage } from './RepoDiagnosticsPage';
 export { StatusBar } from './StatusBar';
 export type { RepoIndexStatus, RuntimeStatus, VfsStatus } from './StatusBar';
 export { Toolbar } from './Toolbar';

@@ -8,7 +8,6 @@ import type {
 
 describe('searchBarControllerAssembler', () => {
   it('assembles controller result from segmented inputs', () => {
-    const onOverlayClick = vi.fn();
     const onModalClick = vi.fn();
     const onModalKeyDownCapture = vi.fn();
     const onSuggestionClick: SearchBarControllerSuggestionsPanelProps['onSuggestionClick'] = vi.fn();
@@ -41,7 +40,6 @@ describe('searchBarControllerAssembler', () => {
       onApplyScenario,
       onRemoveFilter,
       onClearFilters,
-      onOverlayClick,
       onModalClick,
       onModalKeyDownCapture,
       showCodeFilterHelper: true,
@@ -49,7 +47,6 @@ describe('searchBarControllerAssembler', () => {
       resultsPanelProps,
     });
 
-    expect(result.overlayProps.onClick).toBe(onOverlayClick);
     expect(result.modalProps.onClick).toBe(onModalClick);
     expect(result.modalProps.onKeyDownCapture).toBe(onModalKeyDownCapture);
     expect(result.showCodeFilterHelper).toBe(true);

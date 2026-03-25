@@ -152,11 +152,11 @@ export default defineConfig({
           priority: 34,
           reuseExistingChunk: true,
         },
-        // Markdown/math renderers are loaded with content panel
+        // Markdown/math renderers deserve their own chunk whether the content view is eager or lazy
         markdown: {
           test: /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|katex|beautiful-mermaid|mermaid|elkjs|web-worker)[\\/]/,
           name: 'markdown',
-          chunks: 'async',
+          chunks: 'all',
           priority: 33,
           reuseExistingChunk: true,
         },

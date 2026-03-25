@@ -15,6 +15,7 @@ interface SearchResultsPanelProps {
   selectedIndex: number;
   canOpenReferences: boolean;
   canOpenGraph: boolean;
+  openOnSelect?: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
   renderIcon: (docType?: string) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
@@ -36,6 +37,7 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   selectedIndex,
   canOpenReferences,
   canOpenGraph,
+  openOnSelect = true,
   isResultPreviewExpanded,
   renderIcon,
   renderTitle,
@@ -84,16 +86,22 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
                   isSelected={isSelected}
                   isCodeResultRow={isCodeResultRow}
                   lineRange={lineRange}
-                  previewExpanded={previewExpanded}
-                  canOpenReferences={canOpenReferences}
-                  canOpenGraph={canOpenGraph}
-                  renderIcon={renderIcon}
-                  renderTitle={renderTitle}
-                  onHover={() => onSelectIndex(displayIndex)}
-                  onOpen={onOpen}
-                  onOpenDefinition={(selectedResult, event) => void onOpenDefinition(selectedResult, event)}
-                  onOpenReferences={onOpenReferences}
-                  onOpenGraph={onOpenGraph}
+                previewExpanded={previewExpanded}
+                canOpenReferences={canOpenReferences}
+                canOpenGraph={canOpenGraph}
+                openOnSelect={openOnSelect}
+                renderIcon={renderIcon}
+                renderTitle={renderTitle}
+                onHover={() => onSelectIndex(displayIndex)}
+                onSelect={(_, event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSelectIndex(displayIndex);
+                }}
+                onOpen={onOpen}
+                onOpenDefinition={(selectedResult, event) => void onOpenDefinition(selectedResult, event)}
+                onOpenReferences={onOpenReferences}
+                onOpenGraph={onOpenGraph}
                   onPreview={onPreview}
                   onTogglePreview={(selectedResult, event) => {
                     event.preventDefault();

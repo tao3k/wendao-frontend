@@ -4,10 +4,33 @@ import { SEARCH_BAR_COPY } from '../searchPresentation';
 import { SearchStatusBar } from '../SearchStatusBar';
 
 describe('SearchStatusBar repo overview facets', () => {
+  it('keeps status details collapsed until expanded', () => {
+    const { container } = render(
+      <SearchStatusBar
+        query="solve"
+        searchMeta={{ query: 'solve', hitCount: 4, selectedMode: 'Code' }}
+        copy={SEARCH_BAR_COPY.en}
+        modeLabel="Code"
+        confidenceLabel="High"
+        confidenceTone="high"
+        repoOverviewStatus={null}
+        repoSyncStatus={null}
+        scope="code"
+        sortMode="relevance"
+        locale="en"
+      />
+    );
+
+    expect(container.querySelector('.search-status-grid')).toHaveClass('is-collapsed');
+
+    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
+
+    expect(container.querySelector('.search-status-grid')).toHaveClass('is-expanded');
+  });
+
   it('applies repo facet when count is positive', () => {
     const onApplyRepoFacet = vi.fn();
-
-    render(
+    const { container } = render(
       <SearchStatusBar
         query="solve"
         searchMeta={{ query: 'solve', hitCount: 4, selectedMode: 'Code' }}
@@ -29,6 +52,9 @@ describe('SearchStatusBar repo overview facets', () => {
         locale="en"
       />
     );
+
+    expect(container.querySelectorAll('.search-status-row')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Filter by modules' }));
     expect(onApplyRepoFacet).toHaveBeenCalledWith('module');
@@ -64,6 +90,7 @@ describe('SearchStatusBar repo overview facets', () => {
       />
     );
 
+    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
     const moduleButton = screen.getByRole('button', { name: 'Filter by modules' });
     expect(moduleButton).toBeDisabled();
     fireEvent.click(moduleButton);
@@ -99,6 +126,7 @@ describe('SearchStatusBar repo overview facets', () => {
     );
 
     expect(screen.getByText('Fallback: module: module -> GatewaySyncPkg')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
     const fallbackButton = screen.getByRole('button', { name: 'Restore original query' });
     expect(fallbackButton).toHaveAttribute('title', 'Restore original query');
     fireEvent.click(fallbackButton);

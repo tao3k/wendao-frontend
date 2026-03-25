@@ -111,6 +111,39 @@ describe('DiagramWindow', () => {
     expect(screen.queryByText('No diagram detected')).not.toBeInTheDocument();
   });
 
+  it('renders a markdown waterfall when markdown has no diagram projections', async () => {
+    mocks.getMarkdownAnalysis.mockResolvedValue({
+      path: 'main/docs/03_features/202_topology_and_graph_navigation.md',
+      documentHash: 'h2',
+      nodeCount: 0,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+    });
+
+    render(
+      <DiagramWindow
+        path="main/docs/03_features/202_topology_and_graph_navigation.md"
+        content={'# Topology and Graph Navigation\n\nRegular markdown body.'}
+        onNodeClick={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith(
+        'main/docs/03_features/202_topology_and_graph_navigation.md'
+      );
+    });
+
+    expect(screen.getByTestId('markdown-waterfall')).toBeInTheDocument();
+    expect(screen.getByTestId('markdown-waterfall-identity')).toHaveTextContent(
+      'Topology and Graph Navigation'
+    );
+    expect(screen.queryByText('No diagram detected')).not.toBeInTheDocument();
+  });
+
   it('requests code ast projections when code file has no embedded mermaid', async () => {
     mocks.getCodeAstAnalysis.mockResolvedValue({
       repoId: 'sciml',

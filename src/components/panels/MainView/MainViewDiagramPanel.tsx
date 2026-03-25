@@ -21,6 +21,7 @@ export function MainViewDiagramPanel({
   onNodeClick,
 }: MainViewDiagramPanelProps): React.ReactElement {
   const hasSelectedContent = selectedFile?.content !== undefined;
+  const isLoadingSelectedFile = Boolean(selectedFile && selectedFile.content === undefined);
 
   return (
     <div className="main-view-diagram">
@@ -34,6 +35,8 @@ export function MainViewDiagramPanel({
             onNodeClick={onNodeClick}
           />
         </Suspense>
+      ) : isLoadingSelectedFile ? (
+        panelLoadingFallback
       ) : (
         <div className="no-file-selected">{noDiagramFile}</div>
       )}

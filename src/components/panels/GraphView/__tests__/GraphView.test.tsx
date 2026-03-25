@@ -179,6 +179,70 @@ describe('GraphView', () => {
 
   });
 
+  it('preserves the kernel docs title and graph path from the backend payload', async () => {
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      centerNode: {
+        id: 'kernel/docs/index.md',
+        path: 'kernel/docs/index.md',
+        label: 'Qianji Studio DocOS Kernel: Map of Content',
+        type: 'doc',
+      },
+      nodes: [
+        {
+          id: 'kernel/docs/index.md',
+          path: 'kernel/docs/index.md',
+          label: 'Qianji Studio DocOS Kernel: Map of Content',
+          type: 'doc',
+          navigationTarget: {
+            path: 'kernel/docs/index.md',
+            category: 'doc',
+          },
+        },
+        {
+          id: 'kernel/docs/guide.md',
+          path: 'kernel/docs/guide.md',
+          label: 'Guide',
+          type: 'doc',
+          navigationTarget: {
+            path: 'kernel/docs/guide.md',
+            category: 'doc',
+          },
+        },
+      ],
+      links: [
+        {
+          source: 'kernel/docs/index.md',
+          target: 'kernel/docs/guide.md',
+          type: 'outgoing',
+          relation: 'reference',
+        },
+      ],
+      totalNodes: 2,
+      totalLinks: 1,
+    });
+
+    render(
+      <GraphView
+        centerNodeId="kernel/docs/index.md"
+        onNodeClick={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('graph-svg')).toBeInTheDocument();
+    });
+
+    const latestGraphSvgProps = mocks.graphSvgSpy.mock.calls.at(-1)?.[0] as
+      | { nodes?: Array<Record<string, unknown>> }
+      | undefined;
+
+    expect(latestGraphSvgProps?.nodes?.[0]).toMatchObject({
+      id: 'kernel/docs/index.md',
+      label: 'Qianji Studio DocOS Kernel: Map of Content',
+      path: 'kernel/docs/index.md',
+    });
+  });
+
   it('toggles render mode between 2D and 3D from the graph toolbar', async () => {
     mocks.getGraphNeighborsMock.mockResolvedValue({
       centerNode: {
@@ -247,6 +311,131 @@ describe('GraphView', () => {
     });
 
     expect(screen.queryByTestId('graph-svg')).not.toBeInTheDocument();
+  });
+
+  it('falls back to empty links when gateway payload omits links array', async () => {
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      centerNode: {
+        id: 'knowledge/context.md',
+        path: 'knowledge/context.md',
+        name: 'context.md',
+        type: 'knowledge',
+      },
+      nodes: [
+        {
+          id: 'knowledge/context.md',
+          path: 'knowledge/context.md',
+          name: 'context.md',
+          type: 'knowledge',
+          navigationTarget: {
+            path: 'knowledge/context.md',
+            category: 'knowledge',
+          },
+        },
+      ],
+      links: undefined,
+      totalNodes: 1,
+      totalLinks: 0,
+    } as unknown);
+
+    render(<GraphView centerNodeId="knowledge/context.md" onNodeClick={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('graph-svg')).toBeInTheDocument();
+    });
+
+    const latestGraphSvgProps = mocks.graphSvgSpy.mock.calls.at(-1)?.[0] as { links?: unknown };
+    expect(latestGraphSvgProps.links).toEqual([]);
+  });
+
+  it('normalizes under-reported graph totals to match the rendered payload size', async () => {
+    const onSidebarSummaryChange = vi.fn();
+
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: {
+        id: 'knowledge/context.md',
+        label: 'context.md',
+        path: 'knowledge/context.md',
+        nodeType: 'knowledge',
+        isCenter: true,
+        distance: 0,
+        navigationTarget: {
+          path: 'knowledge/context.md',
+          category: 'knowledge',
+        },
+      },
+      nodes: [
+        {
+          id: 'knowledge/context.md',
+          label: 'context.md',
+          path: 'knowledge/context.md',
+          nodeType: 'knowledge',
+          isCenter: true,
+          distance: 0,
+          navigationTarget: {
+            path: 'knowledge/context.md',
+            category: 'knowledge',
+          },
+        },
+        {
+          id: 'skills/writer/SKILL.md',
+          label: 'SKILL.md',
+          path: 'skills/writer/SKILL.md',
+          nodeType: 'skill',
+          isCenter: false,
+          distance: 1,
+          navigationTarget: {
+            path: 'skills/writer/SKILL.md',
+            category: 'skill',
+          },
+        },
+        {
+          id: 'docs/style.md',
+          label: 'style.md',
+          path: 'docs/style.md',
+          nodeType: 'doc',
+          isCenter: false,
+          distance: 1,
+          navigationTarget: {
+            path: 'docs/style.md',
+            category: 'doc',
+          },
+        },
+      ],
+      links: [
+        {
+          source: 'knowledge/context.md',
+          target: 'skills/writer/SKILL.md',
+          direction: 'outgoing',
+          distance: 1,
+        },
+        {
+          source: 'knowledge/context.md',
+          target: 'docs/style.md',
+          direction: 'outgoing',
+          distance: 1,
+        },
+      ],
+      totalNodes: 1,
+      totalLinks: 1,
+    });
+
+    render(
+      <GraphView
+        centerNodeId="knowledge/context.md"
+        onNodeClick={vi.fn()}
+        onSidebarSummaryChange={onSidebarSummaryChange}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onSidebarSummaryChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          totalNodes: 3,
+          totalLinks: 2,
+        })
+      );
+    });
   });
 
   it('renders gateway-provided markdown fallback payload without client analysis requests', async () => {
@@ -351,7 +540,7 @@ describe('GraphView', () => {
       expect.objectContaining({
         path: 'main/docs/index.md',
         category: 'doc',
-        graphPath: 'main/docs/index.md',
+        graphPath: 'main/docs/index.md#document',
       })
     );
     expect(screen.queryByText('Node not found: main/docs/index.md')).not.toBeInTheDocument();
@@ -440,6 +629,34 @@ describe('GraphView', () => {
     );
   });
 
+  it('treats missing graph nodes as an empty graph state instead of an error overlay', async () => {
+    const onCenterNodeInvalid = vi.fn();
+    mocks.getGraphNeighborsMock.mockRejectedValue(
+      new Error('graph node `kernel/docs/05_research/306_alignment_milestone_log.md` was not found')
+    );
+
+    render(
+      <GraphView
+        centerNodeId="kernel/docs/05_research/306_alignment_milestone_log.md"
+        onNodeClick={vi.fn()}
+        onCenterNodeInvalid={onCenterNodeInvalid}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('No graph data returned for this file.')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByText(
+        'graph node `kernel/docs/05_research/306_alignment_milestone_log.md` was not found'
+      )
+    ).not.toBeInTheDocument();
+    expect(onCenterNodeInvalid).toHaveBeenCalledWith(
+      'kernel/docs/05_research/306_alignment_milestone_log.md'
+    );
+  });
+
   it('falls back to node path when graph payload omits navigationTarget', async () => {
     mocks.getGraphNeighborsMock.mockResolvedValue({
       centerNode: {
@@ -480,7 +697,7 @@ describe('GraphView', () => {
       expect.objectContaining({
         path: 'main/docs/index.md',
         category: 'doc',
-        graphPath: 'main/docs/index.md',
+        graphPath: 'main/docs/index.md#document',
       })
     );
   });

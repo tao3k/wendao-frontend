@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeCodeSearchHit, normalizeRepoModuleHit, normalizeRepoSymbolHit } from '../searchResultNormalization';
+import {
+  canOpenGraphForSearchResult,
+  normalizeCodeSearchHit,
+  normalizeRepoModuleHit,
+  normalizeRepoSymbolHit,
+  resolveDefinitionSelection,
+  toSearchSelection,
+} from '../searchResultNormalization';
 
 describe('searchResultNormalization repo hit metadata', () => {
   it('uses backend symbol metadata for score, hierarchy, audit, and backlinks', () => {
@@ -91,5 +98,129 @@ describe('searchResultNormalization repo hit metadata', () => {
     expect(result.codeRepo).toBe('sciml');
     expect(result.codeKind).toBe('module');
     expect(result.codeLanguage).toBe('julia');
+  });
+
+  it('maps search selections to an explicit graphPath', () => {
+    expect(
+      toSearchSelection({
+        stem: 'Context Note',
+        title: 'Context Note',
+        path: 'kernel/docs/index.md',
+        docType: 'knowledge',
+        tags: [],
+        score: 0.8,
+        bestSection: 'Working context',
+        matchReason: 'Knowledge note',
+        navigationTarget: {
+          path: 'kernel/docs/index.md',
+          category: 'knowledge',
+          projectName: 'kernel',
+          rootLabel: 'docs',
+        },
+      } as any)
+    ).toEqual({
+      path: 'kernel/docs/index.md',
+      category: 'knowledge',
+      projectName: 'kernel',
+      rootLabel: 'docs',
+      graphPath: 'kernel/docs/index.md',
+    });
+  });
+
+  it('canonicalizes workspace-local document selections into project-scoped paths', () => {
+    expect(
+      toSearchSelection({
+        stem: 'Documentation Index',
+        title: 'Documentation Index',
+        path: '.data/wendao-frontend/docs/02_dev/HANDBOOK.md',
+        docType: 'knowledge',
+        tags: [],
+        score: 0.7,
+        bestSection: 'Documentation Index',
+        matchReason: 'Workspace-local note',
+        navigationTarget: {
+          path: '.data/wendao-frontend/docs/02_dev/HANDBOOK.md',
+          category: 'knowledge',
+          projectName: 'main',
+          rootLabel: 'docs',
+        },
+      } as any)
+    ).toEqual({
+      path: 'main/docs/02_dev/HANDBOOK.md',
+      category: 'knowledge',
+      projectName: 'main',
+      rootLabel: 'docs',
+      graphPath: 'main/docs/02_dev/HANDBOOK.md',
+    });
+  });
+
+  it('treats attachments as graph-ineligible search results', () => {
+    expect(
+      canOpenGraphForSearchResult({
+        stem: 'diagram',
+        title: 'diagram',
+        path: 'kernel/docs/attachments/diagram.png',
+        docType: 'attachment',
+        tags: [],
+        score: 0.1,
+        category: 'attachment',
+        navigationTarget: {
+          path: 'kernel/docs/attachments/diagram.png',
+          category: 'doc',
+          projectName: 'kernel',
+        },
+        searchSource: 'search-index',
+      } as any)
+    ).toBe(false);
+  });
+
+  it('preserves graphPath when resolving definitions', () => {
+    expect(
+      resolveDefinitionSelection(
+        {
+          stem: 'AlphaService',
+          title: 'AlphaService',
+          path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+          docType: 'reference',
+          tags: [],
+          score: 0.9,
+          bestSection: 'line 21',
+          matchReason: 'definition lookup',
+        } as any,
+        {
+          navigationTarget: {
+            path: 'kernel/docs/service.md',
+            category: 'doc',
+            projectName: 'kernel',
+            rootLabel: 'packages',
+            line: 8,
+            lineEnd: 14,
+          },
+          definition: {
+            path: 'kernel/docs/service.md',
+            projectName: 'kernel',
+            rootLabel: 'packages',
+            lineStart: 8,
+            lineEnd: 14,
+            navigationTarget: {
+              path: 'kernel/docs/service.md',
+              category: 'doc',
+              projectName: 'kernel',
+              rootLabel: 'packages',
+              line: 8,
+              lineEnd: 14,
+            },
+          },
+        }
+      )
+    ).toEqual({
+      path: 'kernel/docs/service.md',
+      category: 'doc',
+      projectName: 'kernel',
+      rootLabel: 'packages',
+      line: 8,
+      lineEnd: 14,
+      graphPath: 'kernel/docs/service.md',
+    });
   });
 });

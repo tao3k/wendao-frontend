@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AutocompleteSuggestion } from '../../api';
 import type { SearchMeta } from './searchExecution';
-import type { SearchResult, SearchScope, SearchSort } from './types';
+import type { SearchScope, SearchSort } from './types';
 
 export function useSearchBarState(): {
   query: string;
@@ -26,12 +26,6 @@ export function useSearchBarState(): {
   setSortMode: React.Dispatch<React.SetStateAction<SearchSort>>;
   isComposing: boolean;
   setIsComposing: React.Dispatch<React.SetStateAction<boolean>>;
-  drawerResult: SearchResult | null;
-  setDrawerResult: React.Dispatch<React.SetStateAction<SearchResult | null>>;
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isDrawerLoading: boolean;
-  setIsDrawerLoading: React.Dispatch<React.SetStateAction<boolean>>;
 } {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -44,10 +38,6 @@ export function useSearchBarState(): {
   const [scope, setScope] = useState<SearchScope>('all');
   const [sortMode, setSortMode] = useState<SearchSort>('relevance');
   const [isComposing, setIsComposing] = useState(false);
-  const [drawerResult, setDrawerResult] = useState<SearchResult | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isDrawerLoading, setIsDrawerLoading] = useState(false);
-
   return {
     query,
     setQuery,
@@ -71,11 +61,5 @@ export function useSearchBarState(): {
     setSortMode,
     isComposing,
     setIsComposing,
-    drawerResult,
-    setDrawerResult,
-    isDrawerOpen,
-    setIsDrawerOpen,
-    isDrawerLoading,
-    setIsDrawerLoading,
   };
 }

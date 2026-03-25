@@ -7,20 +7,20 @@ import type { RuntimeStatus } from '../../StatusBar';
 
 function Probe({
   requestedTab = null,
-  selectedFilePath = null,
+  graphCenterNodeId = null,
   initialTab = 'diagram',
   onSidebarSummaryChange,
   onGraphRuntimeStatusChange,
 }: {
   requestedTab?: { tab: MainViewTab; nonce: number } | null;
-  selectedFilePath?: string | null;
+  graphCenterNodeId?: string | null;
   initialTab?: MainViewTab;
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
   onGraphRuntimeStatusChange?: (status: RuntimeStatus | null) => void;
 }) {
   const vm = useMainViewController({
     requestedTab,
-    selectedFilePath,
+    graphCenterNodeId,
     initialTab,
     onSidebarSummaryChange,
     onGraphRuntimeStatusChange,
@@ -47,14 +47,28 @@ describe('useMainViewController', () => {
     render(
       <Probe
         requestedTab={{ tab: 'graph', nonce: 1 }}
-        selectedFilePath="knowledge/context.md"
       />
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('active-tab').textContent).toBe('graph');
       expect(screen.getByTestId('is-graph').textContent).toBe('true');
-      expect(screen.getByTestId('center-id').textContent).toBe('knowledge/context.md');
+      expect(screen.getByTestId('center-id').textContent).toBe('null');
+    });
+  });
+
+  it('uses an explicit graph center node id', async () => {
+    render(
+      <Probe
+        requestedTab={{ tab: 'graph', nonce: 1 }}
+        graphCenterNodeId="main/docs/index.md#section:overview"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('center-id').textContent).toBe(
+        'main/docs/index.md#section:overview'
+      );
     });
   });
 

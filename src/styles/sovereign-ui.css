@@ -755,6 +755,11 @@ body {
   color: var(--tokyo-text);
 }
 
+.status-chip__label {
+  min-width: 0;
+  white-space: nowrap;
+}
+
 .status-chip svg {
   color: currentColor;
 }
@@ -776,6 +781,84 @@ body {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.status-chip--interactive {
+  position: relative;
+  overflow: visible;
+}
+
+.status-chip--button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.status-popover {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  display: grid;
+  gap: 8px;
+  min-width: min(440px, 72vw);
+  max-width: min(680px, 82vw);
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 207, 255, 0.2);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(8, 17, 34, 0.98), rgba(6, 12, 26, 0.98));
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(125, 207, 255, 0.06);
+  color: var(--tokyo-text);
+  white-space: normal;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  z-index: 30;
+}
+
+.status-popover::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 100%;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgba(125, 207, 255, 0.2);
+  border-bottom: 1px solid rgba(125, 207, 255, 0.2);
+  background: rgba(6, 12, 26, 0.98);
+  transform: translateY(-5px) rotate(45deg);
+}
+
+.status-chip--interactive:hover .status-popover,
+.status-chip--interactive:focus-within .status-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.status-popover__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tokyo-text-muted);
+}
+
+.status-popover__line {
+  font-size: 12px;
+}
+
+.status-popover__line--warning {
+  color: var(--neon-yellow);
 }
 
 .status-text--accent {

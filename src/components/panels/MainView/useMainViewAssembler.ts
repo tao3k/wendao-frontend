@@ -15,9 +15,11 @@ type UseMainViewAssemblerParams = Pick<
   MainViewProps,
   | 'locale'
   | 'selectedFile'
+  | 'graphCenterNodeId'
   | 'relationships'
   | 'requestedTab'
   | 'onGraphFileSelect'
+  | 'onGraphCenterNodeInvalid'
   | 'onNodeClick'
   | 'onBiLinkClick'
   | 'onSidebarSummaryChange'
@@ -35,9 +37,11 @@ interface UseMainViewAssemblerResult {
 export function useMainViewAssembler({
   locale = 'en',
   selectedFile,
+  graphCenterNodeId,
   relationships = [],
   requestedTab,
   onGraphFileSelect,
+  onGraphCenterNodeInvalid,
   onNodeClick,
   onBiLinkClick,
   onSidebarSummaryChange,
@@ -48,10 +52,10 @@ export function useMainViewAssembler({
     setActiveTab,
     diagramFocusEpoch,
     isGraphTabActive,
-    graphCenterNodeId,
+    graphCenterNodeId: resolvedGraphCenterNodeId,
   } = useMainViewController({
     requestedTab,
-    selectedFilePath: selectedFile?.path ?? null,
+    graphCenterNodeId: graphCenterNodeId ?? null,
     onSidebarSummaryChange,
     onGraphRuntimeStatusChange,
   });
@@ -78,12 +82,13 @@ export function useMainViewAssembler({
     copy,
   });
   const graphPanelProps = buildMainViewGraphPanelProps({
-    centerNodeId: graphCenterNodeId,
+    centerNodeId: resolvedGraphCenterNodeId,
     enabled: isGraphTabActive,
     options: graphOptions,
     locale,
     panelLoadingFallback,
     onGraphFileSelect,
+    onGraphCenterNodeInvalid,
     onSidebarSummaryChange,
     onGraphRuntimeStatusChange,
   });

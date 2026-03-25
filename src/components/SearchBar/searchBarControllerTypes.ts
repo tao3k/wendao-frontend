@@ -1,11 +1,42 @@
-import type { ComponentProps, KeyboardEvent, MouseEvent } from 'react';
+import type { ComponentProps, KeyboardEvent, MouseEvent, RefObject } from 'react';
 import { CodeFilterHelper } from './CodeFilterHelper';
 import { SearchResultsPanel } from './SearchResultsPanel';
-import { SearchShell } from './SearchShell';
 import { SearchSuggestionsPanel } from './SearchSuggestionsPanel';
-import type { SearchSelection, UiLocale } from './types';
+import type { ConfidenceTone } from './searchStateUtils';
+import type { SearchMeta } from './searchExecution';
+import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
+import type { RepoOverviewStatusSnapshot } from './useRepoOverviewStatus';
+import type { RepoSyncStatusSnapshot } from './useRepoSyncStatus';
+import type { SearchBarCopy, SearchSelection, SearchScope, SearchSort, UiLocale } from './types';
 
-export type SearchBarControllerShellProps = ComponentProps<typeof SearchShell>;
+export interface SearchBarControllerShellProps {
+  inputRef: RefObject<HTMLInputElement | null>;
+  copy: SearchBarCopy;
+  locale: UiLocale;
+  query: string;
+  isLoading: boolean;
+  showSuggestions: boolean;
+  scope: SearchScope;
+  sortMode: SearchSort;
+  searchMeta: SearchMeta | null;
+  modeLabel: string;
+  confidenceLabel: string;
+  confidenceTone: ConfidenceTone;
+  fallbackLabel?: string | null;
+  onRestoreFallbackQuery?: () => void;
+  repoOverviewStatus?: RepoOverviewStatusSnapshot | null;
+  repoSyncStatus?: RepoSyncStatusSnapshot | null;
+  onApplyRepoFacet?: (facet: RepoOverviewFacet) => void;
+  error: string | null;
+  onQueryChange: (value: string) => void;
+  onToggleSuggestions: () => void;
+  onClose: () => void;
+  onInputKeyDown: (event: KeyboardEvent) => void;
+  onCompositionStart: () => void;
+  onCompositionEnd: () => void;
+  onScopeChange: (scope: SearchScope) => void;
+  onSortModeChange: (sortMode: SearchSort) => void;
+}
 export type SearchBarControllerResultsPanelProps = ComponentProps<typeof SearchResultsPanel>;
 export type SearchBarControllerSuggestionsPanelProps = ComponentProps<typeof SearchSuggestionsPanel>;
 export type SearchBarControllerCodeFilterHelperProps = ComponentProps<typeof CodeFilterHelper>;
@@ -20,17 +51,12 @@ export interface UseSearchBarControllerParams {
   onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
 }
 
-export interface SearchBarControllerOverlayProps {
-  onClick: () => void;
-}
-
 export interface SearchBarControllerModalProps {
   onClick: (event: MouseEvent<HTMLDivElement>) => void;
   onKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
 }
 
 export interface SearchBarControllerResult {
-  overlayProps: SearchBarControllerOverlayProps;
   modalProps: SearchBarControllerModalProps;
   showCodeFilterHelper: boolean;
   shellProps: SearchBarControllerShellProps;

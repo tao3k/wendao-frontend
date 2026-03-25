@@ -1,7 +1,6 @@
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerModalProps,
-  SearchBarControllerOverlayProps,
   SearchBarControllerResult,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
@@ -35,7 +34,6 @@ interface BuildCodeFilterHelperPropsParams {
 }
 
 interface BuildSearchBarControllerResultParams {
-  onOverlayClick: SearchBarControllerOverlayProps['onClick'];
   onModalClick: SearchBarControllerModalProps['onClick'];
   onModalKeyDownCapture: SearchBarControllerModalProps['onKeyDownCapture'];
   showCodeFilterHelper: boolean;
@@ -151,7 +149,6 @@ export function buildCodeFilterHelperProps({
 }
 
 export function buildSearchBarControllerResult({
-  onOverlayClick,
   onModalClick,
   onModalKeyDownCapture,
   showCodeFilterHelper,
@@ -161,9 +158,6 @@ export function buildSearchBarControllerResult({
   codeFilterHelperProps,
 }: BuildSearchBarControllerResultParams): SearchBarControllerResult {
   return {
-    overlayProps: {
-      onClick: onOverlayClick,
-    },
     modalProps: {
       onClick: onModalClick,
       onKeyDownCapture: onModalKeyDownCapture,

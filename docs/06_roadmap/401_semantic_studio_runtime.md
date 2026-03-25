@@ -13,7 +13,7 @@ The current frontend can hydrate the correct file and panel surface from tree, s
 
 ## Recently Landed
 
-1. **Native Go-to-Definition Endpoint**: `Definition` is now a first-class backend contract served by `/api/search/definition` and consumed directly by SearchBar actions.
+1. **Native Go-to-Definition Endpoint**: `Definition` is now a first-class backend contract served by `/api/search/definition` and consumed directly by Zen Search actions.
 2. **Topology Continuity Repair**: the 3D runtime now preserves node coordinates across topology refreshes and uses incremental worker synchronization instead of repeated cold resets.
 3. **Markdown Reader Mode Hardening**: `DirectReader` now keeps Markdown in rich mode by default under line metadata, with explicit source-mode toggles for line-level inspection.
 

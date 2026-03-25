@@ -22,7 +22,6 @@ export interface UseSearchBarViewModelParams {
     | 'onOpenGraph'
     | 'onTogglePreview'
     | 'onPreview'
-    | 'renderDrawer'
   >;
 }
 

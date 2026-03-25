@@ -143,7 +143,6 @@ describe('useSearchBarController', () => {
     expect(result.current.showCodeFilterHelper).toBe(true);
     expect(result.current.shellProps).toEqual({ shell: true });
     expect(result.current.resultsPanelProps).toEqual({ panel: true });
-    expect(result.current.overlayProps.onClick).toBe(onClose);
     expect(typeof result.current.modalProps.onClick).toBe('function');
     expect(typeof result.current.modalProps.onKeyDownCapture).toBe('function');
     expect(result.current.suggestionsPanelProps.suggestions).toEqual([]);

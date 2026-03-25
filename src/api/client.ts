@@ -243,6 +243,7 @@ export interface RepoSyncResponse {
 export interface RepoIndexEntryStatus {
   repoId: string;
   phase: string;
+  queuePosition?: number;
   lastError?: string;
   lastRevision?: string;
   updatedAt?: string;
@@ -258,6 +259,9 @@ export interface RepoIndexStatusResponse {
   ready: number;
   unsupported: number;
   failed: number;
+  targetConcurrency: number;
+  maxConcurrency: number;
+  syncConcurrencyLimit: number;
   currentRepoId?: string;
   repos: RepoIndexEntryStatus[];
 }
@@ -265,6 +269,12 @@ export interface RepoIndexStatusResponse {
 export interface RepoIndexRequest {
   repo?: string;
   refresh?: boolean;
+}
+
+export interface UiCapabilities {
+  supportedLanguages: string[];
+  supportedRepositories: string[];
+  supportedKinds: string[];
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
@@ -282,6 +292,15 @@ const UI_CONFIG_RETRY_CODES = new Set(['UNKNOWN_REPOSITORY', 'UI_CONFIG_REQUIRED
 const UI_CONFIG_PREWARM_INTERVAL_MS = 5_000;
 let uiConfigSyncInFlight: Promise<boolean> | null = null;
 let lastUiConfigPrewarmAt = 0;
+let uiCapabilitiesCache: UiCapabilities | null = null;
+
+export function getUiCapabilitiesSync(): UiCapabilities | null {
+  return uiCapabilitiesCache;
+}
+
+export function resetUiCapabilitiesCache(): void {
+  uiCapabilitiesCache = null;
+}
 
 function shouldRetryWithUiConfigSync(error: unknown): error is ApiClientError {
   return error instanceof ApiClientError && UI_CONFIG_RETRY_CODES.has(error.code);
@@ -341,6 +360,17 @@ async function withUiConfigSyncRetry<T>(run: () => Promise<T>): Promise<T> {
     }
     return run();
   }
+}
+
+async function loadUiCapabilities(): Promise<UiCapabilities> {
+  const response = await fetch(`${API_BASE}/ui/capabilities`);
+  const capabilities = await handleResponse<Partial<UiCapabilities>>(response);
+  uiCapabilitiesCache = {
+    supportedLanguages: capabilities.supportedLanguages ?? [],
+    supportedRepositories: capabilities.supportedRepositories ?? [],
+    supportedKinds: capabilities.supportedKinds ?? [],
+  };
+  return uiCapabilitiesCache;
 }
 
 type RepoModuleSearchResponseWire = {
@@ -677,6 +707,8 @@ type RepoIndexEntryStatusWire = {
   repoId?: string;
   repo_id?: string;
   phase?: string;
+  queuePosition?: number;
+  queue_position?: number;
   lastError?: string;
   last_error?: string;
   lastRevision?: string;
@@ -689,6 +721,7 @@ type RepoIndexEntryStatusWire = {
 
 type RepoIndexStatusResponseWire = {
   total?: number;
+  active?: number;
   queued?: number;
   checking?: number;
   syncing?: number;
@@ -696,6 +729,12 @@ type RepoIndexStatusResponseWire = {
   ready?: number;
   unsupported?: number;
   failed?: number;
+  targetConcurrency?: number;
+  target_concurrency?: number;
+  maxConcurrency?: number;
+  max_concurrency?: number;
+  syncConcurrencyLimit?: number;
+  sync_concurrency_limit?: number;
   currentRepoId?: string;
   current_repo_id?: string;
   repos?: RepoIndexEntryStatusWire[];
@@ -931,10 +970,14 @@ function normalizeRepoIndexStatusResponse(raw: RepoIndexStatusResponseWire): Rep
     ready: raw.ready ?? 0,
     unsupported: raw.unsupported ?? 0,
     failed: raw.failed ?? 0,
+    targetConcurrency: raw.targetConcurrency ?? raw.target_concurrency ?? 0,
+    maxConcurrency: raw.maxConcurrency ?? raw.max_concurrency ?? 0,
+    syncConcurrencyLimit: raw.syncConcurrencyLimit ?? raw.sync_concurrency_limit ?? 0,
     currentRepoId: raw.currentRepoId ?? raw.current_repo_id,
     repos: (raw.repos ?? []).map((repo) => ({
       repoId: repo.repoId ?? repo.repo_id ?? '',
       phase: repo.phase ?? 'idle',
+      queuePosition: repo.queuePosition ?? repo.queue_position ?? undefined,
       lastError: repo.lastError ?? repo.last_error ?? undefined,
       lastRevision: repo.lastRevision ?? repo.last_revision ?? undefined,
       updatedAt: repo.updatedAt ?? repo.updated_at ?? undefined,
@@ -1319,6 +1362,13 @@ export const api = {
   async getUiConfig(): Promise<UiConfig> {
     const response = await fetch(`${API_BASE}/ui/config`);
     return handleResponse<UiConfig>(response);
+  },
+
+  /**
+   * Get gateway-reported studio capabilities.
+   */
+  async getUiCapabilities(): Promise<UiCapabilities> {
+    return loadUiCapabilities();
   },
 
   /**

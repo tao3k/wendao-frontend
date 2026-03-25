@@ -1,0 +1,1003 @@
+schema_version = "2"
+generated_at = "2026-03-25T06:21:30.057Z"
+gateway_url = "http://127.0.0.1:9517"
+openapi_path = "/Users/guangtao/projects/xiuxian-artisan-workshop/packages/rust/crates/xiuxian-wendao/resources/openapi/wendao_gateway.openapi.json"
+workspace_config = "/Users/guangtao/projects/xiuxian-artisan-workshop/.data/wendao-frontend/wendao.toml"
+repo_count = 177
+openapi_operation_count = 64
+
+[settings]
+concurrency = 6
+limit = 20
+timeout_ms = 30000
+min_repo_count = 150
+stress_concurrency = 96
+stress_duration_ms = 60000
+stress_max_requests = 12000
+
+[coverage_summary]
+total_operations = 64
+benchmark_operations = 4
+smoke_operations = 58
+skipped_operations = 2
+passed_operations = 62
+failed_operations = 0
+
+[discovery]
+ready_repo_id = "ADTypes.jl"
+repo_query = "ADTypes"
+definition_query = "Search Parameters"
+repo_file_path = "src/ADTypes.jl"
+markdown_file_path = "README.md"
+vfs_root_path = "ADTypes.jl"
+vfs_file_path = "ADTypes.jl/src/ADTypes.jl"
+page_id = "repo:ADTypes.jl:projection:explanation:doc:repo:ADTypes.jl:doc:src/ADTypes.jl#module:ADTypes"
+node_id = "explanation/adtypes-d895bfadba04#adtypes"
+gap_id = "repo:ADTypes.jl:projection-gap:symbol_reference_without_documentation:repo:ADTypes.jl:symbol:ADTypes.AutoChainRules"
+gap_kind = "symbol_reference_without_documentation"
+page_kind = "explanation"
+family_kind = "reference"
+topology_node_id = "kernel/docs/01_core/101_studio_surface_protocol.md"
+
+[aggregate_repo_index_status]
+suite = "repo_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/repo/index/status"
+elapsed_ms = 4.99
+ok = true
+status = 200
+attempts = 1
+total = 177
+ready = 116
+
+[repo_index_snapshot]
+total = 177
+active = 0
+queued = 0
+checking = 0
+syncing = 0
+indexing = 0
+ready = 116
+unsupported = 13
+failed = 48
+target_concurrency = 1
+max_concurrency = 15
+sync_concurrency_limit = 1
+
+[aggregate_search_index_status]
+suite = "search_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/search/index/status"
+elapsed_ms = 55.62
+ok = true
+status = 200
+attempts = 1
+total = 6
+ready = 3
+
+[search_index_snapshot]
+total = 6
+idle = 0
+indexing = 0
+ready = 3
+degraded = 2
+failed = 1
+compaction_pending = 0
+status_reason_code = "published_manifest_missing"
+status_reason_severity = "warning"
+status_reason_action = "resync_repo"
+affected_corpus_count = 3
+readable_corpus_count = 3
+blocking_corpus_count = 0
+
+[[summaries]]
+suite = "repo_index_status"
+requests = 178
+ok = 178
+failed = 0
+avg_ms = 0.48
+p50_ms = 0.34
+p95_ms = 1.28
+max_ms = 4.99
+
+[[summaries]]
+suite = "repo_sync_status"
+requests = 177
+ok = 177
+failed = 0
+avg_ms = 1.53
+p50_ms = 1.49
+p95_ms = 2.18
+max_ms = 3.45
+
+[[summaries]]
+suite = "code_search"
+requests = 177
+ok = 177
+failed = 0
+avg_ms = 4823.29
+p50_ms = 4855.15
+p95_ms = 5122.18
+max_ms = 5175.72
+non_empty_hit_count = 149
+
+[[summaries]]
+suite = "search_index_status"
+requests = 1
+ok = 1
+failed = 0
+avg_ms = 55.62
+p50_ms = 55.62
+p95_ms = 55.62
+max_ms = 55.62
+
+[[summaries]]
+suite = "openapi_smoke"
+requests = 58
+ok = 58
+failed = 0
+avg_ms = 1087.90
+p50_ms = 1761.01
+p95_ms = 2180.16
+max_ms = 2242.46
+non_empty_hit_count = 15
+
+[[stress_summaries]]
+suite = "stress_code_search"
+configured_duration_ms = 60000
+actual_duration_ms = 64627.64
+concurrency = 96
+max_requests = 12000
+requests = 5612
+ok = 5612
+failed = 0
+success_rate = 1
+throughput_rps = 86.84
+avg_ms = 1087.38
+p50_ms = 82.22
+p95_ms = 5393.47
+p99_ms = 5714.99
+max_ms = 6279.55
+capped = false
+non_empty_hit_count = 401
+
+[[stress_summaries]]
+suite = "stress_mixed_user_hotset"
+configured_duration_ms = 60000
+actual_duration_ms = 28362.01
+concurrency = 96
+max_requests = 12000
+requests = 12000
+ok = 12000
+failed = 0
+success_rate = 1
+throughput_rps = 423.10
+avg_ms = 206.76
+p50_ms = 25.18
+p95_ms = 166.84
+p99_ms = 5271.21
+max_ms = 5754.83
+capped = true
+non_empty_hit_count = 394
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/analysis/code-ast"
+operation_id = "studioCodeAstAnalysis"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioCodeAstAnalysis"
+url = "http://127.0.0.1:9517/api/analysis/code-ast?repo=ADTypes.jl&path=src%2FADTypes.jl&line=1"
+elapsed_ms = 446.64
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/analysis/markdown"
+operation_id = "studioMarkdownAnalysis"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioMarkdownAnalysis"
+url = "http://127.0.0.1:9517/api/analysis/markdown?path=README.md"
+elapsed_ms = 1.39
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-cluster"
+operation_id = "studioDocsFamilyCluster"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilyCluster"
+url = "http://127.0.0.1:9517/api/docs/family-cluster?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&kind=explanation&limit=5"
+elapsed_ms = 1167.23
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-context"
+operation_id = "studioDocsFamilyContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilyContext"
+url = "http://127.0.0.1:9517/api/docs/family-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&per_kind_limit=3"
+elapsed_ms = 1607.87
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/family-search"
+operation_id = "studioDocsFamilySearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsFamilySearch"
+url = "http://127.0.0.1:9517/api/docs/family-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5&per_kind_limit=3"
+elapsed_ms = 2040.51
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/navigation-search"
+operation_id = "studioDocsNavigationSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsNavigationSearch"
+url = "http://127.0.0.1:9517/api/docs/navigation-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&family_kind=reference&limit=5&related_limit=5&family_limit=3"
+elapsed_ms = 2094.76
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/navigation"
+operation_id = "studioDocsNavigation"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsNavigation"
+url = "http://127.0.0.1:9517/api/docs/navigation?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 1903.96
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/page"
+operation_id = "studioDocsPage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPage"
+url = "http://127.0.0.1:9517/api/docs/page?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 1912.00
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-item"
+operation_id = "studioDocsPlannerItem"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerItem"
+url = "http://127.0.0.1:9517/api/docs/planner-item?repo=ADTypes.jl&gap_id=repo%3AADTypes.jl%3Aprojection-gap%3Asymbol_reference_without_documentation%3Arepo%3AADTypes.jl%3Asymbol%3AADTypes.AutoChainRules&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 2009.80
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-queue"
+operation_id = "studioDocsPlannerQueue"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerQueue"
+url = "http://127.0.0.1:9517/api/docs/planner-queue?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&per_kind_limit=3"
+elapsed_ms = 1974.58
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-rank"
+operation_id = "studioDocsPlannerRank"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerRank"
+url = "http://127.0.0.1:9517/api/docs/planner-rank?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&limit=5"
+elapsed_ms = 1869.06
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-search"
+operation_id = "studioDocsPlannerSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerSearch"
+url = "http://127.0.0.1:9517/api/docs/planner-search?repo=ADTypes.jl&query=ADTypes&gap_kind=symbol_reference_without_documentation&page_kind=explanation&limit=5"
+elapsed_ms = 1859.66
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/planner-workset"
+operation_id = "studioDocsPlannerWorkset"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsPlannerWorkset"
+url = "http://127.0.0.1:9517/api/docs/planner-workset?repo=ADTypes.jl&gap_kind=symbol_reference_without_documentation&page_kind=explanation&per_kind_limit=3&limit=5&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 1779.60
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/projected-gap-report"
+operation_id = "studioDocsProjectedGapReport"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsProjectedGapReport"
+url = "http://127.0.0.1:9517/api/docs/projected-gap-report?repo=ADTypes.jl"
+elapsed_ms = 1787.38
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval-context"
+operation_id = "studioDocsRetrievalContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrievalContext"
+url = "http://127.0.0.1:9517/api/docs/retrieval-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&related_limit=5"
+elapsed_ms = 1810.82
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval-hit"
+operation_id = "studioDocsRetrievalHit"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrievalHit"
+url = "http://127.0.0.1:9517/api/docs/retrieval-hit?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 1777.45
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/retrieval"
+operation_id = "studioDocsRetrieval"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsRetrieval"
+url = "http://127.0.0.1:9517/api/docs/retrieval?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1815.43
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/docs/search"
+operation_id = "studioDocsSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioDocsSearch"
+url = "http://127.0.0.1:9517/api/docs/search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1842.60
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/graph/neighbors/{id}"
+operation_id = "studioGraphNeighbors"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGraphNeighbors"
+url = "http://127.0.0.1:9517/api/graph/neighbors/kernel%2Fdocs%2F01_core%2F101_studio_surface_protocol.md"
+elapsed_ms = 261.22
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/health"
+operation_id = "gatewayHealth"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayHealth"
+url = "http://127.0.0.1:9517/api/health"
+elapsed_ms = 0.44
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/neighbors/{id}"
+operation_id = "studioNodeNeighbors"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioNodeNeighbors"
+url = "http://127.0.0.1:9517/api/neighbors/kernel%2Fdocs%2F01_core%2F101_studio_surface_protocol.md"
+elapsed_ms = 251.59
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/notify"
+operation_id = "gatewayNotifyStatus"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayNotifyStatus"
+url = "http://127.0.0.1:9517/api/notify"
+elapsed_ms = 0.36
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/doc-coverage"
+operation_id = "studioRepoDocCoverage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoDocCoverage"
+url = "http://127.0.0.1:9517/api/repo/doc-coverage?repo=ADTypes.jl"
+elapsed_ms = 1450.26
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/example-search"
+operation_id = "studioRepoExampleSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoExampleSearch"
+url = "http://127.0.0.1:9517/api/repo/example-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 1.51
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/index/status"
+operation_id = "studioRepoIndexStatus"
+mode = "benchmark"
+status = "passed"
+suite = "repo_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/repo/index/status"
+elapsed_ms = 4.99
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "POST"
+path = "/api/repo/index"
+operation_id = "studioRepoIndexEnqueue"
+mode = "skip"
+status = "skipped"
+skip_reason = "mutating OpenAPI operation is intentionally skipped in live benchmark"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/module-search"
+operation_id = "studioRepoModuleSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoModuleSearch"
+url = "http://127.0.0.1:9517/api/repo/module-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 1.34
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/overview"
+operation_id = "studioRepoOverview"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoOverview"
+url = "http://127.0.0.1:9517/api/repo/overview?repo=ADTypes.jl"
+elapsed_ms = 1761.01
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-gap-report"
+operation_id = "studioRepoProjectedGapReport"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedGapReport"
+url = "http://127.0.0.1:9517/api/repo/projected-gap-report?repo=ADTypes.jl"
+elapsed_ms = 1839.59
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-cluster"
+operation_id = "studioRepoProjectedPageFamilyCluster"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilyCluster"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-cluster?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&kind=explanation&limit=5"
+elapsed_ms = 1797.10
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-context"
+operation_id = "studioRepoProjectedPageFamilyContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilyContext"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&per_kind_limit=3"
+elapsed_ms = 1777.11
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-family-search"
+operation_id = "studioRepoProjectedPageFamilySearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageFamilySearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-family-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5&per_kind_limit=3"
+elapsed_ms = 1824.16
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-node"
+operation_id = "studioRepoProjectedPageIndexNode"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexNode"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-node?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 2242.46
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-tree-search"
+operation_id = "studioRepoProjectedPageIndexTreeSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTreeSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-tree-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 2181.18
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-tree"
+operation_id = "studioRepoProjectedPageIndexTree"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTree"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-tree?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 2224.78
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-index-trees"
+operation_id = "studioRepoProjectedPageIndexTrees"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageIndexTrees"
+url = "http://127.0.0.1:9517/api/repo/projected-page-index-trees?repo=ADTypes.jl"
+elapsed_ms = 2180.16
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-navigation-search"
+operation_id = "studioRepoProjectedPageNavigationSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageNavigationSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-navigation-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&family_kind=reference&limit=5&related_limit=5&family_limit=3"
+elapsed_ms = 1833.98
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-navigation"
+operation_id = "studioRepoProjectedPageNavigation"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageNavigation"
+url = "http://127.0.0.1:9517/api/repo/projected-page-navigation?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&family_kind=reference&related_limit=5&family_limit=3"
+elapsed_ms = 1940.83
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page-search"
+operation_id = "studioRepoProjectedPageSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPageSearch"
+url = "http://127.0.0.1:9517/api/repo/projected-page-search?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1.27
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-page"
+operation_id = "studioRepoProjectedPage"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPage"
+url = "http://127.0.0.1:9517/api/repo/projected-page?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes"
+elapsed_ms = 1933.59
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-pages"
+operation_id = "studioRepoProjectedPages"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedPages"
+url = "http://127.0.0.1:9517/api/repo/projected-pages?repo=ADTypes.jl"
+elapsed_ms = 1977.81
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval-context"
+operation_id = "studioRepoProjectedRetrievalContext"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrievalContext"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval-context?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes&related_limit=5"
+elapsed_ms = 1819.10
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval-hit"
+operation_id = "studioRepoProjectedRetrievalHit"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrievalHit"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval-hit?repo=ADTypes.jl&page_id=repo%3AADTypes.jl%3Aprojection%3Aexplanation%3Adoc%3Arepo%3AADTypes.jl%3Adoc%3Asrc%2FADTypes.jl%23module%3AADTypes&node_id=explanation%2Fadtypes-d895bfadba04%23adtypes"
+elapsed_ms = 1749.42
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/projected-retrieval"
+operation_id = "studioRepoProjectedRetrieval"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoProjectedRetrieval"
+url = "http://127.0.0.1:9517/api/repo/projected-retrieval?repo=ADTypes.jl&query=ADTypes&kind=explanation&limit=5"
+elapsed_ms = 1773.61
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/symbol-search"
+operation_id = "studioRepoSymbolSearch"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioRepoSymbolSearch"
+url = "http://127.0.0.1:9517/api/repo/symbol-search?repo=ADTypes.jl&query=ADTypes&limit=5"
+elapsed_ms = 1.49
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/repo/sync"
+operation_id = "studioRepoSync"
+mode = "benchmark"
+status = "passed"
+suite = "repo_sync_status"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/repo/sync?repo=ADTypes.jl&mode=status"
+elapsed_ms = 2.53
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/ast"
+operation_id = "studioSearchAst"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAst"
+url = "http://127.0.0.1:9517/api/search/ast?q=ADTypes"
+elapsed_ms = 7.42
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/attachments"
+operation_id = "studioSearchAttachments"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAttachments"
+url = "http://127.0.0.1:9517/api/search/attachments?q=ADTypes&limit=5"
+elapsed_ms = 9.37
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/autocomplete"
+operation_id = "studioSearchAutocomplete"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchAutocomplete"
+url = "http://127.0.0.1:9517/api/search/autocomplete?prefix=ADTypes"
+elapsed_ms = 6.25
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/definition"
+operation_id = "studioSearchDefinition"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchDefinition"
+url = "http://127.0.0.1:9517/api/search/definition?q=Search+Parameters"
+elapsed_ms = 10.61
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/index/status"
+operation_id = "studioSearchIndexStatus"
+mode = "benchmark"
+status = "passed"
+suite = "search_index_status"
+label = "aggregate"
+url = "http://127.0.0.1:9517/api/search/index/status"
+elapsed_ms = 55.62
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/intent"
+operation_id = "studioSearchKnowledgeIntent"
+mode = "benchmark"
+status = "passed"
+suite = "code_search"
+label = "ADTypes.jl"
+url = "http://127.0.0.1:9517/api/search/intent?intent=code_search&q=ADTypes&limit=20"
+elapsed_ms = 5120.23
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/references"
+operation_id = "studioSearchReferences"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchReferences"
+url = "http://127.0.0.1:9517/api/search/references?q=ADTypes"
+elapsed_ms = 3.23
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search/symbols"
+operation_id = "studioSearchSymbols"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchSymbols"
+url = "http://127.0.0.1:9517/api/search/symbols?q=ADTypes"
+elapsed_ms = 0.67
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/search"
+operation_id = "studioSearchKnowledge"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioSearchKnowledge"
+url = "http://127.0.0.1:9517/api/search?q=ADTypes&intent=code_search&limit=5"
+elapsed_ms = 11.33
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/stats"
+operation_id = "gatewayStats"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "gatewayStats"
+url = "http://127.0.0.1:9517/api/stats"
+elapsed_ms = 0.29
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/topology/3d"
+operation_id = "studioTopology3d"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioTopology3d"
+url = "http://127.0.0.1:9517/api/topology/3d"
+elapsed_ms = 265.34
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/ui/capabilities"
+operation_id = "studioGetUiCapabilities"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGetUiCapabilities"
+url = "http://127.0.0.1:9517/api/ui/capabilities"
+elapsed_ms = 0.58
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/ui/config"
+operation_id = "studioGetUiConfig"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioGetUiConfig"
+url = "http://127.0.0.1:9517/api/ui/config"
+elapsed_ms = 0.86
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "POST"
+path = "/api/ui/config"
+operation_id = "studioSetUiConfig"
+mode = "skip"
+status = "skipped"
+skip_reason = "mutating OpenAPI operation is intentionally skipped in live benchmark"
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/{path}"
+operation_id = "studioVfsEntry"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsEntry"
+url = "http://127.0.0.1:9517/api/vfs/ADTypes.jl%2Fsrc%2FADTypes.jl"
+elapsed_ms = 56.65
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/cat"
+operation_id = "studioVfsCat"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsCat"
+url = "http://127.0.0.1:9517/api/vfs/cat?path=ADTypes.jl%2Fsrc%2FADTypes.jl"
+elapsed_ms = 46.50
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs/scan"
+operation_id = "studioVfsScan"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsScan"
+url = "http://127.0.0.1:9517/api/vfs/scan"
+elapsed_ms = 106.08
+http_status = 200
+attempts = 1
+
+[[operation_coverage]]
+method = "GET"
+path = "/api/vfs"
+operation_id = "studioVfsRootEntries"
+mode = "smoke"
+status = "passed"
+suite = "openapi_smoke"
+label = "studioVfsRootEntries"
+url = "http://127.0.0.1:9517/api/vfs"
+elapsed_ms = 46.66
+http_status = 200
+attempts = 1

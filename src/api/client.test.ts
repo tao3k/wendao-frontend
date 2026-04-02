@@ -1,13 +1,36 @@
-import { tableFromArrays, tableToIPC } from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api, getUiCapabilitiesSync, resetUiCapabilitiesCache } from './index';
+import * as flightAnalysisTransport from './flightAnalysisTransport';
+import * as flightDocumentTransport from './flightDocumentTransport';
+import * as flightGraphTransport from './flightGraphTransport';
 import * as flightSearchTransport from './flightSearchTransport';
+import * as flightWorkspaceTransport from './flightWorkspaceTransport';
 import { ApiClientError } from './responseTransport';
 import { resetConfig } from '../config/loader';
 
 afterEach(() => {
   resetConfig();
 });
+
+function mockFrontendFlightConfigFetch() {
+  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(
+      `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[search_flight]
+bind = "127.0.0.1:9527"
+schema_version = "v2"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+`,
+      { status: 200, headers: { 'Content-Type': 'text/plain' } },
+    ),
+  );
+}
 
 describe('api client repo search normalization', () => {
   afterEach(() => {
@@ -108,6 +131,93 @@ describe('api client repo search normalization', () => {
   });
 });
 
+describe('api client Flight document transport', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetUiCapabilitiesCache();
+  });
+
+  it('routes definition resolution through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const resolveSpy = vi
+      .spyOn(flightDocumentTransport, 'resolveDefinitionFlight')
+      .mockResolvedValue({
+        query: 'AlphaService',
+        sourcePath: 'kernel/src/lib.rs',
+        sourceLine: 7,
+        navigationTarget: {
+          path: 'kernel/src/service.rs',
+          category: 'code',
+          projectName: 'kernel',
+          line: 11,
+        },
+        definition: {
+          name: 'AlphaService',
+          signature: 'pub struct AlphaService',
+          path: 'kernel/src/service.rs',
+          language: 'rust',
+          crateName: 'kernel',
+          projectName: 'kernel',
+          rootLabel: 'main',
+          navigationTarget: {
+            path: 'kernel/src/service.rs',
+            category: 'code',
+            projectName: 'kernel',
+            line: 11,
+          },
+          lineStart: 11,
+          lineEnd: 13,
+          score: 0.97,
+        },
+        candidateCount: 1,
+        selectedScope: 'definition',
+      });
+
+    const response = await api.resolveDefinition('AlphaService', {
+      path: 'kernel/src/lib.rs',
+      line: 7,
+    });
+
+    expect(resolveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        query: 'AlphaService',
+        path: 'kernel/src/lib.rs',
+        line: 7,
+      }),
+      expect.any(Object),
+    );
+    expect(response.definition.path).toBe('kernel/src/service.rs');
+  });
+
+  it('routes autocomplete through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const autocompleteSpy = vi
+      .spyOn(flightDocumentTransport, 'searchAutocompleteFlight')
+      .mockResolvedValue({
+        prefix: 'Alpha',
+        suggestions: [{
+          text: 'AlphaService',
+          suggestionType: 'stem',
+        }],
+      });
+
+    const response = await api.searchAutocomplete('Alpha', 5);
+
+    expect(autocompleteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        prefix: 'Alpha',
+        limit: 5,
+      }),
+      expect.any(Object),
+    );
+    expect(response.suggestions[0]?.text).toBe('AlphaService');
+  });
+});
+
 describe('api client ui capabilities contract', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -137,6 +247,33 @@ describe('api client ui capabilities contract', () => {
       supportedRepositories: ['kernel', 'sciml'],
       supportedKinds: ['function', 'module', 'struct'],
     });
+  });
+});
+
+describe('api client Flight workspace transport', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetUiCapabilitiesCache();
+  });
+
+  it('routes studio path resolution through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const resolveSpy = vi
+      .spyOn(flightWorkspaceTransport, 'resolveStudioPathFlight')
+      .mockResolvedValue({
+        path: 'main/docs/index.md',
+        category: 'file',
+        projectName: 'main',
+      });
+
+    const response = await api.resolveStudioPath('docs/index.md');
+
+    expect(resolveSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      path: 'docs/index.md',
+    });
+    expect(response.path).toBe('main/docs/index.md');
   });
 });
 
@@ -194,7 +331,7 @@ describe('api client graph neighbors contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('passes through canonical graph neighbors payload', async () => {
+  it('loads canonical graph neighbors through same-origin Flight', async () => {
     const payload = {
       center: {
         id: 'main/docs/index.md',
@@ -245,13 +382,10 @@ describe('api client graph neighbors contract', () => {
       totalNodes: 2,
       totalLinks: 1,
     };
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify(payload),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi
+      .spyOn(flightGraphTransport, 'loadGraphNeighborsFlight')
+      .mockResolvedValue(payload);
 
     const response = await api.getGraphNeighbors('main/docs/index.md', {
       direction: 'both',
@@ -259,36 +393,46 @@ describe('api client graph neighbors contract', () => {
       limit: 20,
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/graph/neighbors/main%2Fdocs%2Findex.md?direction=both&hops=1&limit=20'
-    );
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      nodeId: 'main/docs/index.md',
+      direction: 'both',
+      hops: 1,
+      limit: 20,
+    });
     expect(response).toEqual(payload);
   });
 
-  it('uses bare graph endpoint url when options are omitted', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          center: {
-            id: 'main/docs/missing.md',
-            label: 'missing.md',
-            path: 'main/docs/missing.md',
-            nodeType: 'doc',
-            isCenter: true,
-            distance: 0,
-          },
-          nodes: [],
-          links: [],
-          totalNodes: 0,
-          totalLinks: 0,
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
+  it('uses normalized Flight graph request when options are omitted', async () => {
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi
+      .spyOn(flightGraphTransport, 'loadGraphNeighborsFlight')
+      .mockResolvedValue({
+        center: {
+          id: 'main/docs/missing.md',
+          label: 'missing.md',
+          path: 'main/docs/missing.md',
+          nodeType: 'doc',
+          isCenter: true,
+          distance: 0,
+        },
+        nodes: [],
+        links: [],
+        totalNodes: 0,
+        totalLinks: 0,
+      });
 
     const response = await api.getGraphNeighbors('main/docs/missing.md');
 
-    expect(fetchSpy).toHaveBeenCalledWith('/api/graph/neighbors/main%2Fdocs%2Fmissing.md');
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      nodeId: 'main/docs/missing.md',
+      direction: undefined,
+      hops: undefined,
+      limit: undefined,
+    });
     expect(response.totalNodes).toBe(0);
   });
 });
@@ -298,33 +442,47 @@ describe('api client Arrow retrieval chunk contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('decodes markdown retrieval chunks from Arrow IPC', async () => {
-    const payload = tableToIPC(tableFromArrays({
-      ownerId: ['section:intro'],
-      chunkId: ['md:intro'],
-      semanticType: ['section'],
-      fingerprint: ['fp:intro'],
-      tokenEstimate: [19],
-      displayLabel: ['Intro'],
-      excerpt: ['Hello world'],
-      lineStart: [1],
-      lineEnd: [4],
-      surface: ['section'],
-    }), 'stream');
-
+  it('loads markdown retrieval chunks through the Flight analysis helper', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(payload, {
-        status: 200,
-        headers: { 'Content-Type': 'application/vnd.apache.arrow.stream' },
-      })
+      new Response(
+        `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[search_flight]
+schema_version = "v2"
+
+[link_graph.projects.main]
+root = "."
+dirs = ["docs"]
+`,
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/plain' },
+        },
+      )
     );
+    const flightSpy = vi.spyOn(flightAnalysisTransport, 'loadMarkdownRetrievalChunksFlight').mockResolvedValue([{
+      ownerId: 'section:intro',
+      chunkId: 'md:intro',
+      semanticType: 'section',
+      fingerprint: 'fp:intro',
+      tokenEstimate: 19,
+      displayLabel: 'Intro',
+      excerpt: 'Hello world',
+      lineStart: 1,
+      lineEnd: 4,
+      surface: 'section',
+    }]);
 
     const response = await api.getMarkdownRetrievalChunksArrow('main/docs/index.md');
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/analysis/markdown/retrieval-arrow?path=main%2Fdocs%2Findex.md',
-      { headers: { Accept: 'application/vnd.apache.arrow.stream' } }
-    );
+    expect(fetchSpy).toHaveBeenCalledWith('/wendao.toml');
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      path: 'main/docs/index.md',
+    });
     expect(response).toEqual([{
       ownerId: 'section:intro',
       chunkId: 'md:intro',
@@ -339,101 +497,91 @@ describe('api client Arrow retrieval chunk contract', () => {
     }]);
   });
 
-  it('decodes code AST retrieval chunks from Arrow IPC with repo and line hints', async () => {
-    const payload = tableToIPC(tableFromArrays({
-      ownerId: ['symbol:solve'],
-      chunkId: ['ast:solve:declaration'],
-      semanticType: ['function'],
-      fingerprint: ['fp:solve'],
-      tokenEstimate: [12],
-      displayLabel: ['solve'],
-      excerpt: ['fn solve()'],
-      lineStart: [12],
-      lineEnd: [18],
-      surface: ['declaration'],
-    }), 'stream');
+  it('loads code AST retrieval chunks through the Flight analysis helper', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        `
+[gateway]
+bind = "127.0.0.1:9517"
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(payload, {
-        status: 200,
-        headers: { 'Content-Type': 'application/vnd.apache.arrow.stream' },
-      })
+[search_flight]
+schema_version = "v2"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+`,
+        { status: 200, headers: { 'Content-Type': 'text/plain' } },
+      )
     );
+    const flightSpy = vi.spyOn(flightAnalysisTransport, 'loadCodeAstRetrievalChunksFlight').mockResolvedValue([{
+      ownerId: 'symbol:solve',
+      chunkId: 'ast:solve:declaration',
+      semanticType: 'function',
+      fingerprint: 'fp:solve',
+      tokenEstimate: 12,
+      displayLabel: 'solve',
+      excerpt: 'fn solve()',
+      lineStart: 12,
+      lineEnd: 18,
+      surface: 'declaration',
+    }]);
 
     const response = await api.getCodeAstRetrievalChunksArrow('kernel/src/lib.rs', {
       repo: 'kernel',
       line: 12,
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/analysis/code-ast/retrieval-arrow?path=kernel%2Fsrc%2Flib.rs&repo=kernel&line=12',
-      { headers: { Accept: 'application/vnd.apache.arrow.stream' } }
-    );
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      path: 'kernel/src/lib.rs',
+      repo: 'kernel',
+      line: 12,
+    });
     expect(response[0]?.surface).toBe('declaration');
     expect(response[0]?.chunkId).toBe('ast:solve:declaration');
   });
 });
 
-describe('api client Arrow search hit contract', () => {
+describe('api client Flight search hit contract', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('overlays Arrow-decoded hits onto searchAttachments JSON metadata', async () => {
-    const arrowPayload = tableToIPC(tableFromArrays({
-      name: ['topology.png'],
-      path: ['kernel/docs/attachments/topology-owner.md'],
-      sourceId: ['note:topology-owner'],
-      sourceStem: ['topology-owner'],
-      sourceTitle: ['Topology Owner'],
-      navigationTargetJson: [JSON.stringify({
+  it('routes attachment hits through the Flight helper', async () => {
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi.spyOn(
+      flightSearchTransport,
+      'searchAttachmentsFlight',
+    ).mockResolvedValue({
+      query: 'topology',
+      hitCount: 1,
+      selectedScope: 'attachments',
+      hits: [{
+        name: 'topology.png',
         path: 'kernel/docs/attachments/topology-owner.md',
-        category: 'knowledge',
-        projectName: 'kernel',
-        rootLabel: 'kernel',
-        line: 8,
-        lineEnd: 12,
-        column: 1,
-      })],
-      sourcePath: ['kernel/docs/attachments/topology-owner.md'],
-      attachmentId: ['attachment:topology-owner:diagram'],
-      attachmentPath: ['kernel/docs/assets/topology.png'],
-      attachmentName: ['topology.png'],
-      attachmentExt: ['png'],
-      kind: ['image'],
-      score: [0.91],
-      visionSnippet: ['A topology diagram'],
-    }), 'stream');
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-      const url = String(input);
-      if (url.includes('/api/search/attachments/hits-arrow')) {
-        return new Response(arrowPayload, {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.apache.arrow.stream' },
-        });
-      }
-      return new Response(
-        JSON.stringify({
-          query: 'topology',
-          hitCount: 1,
-          selectedScope: 'attachments',
-          hits: [{
-            name: 'json.png',
-            path: 'json-fallback.md',
-            sourceId: 'json-source',
-            sourceStem: 'json-stem',
-            sourcePath: 'json-fallback.md',
-            attachmentId: 'json-attachment',
-            attachmentPath: 'json.png',
-            attachmentName: 'json.png',
-            attachmentExt: 'png',
-            kind: 'image',
-            score: 0.1,
-          }],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+        sourceId: 'doc:topology-owner',
+        sourceStem: 'topology-owner',
+        sourceTitle: 'Topology Owner',
+        navigationTarget: {
+          path: 'kernel/docs/attachments/topology-owner.md',
+          category: 'knowledge',
+          projectName: 'kernel',
+          rootLabel: 'kernel',
+          line: 3,
+          lineEnd: 3,
+          column: 1,
+        },
+        sourcePath: 'kernel/docs/attachments/topology-owner.md',
+        attachmentId: 'attachment:topology',
+        attachmentPath: 'kernel/docs/assets/topology.png',
+        attachmentName: 'topology.png',
+        attachmentExt: 'png',
+        kind: 'image',
+        score: 0.91,
+        visionSnippet: 'A topology diagram',
+      }],
     });
 
     const response = await api.searchAttachments('topology', 10, {
@@ -442,9 +590,19 @@ describe('api client Arrow search hit contract', () => {
       caseSensitive: true,
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/search/attachments/hits-arrow?q=topology&limit=10&ext=png&kind=image&case_sensitive=true',
-      { headers: { Accept: 'application/vnd.apache.arrow.stream' } }
+    expect(flightSpy).toHaveBeenCalledWith(
+      {
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        query: 'topology',
+        limit: 10,
+        ext: ['png'],
+        kind: ['image'],
+        caseSensitive: true,
+      },
+      {
+        decodeAttachmentHits: expect.any(Function),
+      },
     );
     expect(response.selectedScope).toBe('attachments');
     expect(response.hits[0]?.name).toBe('topology.png');
@@ -454,23 +612,7 @@ describe('api client Arrow search hit contract', () => {
   });
 
   it('delegates knowledge search through the pure Flight transport helper', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        `
-[gateway]
-bind = "127.0.0.1:9517"
-
-[search_flight]
-bind = "127.0.0.1:9527"
-schema_version = "v2"
-
-[link_graph.projects.kernel]
-root = "."
-dirs = ["docs"]
-`,
-        { status: 200, headers: { 'Content-Type': 'text/plain' } },
-      ),
-    );
+    mockFrontendFlightConfigFetch();
     const flightSpy = vi.spyOn(flightSearchTransport, 'searchKnowledgeFlight').mockResolvedValue({
       query: 'modelica',
       hitCount: 1,
@@ -511,70 +653,53 @@ describe('api client Arrow symbol hit contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('overlays Arrow-decoded symbol hits onto searchSymbols JSON metadata', async () => {
-    const arrowPayload = tableToIPC(tableFromArrays({
-      name: ['solve'],
-      kind: ['function'],
-      path: ['src/pkg.jl'],
-      line: [42],
-      location: ['src/pkg.jl:42'],
-      language: ['julia'],
-      source: ['project'],
-      crateName: ['pkg'],
-      projectName: ['pkg'],
-      rootLabel: ['pkg'],
-      navigationTargetJson: [JSON.stringify({
-        path: 'pkg/src/pkg.jl',
-        category: 'repo_code',
+  it('routes symbol search through the pure Flight helper', async () => {
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi.spyOn(
+      flightSearchTransport,
+      'searchSymbolsFlight',
+    ).mockResolvedValue({
+      query: 'solve',
+      hitCount: 1,
+      selectedScope: 'project',
+      partial: false,
+      hits: [{
+        name: 'solve',
+        kind: 'function',
+        path: 'src/pkg.jl',
+        line: 42,
+        location: 'src/pkg.jl:42',
+        language: 'julia',
+        source: 'project',
+        crateName: 'pkg',
         projectName: 'pkg',
         rootLabel: 'pkg',
-        line: 42,
-        lineEnd: 42,
-        column: 1,
-      })],
-      score: [0.91],
-    }), 'stream');
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-      const url = String(input);
-      if (url.includes('/api/search/symbols/hits-arrow')) {
-        return new Response(arrowPayload, {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.apache.arrow.stream' },
-        });
-      }
-      if (url.includes('/api/search/symbols?')) {
-        return new Response(
-          JSON.stringify({
-            query: 'solve',
-            hitCount: 1,
-            selectedScope: 'project',
-            partial: false,
-            hits: [],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-      return new Response('{}', {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        navigationTarget: {
+          path: 'pkg/src/pkg.jl',
+          category: 'repo_code',
+          projectName: 'pkg',
+          rootLabel: 'pkg',
+          line: 42,
+          lineEnd: 42,
+          column: 1,
+        },
+        score: 0.91,
+      }],
     });
 
     const response = await api.searchSymbols('solve', 10);
 
-    const fetchCalls = fetchSpy.mock.calls.map(([input, init]) => ({
-      url: String(input),
-      init,
-    }));
-    expect(fetchCalls).toContainEqual({
-      url: '/api/search/symbols?q=solve&limit=10',
-      init: undefined,
-    });
-    expect(fetchCalls).toContainEqual({
-      url: '/api/search/symbols/hits-arrow?q=solve&limit=10',
-      init: { headers: { Accept: 'application/vnd.apache.arrow.stream' } },
-    });
+    expect(flightSpy).toHaveBeenCalledWith(
+      {
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        query: 'solve',
+        limit: 10,
+      },
+      {
+        decodeSymbolHits: expect.any(Function),
+      },
+    );
     expect(response.hitCount).toBe(1);
     expect(response.hits[0]?.name).toBe('solve');
     expect(response.hits[0]?.crateName).toBe('pkg');
@@ -588,68 +713,51 @@ describe('api client Arrow reference hit contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('overlays Arrow-decoded reference hits onto searchReferences JSON metadata', async () => {
-    const arrowPayload = tableToIPC(tableFromArrays({
-      name: ['solve'],
-      path: ['src/pkg.jl'],
-      language: ['julia'],
-      crateName: ['pkg'],
-      projectName: ['pkg'],
-      rootLabel: ['pkg'],
-      navigationTargetJson: [JSON.stringify({
-        path: 'pkg/src/pkg.jl',
-        category: 'repo_code',
+  it('routes reference search through the pure Flight helper', async () => {
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi.spyOn(
+      flightSearchTransport,
+      'searchReferencesFlight',
+    ).mockResolvedValue({
+      query: 'solve',
+      hitCount: 1,
+      selectedScope: 'references',
+      hits: [{
+        name: 'solve',
+        path: 'src/pkg.jl',
+        language: 'julia',
+        crateName: 'pkg',
         projectName: 'pkg',
         rootLabel: 'pkg',
+        navigationTarget: {
+          path: 'pkg/src/pkg.jl',
+          category: 'repo_code',
+          projectName: 'pkg',
+          rootLabel: 'pkg',
+          line: 42,
+          lineEnd: 42,
+          column: 5,
+        },
         line: 42,
-        lineEnd: 42,
         column: 5,
-      })],
-      line: [42],
-      column: [5],
-      lineText: ['solve(x)'],
-      score: [0.87],
-    }), 'stream');
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-      const url = String(input);
-      if (url.includes('/api/search/references/hits-arrow')) {
-        return new Response(arrowPayload, {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.apache.arrow.stream' },
-        });
-      }
-      if (url.includes('/api/search/references?')) {
-        return new Response(
-          JSON.stringify({
-            query: 'solve',
-            hitCount: 1,
-            selectedScope: 'references',
-            hits: [],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-      return new Response('{}', {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        lineText: 'solve(x)',
+        score: 0.87,
+      }],
     });
 
     const response = await api.searchReferences('solve', 10);
 
-    const fetchCalls = fetchSpy.mock.calls.map(([input, init]) => ({
-      url: String(input),
-      init,
-    }));
-    expect(fetchCalls).toContainEqual({
-      url: '/api/search/references?q=solve&limit=10',
-      init: undefined,
-    });
-    expect(fetchCalls).toContainEqual({
-      url: '/api/search/references/hits-arrow?q=solve&limit=10',
-      init: { headers: { Accept: 'application/vnd.apache.arrow.stream' } },
-    });
+    expect(flightSpy).toHaveBeenCalledWith(
+      {
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        query: 'solve',
+        limit: 10,
+      },
+      {
+        decodeReferenceHits: expect.any(Function),
+      },
+    );
     expect(response.hitCount).toBe(1);
     expect(response.hits[0]?.name).toBe('solve');
     expect(response.hits[0]?.crateName).toBe('pkg');
@@ -663,70 +771,53 @@ describe('api client Arrow AST hit contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('overlays Arrow-decoded AST hits onto searchAst JSON metadata', async () => {
-    const arrowPayload = tableToIPC(tableFromArrays({
-      name: ['IndexTask'],
-      signature: ['- [ ] IndexTask'],
-      path: ['docs/index.md'],
-      language: ['markdown'],
-      crateName: ['kernel'],
-      projectName: ['kernel'],
-      rootLabel: ['kernel'],
-      nodeKind: ['task'],
-      ownerTitle: ['Index'],
-      navigationTargetJson: [JSON.stringify({
-        path: 'kernel/docs/index.md',
-        category: 'knowledge',
+  it('routes AST search through the pure Flight helper', async () => {
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi.spyOn(
+      flightSearchTransport,
+      'searchAstFlight',
+    ).mockResolvedValue({
+      query: 'IndexTask',
+      hitCount: 1,
+      selectedScope: 'definitions',
+      hits: [{
+        name: 'IndexTask',
+        signature: '- [ ] IndexTask',
+        path: 'docs/index.md',
+        language: 'markdown',
+        crateName: 'kernel',
         projectName: 'kernel',
         rootLabel: 'kernel',
-        line: 12,
+        nodeKind: 'task',
+        ownerTitle: 'Index',
+        navigationTarget: {
+          path: 'kernel/docs/index.md',
+          category: 'knowledge',
+          projectName: 'kernel',
+          rootLabel: 'kernel',
+          line: 12,
+          lineEnd: 14,
+          column: 1,
+        },
+        lineStart: 12,
         lineEnd: 14,
-        column: 1,
-      })],
-      lineStart: [12],
-      lineEnd: [14],
-      score: [0.88],
-    }), 'stream');
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-      const url = String(input);
-      if (url.includes('/api/search/ast/hits-arrow')) {
-        return new Response(arrowPayload, {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.apache.arrow.stream' },
-        });
-      }
-      if (url.includes('/api/search/ast?')) {
-        return new Response(
-          JSON.stringify({
-            query: 'IndexTask',
-            hitCount: 1,
-            selectedScope: 'definitions',
-            hits: [],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-      return new Response('{}', {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        score: 0.88,
+      }],
     });
 
     const response = await api.searchAst('IndexTask', 10);
 
-    const fetchCalls = fetchSpy.mock.calls.map(([input, init]) => ({
-      url: String(input),
-      init,
-    }));
-    expect(fetchCalls).toContainEqual({
-      url: '/api/search/ast?q=IndexTask&limit=10',
-      init: undefined,
-    });
-    expect(fetchCalls).toContainEqual({
-      url: '/api/search/ast/hits-arrow?q=IndexTask&limit=10',
-      init: { headers: { Accept: 'application/vnd.apache.arrow.stream' } },
-    });
+    expect(flightSpy).toHaveBeenCalledWith(
+      {
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        query: 'IndexTask',
+        limit: 10,
+      },
+      {
+        decodeAstHits: expect.any(Function),
+      },
+    );
     expect(response.hitCount).toBe(1);
     expect(response.hits[0]?.name).toBe('IndexTask');
     expect(response.hits[0]?.nodeKind).toBe('task');
@@ -856,56 +947,87 @@ describe('api client code ast analysis contract', () => {
     vi.restoreAllMocks();
   });
 
-  it('calls /api/analysis/markdown with the encoded path query parameter', async () => {
+  it('routes markdown analysis through the Flight analysis helper', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
-        JSON.stringify({
-          path: 'docs/index.md',
-          title: 'Index',
-          nodeCount: 0,
-          edgeCount: 0,
-          nodes: [],
-          edges: [],
-          diagnostics: [],
-          projections: [],
-          retrievalAtoms: [],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[search_flight]
+schema_version = "v2"
+
+[link_graph.projects.main]
+root = "."
+dirs = ["docs"]
+`,
+        { status: 200, headers: { 'Content-Type': 'text/plain' } }
       )
     );
+    const flightSpy = vi.spyOn(flightAnalysisTransport, 'loadMarkdownAnalysisFlight').mockResolvedValue({
+      path: 'docs/index.md',
+      documentHash: 'hash',
+      nodeCount: 0,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      diagnostics: [],
+      projections: [],
+      retrievalAtoms: [],
+    });
 
-    await api.getMarkdownAnalysis('docs/index.md');
+    await api.getMarkdownAnalysis('main/docs/index.md');
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/analysis/markdown?path=docs%2Findex.md'
-    );
+    expect(fetchSpy).toHaveBeenCalledWith('/wendao.toml');
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      path: 'main/docs/index.md',
+    });
   });
 
-  it('calls /api/analysis/code-ast with repo and line query parameters', async () => {
+  it('routes code AST analysis through the Flight analysis helper', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
-        JSON.stringify({
-          repoId: 'sciml',
-          path: 'src/BaseModelica.jl',
-          language: 'julia',
-          nodeCount: 0,
-          edgeCount: 0,
-          nodes: [],
-          edges: [],
-          projections: [],
-          diagnostics: [],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[search_flight]
+schema_version = "v2"
+
+[link_graph.projects.sciml]
+root = "."
+dirs = ["src"]
+`,
+        { status: 200, headers: { 'Content-Type': 'text/plain' } }
       )
     );
+    const flightSpy = vi.spyOn(flightAnalysisTransport, 'loadCodeAstAnalysisFlight').mockResolvedValue({
+      repoId: 'sciml',
+      path: 'src/BaseModelica.jl',
+      language: 'julia',
+      nodeCount: 0,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    });
 
-    await api.getCodeAstAnalysis('src/BaseModelica.jl', {
+    await api.getCodeAstAnalysis('sciml/src/BaseModelica.jl', {
       repo: 'sciml',
       line: 42,
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/analysis/code-ast?path=src%2FBaseModelica.jl&repo=sciml&line=42'
-    );
+    expect(fetchSpy).toHaveBeenCalledWith('/wendao.toml');
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      path: 'sciml/src/BaseModelica.jl',
+      repo: 'sciml',
+      line: 42,
+    });
   });
 });

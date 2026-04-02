@@ -1,7 +1,5 @@
 import type {
-  GraphNeighborsResponse,
   NodeNeighbors,
-  StudioNavigationTarget,
   Topology3D,
   VfsContentResponse,
   VfsEntry,
@@ -11,12 +9,6 @@ import type {
 export interface WorkspaceTransportDeps {
   apiBase: string;
   handleResponse: <T>(response: Response) => Promise<T>;
-}
-
-export interface GraphNeighborQueryOptions {
-  direction?: string;
-  hops?: number;
-  limit?: number;
 }
 
 export async function fetchHealthResponse(
@@ -50,15 +42,6 @@ export async function fetchVfsContentResponse(
   return deps.handleResponse<VfsContentResponse>(response);
 }
 
-export async function resolveStudioPathResponse(
-  deps: WorkspaceTransportDeps,
-  path: string
-): Promise<StudioNavigationTarget> {
-  const params = new URLSearchParams({ path });
-  const response = await fetch(`${deps.apiBase}/vfs/resolve?${params}`);
-  return deps.handleResponse<StudioNavigationTarget>(response);
-}
-
 export async function fetchVfsScanResponse(
   deps: WorkspaceTransportDeps
 ): Promise<VfsScanResult> {
@@ -72,25 +55,6 @@ export async function fetchNodeNeighborsResponse(
 ): Promise<NodeNeighbors> {
   const response = await fetch(`${deps.apiBase}/neighbors/${encodeURIComponent(nodeId)}`);
   return deps.handleResponse<NodeNeighbors>(response);
-}
-
-export async function fetchGraphNeighborsResponse(
-  deps: WorkspaceTransportDeps,
-  nodeId: string,
-  options?: GraphNeighborQueryOptions
-): Promise<GraphNeighborsResponse> {
-  const params = new URLSearchParams();
-  if (options?.direction) params.set('direction', options.direction);
-  if (options?.hops) params.set('hops', String(options.hops));
-  if (options?.limit) params.set('limit', String(options.limit));
-
-  const queryString = params.toString();
-  const url = queryString
-    ? `${deps.apiBase}/graph/neighbors/${encodeURIComponent(nodeId)}?${queryString}`
-    : `${deps.apiBase}/graph/neighbors/${encodeURIComponent(nodeId)}`;
-
-  const response = await fetch(url);
-  return deps.handleResponse<GraphNeighborsResponse>(response);
 }
 
 export async function fetchTopology3DResponse(

@@ -3,7 +3,6 @@ import {
   type CodeAstAnalysisResponse,
   type GraphNeighborsResponse,
   type MarkdownAnalysisResponse,
-  type RetrievalChunk,
   type VfsContentResponse,
 } from '../../api';
 import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
@@ -115,59 +114,11 @@ export async function loadZenSearchPreviewCodeAstData(
     };
   }
 
-  const codeAstRequest = plan.codeAstEligible
-    ? api.getCodeAstAnalysis(plan.contentPath, {
-        ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
-        ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
-      })
-    : Promise.resolve(null as CodeAstAnalysisResponse | null);
-  const codeAstArrowRequest = plan.codeAstEligible
-    ? api.getCodeAstRetrievalChunksArrow(plan.contentPath, {
-        ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
-        ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
-      })
-    : Promise.resolve(null as RetrievalChunk[] | null);
-
-  const [codeAstResult, codeAstArrowResult] = await Promise.allSettled([
-    codeAstRequest,
-    codeAstArrowRequest,
-  ]);
-
-  const codeAstArrowAtoms =
-    plan.codeAstEligible && codeAstArrowResult.status === 'fulfilled' ? codeAstArrowResult.value : null;
-  const codeAstAnalysis =
-    plan.codeAstEligible && codeAstResult.status === 'fulfilled'
-      ? mergeRetrievalAtoms(codeAstResult.value, codeAstArrowAtoms)
-      : null;
-  const codeAstError =
-    plan.codeAstEligible && codeAstResult.status === 'rejected'
-      ? codeAstResult.reason instanceof Error
-        ? codeAstResult.reason.message
-        : 'Code AST analysis failed'
-      : null;
-
-  return {
-    codeAstAnalysis,
-    codeAstError,
-  };
-}
-
-export async function loadZenSearchPreviewCodeAstAnalysisData(
-  plan: ZenSearchPreviewLoadPlan
-): Promise<ZenSearchPreviewCodeAstLoadResult> {
-  if (!plan.codeAstEligible) {
-    return {
-      codeAstAnalysis: null,
-      codeAstError: null,
-    };
-  }
-
   try {
     const codeAstAnalysis = await api.getCodeAstAnalysis(plan.contentPath, {
       ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
       ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
     });
-
     return {
       codeAstAnalysis,
       codeAstError: null,
@@ -177,23 +128,6 @@ export async function loadZenSearchPreviewCodeAstAnalysisData(
       codeAstAnalysis: null,
       codeAstError: error instanceof Error ? error.message : 'Code AST analysis failed',
     };
-  }
-}
-
-export async function loadZenSearchPreviewCodeAstRetrievalAtoms(
-  plan: ZenSearchPreviewLoadPlan
-): Promise<RetrievalChunk[] | null> {
-  if (!plan.codeAstEligible) {
-    return null;
-  }
-
-  try {
-    return await api.getCodeAstRetrievalChunksArrow(plan.contentPath, {
-      ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
-      ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
-    });
-  } catch {
-    return null;
   }
 }
 
@@ -207,20 +141,8 @@ export async function loadZenSearchPreviewMarkdownData(
     };
   }
 
-  const markdownRequest = api.getMarkdownAnalysis(plan.contentPath);
-  const markdownArrowRequest = api.getMarkdownRetrievalChunksArrow(plan.contentPath);
-
-  const [markdownResult, markdownArrowResult] = await Promise.allSettled([
-    markdownRequest,
-    markdownArrowRequest,
-  ]);
-
-  const markdownArrowAtoms =
-    markdownArrowResult.status === 'fulfilled' ? markdownArrowResult.value : null;
-  const markdownAnalysis =
-    markdownResult.status === 'fulfilled'
-      ? mergeRetrievalAtoms(markdownResult.value, markdownArrowAtoms)
-      : null;
+  const [markdownResult] = await Promise.allSettled([api.getMarkdownAnalysis(plan.contentPath)]);
+  const markdownAnalysis = markdownResult.status === 'fulfilled' ? markdownResult.value : null;
   const markdownAnalysisError =
     markdownResult.status === 'rejected'
       ? markdownResult.reason instanceof Error
@@ -253,14 +175,4 @@ export async function loadZenSearchPreviewData(
     codeAstError: codeAst.codeAstError,
     error: base.error,
   };
-}
-
-function mergeRetrievalAtoms<
-  T extends {
-    retrievalAtoms?: RetrievalChunk[];
-  },
->(payload: T, retrievalAtoms: RetrievalChunk[] | null): T {
-  return Array.isArray(retrievalAtoms) && retrievalAtoms.length > 0
-    ? { ...payload, retrievalAtoms }
-    : payload;
 }

@@ -10,8 +10,7 @@ import {
   buildZenSearchPreviewLoadPlan,
   isMeaningfulSelection,
   loadZenSearchPreviewBaseData,
-  loadZenSearchPreviewCodeAstAnalysisData,
-  loadZenSearchPreviewCodeAstRetrievalAtoms,
+  loadZenSearchPreviewCodeAstData,
   loadZenSearchPreviewMarkdownData,
 } from './zenSearchPreviewLoaders';
 
@@ -36,22 +35,11 @@ async function buildPreviewSnapshot(result: SearchResult): Promise<ZenSearchPrev
   const [base, markdown, codeAstBase] = await Promise.all([
     loadZenSearchPreviewBaseData(loadPlan),
     loadZenSearchPreviewMarkdownData(loadPlan),
-    loadPlan.codeAstEligible ? loadZenSearchPreviewCodeAstAnalysisData(loadPlan) : Promise.resolve({
+    loadPlan.codeAstEligible ? loadZenSearchPreviewCodeAstData(loadPlan) : Promise.resolve({
       codeAstAnalysis: null,
       codeAstError: null,
     }),
   ]);
-
-  let codeAstAnalysis = codeAstBase.codeAstAnalysis;
-  if (codeAstAnalysis) {
-    const retrievalAtoms = await loadZenSearchPreviewCodeAstRetrievalAtoms(loadPlan);
-    if (Array.isArray(retrievalAtoms) && retrievalAtoms.length > 0) {
-      codeAstAnalysis = {
-        ...codeAstAnalysis,
-        retrievalAtoms,
-      };
-    }
-  }
 
   return {
     loading: false,
@@ -64,7 +52,7 @@ async function buildPreviewSnapshot(result: SearchResult): Promise<ZenSearchPrev
     markdownAnalysis: markdown.markdownAnalysis,
     markdownAnalysisLoading: false,
     markdownAnalysisError: markdown.markdownAnalysisError,
-    codeAstAnalysis,
+    codeAstAnalysis: codeAstBase.codeAstAnalysis,
     codeAstLoading: false,
     codeAstError: codeAstBase.codeAstError,
   };
@@ -163,11 +151,8 @@ export function useZenSearchPreview(
     })();
 
     if (loadPlan.codeAstEligible) {
-      const codeAstAnalysisPromise = loadZenSearchPreviewCodeAstAnalysisData(loadPlan);
-      const codeAstRetrievalAtomsPromise = loadZenSearchPreviewCodeAstRetrievalAtoms(loadPlan);
-
       void (async () => {
-        const codeAst = await codeAstAnalysisPromise;
+        const codeAst = await loadZenSearchPreviewCodeAstData(loadPlan);
 
         if (cancelled) {
           return;
@@ -179,36 +164,6 @@ export function useZenSearchPreview(
             codeAstAnalysis: codeAst.codeAstAnalysis,
             codeAstLoading: false,
             codeAstError: codeAst.codeAstError,
-          };
-
-          if (previewIdentity) {
-            previewCacheRef.current.set(previewIdentity, nextState);
-          }
-
-          return nextState;
-        });
-
-        if (!codeAst.codeAstAnalysis) {
-          return;
-        }
-
-        const retrievalAtoms = await codeAstRetrievalAtomsPromise;
-
-        if (cancelled || !Array.isArray(retrievalAtoms) || retrievalAtoms.length === 0) {
-          return;
-        }
-
-        setState((current) => {
-          if (!current.codeAstAnalysis) {
-            return current;
-          }
-
-          const nextState = {
-            ...current,
-            codeAstAnalysis: {
-              ...current.codeAstAnalysis,
-              retrievalAtoms,
-            },
           };
 
           if (previewIdentity) {

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleResponse } from './responseTransport';
 import {
-  fetchAutocompleteResponse,
   fetchProjectedPageIndexTreeResponse,
   postRefineEntityDocResponse,
   type DocumentTransportDeps,
@@ -19,26 +18,6 @@ describe('document transport', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     withUiConfigSyncRetry.mockClear();
-  });
-
-  it('fetches autocomplete suggestions from the typeahead endpoint', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          suggestions: [{
-            label: 'BaseModelica',
-            kind: 'symbol',
-            detail: 'function',
-          }],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
-
-    const response = await fetchAutocompleteResponse(deps, 'Base', 7);
-
-    expect(fetchSpy).toHaveBeenCalledWith('/api/search/autocomplete?prefix=Base&limit=7');
-    expect(response.suggestions).toHaveLength(1);
   });
 
   it('fetches projected page trees behind the UI-config retry gate', async () => {

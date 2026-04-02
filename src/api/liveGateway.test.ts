@@ -8,6 +8,8 @@ import {
   resolveSearchFlightSchemaVersion,
   toUiConfig,
 } from '../config/loader';
+import { loadGraphNeighborsFlight } from './flightGraphTransport';
+import { loadMarkdownAnalysisFlight } from './flightAnalysisTransport';
 import { decodeSearchHitsFromArrowIpc } from './arrowSearchIpc';
 import { searchKnowledgeFlight } from './flightSearchTransport';
 
@@ -114,9 +116,14 @@ async function fetchFirstResolvableGraphNeighbors(
   let lastError: Error | null = null;
   for (const candidatePath of candidatePaths) {
     try {
-      return await fetchJson<LiveGraphNeighbors>(
-        `/graph/neighbors/${encodeURIComponent(candidatePath)}?direction=both&hops=1&limit=20`
-      );
+      return await loadGraphNeighborsFlight({
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        nodeId: candidatePath,
+        direction: 'both',
+        hops: 1,
+        limit: 20,
+      }) as LiveGraphNeighbors;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
     }
@@ -165,9 +172,14 @@ liveDescribe('live gateway studio contract', () => {
   });
 
   it('resolves graph neighbors for a live qianji studio document path', async () => {
-    const response = await fetchJson<LiveGraphNeighbors>(
-      `/graph/neighbors/${encodeURIComponent(qianjiDocPath)}?direction=both&hops=1&limit=20`
-    );
+    const response = await loadGraphNeighborsFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      nodeId: qianjiDocPath,
+      direction: 'both',
+      hops: 1,
+      limit: 20,
+    }) as LiveGraphNeighbors;
 
     expect(response.center.path).toBe(qianjiDocPath);
     expect(response.center.navigationTarget).toBeDefined();
@@ -202,11 +214,31 @@ liveDescribe('live gateway studio contract', () => {
     expect(graph.center.path.length).toBeGreaterThan(0);
 
     if (graph.center.path !== targetHit.path) {
-      const canonical = await fetchJson<LiveGraphNeighbors>(
-        `/graph/neighbors/${encodeURIComponent(graph.center.path)}?direction=both&hops=1&limit=20`
-      );
+      const canonical = await loadGraphNeighborsFlight({
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        nodeId: graph.center.path,
+        direction: 'both',
+        hops: 1,
+        limit: 20,
+      }) as LiveGraphNeighbors;
       expect(canonical.center.path).toBe(graph.center.path);
       expect(canonical.totalNodes).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it('returns markdown analysis over same-origin Flight for a live studio document', async () => {
+    const analysis = await loadMarkdownAnalysisFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      path: qianjiDocPath,
+    });
+
+    expect(analysis.path).toBe(qianjiDocPath);
+    expect(Array.isArray(analysis.nodes)).toBe(true);
+    expect(Array.isArray(analysis.edges)).toBe(true);
+    expect(Array.isArray(analysis.retrievalAtoms)).toBe(true);
+    expect(analysis.nodeCount).toBeGreaterThanOrEqual(0);
+    expect(analysis.edgeCount).toBeGreaterThanOrEqual(0);
   });
 });

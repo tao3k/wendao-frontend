@@ -7,9 +7,7 @@ const mocks = vi.hoisted(() => ({
   getVfsContent: vi.fn(),
   getGraphNeighbors: vi.fn(),
   getCodeAstAnalysis: vi.fn(),
-  getCodeAstRetrievalChunksArrow: vi.fn(),
   getMarkdownAnalysis: vi.fn(),
-  getMarkdownRetrievalChunksArrow: vi.fn(),
 }));
 
 vi.mock('../../../api', () => ({
@@ -17,9 +15,7 @@ vi.mock('../../../api', () => ({
     getVfsContent: mocks.getVfsContent,
     getGraphNeighbors: mocks.getGraphNeighbors,
     getCodeAstAnalysis: mocks.getCodeAstAnalysis,
-    getCodeAstRetrievalChunksArrow: mocks.getCodeAstRetrievalChunksArrow,
     getMarkdownAnalysis: mocks.getMarkdownAnalysis,
-    getMarkdownRetrievalChunksArrow: mocks.getMarkdownRetrievalChunksArrow,
   },
 }));
 
@@ -97,9 +93,7 @@ describe('useZenSearchPreview', () => {
     mocks.getVfsContent.mockReset();
     mocks.getGraphNeighbors.mockReset();
     mocks.getCodeAstAnalysis.mockReset();
-    mocks.getCodeAstRetrievalChunksArrow.mockReset();
     mocks.getMarkdownAnalysis.mockReset();
-    mocks.getMarkdownRetrievalChunksArrow.mockReset();
     mocks.getVfsContent.mockResolvedValue({
       content: '# Documentation Index',
       contentType: 'markdown',
@@ -126,16 +120,15 @@ describe('useZenSearchPreview', () => {
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [],
+      retrievalAtoms: [{
+        ownerId: 'symbol:solve',
+        chunkId: 'ast:solve:declaration',
+        semanticType: 'function',
+        fingerprint: 'fp:solve',
+        tokenEstimate: 12,
+        surface: 'declaration',
+      }],
     });
-    mocks.getCodeAstRetrievalChunksArrow.mockResolvedValue([{
-      ownerId: 'symbol:solve',
-      chunkId: 'ast:solve:declaration',
-      semanticType: 'function',
-      fingerprint: 'fp:solve',
-      tokenEstimate: 12,
-      surface: 'declaration',
-    }]);
     mocks.getMarkdownAnalysis.mockResolvedValue({
       path: 'main/docs/index.md',
       documentHash: 'hash',
@@ -144,17 +137,16 @@ describe('useZenSearchPreview', () => {
       nodes: [],
       edges: [],
       projections: [],
-      retrievalAtoms: [],
+      retrievalAtoms: [{
+        ownerId: 'section:intro',
+        chunkId: 'md:intro',
+        semanticType: 'section',
+        fingerprint: 'fp:intro',
+        tokenEstimate: 16,
+        surface: 'section',
+      }],
       diagnostics: [],
     });
-    mocks.getMarkdownRetrievalChunksArrow.mockResolvedValue([{
-      ownerId: 'section:intro',
-      chunkId: 'md:intro',
-      semanticType: 'section',
-      fingerprint: 'fp:intro',
-      tokenEstimate: 16,
-      surface: 'section',
-    }]);
   });
 
   it('strips internal workspace prefixes before loading VFS and graph content', async () => {
@@ -174,7 +166,6 @@ describe('useZenSearchPreview', () => {
       limit: 20,
     });
     expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith('main/docs/index.md');
-    expect(mocks.getMarkdownRetrievalChunksArrow).toHaveBeenCalledWith('main/docs/index.md');
     expect(result.current.markdownAnalysis).toEqual({
       path: 'main/docs/index.md',
       documentHash: 'hash',
@@ -206,10 +197,6 @@ describe('useZenSearchPreview', () => {
     });
 
     expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith('kernel/src/lib.rs', {
-      repo: 'kernel',
-      line: 12,
-    });
-    expect(mocks.getCodeAstRetrievalChunksArrow).toHaveBeenCalledWith('kernel/src/lib.rs', {
       repo: 'kernel',
       line: 12,
     });
@@ -246,16 +233,15 @@ describe('useZenSearchPreview', () => {
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [],
+      retrievalAtoms: [{
+        ownerId: 'symbol:solve',
+        chunkId: 'ast:solve:declaration',
+        semanticType: 'function',
+        fingerprint: 'fp:solve',
+        tokenEstimate: 12,
+        surface: 'declaration',
+      }],
     });
-    mocks.getCodeAstRetrievalChunksArrow.mockResolvedValueOnce([{
-      ownerId: 'symbol:solve',
-      chunkId: 'ast:solve:declaration',
-      semanticType: 'function',
-      fingerprint: 'fp:solve',
-      tokenEstimate: 12,
-      surface: 'declaration',
-    }]);
 
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
 
@@ -278,7 +264,7 @@ describe('useZenSearchPreview', () => {
     });
   });
 
-  it('publishes AST analysis before retrieval-atom enrichment completes', async () => {
+  it('keeps retrieval atoms on the AST analysis payload returned by Flight', async () => {
     const selectedResult = buildCodeSearchResult();
     const deferredAnalysis = createDeferred<{
       repoId: string;
@@ -288,19 +274,17 @@ describe('useZenSearchPreview', () => {
       edges: [];
       projections: [];
       diagnostics: [];
-      retrievalAtoms: [];
-    }>();
-    const deferredAtoms = createDeferred<Array<{
+      retrievalAtoms: Array<{
       ownerId: string;
       chunkId: string;
       semanticType: string;
       fingerprint: string;
       tokenEstimate: number;
       surface: string;
-    }>>();
+    }>;
+    }>();
 
     mocks.getCodeAstAnalysis.mockReturnValueOnce(deferredAnalysis.promise);
-    mocks.getCodeAstRetrievalChunksArrow.mockReturnValueOnce(deferredAtoms.promise);
 
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
 
@@ -312,7 +296,14 @@ describe('useZenSearchPreview', () => {
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [],
+      retrievalAtoms: [{
+        ownerId: 'symbol:solve',
+        chunkId: 'ast:solve:declaration',
+        semanticType: 'function',
+        fingerprint: 'fp:solve',
+        tokenEstimate: 12,
+        surface: 'declaration',
+      }],
     });
 
     await waitFor(() => {
@@ -320,9 +311,7 @@ describe('useZenSearchPreview', () => {
       expect(result.current.codeAstAnalysis?.repoId).toBe('kernel');
     });
 
-    expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([]);
-
-    deferredAtoms.resolve([{
+    expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([{
       ownerId: 'symbol:solve',
       chunkId: 'ast:solve:declaration',
       semanticType: 'function',
@@ -330,17 +319,6 @@ describe('useZenSearchPreview', () => {
       tokenEstimate: 12,
       surface: 'declaration',
     }]);
-
-    await waitFor(() => {
-      expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([{
-        ownerId: 'symbol:solve',
-        chunkId: 'ast:solve:declaration',
-        semanticType: 'function',
-        fingerprint: 'fp:solve',
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }]);
-    });
   });
 
   it('reuses cached preview state when revisiting a result identity', async () => {
@@ -356,16 +334,15 @@ describe('useZenSearchPreview', () => {
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [],
+      retrievalAtoms: [{
+        ownerId: `symbol:${path}`,
+        chunkId: `atom:${path}`,
+        semanticType: 'function',
+        fingerprint: `fp:${path}`,
+        tokenEstimate: 12,
+        surface: 'declaration',
+      }],
     }));
-    mocks.getCodeAstRetrievalChunksArrow.mockImplementation(async (path: string) => ([{
-      ownerId: `symbol:${path}`,
-      chunkId: `atom:${path}`,
-      semanticType: 'function',
-      fingerprint: `fp:${path}`,
-      tokenEstimate: 12,
-      surface: 'declaration',
-    }]));
 
     const primary = buildCodeSearchResult();
     const secondary = buildSecondCodeSearchResult();
@@ -415,16 +392,15 @@ describe('useZenSearchPreview', () => {
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [],
+      retrievalAtoms: [{
+        ownerId: `symbol:${path}`,
+        chunkId: `atom:${path}`,
+        semanticType: 'function',
+        fingerprint: `fp:${path}`,
+        tokenEstimate: 12,
+        surface: 'declaration',
+      }],
     }));
-    mocks.getCodeAstRetrievalChunksArrow.mockImplementation(async (path: string) => ([{
-      ownerId: `symbol:${path}`,
-      chunkId: `atom:${path}`,
-      semanticType: 'function',
-      fingerprint: `fp:${path}`,
-      tokenEstimate: 12,
-      surface: 'declaration',
-    }]));
 
     const primary = buildCodeSearchResult();
     const secondary = buildSecondCodeSearchResult();

@@ -1,5 +1,4 @@
 import type {
-  AutocompleteResponse,
   ProjectedPageIndexTree,
   RefineEntityDocRequest,
   RefineEntityDocResponse,
@@ -9,16 +8,6 @@ export interface DocumentTransportDeps {
   apiBase: string;
   handleResponse: <T>(response: Response) => Promise<T>;
   withUiConfigSyncRetry: <T>(operation: () => Promise<T>) => Promise<T>;
-}
-
-export async function fetchAutocompleteResponse(
-  deps: DocumentTransportDeps,
-  prefix: string,
-  limit: number = 5
-): Promise<AutocompleteResponse> {
-  const params = new URLSearchParams({ prefix, limit: String(limit) });
-  const response = await fetch(`${deps.apiBase}/search/autocomplete?${params}`);
-  return deps.handleResponse<AutocompleteResponse>(response);
 }
 
 export async function fetchProjectedPageIndexTreeResponse(

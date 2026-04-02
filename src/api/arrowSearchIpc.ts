@@ -1,6 +1,7 @@
 import { tableFromIPC } from 'apache-arrow';
 
 import type {
+  AutocompleteSuggestion,
   AttachmentSearchHit,
   AstSearchHit,
   ReferenceSearchHit,
@@ -121,6 +122,15 @@ export function decodeAttachmentSearchHitsFromArrowIpc(
   });
 }
 
+export function decodeAutocompleteSuggestionsFromArrowIpc(
+  payload: ArrayBuffer
+): AutocompleteSuggestion[] {
+  return decodeArrowRows(payload, (record) => ({
+    text: requireString(record, 'text'),
+    suggestionType: requireString(record, 'suggestionType') as AutocompleteSuggestion['suggestionType'],
+  }));
+}
+
 export function decodeSymbolSearchHitsFromArrowIpc(payload: ArrayBuffer): SymbolSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const projectName = toOptionalString(record.projectName);
@@ -173,6 +183,35 @@ export function decodeReferenceSearchHitsFromArrowIpc(payload: ArrayBuffer): Ref
 }
 
 export function decodeAstSearchHitsFromArrowIpc(payload: ArrayBuffer): AstSearchHit[] {
+  return decodeArrowRows(payload, (record) => {
+    const projectName = toOptionalString(record.projectName);
+    const rootLabel = toOptionalString(record.rootLabel);
+    const nodeKind = toOptionalString(record.nodeKind);
+    const ownerTitle = toOptionalString(record.ownerTitle);
+    const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
+
+    return {
+      name: requireString(record, 'name'),
+      signature: requireString(record, 'signature'),
+      path: requireString(record, 'path'),
+      language: requireString(record, 'language'),
+      crateName: requireString(record, 'crateName'),
+      ...(projectName ? { projectName } : {}),
+      ...(rootLabel ? { rootLabel } : {}),
+      ...(nodeKind ? { nodeKind } : {}),
+      ...(ownerTitle ? { ownerTitle } : {}),
+      navigationTarget: navigationTarget ?? {
+        path: requireString(record, 'path'),
+        category: 'doc',
+      },
+      lineStart: toOptionalNumber(record.lineStart) ?? 1,
+      lineEnd: toOptionalNumber(record.lineEnd) ?? 1,
+      score: toOptionalNumber(record.score) ?? 0,
+    };
+  });
+}
+
+export function decodeDefinitionHitsFromArrowIpc(payload: ArrayBuffer): AstSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const projectName = toOptionalString(record.projectName);
     const rootLabel = toOptionalString(record.rootLabel);

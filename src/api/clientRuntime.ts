@@ -128,26 +128,19 @@ export type {
 };
 
 import {
-  ARROW_RETRIEVAL_CONTENT_TYPE,
-  decodeRetrievalChunksFromArrowIpc,
-} from './arrowRetrievalIpc';
-import {
-  fetchAnalysisArrow,
-  fetchAnalysisJson,
-} from './analysisTransport';
-import {
+  decodeAutocompleteSuggestionsFromArrowIpc,
   decodeAttachmentSearchHitsFromArrowIpc,
   decodeAstSearchHitsFromArrowIpc,
+  decodeDefinitionHitsFromArrowIpc,
   decodeReferenceSearchHitsFromArrowIpc,
   decodeSearchHitsFromArrowIpc,
   decodeSymbolSearchHitsFromArrowIpc,
 } from './arrowSearchIpc';
-import {
-  appendTrimmedSearchParams,
-  fetchArrowBackedSearchResponse,
-  setTrimmedSearchParam,
-} from './searchTransport';
 import * as flightSearchTransport from './flightSearchTransport';
+import * as flightAnalysisTransport from './flightAnalysisTransport';
+import * as flightDocumentTransport from './flightDocumentTransport';
+import * as flightGraphTransport from './flightGraphTransport';
+import * as flightWorkspaceTransport from './flightWorkspaceTransport';
 import {
   normalizeRepoDocCoverageResponse,
   normalizeRepoExampleSearchResponse,
@@ -172,13 +165,11 @@ import {
 } from './repoTransport';
 import {
   ApiClientError,
-  handleBinaryResponse,
   handleResponse,
   handleTextResponse,
 } from './responseTransport';
 import { createUiConfigTransportState } from './uiConfigTransport';
 import {
-  fetchGraphNeighborsResponse,
   fetchHealthResponse,
   fetchNodeNeighborsResponse,
   fetchTopology3DResponse,
@@ -186,10 +177,8 @@ import {
   fetchVfsEntryResponse,
   fetchVfsRootResponse,
   fetchVfsScanResponse,
-  resolveStudioPathResponse,
 } from './workspaceTransport';
 import {
-  fetchAutocompleteResponse,
   fetchProjectedPageIndexTreeResponse,
   postRefineEntityDocResponse,
 } from './documentTransport';
@@ -304,7 +293,12 @@ export const api = {
    * Resolve a display-ready studio navigation target from a semantic or VFS path.
    */
   async resolveStudioPath(path: string): Promise<StudioNavigationTarget> {
-    return resolveStudioPathResponse(workspaceTransportDeps, path);
+    const config = await getConfig();
+    return flightWorkspaceTransport.resolveStudioPathFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      path,
+    });
   },
 
   /**
@@ -331,7 +325,15 @@ export const api = {
     nodeId: string,
     options?: { direction?: string; hops?: number; limit?: number }
   ): Promise<GraphNeighborsResponse> {
-    return fetchGraphNeighborsResponse(workspaceTransportDeps, nodeId, options);
+    const config = await getConfig();
+    return flightGraphTransport.loadGraphNeighborsFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      nodeId,
+      direction: options?.direction,
+      hops: options?.hops,
+      limit: options?.limit,
+    });
   },
 
   /**
@@ -356,7 +358,7 @@ export const api = {
       return flightSearchTransport.searchKnowledgeFlight(
         {
           baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveKnowledgeSearchFlightSchemaVersion(config),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
           query,
           limit,
           intent: options?.intent,
@@ -377,18 +379,20 @@ export const api = {
     limit: number = 10,
     options?: { ext?: string[]; kind?: string[]; caseSensitive?: boolean }
   ): Promise<AttachmentSearchResponse> {
-    const params = new URLSearchParams({ q: query, limit: String(limit) });
-    appendTrimmedSearchParams(params, 'ext', options?.ext);
-    appendTrimmedSearchParams(params, 'kind', options?.kind);
-    if (options?.caseSensitive) {
-      params.set('case_sensitive', 'true');
-    }
-    return fetchArrowBackedSearchResponse(
-      `${API_BASE}/search/attachments`,
-      params,
-      (response) => handleResponse<AttachmentSearchResponse>(response),
-      handleBinaryResponse,
-      decodeAttachmentSearchHitsFromArrowIpc
+    const config = await getConfig();
+    return flightSearchTransport.searchAttachmentsFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        query,
+        limit,
+        ext: options?.ext,
+        kind: options?.kind,
+        caseSensitive: options?.caseSensitive,
+      },
+      {
+        decodeAttachmentHits: decodeAttachmentSearchHitsFromArrowIpc,
+      },
     );
   },
 
@@ -396,13 +400,17 @@ export const api = {
    * Search AST-derived definitions from source files and structured Markdown docs
    */
   async searchAst(query: string, limit: number = 10): Promise<AstSearchResponse> {
-    const params = new URLSearchParams({ q: query, limit: String(limit) });
-    return fetchArrowBackedSearchResponse(
-      `${API_BASE}/search/ast`,
-      params,
-      (response) => handleResponse<AstSearchResponse>(response),
-      handleBinaryResponse,
-      decodeAstSearchHitsFromArrowIpc
+    const config = await getConfig();
+    return flightSearchTransport.searchAstFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        query,
+        limit,
+      },
+      {
+        decodeAstHits: decodeAstSearchHitsFromArrowIpc,
+      },
     );
   },
 
@@ -413,24 +421,38 @@ export const api = {
     query: string,
     options?: { path?: string; line?: number }
   ): Promise<DefinitionResolveResponse> {
-    const params = new URLSearchParams({ q: query });
-    if (options?.path) params.set('path', options.path);
-    if (typeof options?.line === 'number') params.set('line', String(options.line));
-    const response = await fetch(`${API_BASE}/search/definition?${params}`);
-    return handleResponse<DefinitionResolveResponse>(response);
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightDocumentTransport.resolveDefinitionFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          query,
+          ...(options?.path ? { path: options.path } : {}),
+          ...(typeof options?.line === 'number' ? { line: options.line } : {}),
+        },
+        {
+          decodeDefinitionHits: decodeDefinitionHitsFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
    * Search source references and usages for a symbol
    */
   async searchReferences(query: string, limit: number = 10): Promise<ReferenceSearchResponse> {
-    const params = new URLSearchParams({ q: query, limit: String(limit) });
-    return fetchArrowBackedSearchResponse(
-      `${API_BASE}/search/references`,
-      params,
-      (response) => handleResponse<ReferenceSearchResponse>(response),
-      handleBinaryResponse,
-      decodeReferenceSearchHitsFromArrowIpc
+    const config = await getConfig();
+    return flightSearchTransport.searchReferencesFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        query,
+        limit,
+      },
+      {
+        decodeReferenceHits: decodeReferenceSearchHitsFromArrowIpc,
+      },
     );
   },
 
@@ -438,13 +460,17 @@ export const api = {
    * Search extracted project symbols from source files
    */
   async searchSymbols(query: string, limit: number = 10): Promise<SymbolSearchResponse> {
-    const params = new URLSearchParams({ q: query, limit: String(limit) });
-    return fetchArrowBackedSearchResponse(
-      `${API_BASE}/search/symbols`,
-      params,
-      (response) => handleResponse<SymbolSearchResponse>(response),
-      handleBinaryResponse,
-      decodeSymbolSearchHitsFromArrowIpc
+    const config = await getConfig();
+    return flightSearchTransport.searchSymbolsFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        query,
+        limit,
+      },
+      {
+        decodeSymbolHits: decodeSymbolSearchHitsFromArrowIpc,
+      },
     );
   },
 
@@ -555,7 +581,20 @@ export const api = {
    * Get autocomplete suggestions for typeahead
    */
   async searchAutocomplete(prefix: string, limit: number = 5): Promise<AutocompleteResponse> {
-    return fetchAutocompleteResponse(documentTransportDeps, prefix, limit);
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightDocumentTransport.searchAutocompleteFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          prefix,
+          limit,
+        },
+        {
+          decodeAutocompleteSuggestions: decodeAutocompleteSuggestionsFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
@@ -578,30 +617,24 @@ export const api = {
    * Compile deterministic Markdown analysis IR and projections for a file path.
    */
   async getMarkdownAnalysis(path: string): Promise<MarkdownAnalysisResponse> {
-    const response = await fetchAnalysisJson(
-      {
-        apiBase: API_BASE,
-        handleBinaryResponse,
-      },
-      '/analysis/markdown',
-      { path },
-    );
-    return handleResponse<MarkdownAnalysisResponse>(response);
+    const config = await getConfig();
+    return flightAnalysisTransport.loadMarkdownAnalysisFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      path,
+    });
   },
 
   /**
    * Load markdown retrieval chunks as Arrow IPC.
    */
   async getMarkdownRetrievalChunksArrow(path: string): Promise<RetrievalChunk[]> {
-    const payload = await fetchAnalysisArrow(
-      {
-        apiBase: API_BASE,
-        handleBinaryResponse,
-      },
-      '/analysis/markdown/retrieval-arrow',
-      { path },
-    );
-    return decodeRetrievalChunksFromArrowIpc(payload);
+    const config = await getConfig();
+    return flightAnalysisTransport.loadMarkdownRetrievalChunksFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      path,
+    });
   },
 
   /**
@@ -614,19 +647,14 @@ export const api = {
       line?: number;
     }
   ): Promise<CodeAstAnalysisResponse> {
-    const response = await fetchAnalysisJson(
-      {
-        apiBase: API_BASE,
-        handleBinaryResponse,
-      },
-      '/analysis/code-ast',
-      {
-        path,
-        repo: options?.repo,
-        line: options?.line,
-      },
-    );
-    return handleResponse<CodeAstAnalysisResponse>(response);
+    const config = await getConfig();
+    return flightAnalysisTransport.loadCodeAstAnalysisFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      path,
+      repo: options?.repo,
+      line: options?.line,
+    });
   },
 
   /**
@@ -639,19 +667,14 @@ export const api = {
       line?: number;
     }
   ): Promise<RetrievalChunk[]> {
-    const payload = await fetchAnalysisArrow(
-      {
-        apiBase: API_BASE,
-        handleBinaryResponse,
-      },
-      '/analysis/code-ast/retrieval-arrow',
-      {
-        path,
-        repo: options?.repo,
-        line: options?.line,
-      },
-    );
-    return decodeRetrievalChunksFromArrowIpc(payload);
+    const config = await getConfig();
+    return flightAnalysisTransport.loadCodeAstRetrievalChunksFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      path,
+      repo: options?.repo,
+      line: options?.line,
+    });
   },
 
   // === UI Config Endpoints ===

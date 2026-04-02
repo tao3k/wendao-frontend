@@ -7,15 +7,17 @@ import { useZenSearchPreview } from './useZenSearchPreview';
 interface ZenSearchPreviewPaneProps {
   locale: UiLocale;
   selectedResult: SearchResult | null;
+  prefetchResults?: SearchResult[];
   onPivotQuery?: (query: string) => void;
 }
 
 export const ZenSearchPreviewPane: React.FC<ZenSearchPreviewPaneProps> = ({
   locale,
   selectedResult,
+  prefetchResults = [],
   onPivotQuery,
 }) => {
-  const preview = useZenSearchPreview(selectedResult);
+  const preview = useZenSearchPreview(selectedResult, prefetchResults);
 
   return <ZenSearchPreviewPaneView locale={locale} preview={preview} onPivotQuery={onPivotQuery} />;
 };

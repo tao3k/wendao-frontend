@@ -31,6 +31,45 @@ export interface ZenSearchPreviewState {
   codeAstError?: string | null;
 }
 
+async function buildPreviewSnapshot(result: SearchResult): Promise<ZenSearchPreviewState> {
+  const loadPlan = buildZenSearchPreviewLoadPlan(result);
+  const [base, markdown, codeAstBase] = await Promise.all([
+    loadZenSearchPreviewBaseData(loadPlan),
+    loadZenSearchPreviewMarkdownData(loadPlan),
+    loadPlan.codeAstEligible ? loadZenSearchPreviewCodeAstAnalysisData(loadPlan) : Promise.resolve({
+      codeAstAnalysis: null,
+      codeAstError: null,
+    }),
+  ]);
+
+  let codeAstAnalysis = codeAstBase.codeAstAnalysis;
+  if (codeAstAnalysis) {
+    const retrievalAtoms = await loadZenSearchPreviewCodeAstRetrievalAtoms(loadPlan);
+    if (Array.isArray(retrievalAtoms) && retrievalAtoms.length > 0) {
+      codeAstAnalysis = {
+        ...codeAstAnalysis,
+        retrievalAtoms,
+      };
+    }
+  }
+
+  return {
+    loading: false,
+    error: base.error,
+    contentPath: loadPlan.contentPath,
+    content: base.content,
+    contentType: base.contentType,
+    graphNeighbors: base.graphNeighbors,
+    selectedResult: result,
+    markdownAnalysis: markdown.markdownAnalysis,
+    markdownAnalysisLoading: false,
+    markdownAnalysisError: markdown.markdownAnalysisError,
+    codeAstAnalysis,
+    codeAstLoading: false,
+    codeAstError: codeAstBase.codeAstError,
+  };
+}
+
 function createEmptyPreviewState(): ZenSearchPreviewState {
   return {
     loading: false,
@@ -49,12 +88,16 @@ function createEmptyPreviewState(): ZenSearchPreviewState {
   };
 }
 
-export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSearchPreviewState {
+export function useZenSearchPreview(
+  selectedResult: SearchResult | null,
+  prefetchResults: SearchResult[] = []
+): ZenSearchPreviewState {
   const previewIdentity = useMemo(
     () => (selectedResult ? getSearchResultIdentity(selectedResult) : null),
     [selectedResult]
   );
   const previewCacheRef = useRef(new Map<string, ZenSearchPreviewState>());
+  const previewInflightRef = useRef(new Map<string, Promise<ZenSearchPreviewState>>());
   const [state, setState] = useState<ZenSearchPreviewState>(createEmptyPreviewState);
 
   useEffect(() => {
@@ -206,6 +249,35 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
       cancelled = true;
     };
   }, [previewIdentity, selectedResult]);
+
+  useEffect(() => {
+    const prefetchCandidates = prefetchResults.filter(isMeaningfulSelection);
+    if (prefetchCandidates.length === 0) {
+      return;
+    }
+
+    prefetchCandidates.forEach((result) => {
+      const identity = getSearchResultIdentity(result);
+      if (!identity || identity === previewIdentity) {
+        return;
+      }
+
+      if (previewCacheRef.current.has(identity) || previewInflightRef.current.has(identity)) {
+        return;
+      }
+
+      const inflight = buildPreviewSnapshot(result)
+        .then((snapshot) => {
+          previewCacheRef.current.set(identity, snapshot);
+          return snapshot;
+        })
+        .finally(() => {
+          previewInflightRef.current.delete(identity);
+        });
+
+      previewInflightRef.current.set(identity, inflight);
+    });
+  }, [prefetchResults, previewIdentity]);
 
   return state;
 }

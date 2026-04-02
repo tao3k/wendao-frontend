@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import type { SearchResult } from '../../SearchBar/types';
 import { ZenSearchPreviewPane } from '../ZenSearchPreviewPane';
 
+const useZenSearchPreviewSpy = vi.hoisted(() => vi.fn());
 const previewState = vi.hoisted(() => ({
   selectedResult: null as SearchResult | null,
   loading: false,
@@ -18,7 +19,10 @@ const previewState = vi.hoisted(() => ({
 }));
 
 vi.mock('../useZenSearchPreview', () => ({
-  useZenSearchPreview: () => previewState,
+  useZenSearchPreview: (...args: unknown[]) => {
+    useZenSearchPreviewSpy(...args);
+    return previewState;
+  },
 }));
 
 vi.mock('../../panels/DirectReader/MarkdownWaterfall', () => ({
@@ -59,6 +63,7 @@ function buildSearchResult(overrides: Partial<SearchResult> = {}): SearchResult 
 
 describe('ZenSearchPreviewPane', () => {
   beforeEach(() => {
+    useZenSearchPreviewSpy.mockReset();
     previewState.selectedResult = null;
     previewState.loading = false;
     previewState.error = null;
@@ -70,19 +75,38 @@ describe('ZenSearchPreviewPane', () => {
   it('shows the placeholder when no result is selected', () => {
     render(<ZenSearchPreviewPane locale="en" selectedResult={null} />);
 
+    expect(useZenSearchPreviewSpy).toHaveBeenCalledWith(null, []);
     expect(screen.getByText('Select a result to preview details')).toBeInTheDocument();
   });
 
   it('renders markdown-backed results through the markdown waterfall', () => {
     const result = buildSearchResult();
+    const neighbor = buildSearchResult({
+      title: 'Kernel Docs 2',
+      stem: 'Kernel Docs 2',
+      path: 'kernel/docs/next.md',
+      navigationTarget: {
+        path: 'kernel/docs/next.md',
+        category: 'doc',
+        projectName: 'kernel',
+      },
+    });
     previewState.selectedResult = result;
     previewState.graphNeighbors = {
       totalNodes: 6,
       totalLinks: 7,
     };
 
-    render(<ZenSearchPreviewPane locale="en" selectedResult={result} onPivotQuery={vi.fn()} />);
+    render(
+      <ZenSearchPreviewPane
+        locale="en"
+        selectedResult={result}
+        prefetchResults={[neighbor]}
+        onPivotQuery={vi.fn()}
+      />
+    );
 
+    expect(useZenSearchPreviewSpy).toHaveBeenCalledWith(result, [neighbor]);
     expect(screen.getByTestId('mock-markdown-waterfall')).toHaveAttribute('data-path', 'kernel/docs/index.md');
     expect(screen.getByTestId('mock-markdown-waterfall')).toHaveAttribute('data-content', '# title');
     expect(screen.getByTestId('mock-markdown-waterfall')).toHaveAttribute('data-has-section-pivot', 'yes');

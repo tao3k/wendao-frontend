@@ -401,4 +401,64 @@ describe('useZenSearchPreview', () => {
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
     expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
   });
+
+  it('prefetches adjacent results and reuses the warmed preview without refetching', async () => {
+    mocks.getVfsContent.mockImplementation(async (path: string) => ({
+      content: `content:${path}`,
+      contentType: 'text/plain',
+    }));
+    mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => ({
+      repoId: 'kernel',
+      path,
+      language: 'rust',
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    }));
+    mocks.getCodeAstRetrievalChunksArrow.mockImplementation(async (path: string) => ([{
+      ownerId: `symbol:${path}`,
+      chunkId: `atom:${path}`,
+      semanticType: 'function',
+      fingerprint: `fp:${path}`,
+      tokenEstimate: 12,
+      surface: 'declaration',
+    }]));
+
+    const primary = buildCodeSearchResult();
+    const secondary = buildSecondCodeSearchResult();
+    const { result, rerender } = renderHook(
+      ({ selected, prefetch }) => useZenSearchPreview(selected, prefetch),
+      {
+        initialProps: {
+          selected: primary as SearchResult | null,
+          prefetch: [secondary] as SearchResult[],
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(result.current.content).toBe('content:kernel/src/lib.rs');
+      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/lib.rs');
+    });
+
+    await waitFor(() => {
+      expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
+      expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+    });
+
+    rerender({
+      selected: secondary,
+      prefetch: [primary],
+    });
+
+    await waitFor(() => {
+      expect(result.current.content).toBe('content:kernel/src/integrator.rs');
+      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/integrator.rs');
+    });
+
+    expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+  });
 });

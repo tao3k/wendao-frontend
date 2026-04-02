@@ -15,7 +15,7 @@ vi.mock('../ZenSearchResultsPane', () => ({
 }));
 
 vi.mock('../ZenSearchPreviewPane', () => ({
-  ZenSearchPreviewPane: (props: { selectedResult: SearchResult | null }) => {
+  ZenSearchPreviewPane: (props: { selectedResult: SearchResult | null; prefetchResults?: SearchResult[] }) => {
     previewPaneSpy(props);
     return <div data-testid="mock-zen-preview" />;
   },
@@ -136,6 +136,74 @@ describe('ZenSearchWorkspace', () => {
     expect(previewPaneSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         selectedResult: secondResult,
+        prefetchResults: [firstResult],
+      })
+    );
+  });
+
+  it('prefetches adjacent neighbors around the active result', () => {
+    const firstResult = buildSearchResult({
+      stem: 'First result',
+      title: 'First result',
+      path: 'kernel/docs/first.md',
+      navigationTarget: {
+        path: 'kernel/docs/first.md',
+        category: 'doc',
+        projectName: 'kernel',
+      },
+    });
+    const secondResult = buildSearchResult({
+      stem: 'Second result',
+      title: 'Second result',
+      path: 'kernel/docs/second.md',
+      navigationTarget: {
+        path: 'kernel/docs/second.md',
+        category: 'doc',
+        projectName: 'kernel',
+      },
+    });
+    const thirdResult = buildSearchResult({
+      stem: 'Third result',
+      title: 'Third result',
+      path: 'kernel/docs/third.md',
+      navigationTarget: {
+        path: 'kernel/docs/third.md',
+        category: 'doc',
+        projectName: 'kernel',
+      },
+    });
+
+    render(
+      <ZenSearchWorkspace
+        shellProps={
+          {
+            copy: {} as never,
+            locale: 'en',
+            renderDrawer: undefined,
+          } as never
+        }
+        resultsPanelProps={
+          {
+            selectedIndex: 1,
+            visibleSections: [
+              {
+                key: 'document',
+                title: 'Documents',
+                hits: [firstResult, secondResult, thirdResult],
+              },
+            ],
+          } as never
+        }
+        suggestionsPanelProps={{} as never}
+        codeFilterHelperProps={{} as never}
+        showCodeFilterHelper={false}
+      />
+    );
+
+    expect(previewPaneSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selectedResult: secondResult,
+        prefetchResults: [firstResult, thirdResult],
       })
     );
   });

@@ -22,6 +22,21 @@ function flattenVisibleResults(visibleSections: SearchBarControllerResultsPanelP
   return visibleSections.flatMap((section) => section.hits);
 }
 
+function buildAdjacentPreviewCandidates(
+  visibleResults: SearchResult[],
+  selectedIndex: number
+): SearchResult[] {
+  if (visibleResults.length <= 1) {
+    return [];
+  }
+
+  const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
+  const prefetchIndices = [activeIndex - 1, activeIndex + 1]
+    .filter((index) => index >= 0 && index < visibleResults.length);
+
+  return prefetchIndices.map((index) => visibleResults[index]).filter(Boolean);
+}
+
 export const ZenSearchWorkspace: React.FC<ZenSearchWorkspaceProps> = ({
   shellProps,
   resultsPanelProps,
@@ -32,6 +47,7 @@ export const ZenSearchWorkspace: React.FC<ZenSearchWorkspaceProps> = ({
   const visibleResults = flattenVisibleResults(resultsPanelProps.visibleSections);
   const selectedResult =
     visibleResults[resultsPanelProps.selectedIndex] ?? visibleResults[0] ?? null;
+  const prefetchResults = buildAdjacentPreviewCandidates(visibleResults, resultsPanelProps.selectedIndex);
 
   return (
     <div className="zen-search-body" data-testid="zen-search-body">
@@ -49,6 +65,7 @@ export const ZenSearchWorkspace: React.FC<ZenSearchWorkspaceProps> = ({
       <ZenSearchPreviewPane
         locale={shellProps.locale}
         selectedResult={selectedResult}
+        prefetchResults={prefetchResults}
         onPivotQuery={shellProps.onQueryChange}
       />
     </div>

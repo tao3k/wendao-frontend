@@ -17,7 +17,7 @@ import {
 import type { RepoDiagnosticsCopy, RepoDiagnosticsLocale } from './repoDiagnostics/types';
 import { toRepoIndexStatusSnapshot } from './panels/FileTree/repoIndexStatus';
 import { useRepoDiagnostics } from './repoDiagnostics/useRepoDiagnostics';
-import type { RepoIndexIssue, RepoIndexStatus, RepoIndexUnsupportedReason } from './StatusBar';
+import type { RepoIndexIssue, RepoIndexStatus, RepoIndexUnsupportedReason } from './statusBar/types';
 import '../App.css';
 
 interface RepoDiagnosticsPageProps {

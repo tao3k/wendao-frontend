@@ -17,6 +17,9 @@ export interface WendaoConfig {
   gateway?: {
     bind?: string;
   };
+  search_flight?: {
+    schema_version?: string;
+  };
   link_graph?: {
     projects?: Record<string, WendaoProjectConfig>;
   };
@@ -91,6 +94,16 @@ function normalizePath(value: string | undefined): string | null {
 function normalizeNonemptyString(value: string | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
+}
+
+export function resolveSearchFlightSchemaVersion(config: WendaoConfig): string {
+  const schemaVersion = normalizeNonemptyString(config.search_flight?.schema_version);
+  if (!schemaVersion) {
+    throw new WendaoConfigError(
+      'wendao.toml must define [search_flight].schema_version for Flight search',
+    );
+  }
+  return schemaVersion;
 }
 
 function normalizePluginList(values?: string[]): string[] {

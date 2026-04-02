@@ -1,6 +1,6 @@
 import { api } from '../../../api';
 import type { UiRepoProjectConfig } from '../../../api/bindings';
-import type { RepoIndexIssue, RepoIndexStatus, RepoIndexUnsupportedReason } from '../../StatusBar';
+import type { RepoIndexIssue, RepoIndexStatus, RepoIndexUnsupportedReason } from '../../statusBar/types';
 
 const DEFAULT_REPO_INDEX_POLL_INTERVAL_MS = 1_500;
 

@@ -188,6 +188,7 @@ export type AttachmentSearchKind =
   | 'other';
 
 export interface AttachmentSearchHit {
+  name?: string;
   path: string;
   sourceId: string;
   sourceStem: string;
@@ -317,7 +318,7 @@ export interface AutocompleteResponse {
 
 // === Analysis Types ===
 
-export type AnalysisNodeKind = 'document' | 'section' | 'task' | 'codeblock' | 'reference';
+export type AnalysisNodeKind = 'document' | 'section' | 'task' | 'codeblock' | 'table' | 'math' | 'reference';
 
 export type AnalysisEdgeKind = 'contains' | 'references' | 'next_step';
 
@@ -366,7 +367,38 @@ export interface MarkdownAnalysisResponse {
   nodes: AnalysisNode[];
   edges: AnalysisEdge[];
   projections: MermaidProjection[];
+  retrievalAtoms?: MarkdownRetrievalAtom[];
   diagnostics: string[];
+}
+
+export type RetrievalChunkSurface =
+  | 'document'
+  | 'section'
+  | 'codeblock'
+  | 'table'
+  | 'math'
+  | 'observation'
+  | 'declaration'
+  | 'block'
+  | 'symbol';
+
+export interface RetrievalChunk {
+  ownerId: string;
+  chunkId: string;
+  semanticType: string;
+  fingerprint: string;
+  tokenEstimate: number;
+  displayLabel?: string;
+  excerpt?: string;
+  lineStart?: number;
+  lineEnd?: number;
+  surface?: RetrievalChunkSurface;
+}
+
+export interface MarkdownRetrievalAtom extends RetrievalChunk {
+  lineStart: number;
+  lineEnd: number;
+  surface: Extract<RetrievalChunkSurface, 'document' | 'section' | 'codeblock' | 'table' | 'math' | 'observation'>;
 }
 
 export type CodeAstNodeKind = 'file' | 'module' | 'symbol' | 'external_symbol';
@@ -401,6 +433,12 @@ export interface CodeAstProjection {
   diagnostics: string[];
 }
 
+export type CodeAstRetrievalAtomScope = Extract<RetrievalChunkSurface, 'declaration' | 'block' | 'symbol'>;
+
+export interface CodeAstRetrievalAtom extends RetrievalChunk {
+  surface: CodeAstRetrievalAtomScope;
+}
+
 export interface CodeAstAnalysisResponse {
   repoId: string;
   path: string;
@@ -410,6 +448,7 @@ export interface CodeAstAnalysisResponse {
   nodes: CodeAstNode[];
   edges: CodeAstEdge[];
   projections: CodeAstProjection[];
+  retrievalAtoms?: CodeAstRetrievalAtom[];
   focusNodeId?: string;
   diagnostics: string[];
 }

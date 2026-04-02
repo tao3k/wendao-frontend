@@ -1,4 +1,4 @@
-import type { RepoIndexIssue, RepoIndexUnsupportedReason } from '../StatusBar';
+import type { RepoIndexIssue, RepoIndexUnsupportedReason } from '../statusBar/types';
 import type { RepoDiagnosticsCopy, RepoDiagnosticsLocale } from './types';
 
 export type RepoDiagnosticsFilter = 'all' | 'unsupported' | 'failed';

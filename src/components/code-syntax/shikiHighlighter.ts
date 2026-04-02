@@ -3,28 +3,28 @@ import { createOnigurumaEngine } from '@shikijs/engine-oniguruma';
 import onigurumaWasm from '@shikijs/engine-oniguruma/wasm-inlined';
 
 const SUPPORTED_CODE_LANGUAGES = {
-  bash: () => import('@shikijs/langs/bash'),
-  css: () => import('@shikijs/langs/css'),
-  go: () => import('@shikijs/langs/go'),
-  html: () => import('@shikijs/langs/html'),
-  ini: () => import('@shikijs/langs/ini'),
-  javascript: () => import('@shikijs/langs/javascript'),
-  json: () => import('@shikijs/langs/json'),
-  jsx: () => import('@shikijs/langs/jsx'),
-  julia: () => import('@shikijs/langs/jl'),
-  markdown: () => import('@shikijs/langs/markdown'),
-  python: () => import('@shikijs/langs/python'),
-  rust: () => import('@shikijs/langs/rust'),
-  scss: () => import('@shikijs/langs/scss'),
-  sql: () => import('@shikijs/langs/sql'),
-  toml: () => import('@shikijs/langs/toml'),
-  tsx: () => import('@shikijs/langs/tsx'),
-  typescript: () => import('@shikijs/langs/typescript'),
-  yaml: () => import('@shikijs/langs/yaml'),
+  bash: () => import(/* webpackChunkName: "shiki-lang-bash" */ '@shikijs/langs/bash'),
+  css: () => import(/* webpackChunkName: "shiki-lang-css" */ '@shikijs/langs/css'),
+  go: () => import(/* webpackChunkName: "shiki-lang-go" */ '@shikijs/langs/go'),
+  html: () => import(/* webpackChunkName: "shiki-lang-html" */ '@shikijs/langs/html'),
+  ini: () => import(/* webpackChunkName: "shiki-lang-ini" */ '@shikijs/langs/ini'),
+  javascript: () => import(/* webpackChunkName: "shiki-lang-javascript" */ '@shikijs/langs/javascript'),
+  json: () => import(/* webpackChunkName: "shiki-lang-json" */ '@shikijs/langs/json'),
+  jsx: () => import(/* webpackChunkName: "shiki-lang-jsx" */ '@shikijs/langs/jsx'),
+  julia: () => import(/* webpackChunkName: "shiki-lang-julia" */ '@shikijs/langs/jl'),
+  markdown: () => import(/* webpackChunkName: "shiki-lang-markdown" */ '@shikijs/langs/markdown'),
+  python: () => import(/* webpackChunkName: "shiki-lang-python" */ '@shikijs/langs/python'),
+  rust: () => import(/* webpackChunkName: "shiki-lang-rust" */ '@shikijs/langs/rust'),
+  scss: () => import(/* webpackChunkName: "shiki-lang-scss" */ '@shikijs/langs/scss'),
+  sql: () => import(/* webpackChunkName: "shiki-lang-sql" */ '@shikijs/langs/sql'),
+  toml: () => import(/* webpackChunkName: "shiki-lang-toml" */ '@shikijs/langs/toml'),
+  tsx: () => import(/* webpackChunkName: "shiki-lang-tsx" */ '@shikijs/langs/tsx'),
+  typescript: () => import(/* webpackChunkName: "shiki-lang-typescript" */ '@shikijs/langs/typescript'),
+  yaml: () => import(/* webpackChunkName: "shiki-lang-yaml" */ '@shikijs/langs/yaml'),
 } as const;
 
 const SUPPORTED_CODE_THEMES = {
-  'tokyo-night': () => import('@shikijs/themes/tokyo-night'),
+  'tokyo-night': () => import(/* webpackChunkName: "shiki-theme-tokyo-night" */ '@shikijs/themes/tokyo-night'),
 } as const;
 
 const DEFAULT_CODE_THEME = 'tokyo-night';

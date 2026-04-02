@@ -34,7 +34,8 @@ If you want the fastest route into the current studio runtime, start with the se
 2. [Backend Alignment Ledger](./05_research/302_backend_alignment_ledger.md)
 3. [Contract Changelog](./05_research/307_contract_changelog.md)
 4. [Alignment Milestone Log](./05_research/306_alignment_milestone_log.md)
-5. [Architecture Decision Log](./05_research/305_architecture_decision_log.md)
+5. [Live Flight Search Performance Report](./05_research/308_live_flight_search_perf_report.md)
+6. [Architecture Decision Log](./05_research/305_architecture_decision_log.md)
 
 ## Future Work
 

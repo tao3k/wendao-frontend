@@ -11,11 +11,18 @@ vi.mock('beautiful-mermaid', () => ({
 import { renderMermaidSVG } from 'beautiful-mermaid';
 import { DirectReader } from './DirectReader';
 
+async function waitForRichContent(container: HTMLElement): Promise<void> {
+  await waitFor(() => {
+    expect(container.querySelector('.direct-reader__loading-inline')).toBeNull();
+  });
+}
+
 describe('DirectReader', () => {
   const mockedRenderMermaid = vi.mocked(renderMermaidSVG);
   let scrollIntoViewMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    mockedRenderMermaid.mockClear();
     mockedRenderMermaid.mockReturnValue('<svg class="mock-mermaid">diagram</svg>');
     scrollIntoViewMock = vi.fn();
     Object.defineProperty(Element.prototype, 'scrollIntoView', {
@@ -28,7 +35,7 @@ describe('DirectReader', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders mermaid code block through the mermaid renderer', () => {
+  it('renders mermaid code block through the mermaid renderer', async () => {
     const { container } = render(
       <DirectReader
         content={'```mermaid\ngraph TD\nA --> B\n```'}
@@ -36,15 +43,20 @@ describe('DirectReader', () => {
       />
     );
 
-    expect(mockedRenderMermaid).toHaveBeenCalledWith(
-      'graph TD\nA --> B',
-      expect.objectContaining({
-        bg: 'var(--tokyo-bg, #24283b)',
-        fg: 'var(--tokyo-text, #c0caf5)',
-        transparent: true,
-      })
-    );
-    expect(container.querySelector('.direct-reader__mermaid .mock-mermaid')).toBeTruthy();
+    await waitForRichContent(container);
+    await waitFor(() => {
+      expect(mockedRenderMermaid).toHaveBeenCalledWith(
+        'graph TD\nA --> B',
+        expect.objectContaining({
+          bg: 'var(--tokyo-bg, #24283b)',
+          fg: 'var(--tokyo-text, #c0caf5)',
+          transparent: true,
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(container.querySelector('.direct-reader__mermaid .mock-mermaid')).toBeTruthy();
+    });
   });
 
   it('highlights fenced code blocks through Shiki', async () => {
@@ -56,14 +68,16 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitFor(() => {
+      expect(container.querySelector('.direct-reader__code')).toBeTruthy();
+    });
     const codeBlock = container.querySelector('.direct-reader__code');
-    expect(codeBlock).toBeTruthy();
     await waitFor(() => {
       expect((codeBlock as HTMLElement).querySelector('.code-syntax-highlighter__token')).toBeTruthy();
     });
   });
 
-  it('falls back to source block if mermaid renderer throws', () => {
+  it('falls back to source block if mermaid renderer throws', async () => {
     mockedRenderMermaid.mockImplementationOnce(() => {
       throw new Error('bad mermaid');
     });
@@ -75,9 +89,32 @@ describe('DirectReader', () => {
       />
     );
 
-    expect(container.querySelector('.direct-reader__mermaid--error')).toHaveTextContent('Mermaid render failed');
-    expect(container.querySelector('pre[data-lang="mermaid"]')).toBeTruthy();
+    await waitForRichContent(container);
+    await waitFor(() => {
+      expect(container.querySelector('.direct-reader__mermaid--error')).toHaveTextContent('Mermaid render failed');
+    });
+    await waitFor(() => {
+      expect(container.querySelector('pre[data-lang="mermaid"]')).toBeTruthy();
+    });
     expect(container.textContent).toContain('flowchart TD');
+  });
+
+  it('falls back to source block for unsupported explicit mermaid dialects without loading runtime', async () => {
+    const { container } = render(
+      <DirectReader
+        content={'```mermaid\nsequenceDiagram\nAlice->>Bob: hi\n```'}
+        path="docs/sequence.md"
+      />
+    );
+
+    await waitForRichContent(container);
+    expect(mockedRenderMermaid).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(container.querySelector('.direct-reader__mermaid--error')).toHaveTextContent(
+        'Unsupported Mermaid dialect for inline render: sequence'
+      );
+    });
+    expect(container.textContent).toContain('Alice->>Bob: hi');
   });
 
   it('renders a line-numbered source view and scrolls the focused range into place', async () => {
@@ -143,8 +180,8 @@ describe('DirectReader', () => {
     });
   });
 
-  it('keeps markdown documents in rich mode by default even with line metadata', () => {
-    render(
+  it('keeps markdown documents in rich mode by default even with line metadata', async () => {
+    const { container } = render(
       <DirectReader
         content={'# Heading\n\n| Metric | Value |\n| --- | --- |\n| Files | 128 |'}
         path="docs/03_features/qianhuan-audit-closure.md"
@@ -153,6 +190,7 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(screen.getByTestId('markdown-waterfall')).toBeInTheDocument();
     expect(screen.getByText('Heading')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Metric' })).toBeInTheDocument();
@@ -161,8 +199,8 @@ describe('DirectReader', () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  it('treats markdown content without a path as rich markdown when line metadata is present', () => {
-    render(
+  it('treats markdown content without a path as rich markdown when line metadata is present', async () => {
+    const { container } = render(
       <DirectReader
         content={'# Heading\n\n| Metric | Value |\n| --- | --- |\n| Files | 128 |'}
         line={3}
@@ -170,6 +208,7 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(screen.getByText('Heading')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Metric' })).toBeInTheDocument();
     expect(screen.queryByTestId('direct-reader-line-3')).toBeNull();
@@ -198,10 +237,10 @@ describe('DirectReader', () => {
     });
   });
 
-  it('keeps rich mode bi-links clickable when no line target is active', () => {
+  it('keeps rich mode bi-links clickable when no line target is active', async () => {
     const onBiLinkClick = vi.fn();
 
-    render(
+    const { container } = render(
       <DirectReader
         content={'# Title\n\nUse [[knowledge/context.md]] here.'}
         path="knowledge/context.md"
@@ -209,16 +248,17 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     fireEvent.click(screen.getByRole('button', { name: 'knowledge/context.md' }));
 
     expect(screen.getByText('Title')).toBeInTheDocument();
     expect(onBiLinkClick).toHaveBeenCalledWith('knowledge/context.md');
   });
 
-  it('parses wikilink aliases and keeps embedded wikilinks inert', () => {
+  it('parses wikilink aliases and keeps embedded wikilinks inert', async () => {
     const onBiLinkClick = vi.fn();
 
-    render(
+    const { container } = render(
       <DirectReader
         content={'Keep ![[graph-b]] inert and open [[docs/roadmap.md|Roadmap]].'}
         path="docs/03_features/qianhuan-audit-closure.md"
@@ -226,15 +266,16 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(screen.queryByRole('button', { name: 'graph-b' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Roadmap' }));
     expect(onBiLinkClick).toHaveBeenCalledWith('docs/roadmap.md');
   });
 
-  it('supports legacy wikilink shape [[label|target]]', () => {
+  it('supports legacy wikilink shape [[label|target]]', async () => {
     const onBiLinkClick = vi.fn();
 
-    render(
+    const { container } = render(
       <DirectReader
         content={'See [[Roadmap|docs/roadmap.md]] for details.'}
         path="docs/03_features/qianhuan-audit-closure.md"
@@ -242,14 +283,15 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     fireEvent.click(screen.getByRole('button', { name: 'Roadmap' }));
     expect(onBiLinkClick).toHaveBeenCalledWith('docs/roadmap.md');
   });
 
-  it('supports legacy wikilink alias when target is a simple id token', () => {
+  it('supports legacy wikilink alias when target is a simple id token', async () => {
     const onBiLinkClick = vi.fn();
 
-    render(
+    const { container } = render(
       <DirectReader
         content={'See [[Roadmap Page|index]] for details.'}
         path="docs/03_features/qianhuan-audit-closure.md"
@@ -257,14 +299,15 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     fireEvent.click(screen.getByRole('button', { name: 'Roadmap Page' }));
     expect(onBiLinkClick).toHaveBeenCalledWith('index');
   });
 
-  it('routes wendao:// links as internal navigation targets', () => {
+  it('routes wendao:// links as internal navigation targets', async () => {
     const onBiLinkClick = vi.fn();
 
-    render(
+    const { container } = render(
       <DirectReader
         content={'[Agenda Skill](wendao://skills/agenda-management/SKILL.md)'}
         path="docs/03_features/xiuxian_zhixing_scenarios.md"
@@ -272,14 +315,15 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     fireEvent.click(screen.getByRole('button', { name: 'Agenda Skill' }));
     expect(onBiLinkClick).toHaveBeenCalledWith('wendao://skills/agenda-management/SKILL.md');
   });
 
-  it('does not convert escaped bi-links into clickable navigation', () => {
+  it('does not convert escaped bi-links into clickable navigation', async () => {
     const onBiLinkClick = vi.fn();
 
-    render(
+    const { container } = render(
       <DirectReader
         content={'Escaped: \\[[docs/roadmap.md|Roadmap]] and active: [[docs/guide.md|Guide]].'}
         path="docs/03_features/qianhuan-audit-closure.md"
@@ -287,12 +331,13 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(screen.queryByRole('button', { name: 'Roadmap' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Guide' }));
     expect(onBiLinkClick).toHaveBeenCalledWith('docs/guide.md');
   });
 
-  it('treats yaml frontmatter as metadata instead of rendered prose', () => {
+  it('treats yaml frontmatter as metadata instead of rendered prose', async () => {
     const { container } = render(
       <DirectReader
         content={'---\ntitle: "Demo"\nsaliency_base: 8.0\ndecay_rate: 0.02\n---\n\n# Heading'}
@@ -300,12 +345,13 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.textContent).toContain('Heading');
     expect(container.textContent).not.toContain('saliency_base');
     expect(container.textContent).not.toContain('decay_rate');
   });
 
-  it('strips studio metadata drawers from rich markdown rendering', () => {
+  it('strips studio metadata drawers from rich markdown rendering', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -315,6 +361,7 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.textContent).toContain('Heading');
     expect(container.textContent).toContain('Main body.');
     expect(container.textContent).not.toContain(':PROPERTIES:');
@@ -343,7 +390,7 @@ describe('DirectReader', () => {
     expect(screen.getByTestId('direct-reader-line-1')).toHaveAttribute('data-highlighted', 'true');
   });
 
-  it('renders :OBSERVE: directives as readable blocks in rich mode', () => {
+  it('renders :OBSERVE: directives as readable blocks in rich mode', async () => {
     const { container } = render(
       <DirectReader
         content={':OBSERVE: lang:typescript "interface DirectReaderProps { $$$ }"\n\nBody.'}
@@ -351,12 +398,13 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.querySelector('.direct-reader__blockquote')).toBeTruthy();
     expect(container.textContent).toContain('OBSERVE lang:typescript "interface DirectReaderProps { $$$ }"');
     expect(container.textContent).not.toContain(':OBSERVE:');
   });
 
-  it('renders directive families for OBSERVE_* and CONTRACT_* keys', () => {
+  it('renders directive families for OBSERVE_* and CONTRACT_* keys', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -366,6 +414,7 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.querySelector('.direct-reader__blockquote')).toBeTruthy();
     expect(container.textContent).toContain(
       'OBSERVE_SCOPE lang:rust "pub fn gateway_router() { $$$ }"'
@@ -377,7 +426,7 @@ describe('DirectReader', () => {
     expect(container.textContent).not.toContain(':CONTRACT_RUNTIME:');
   });
 
-  it('extracts supported directives nested in metadata drawers while hiding drawer scaffolding', () => {
+  it('extracts supported directives nested in metadata drawers while hiding drawer scaffolding', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -387,13 +436,14 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.textContent).toContain('OBSERVE_SCOPE lang:typescript "type RouteDecision = { $$$ }"');
     expect(container.textContent).toContain('CONTRACT_RUNTIME must_contain("fallback")');
     expect(container.textContent).not.toContain(':PROPERTIES:');
     expect(container.textContent).not.toContain(':ID:');
   });
 
-  it('keeps directive-like lines literal inside fenced code blocks', () => {
+  it('keeps directive-like lines literal inside fenced code blocks', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -403,13 +453,14 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     const normalizedText = (container.textContent || '').replace(/\s+/g, ' ').trim();
     expect(normalizedText).toContain(':OBSERVE: keep raw');
     expect(normalizedText).toContain(':CONTRACT_RUNTIME: keep raw');
     expect(normalizedText).toContain(':OBSERVE_SCOPE: also raw');
   });
 
-  it('closes fenced blocks correctly when info strings contain fence-like markers', () => {
+  it('closes fenced blocks correctly when info strings contain fence-like markers', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -419,13 +470,14 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     const normalizedText = (container.textContent || '').replace(/\s+/g, ' ').trim();
     expect(normalizedText).toContain(':OBSERVE: keep raw inside code');
     expect(normalizedText).toContain('CONTRACT must_contain("post-fence")');
     expect(normalizedText).not.toContain(':CONTRACT: must_contain("post-fence")');
   });
 
-  it('decodes HTML entities and keeps quoted prose out of inline math rendering', () => {
+  it('decodes HTML entities and keeps quoted prose out of inline math rendering', async () => {
     const { container } = render(
       <DirectReader
         content={'Status $&#x27; }" should stay literal.\n\nIt&#x27;s still readable.'}
@@ -433,13 +485,14 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.textContent).toContain(`Status $' }" should stay literal.`);
     expect(container.textContent).toContain(`It's still readable.`);
     expect(container.textContent).not.toContain('math mode');
     expect(container.innerHTML).not.toContain('direct-reader__math-error');
   });
 
-  it('keeps parenthetical prose stable around inline code spans', () => {
+  it('keeps parenthetical prose stable around inline code spans', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -449,13 +502,14 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     const normalizedText = (container.textContent || '').replace(/\s+/g, ' ').trim();
     expect(normalizedText).toContain('quality score 99.0 (.run/reports/xiuxian-daochang-memory-evolution-live.json)');
     expect(container.querySelectorAll('.direct-reader__inline-code').length).toBeGreaterThanOrEqual(3);
     expect(container.querySelector('.direct-reader__code')).toBeNull();
   });
 
-  it('renders qianhuan audit closure evidence prose without orphaned parentheses from live docs', () => {
+  it('renders qianhuan audit closure evidence prose without orphaned parentheses from live docs', async () => {
     const docPath = path.join(
       process.cwd(),
       '..',
@@ -479,12 +533,13 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     const normalizedText = (container.textContent || '').replace(/\s+/g, ' ').trim();
     expect(normalizedText).toContain('quality score 99.0 (.run/reports/xiuxian-daochang-memory-evolution-live.json), and live trace reconstruction reached score 100.0');
     expect(normalizedText).not.toContain('quality score 99.0 ),');
   });
 
-  it('renders markdown tables with stable GFM structure', () => {
+  it('renders markdown tables with stable GFM structure', async () => {
     const { container } = render(
       <DirectReader
         content={
@@ -494,15 +549,17 @@ describe('DirectReader', () => {
       />
     );
 
+    await waitForRichContent(container);
     expect(container.querySelector('.direct-reader__table')).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Metric' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: '128' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: '4096' })).toBeInTheDocument();
   });
 
-  it('treats null content as empty instead of crashing', () => {
-    render(<DirectReader content={null} path="main/docs/index.md" />);
+  it('treats null content as empty instead of crashing', async () => {
+    const { container } = render(<DirectReader content={null} path="main/docs/index.md" />);
 
+    await waitForRichContent(container);
     expect(screen.getByText('main/docs/index.md')).toBeInTheDocument();
     expect(screen.getByText('Select a file to view its content')).toBeInTheDocument();
   });

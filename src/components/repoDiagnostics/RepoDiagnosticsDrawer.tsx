@@ -1,5 +1,5 @@
 import React from 'react';
-import type { RepoIndexIssue, RepoIndexUnsupportedReason } from '../StatusBar';
+import type { RepoIndexIssue, RepoIndexUnsupportedReason } from '../statusBar/types';
 import {
   failedReasonKey,
   formatFailedIssueLine,

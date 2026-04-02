@@ -329,8 +329,17 @@
 .markdown-waterfall__rich-slot-header {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 6px;
+}
+
+.markdown-waterfall__rich-slot-header-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .markdown-waterfall__rich-slot-label {
@@ -348,9 +357,19 @@
   text-transform: uppercase;
 }
 
+.markdown-waterfall__section-chunk-row--slot {
+  margin-top: 0;
+}
+
+.markdown-waterfall__section-action--slot {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
 .markdown-waterfall__rich-slot--code,
 .markdown-waterfall__rich-slot--table,
-.markdown-waterfall__rich-slot--mermaid {
+.markdown-waterfall__rich-slot--mermaid,
+.markdown-waterfall__rich-slot--math {
   min-width: 0;
 }
 
@@ -363,6 +382,10 @@
 }
 
 .markdown-waterfall__rich-slot--mermaid {
+  padding: 8px 8px 10px;
+}
+
+.markdown-waterfall__rich-slot--math {
   padding: 8px 8px 10px;
 }
 

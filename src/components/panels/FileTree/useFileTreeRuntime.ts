@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../../api';
 import type { UiProjectConfig, UiRepoProjectConfig } from '../../../api/bindings';
 import { getConfig, toUiConfig } from '../../../config/loader';
-import type { RepoIndexStatus } from '../../StatusBar';
+import type { RepoIndexStatus } from '../../statusBar/types';
 import {
   linkGraphOnlyRepoProjectIds,
   startRepoIndexStatusPolling,

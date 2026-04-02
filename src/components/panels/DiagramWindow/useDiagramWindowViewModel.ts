@@ -8,6 +8,7 @@ import { useMermaidRenderer } from './useMermaidRenderer';
 interface DiagramWindowViewModelCopy {
   emptyMermaidSource: string;
   mermaidLoading: string;
+  mermaidUnsupported: string;
 }
 
 interface UseDiagramWindowViewModelParams {
@@ -61,7 +62,7 @@ export function useDiagramWindowViewModel({
     resolveInitialDisplayMode(hasBpmn, hasMermaid)
   );
   const [mermaidResetToken, setMermaidResetToken] = useState(0);
-  const renderMermaid = useMermaidRenderer({ hasMermaid, displayMode });
+  const renderMermaid = useMermaidRenderer({ hasMermaid, displayMode, mermaidSources });
 
   useEffect(() => {
     if (!hasBpmn) {
@@ -82,8 +83,9 @@ export function useDiagramWindowViewModel({
         renderMermaid,
         emptyMermaidSourceLabel: copy.emptyMermaidSource,
         mermaidLoadingLabel: copy.mermaidLoading,
+        unsupportedMermaidLabel: copy.mermaidUnsupported,
       }),
-    [copy.emptyMermaidSource, copy.mermaidLoading, mermaidSources, renderMermaid]
+    [copy.emptyMermaidSource, copy.mermaidLoading, copy.mermaidUnsupported, mermaidSources, renderMermaid]
   );
 
   const showBpmn = displayMode === 'bpmn' || displayMode === 'split';

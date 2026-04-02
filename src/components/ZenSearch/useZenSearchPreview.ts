@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  api,
-  type CodeAstAnalysisResponse,
-  type GraphNeighborsResponse,
-  type VfsContentResponse,
+import type {
+  CodeAstAnalysisResponse,
+  GraphNeighborsResponse,
+  MarkdownAnalysisResponse,
 } from '../../api';
-import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
 import { getSearchResultIdentity } from '../SearchBar/searchResultIdentity';
-import { isCodeSearchResult } from '../SearchBar/searchResultNormalization';
 import type { SearchResult } from '../SearchBar/types';
+import {
+  buildZenSearchPreviewLoadPlan,
+  isMeaningfulSelection,
+  loadZenSearchPreviewBaseData,
+  loadZenSearchPreviewCodeAstData,
+  loadZenSearchPreviewMarkdownData,
+} from './zenSearchPreviewLoaders';
 
 export interface ZenSearchPreviewState {
   loading: boolean;
@@ -18,23 +22,12 @@ export interface ZenSearchPreviewState {
   contentType: string | null;
   graphNeighbors: GraphNeighborsResponse | null;
   selectedResult: SearchResult | null;
+  markdownAnalysis?: MarkdownAnalysisResponse | null;
+  markdownAnalysisLoading?: boolean;
+  markdownAnalysisError?: string | null;
   codeAstAnalysis?: CodeAstAnalysisResponse | null;
   codeAstLoading?: boolean;
   codeAstError?: string | null;
-}
-
-function buildPreviewPath(result: SearchResult): string {
-  const navigationTarget = result.navigationTarget;
-  return normalizeSelectionPathForVfs({
-    path: navigationTarget?.path ?? result.path,
-    category: navigationTarget?.category ?? result.category,
-    projectName: result.projectName ?? navigationTarget?.projectName,
-    rootLabel: result.rootLabel ?? navigationTarget?.rootLabel,
-  });
-}
-
-function isMeaningfulSelection(result: SearchResult | null): result is SearchResult {
-  return Boolean(result && result.path.trim().length > 0);
 }
 
 export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSearchPreviewState {
@@ -50,6 +43,9 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
     contentType: null,
     graphNeighbors: null,
     selectedResult: null,
+    markdownAnalysis: null,
+    markdownAnalysisLoading: false,
+    markdownAnalysisError: null,
     codeAstAnalysis: null,
     codeAstLoading: false,
     codeAstError: null,
@@ -65,6 +61,9 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
         contentType: null,
         graphNeighbors: null,
         selectedResult: null,
+        markdownAnalysis: null,
+        markdownAnalysisLoading: false,
+        markdownAnalysisError: null,
         codeAstAnalysis: null,
         codeAstLoading: false,
         codeAstError: null,
@@ -72,78 +71,75 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
       return;
     }
 
-    const contentPath = buildPreviewPath(selectedResult);
-    const graphable = !isCodeSearchResult(selectedResult);
-    const codeAstEligible = isCodeSearchResult(selectedResult);
-    const codeAstRepo =
-      selectedResult.codeRepo?.trim() ||
-      selectedResult.projectName?.trim() ||
-      selectedResult.navigationTarget?.projectName?.trim() ||
-      undefined;
-    const codeAstLine = selectedResult.line ?? selectedResult.navigationTarget?.line ?? undefined;
+    const loadPlan = buildZenSearchPreviewLoadPlan(selectedResult);
     let cancelled = false;
 
     setState((current) => ({
       ...current,
       loading: true,
       error: null,
-      contentPath,
+      contentPath: loadPlan.contentPath,
       selectedResult,
+      markdownAnalysis: null,
+      markdownAnalysisLoading: loadPlan.markdownEligible,
+      markdownAnalysisError: null,
       codeAstAnalysis: null,
-      codeAstLoading: codeAstEligible,
+      codeAstLoading: loadPlan.codeAstEligible,
       codeAstError: null,
     }));
 
     void (async () => {
-      const codeAstRequest = codeAstEligible
-        ? api.getCodeAstAnalysis(contentPath, {
-            ...(codeAstRepo ? { repo: codeAstRepo } : {}),
-            ...(typeof codeAstLine === 'number' ? { line: codeAstLine } : {}),
-          })
-        : Promise.resolve(null as CodeAstAnalysisResponse | null);
-
-      const [contentResult, graphResult, codeAstResult] = await Promise.allSettled([
-        api.getVfsContent(contentPath),
-        graphable
-          ? api.getGraphNeighbors(contentPath, { direction: 'both', hops: 1, limit: 20 })
-          : Promise.resolve(null as GraphNeighborsResponse | null),
-        codeAstRequest,
-      ]);
+      const base = await loadZenSearchPreviewBaseData(loadPlan);
 
       if (cancelled) {
         return;
       }
 
-      const resolvedContent =
-        contentResult.status === 'fulfilled' ? (contentResult.value as VfsContentResponse) : null;
-      const graphNeighbors =
-        graphable && graphResult.status === 'fulfilled' ? graphResult.value : null;
-      const codeAstAnalysis =
-        codeAstEligible && codeAstResult.status === 'fulfilled' ? codeAstResult.value : null;
-      const errors = [contentResult, graphResult]
-        .filter((result) => graphable || result !== graphResult)
-        .filter((result) => result.status === 'rejected')
-        .map((result) => (result.reason instanceof Error ? result.reason.message : 'Preview load failed'));
-      const codeAstError =
-        codeAstEligible && codeAstResult.status === 'rejected'
-          ? (codeAstResult.reason instanceof Error
-              ? codeAstResult.reason.message
-              : 'Code AST analysis failed')
-          : null;
-
-      setState({
+      setState((current) => ({
+        ...current,
         loading: false,
-        error: errors.length > 0 ? errors.join(' · ') : null,
-        contentPath,
-        content: resolvedContent?.content ?? null,
-        contentType: resolvedContent?.contentType ?? null,
-        graphNeighbors,
+        error: base.error,
+        contentPath: loadPlan.contentPath,
+        content: base.content,
+        contentType: base.contentType,
+        graphNeighbors: base.graphNeighbors,
         selectedResult,
-        codeAstAnalysis,
-        codeAstLoading: false,
-        codeAstError,
-      });
+      }));
     })();
+
+    if (loadPlan.codeAstEligible) {
+      void (async () => {
+        const codeAst = await loadZenSearchPreviewCodeAstData(loadPlan);
+
+        if (cancelled) {
+          return;
+        }
+
+        setState((current) => ({
+          ...current,
+          codeAstAnalysis: codeAst.codeAstAnalysis,
+          codeAstLoading: false,
+          codeAstError: codeAst.codeAstError,
+        }));
+      })();
+    }
+
+    if (loadPlan.markdownEligible) {
+      void (async () => {
+        const markdown = await loadZenSearchPreviewMarkdownData(loadPlan);
+
+        if (cancelled) {
+          return;
+        }
+
+        setState((current) => ({
+          ...current,
+          markdownAnalysis: markdown.markdownAnalysis,
+          markdownAnalysisLoading: false,
+          markdownAnalysisError: markdown.markdownAnalysisError,
+        }));
+      })();
+    }
 
     return () => {
       cancelled = true;

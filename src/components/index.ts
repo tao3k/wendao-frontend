@@ -1,7 +1,7 @@
 export { ZenSearchWindow } from './ZenSearch';
 export { RepoDiagnosticsPage } from './RepoDiagnosticsPage';
 export { StatusBar } from './StatusBar';
-export type { RepoIndexStatus, RuntimeStatus, VfsStatus } from './StatusBar';
+export type { RepoIndexStatus, RuntimeStatus, VfsStatus } from './statusBar/types';
 export { Toolbar } from './Toolbar';
 export { AppLayout } from './layout/AppLayout';
 export { FileTree } from './panels/FileTree';

@@ -1074,3 +1074,6 @@ plugins = []
 dirs = []
 url = "https://github.com/modelica/ModelicaStandardLibrary.git"
 plugins = ["modelica"]
+
+[search_flight]
+schema_version = "v2"

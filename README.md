@@ -14,6 +14,29 @@ direnv exec . npm run build
 direnv exec . npm test
 ```
 
+`npm run build` now also runs `scripts/check-build-size.mjs` after the Rspack
+emit and fails if any emitted JS/CSS asset exceeds `2_400_000` bytes or if the
+initial entry asset set referenced by `dist/index.html` exceeds `3_800_000`
+bytes. That file is now a stable CLI entrypoint only; the reusable size-check
+implementation now lives behind `scripts/build/index.mjs`, with pure asset and
+budget logic split into `scripts/build/check-build-size-model.mjs` and runtime
+execution split into `scripts/build/check-build-size-runtime.mjs`. The Rspack
+warning thresholds and the post-build gate now share the same normalized
+`scripts/rspack/build-size-budgets.mjs` source so the budgets cannot drift. The
+split-chunk cache-group and async vendor naming policy now also live in
+`scripts/rspack/chunk-policy.mjs`, leaving `rspack.config.ts` as the assembly
+surface instead of the policy monolith. Gateway target parsing, plugin
+construction, and dev-server proxy assembly now also live in
+`scripts/rspack/build-environment.ts`. Browser targets, minimizer assembly, and
+shared `Rspack` performance/experiments settings now also live in
+`scripts/rspack/build-profile.ts`. Asset-resource and SWC loader rules now also
+live in `scripts/rspack/module-rules.ts`. Static entry, output, and resolve
+config now also live in `scripts/rspack/core-surface.ts`. The same helper
+surface is re-exported through `scripts/rspack/index.ts`, so `rspack.config.ts`
+consumes one coherent build-tooling barrel instead of a flat import list. The
+normalized `scripts/rspack/*` tree plus the normalized `scripts/build/*`
+surface now define the active build helper surface.
+
 ## Gateway Configuration
 
 The frontend resolves its default gateway target from:
@@ -30,6 +53,55 @@ bind = "127.0.0.1:9517"
 ```
 
 The dev proxy reads that bind and forwards `/api/*` requests to the configured Wendao Studio gateway. If that file cannot be read, the current fallback target is `http://localhost:8001`.
+
+The dev proxy now uses an explicit keep-alive `node:http.Agent` for gateway
+traffic. This is required because the underlying `http-proxy` default is
+`agent = false`, which forces `connection: close` and creates a fresh upstream
+socket for every proxied `/api/*` request. In local development that behavior
+showed up as intermittent browser `NetworkError` events even while the gateway
+process itself remained healthy.
+
+The browser-facing Flight client under `src/api/flight/generated/` is consumed
+directly as TypeScript source by Rspack, so generated imports must stay
+extensionless instead of ending in `.js`. `scripts/generate-flight-client.mjs`
+now emits the protobuf v2 `Flight_pb.ts` surface directly through
+`protoc-gen-es 2.11.0`; the old `protoc-gen-connect-es` stage has been retired.
+The active Flight stack in `package.json` is now:
+
+- `apache-arrow 21.1.0`
+- `@connectrpc/connect 2.1.1`
+- `@connectrpc/connect-web 2.1.1`
+- `@bufbuild/protobuf 2.11.0`
+- `@bufbuild/protoc-gen-es 2.11.0`
+
+For same-port Arrow Flight profiling against the live gateway, run:
+
+```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test:live-flight-perf'
+```
+
+The harness reads the checked-in `wendao.toml`, pushes the current UI config,
+and measures `/search/knowledge` with the default query set `diffeq`, `solver`,
+and `optimization`. The current local config defines `179`
+`link_graph.projects.*` entries. Override `STUDIO_LIVE_FLIGHT_PERF_QUERIES`,
+`STUDIO_LIVE_FLIGHT_PERF_LIMIT`, `STUDIO_LIVE_FLIGHT_PERF_WARMUP_RUNS`, and
+`STUDIO_LIVE_FLIGHT_PERF_MEASURED_RUNS` to tune the run. Each live run also
+writes JSON and CSV artifacts to
+`$PRJ_CACHE_HOME/agent/tmp/wendao_frontend_live_flight_search_perf.{json,csv}`;
+the harness now treats the exported `PRJ_CACHE_HOME` env var as the absolute
+project cache root directly. The JSON artifact now also includes a per-phase
+breakdown for `GetFlightInfo`, `DoGet`, Arrow IPC reassembly, hit decoding, and
+metadata decoding so live runs can identify the actual hotspot instead of only
+recording end-to-end latency. A fresh same-port `127.0.0.1:9519` gateway run
+after the runtime payload-cache and aggregate-provider response-reuse follow-ups
+showed `DoGet` dropping to roughly `0.75-1.1ms` average while `GetFlightInfo`
+still dominated at roughly `41-46ms` average, so the next optimization target
+remains route materialization work during `GetFlightInfo`. After restarting the
+default `127.0.0.1:9517` gateway and rerunning the same harness against the
+same 179-repository config, the current live profile is now `5.21ms` average,
+`6.07ms` P95, with `GetFlightInfo` averaging `3.73ms` and `DoGet` averaging
+`1.00ms`. The full report is in
+[`docs/05_research/308_live_flight_search_perf_report.md`](./docs/05_research/308_live_flight_search_perf_report.md).
 
 ## Current Runtime Surface
 
@@ -79,18 +151,93 @@ The dev proxy reads that bind and forwards `/api/*` requests to the configured W
 - The FileTree feature folder is now reduced to tree/runtime/view composition concerns: `types`, `copy`, `treeModel`, `TreeNode`, `useFileTreeRuntime`, `useFileTreeExpansion`, `useFileTreeStatus`, `FileTreeToolbar`, `FileTreeContent`, and `FileTreeNodes`
 - Knowledge, symbols, AST, and references search
 - Zen Search as the primary full-screen search workspace for knowledge, symbols, AST, references, and code-oriented structured projection flows
-- The right-side Structured Intelligence Dashboard (SID) renders topology, fragments, relational projection, and a local connectome for non-code results. Code-backed results render through a dedicated `StructuredCodeInspector` wrapper that projects a single-column AST waterfall with a numbered file-path prelude, declaration identity, structured signature parts, logic block decomposition, symbol overlays, and compact retrieval metadata (`chunk id`, `semantic type`, `fingerprint`, `token estimate`) on declaration and block surfaces, while markdown-backed DirectReader content renders through `MarkdownWaterfall` inside a dedicated ZenSearch markdown reading tray with a document identity card that foregrounds `Title`, `Tags`, and `Linked` before compact heading-based section index cards, section-level `Copy for RAG` / `Pivot section` actions, compact retrieval metadata (`chunk id`, `semantic type`, `fingerprint`, `token estimate`), and nested rich slots for tables, math, mermaid, bi-links, and fenced code blocks with shared slot headers.
+- The right-side Structured Intelligence Dashboard (SID) renders topology, fragments, relational projection, and a local connectome for non-code results. Code-backed results render through a dedicated `StructuredCodeInspector` wrapper that projects a single-column AST waterfall with a numbered file-path prelude, declaration identity, structured signature parts, logic block decomposition, symbol overlays, compact retrieval metadata (`chunk id`, `semantic type`, `fingerprint`, `token estimate`) across declaration, block, symbol, and ranked anchor atoms, and explicit `Pivot declaration` / `Pivot block` / `Pivot symbol` / `Pivot anchor` plus `Copy for RAG` actions on those same code atoms, while markdown-backed DirectReader content renders through `MarkdownWaterfall` inside a dedicated ZenSearch markdown reading tray with a document identity card that foregrounds `Title`, `Tags`, and `Linked` before compact heading-based section index cards, section-level `Copy for RAG` / `Pivot section` actions, compact retrieval metadata (`chunk id`, `semantic type`, `fingerprint`, `token estimate`), and nested rich slots for tables, math, mermaid, bi-links, and fenced code blocks with shared slot headers.
+- Code AST declaration, logic-block, and symbol atoms now prefer backend-issued `retrievalAtoms` from `/api/analysis/code-ast`; logic-block chunks now also carry backend-issued display labels and excerpts, and the logic-block rail still falls back to local inference only when no matching backend block chunk is available.
 - The top header now uses a compact two-line layout on wide screens and stacks responsively on narrower screens: the eyebrow/title share the first row, the focus chip sits inline on the same row when present, and the subtitle occupies the second row.
 - The dashboard slots now use a balanced two-row grid with slightly tighter padding, keeping the four structured layers visually symmetric while preserving internal scroll for dense content, and each layer is exposed as a named landmark region with a compact header layer index for structured navigation.
 - The local connectome mini-map now exposes incoming/outgoing side toggles, highlights the toggle that matches the active anchor side, and keeps a focused-anchor chip visible; the neighboring path trail now mirrors the same compact side badge, and both stay synchronized with the neighboring text anchors and top header active-anchor banner, whose path display is compacted while preserving the full path in the tooltip, while the mini-map itself uses a tighter viewport and node spacing so graph pivots hold one shared visual anchor instead of acting like a passive diagram, and switching to a different selected result clears that shared focus state.
-- Code-backed Zen results now project through a dedicated `StructuredCodeInspector` wrapper into a single-column AST waterfall with a numbered file-path prelude, a compact declaration identity lane, structured signature parts with explicit parameter and return rows, a single vertical validation/execution/return block stack, grouped symbol overlays, compact retrieval metadata on declaration and block atoms, and shared Shiki-backed generic syntax highlighting; the raw DirectReader content preview is reserved for non-code results
+- Code-backed Zen results now project through a dedicated `StructuredCodeInspector` wrapper into a single-column AST waterfall with a numbered file-path prelude, a compact declaration identity lane, structured signature parts with explicit parameter and return rows, a single vertical validation/execution/return block stack, grouped symbol overlays, compact retrieval metadata plus explicit `Pivot declaration` / `Pivot block` / `Pivot symbol` / `Pivot anchor` and `Copy for RAG` on declaration, block, symbol, and ranked anchor atoms, and shared Shiki-backed generic syntax highlighting; the raw DirectReader content preview is reserved for non-code results
+- `CodeAstAnatomyView.tsx` now delegates locale copy, signature-row shaping, displayed line-range derivation, and declaration/block/symbol/anchor copy payload builders to `codeAstAnatomyViewModel.ts`, so the AST waterfall UI shell no longer carries that helper logic inline
+- `codeAstAnatomy.ts` now delegates retrieval atom typing, backend lookup, frontend fallback atom construction, and shared retrieval-atom resolution to `codeAstRetrievalHelpers.ts`, so AST projection code no longer mixes UI-model derivation with retrieval-contract plumbing in one file
+- `codeAstAnatomy.ts` now also delegates shared projection primitives to `codeAstProjectionShared.ts`, signature parsing/snippet extraction to `codeAstSignatureHelpers.ts`, logic-block assembly to `codeAstBlockHelpers.ts`, and symbol/anchor grouping to `codeAstSymbolHelpers.ts`, so the AST anatomy layer is split by concern instead of continuing as one projection monolith
+- `StructuredIntelligenceDashboard.tsx` now delegates path/anchor formatting and focus resolution to `structuredDashboardShared.ts`, and card/list/fragment renderer helpers to `structuredDashboardRenderers.tsx`, so the dashboard shell stays focused on orchestration instead of carrying every structured rendering helper inline
+- `CodeAstAnatomyView.tsx` now delegates the file prelude, declaration lane, logic-block lane, and symbol/anchor lane to `codeAstAnatomySections.tsx`, so the main AST waterfall view focuses on preview-state wiring and model derivation instead of holding the full presentational body inline
 - The shared syntax highlighter now uses a curated fine-grained Shiki bundle instead of the full bundled runtime, and the markdown/rendering stack is split into its own initial chunk, so `npm run build` now lands without the earlier oversized `vendors-async-misc.js` / `vendors.js` asset warnings
 - The Zen Search shell is lazy-loaded so the normal workspace startup path does not depend on the full Zen subtree at initial render time, then remains mounted as a persistent overlay once opened so the workspace state stays intact while the shell toggles visibility
+- `StudioBootstrap` now lazy-loads the workspace `App` after gateway health and UI-config sync succeed, so the initial `main` entry keeps only the bootstrap shell instead of eagerly pulling the full workspace tree into first paint
+- Shiki syntax highlighting now loads as a small async runtime core plus per-language and per-theme lazy chunks, so code highlighting no longer emits one oversized monolithic async Shiki asset
 - The `SearchBar` wrapper remains internal only; the public search entrypoint is `ZenSearchWindow`
 - Studio bootstrap now keeps a static blank loading shell until the app is ready or blocked, and the workspace itself stays hidden until the first VFS load completes, so the startup flow does not visibly paint a loading panel during gateway connection
 - The frontend entrypoint renders `StudioBootstrap` directly instead of wrapping it in `React.StrictMode`, which avoids the dev-only double-mount flash during gateway connection
 - Source-focused reader mode with line highlighting; code files now enter source mode from their suffix even without a line target, and source lines reuse the shared Shiki-backed syntax highlighter used by fenced code blocks and AST/code fragments
 - Markdown-backed reader mode now renders a waterfall layout with a document identity card, heading-based section cards, section-level `Copy for RAG` / `Pivot section` actions, compact retrieval metadata (`chunk id`, `semantic type`, `fingerprint`, `token estimate`), and preserved rich slots for tables, math, mermaid, bi-links, and fenced code blocks while keeping source mode available for exact line inspection
+- Zen Search markdown preview now also requests `/api/analysis/markdown` and prefers backend-issued document/section `retrievalAtoms` for markdown waterfall cards when analysis is available; local chunk derivation remains the fallback for intro sections and other paths without backend atoms, while section copy payloads now also prefer backend-issued excerpts when present
+- Markdown code and mermaid rich slots now also prefer backend-issued markdown `retrievalAtoms` when `/api/analysis/markdown` includes `code block` atoms, and those rich slots now surface the same compact retrieval metadata plus `Copy for RAG` action used by section cards; slot copy payloads also prefer backend-issued excerpts when present
+- Markdown table rich slots now also prefer backend-issued markdown `retrievalAtoms` when `/api/analysis/markdown` includes `table` atoms, and those table slots now surface the same compact retrieval metadata plus `Copy for RAG` action instead of remaining presentation-only; table copy payloads also prefer backend-issued excerpts when present
+- Markdown display-math rich slots now also prefer backend-issued markdown `retrievalAtoms` when `/api/analysis/markdown` includes `math:block` atoms, and those formula slots now surface the same compact retrieval metadata plus `Copy for RAG` action as the other markdown waterfall atoms; math copy payloads also prefer backend-issued excerpts when present
+- Markdown observation rich slots now also prefer backend-issued markdown `retrievalAtoms` when `/api/analysis/markdown` includes `observation` atoms, and those blockquote cards now surface the same compact retrieval metadata plus `Copy for RAG` action as the other markdown waterfall atoms
+- `MarkdownWaterfall.tsx` is now reduced to a thin orchestration shell, with shared copy/contracts, bi-link parsing, waterfall model assembly, and rich-slot rendering split into dedicated helper modules so the markdown retrieval surface no longer depends on a single 1500+ line file
+- `ZenSearchPreviewEntity.tsx` now delegates markdown-vs-structured preview detection to `zenSearchPreviewSurface.ts`, and delegates the markdown/structured bridge bodies to `zenSearchPreviewBridges.tsx`, so the Zen preview shell no longer mixes route selection with both preview render paths inline
+- `useZenSearchPreview.ts` now delegates preview-path planning and parallel content/graph/code-ast/markdown loading to `zenSearchPreviewLoaders.ts`, so the hook no longer mixes state orchestration with per-surface retrieval plumbing inline
+- `ZenSearchPreviewPane.tsx` now delegates the rendered pane frame to `ZenSearchPreviewPaneView.tsx`, and `ZenSearchPreviewShell.tsx` now delegates placeholder-vs-entity branching to `zenSearchPreviewShellContent.tsx`, so the preview controller, container shell, and body routing each live in their own small module
+- Studio analysis bindings now expose a shared `RetrievalChunk` / `RetrievalChunkSurface` contract across markdown and code AST responses, while markdown/code-specific `retrievalAtoms` remain narrowed views over that same cross-surface payload
+- The frontend now ships `apache-arrow` and materializes retrieval atoms into shared Arrow-backed lookup tables, so code AST owner/surface resolution and markdown section/rich-slot range queries both run against the same columnar local query path instead of ad hoc `Map`/array scans
+- Zen preview now also loads shared retrieval chunks over Arrow IPC from `/api/analysis/markdown/retrieval-arrow` and `/api/analysis/code-ast/retrieval-arrow`, then overlays those Arrow-decoded chunks onto the existing JSON analysis payloads so the right pane gets a real Arrow transport lane without breaking current analysis consumers
+- Zen search left-pane knowledge results now also load Arrow-decoded `SearchHit[]` from `/api/search/intent/hits-arrow` in parallel with the existing JSON `/api/search/intent` response, then overlay the Arrow hits onto the unchanged JSON search metadata so `all` / `knowledge` / `code` result lists benefit from the same Arrow transport lane without widening the public `SearchResponse` contract
+- Dedicated symbol-mode search now also loads Arrow-decoded `SymbolSearchHit[]` from `/api/search/symbols/hits-arrow` in parallel with the existing JSON `/api/search/symbols` response, then overlays those Arrow hits onto the unchanged JSON symbol-search metadata so symbol-mode SearchBar queries gain the same Arrow transport lane without widening `SymbolSearchResponse`
+- Dedicated reference-mode search now also loads Arrow-decoded `ReferenceSearchHit[]` from `/api/search/references/hits-arrow` in parallel with the existing JSON `/api/search/references` response, then overlays those Arrow hits onto the unchanged JSON reference-search metadata so reference-mode SearchBar queries gain the same Arrow transport lane without widening `ReferenceSearchResponse`
+- Dedicated AST-mode search now also loads Arrow-decoded `AstSearchHit[]` from `/api/search/ast/hits-arrow` in parallel with the existing JSON `/api/search/ast` response, then overlays those Arrow hits onto the unchanged JSON AST-search metadata so AST-mode SearchBar queries gain the same Arrow transport lane without widening `AstSearchResponse`
+- Dedicated attachment-mode search now also loads Arrow-decoded `AttachmentSearchHit[]` from `/api/search/attachments/hits-arrow` in parallel with the existing JSON `/api/search/attachments` response, then overlays those Arrow hits onto the unchanged JSON attachment-search metadata so attachment-mode SearchBar queries gain the same Arrow transport lane without widening `AttachmentSearchResponse`
+- The search-side Arrow transport now also shares one backend IPC/header helper and one frontend JSON-plus-Arrow overlay helper across knowledge, symbol, reference, and AST search, so all four lanes keep their current public contracts while the transport plumbing no longer duplicates per endpoint
+- The frontend API client now also delegates Arrow-backed search URL composition and trimmed search-param normalization to `src/api/searchTransport.ts`, so `src/api/client.ts` no longer owns the repeated search-sidecar transport seam inline
+- The frontend API client now also delegates repo-search wire normalization to `src/api/repoResponseNormalizers.ts`, so `src/api/client.ts` no longer owns the repo response shape-conversion seam inline
+- The frontend API client now also delegates repeated repo endpoint GET/POST wrapper composition to `src/api/repoTransport.ts`, so `src/api/client.ts` no longer owns the repo transport seam inline
+- The frontend API client now also delegates markdown/code-ast analysis fetch path composition to `src/api/analysisTransport.ts`, so `src/api/client.ts` no longer owns the analysis transport seam inline
+- The frontend API client now also delegates UI config sync/retry state and capabilities cache behavior to `src/api/uiConfigTransport.ts`, so `src/api/client.ts` no longer owns the stateful UI config transport seam inline
+- The frontend API client now also delegates shared `ApiClientError`, JSON response parsing, and binary response parsing to `src/api/responseTransport.ts`, so `src/api/client.ts` no longer owns the common response-transport seam inline
+- The frontend API client now also delegates the foundational health/VFS/graph gateway fetch surface to `src/api/workspaceTransport.ts`, so `src/api/client.ts` no longer owns the basic workspace transport seam inline
+- The frontend API client now also delegates autocomplete, projected-page-index, and refine-doc gateway fetch wiring to `src/api/documentTransport.ts`, so `src/api/client.ts` no longer owns the remaining document/query transport seam inline
+- The frontend API client now also delegates its remaining public repo/UI contract interfaces to `src/api/apiContracts.ts`, so `src/api/client.ts` no longer owns the contract surface inline
+- The frontend API client now also keeps all runtime wiring in `src/api/clientRuntime.ts`, while `src/api/client.ts` is reduced to the stable public facade for runtime exports plus type re-exports
+- Internal API helpers no longer type-import the public `client.ts` facade; `uiConfigTransport.ts` and `repoResponseNormalizers.ts` now consume `src/api/apiContracts.ts` directly so the helper dependency graph stays pointed inward
+- `src/api/index.ts` now acts as the stable public barrel for API consumers, re-exporting the facade plus the dedicated contract/error surface instead of remaining a trivial client forwarder
+- The frontend API client now also exposes the Studio Julia deployment artifact inspection surface through `api.getJuliaDeploymentArtifact()` and `api.getJuliaDeploymentArtifactToml()`, backed by a dedicated `UiJuliaDeploymentArtifact` contract in `src/api/apiContracts.ts`
+- Qianji Studio now also consumes that deployment artifact in the workspace `StatusBar`, surfacing a compact Julia rerank chip with a hover inspection popover for artifact metadata, transport coordinates, launcher path, service mode, and analyzer strategy
+- The same `StatusBar` inspection popover now also exposes `Copy TOML` and `Download JSON` actions, so the resolved Julia deployment artifact can be exported directly from the live workspace shell
+- The Julia deployment inspection formatting and export behavior now also live in the feature folder `src/components/juliaDeploymentInspection/`, split into explicit `format`, `actions`, `types`, and `index` seams so `App.tsx` and `StatusBar.tsx` no longer each own their own artifact parsing/export rules inline
+- The same feature folder now also owns a dedicated `View.tsx` subview for the Julia deployment popover, so `StatusBar.tsx` remains the status-orchestration surface instead of also owning the artifact popover rendering tree
+- `StatusBar.tsx` now also mounts a dedicated `statusBar/RepoIndexStatusView.tsx` subview for the repo-index diagnostics chip/popover, so both major status popovers now live below the top-level orchestration surface
+- The remaining derived status labels and tones now also live in `src/components/statusBar/model.ts`, so `StatusBar.tsx` is reduced to state wiring plus subview assembly instead of mixing derivation and rendering concerns
+- The repo-index chip/popover contract now also lives in the shared `statusBar/` feature-folder surface as `RepoIndexStatusViewModel`, so `statusBar/model.ts` and `RepoIndexStatusView.tsx` share one view contract instead of re-declaring the subview props inline
+- The Julia deployment inspection feature folder now also owns the local copy/download action-state controller in `src/components/juliaDeploymentInspection/controller.ts`, so `StatusBar.tsx` no longer manages analyzer-export feedback state inline
+- Shared `RepoIndexStatus`, `RuntimeStatus`, and `VfsStatus` contracts now also live in `src/components/statusBar/types.ts` behind the `statusBar/index.ts` feature-folder surface, so repo-diagnostics, FileTree, and MainView code no longer import shared types back out of `StatusBar.tsx`; those imports now also use explicit `statusBar/*` file paths to avoid `StatusBar.tsx` vs `statusBar/` ambiguity on case-insensitive filesystems
+- The left-pane SearchBar now also assembles its visible result list, section stack, and code-filter catalog through local Arrow-backed view helpers, so scope filtering, code-filter matching, dedupe, sort, and code facet extraction run against shared columnar tables before the existing `SearchResult[]` rows and section props are handed back to the UI
+- SearchBar all-mode execution now delegates its multi-lane aggregation, fallback shaping, and merged runtime warning assembly to `searchExecutionAllMode.ts`, so the main execution file no longer owns the largest cross-lane branch inline
+- SearchBar all-mode execution now further delegates fallback response builders and merged result/meta shaping to `searchExecutionAllModeHelpers.ts`, so the all-mode module itself is down to fan-out orchestration plus settled-lane resolution
+- SearchBar code-mode execution now also delegates its repo-aware orchestration, backend intent metadata resolution, and fallback result shaping to `searchExecutionCodeMode.ts`, so the main execution file no longer owns the repo-specific code branch inline
+- SearchBar code-mode execution now further delegates repo-aware settled-result resolution, fallback selection, and standalone code-search shaping to `searchExecutionCodeModeHelpers.ts`, so the code-mode module itself is down to fan-out orchestration and route selection
+- SearchBar simple execution responders now delegate their reference, attachment, AST, symbol, and knowledge index contracts to `searchExecutionSimpleModes.ts`, so `searchExecution.ts` is now a thin mode router instead of a mixed orchestration-plus-response formatter
+- SearchBar execution types now live in `searchExecutionTypes.ts`, so helper modules no longer type-import the main router file and the execution surface is organized as one router plus explicit shared contracts
+- `useSearchBarController.tsx` now delegates data-flow, interaction, and view-model assembly to `useSearchBarControllerPresentation.ts`, so the top-level controller hook stays focused on state hooks, repo slice wiring, reset behavior, and final result assembly
+- ZenSearch preview loading now runs through explicit base, code-AST, and markdown lanes, so AST preview completion no longer waits for slower VFS, graph, or markdown work before the AST pane leaves its loading state
+- The AST waterfall loading copy now says `Loading AST analysis...` instead of `Compiling AST anatomy view...`, so the UI no longer misattributes backend/proxy wait time to frontend compilation
+- The MainView content pane now mounts `DirectReader` through the same lazy loader surface used by the other heavy panels, and the Rspack markdown policy now splits `markdown-core`, `mermaid`, and `katex` into async chunks; the production build no longer pulls the old `markdown.js` blob into the initial entrypoint, which is now down to `0.481 MiB`
+- `DirectReader` now defers its rich markdown runtime through `DirectReaderRichContent`, so `react-markdown`, Mermaid, KaTeX, and the markdown waterfall stay behind a panel-local lazy seam instead of being imported directly into the reader shell; focused DirectReader regressions were updated to wait for lazy rich hydration and the production build still holds the initial entrypoint at `0.481 MiB`
+- `MarkdownWaterfall` now further defers section-body markdown rendering through `MarkdownWaterfallSectionBody`, so the identity card and section chrome render before the heaviest `ReactMarkdown`/Mermaid/KaTeX/code-slot runtime hydrates; the focused waterfall and reader regressions remain green and the production build still keeps the initial entrypoint at `0.481 MiB`
+- `MarkdownWaterfall` code slots now further defer syntax-highlighted code rendering through `MarkdownWaterfallCodeSlot`, so Shiki-backed code blocks no longer hydrate inline with the rest of the slot renderer path; focused reader/waterfall regressions remain green and the production build still keeps the initial entrypoint at `0.481 MiB`
+- A follow-up bundle audit now confirms those nested seams are real in the emitted assets: `MarkdownWaterfallCodeSlot` lands as its own small async chunk (`757.js`), while the dominant remaining markdown-rich async asset is still `mermaid.js`; the next optimization slice should therefore target Mermaid-specific runtime rather than more Shiki splitting
+- `MarkdownWaterfall` Mermaid slots now also defer their `beautiful-mermaid` runtime through `MarkdownWaterfallMermaidSlot`, so Mermaid-backed markdown blocks no longer keep that runtime wired into `markdownWaterfallComponents.tsx`; source-map inspection confirms the Mermaid slot now lands behind its own async seam while `mermaid.js` remains the dominant markdown-rich asset
+- Mermaid runtime assembly now also lives behind the shared `src/components/panels/mermaidRuntime/` surface, so `DiagramWindow`, `DirectReaderRichContent`, and `MarkdownWaterfallMermaidSlot` no longer own separate Mermaid import patterns; source grep now shows `beautiful-mermaid` only under that shared loader while the initial entrypoint still holds at `0.481 MiB`
+- Mermaid rendering now also runs through an explicit dialect preflight gate inside `src/components/panels/mermaidRuntime/analysis.ts`, so only the inline-supported dialects (`flowchart`/`graph`, `state`, plus ambiguous sources) activate the shared runtime; explicit `sequenceDiagram`, `classDiagram`, `erDiagram`, and `xychart` blocks now fall back directly to source/error UI instead of pretending the inline renderer is still loading
+- Mermaid runtime loading now also runs through a provider-neutral adapter surface in `src/components/panels/mermaidRuntime/provider.ts` and `src/components/panels/mermaidRuntime/providers/beautifulMermaid.ts`, so the current `beautiful-mermaid` implementation is isolated behind one adapter instead of leaking a library-shaped contract into DiagramWindow or DirectReader consumers
+- Mermaid bundle telemetry now also has a stable CLI at `scripts/mermaid-bundle-report.mjs` plus a split model/runtime surface under `scripts/build/`; the current rebuilt dist frontier reports `mermaid.js` at `1604102` bytes while the initial entrypoint still holds at `0.481 MiB`
+- The active Mermaid provider now also exposes a typed manifest with `providerName`, `packageName`, supported inline dialects, and payload notes; the bundle report prints that manifest context before the asset sizes, so future provider swaps can be evaluated against an explicit contract instead of shell notes
+- The shared Mermaid runtime can now also load a bounded local `compact-flow` spike provider by name; that provider does not depend on ELK or `beautiful-mermaid`, only supports simple arrow-connected `flowchart`/`graph`/`state` diagrams, and is currently intended for feasibility comparison rather than default UI rendering
+- Mermaid provider comparisons now also run against a fixed bakeoff corpus in `src/components/panels/mermaidRuntime/bakeoffFixtures.ts`; the current corpus keeps `beautiful-mermaid` green while pinning `compact-flow` to an explicit bounded subset instead of an open-ended compatibility claim
+- `compact-flow` now also supports single-layer flowchart `subgraph` blocks through a bounded group-shell renderer, so the bakeoff corpus has advanced one step: `subgraph` is now green for the spike provider, while decision-node syntax remains the next explicit miss
+- `compact-flow` now also supports flowchart decision nodes as bounded diamond nodes, so the current bakeoff corpus is green for the spike provider across the targeted flowchart subset
+- `compact-flow` now also supports single-layer state composite blocks through the same bounded group-shell pattern used for flowchart subgraphs, so the bakeoff corpus is green across the currently targeted flowchart/state subset; nested composites and richer state-machine semantics remain intentionally unsupported
+- Studio capabilities no longer advertise a browser Arrow search transport; the active Julia deployment inspection surface now points directly at the Flight `/rerank` route and `/healthz`
 - DiagramWindow now renders the same MarkdownWaterfall fallback for markdown-backed files when no embedded Mermaid or BPMN diagram body is available, instead of collapsing to the empty diagram hint; the fallback identity card keeps the `Title / Tags / Linked` hierarchy visible before the section stack
 - MainView content and diagram panels now hold a loading fallback while selected file content is still hydrating, which avoids flashing the empty hint during gateway reconnects
 

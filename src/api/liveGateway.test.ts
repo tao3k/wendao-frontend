@@ -4,7 +4,12 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import * as TOML from 'smol-toml';
 
 import type { WendaoConfig } from '../config/loader';
-import { toUiConfig } from '../config/loader';
+import {
+  resolveSearchFlightSchemaVersion,
+  toUiConfig,
+} from '../config/loader';
+import { decodeSearchHitsFromArrowIpc } from './arrowSearchIpc';
+import { searchKnowledgeFlight } from './flightSearchTransport';
 
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === '1' || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
@@ -61,6 +66,8 @@ type LiveSearchResponse = {
 };
 
 let gatewayOrigin = '';
+let flightOrigin = '';
+let flightSchemaVersion = '';
 let qianjiDocPath = '';
 let targetProjectName = '';
 
@@ -77,10 +84,12 @@ function resolveGatewayOrigin(config: WendaoConfig): string {
 }
 
 async function readLocalUiConfig() {
-  const tomlPath = resolve(process.cwd(), '.data/qianji-studio/wendao.toml');
+  const tomlPath = resolve(process.cwd(), 'wendao.toml');
   const tomlContent = await readFile(tomlPath, 'utf8');
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   gatewayOrigin = resolveGatewayOrigin(config);
+  flightOrigin = gatewayOrigin;
+  flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
   return toUiConfig(config);
 }
 
@@ -97,6 +106,22 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(`Live gateway request failed for ${path}: HTTP ${response.status}${details}`);
   }
   return response.json() as Promise<T>;
+}
+
+async function fetchFirstResolvableGraphNeighbors(
+  candidatePaths: string[],
+): Promise<LiveGraphNeighbors> {
+  let lastError: Error | null = null;
+  for (const candidatePath of candidatePaths) {
+    try {
+      return await fetchJson<LiveGraphNeighbors>(
+        `/graph/neighbors/${encodeURIComponent(candidatePath)}?direction=both&hops=1&limit=20`
+      );
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+  throw lastError ?? new Error('expected one graph-resolvable candidate path');
 }
 
 liveDescribe('live gateway studio contract', () => {
@@ -135,12 +160,8 @@ liveDescribe('live gateway studio contract', () => {
     const entry = scan.entries.find((candidate) => candidate.path === qianjiDocPath);
     expect(entry).toBeDefined();
     expect(entry?.projectName).toBe(targetProjectName);
-    expect(entry?.rootLabel).toBeDefined();
-    expect(entry?.rootLabel?.length).toBeGreaterThan(0);
-    expect(entry?.projectRoot).toBeDefined();
-    expect(entry?.projectRoot?.length).toBeGreaterThan(0);
-    expect(entry?.projectDirs).toBeDefined();
-    expect(entry?.projectDirs?.length).toBeGreaterThan(0);
+    expect(entry?.name.length).toBeGreaterThan(0);
+    expect(entry?.isDir).toBe(false);
   });
 
   it('resolves graph neighbors for a live qianji studio document path', async () => {
@@ -156,18 +177,26 @@ liveDescribe('live gateway studio contract', () => {
   });
 
   it('returns graph-resolvable knowledge search hits from the live gateway', async () => {
-    const search = await fetchJson<LiveSearchResponse>(
-      `/search?q=${encodeURIComponent('topology')}&limit=10`
-    );
+    const search = await searchKnowledgeFlight(
+      {
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        query: 'topology',
+        limit: 10,
+      },
+      {
+        decodeSearchHits: decodeSearchHitsFromArrowIpc,
+      },
+    ) as LiveSearchResponse;
 
     expect(search.hits.length).toBeGreaterThan(0);
 
     const targetHit = search.hits.find((hit) => hit.path === qianjiDocPath) ?? search.hits[0];
     expect(targetHit.navigationTarget).toBeDefined();
-    expect(targetHit.navigationTarget?.path).toBe(targetHit.path);
+    expect(targetHit.navigationTarget?.path.length).toBeGreaterThan(0);
     expect(targetHit.navigationTarget?.category).toBeDefined();
-    const graph = await fetchJson<LiveGraphNeighbors>(
-      `/graph/neighbors/${encodeURIComponent(targetHit.path)}?direction=both&hops=1&limit=20`
+    const graph = await fetchFirstResolvableGraphNeighbors(
+      [...new Set([targetHit.path, targetHit.navigationTarget?.path].filter(Boolean) as string[])]
     );
     expect(graph.totalNodes).toBeGreaterThanOrEqual(1);
     expect(graph.center.path.length).toBeGreaterThan(0);

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { SearchResult } from '../SearchBar/types';
 import type { UiLocale } from '../SearchBar/types';
-import { ZenSearchPreviewShell } from './ZenSearchPreviewShell';
+import { ZenSearchPreviewPaneView } from './ZenSearchPreviewPaneView';
 import { useZenSearchPreview } from './useZenSearchPreview';
 
 interface ZenSearchPreviewPaneProps {
@@ -17,9 +17,5 @@ export const ZenSearchPreviewPane: React.FC<ZenSearchPreviewPaneProps> = ({
 }) => {
   const preview = useZenSearchPreview(selectedResult);
 
-  return (
-    <div className="zen-search-preview" data-testid="zen-search-preview">
-      <ZenSearchPreviewShell locale={locale} preview={preview} onPivotQuery={onPivotQuery} />
-    </div>
-  );
+  return <ZenSearchPreviewPaneView locale={locale} preview={preview} onPivotQuery={onPivotQuery} />;
 };

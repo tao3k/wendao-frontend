@@ -1,6 +1,6 @@
 import type { AcademicNode, AcademicTopology } from '../../../types';
 import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../StatusBar';
+import type { RuntimeStatus } from '../../statusBar/types';
 import type { MainViewLocale, MainViewTab } from './mainViewTypes';
 
 export interface MainViewSelectedFile {

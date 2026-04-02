@@ -20,6 +20,7 @@ export interface DiagramWindowCopy {
   panelMermaid: string;
   diagramIndexPrefix: string;
   mermaidRenderFailedPrefix: string;
+  mermaidUnsupported: string;
   noMermaidBody: string;
   emptyMermaidSource: string;
   resetViewLabel: string;
@@ -48,6 +49,7 @@ export type DiagramWindowWorkspaceCopy = Pick<
   | 'diagramIndexPrefix'
   | 'modeMermaidAria'
   | 'mermaidRenderFailedPrefix'
+  | 'mermaidUnsupported'
   | 'noMermaidBody'
   | 'bpmnLoading'
 >;
@@ -71,6 +73,7 @@ export type DiagramWindowViewModelCopy = Pick<
   | 'panelMermaid'
   | 'diagramIndexPrefix'
   | 'mermaidRenderFailedPrefix'
+  | 'mermaidUnsupported'
   | 'noMermaidBody'
   | 'resetViewLabel'
   | 'bpmnLoading'

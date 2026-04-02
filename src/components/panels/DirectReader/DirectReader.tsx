@@ -4,21 +4,14 @@
  * Content viewer with source-focus support and standards-based markdown rendering.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Root } from 'mdast';
-import type { Components } from 'react-markdown';
-import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import type { Plugin } from 'unified';
-import type { VFile } from 'vfile';
-import 'katex/dist/katex.min.css';
-import { renderMermaidSVG } from 'beautiful-mermaid';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CodeSyntaxHighlighter, normalizeCodeLanguage } from '../../code-syntax';
-import { MarkdownWaterfall } from './MarkdownWaterfall';
 import './DirectReader.css';
+
+const DirectReaderRichContent = lazy(async () => {
+  const module = await import('./DirectReaderRichContent');
+  return { default: module.DirectReaderRichContent };
+});
 
 export interface DirectReaderProps {
   /** Content to render (markdown or plain text) */
@@ -54,23 +47,12 @@ interface DirectReaderCopy {
   loading: string;
   emptyMermaidBlock: string;
   mermaidRenderFailed: string;
+  mermaidUnsupported: string;
   viewRich: string;
   viewSource: string;
 }
 
-interface MarkdownAstNode {
-  type?: string;
-  value?: string;
-  url?: string;
-  children?: MarkdownAstNode[];
-  position?: {
-    start?: { offset?: number };
-    end?: { offset?: number };
-  };
-}
-
 const BI_LINK_RE = /\[\[([^\]\n]+)\]\]/g;
-const INTERNAL_URI_PREFIXES = ['wendao://', '$wendao://', 'id:'] as const;
 const STUDIO_METADATA_DRAWERS = new Set(['PROPERTIES', 'RELATIONS', 'FOOTER']);
 const DIRECTIVE_LABELS = ['OBSERVE', 'CONTRACT'] as const;
 
@@ -84,6 +66,7 @@ const DIRECT_READER_COPY: Record<'en' | 'zh', DirectReaderCopy> = {
     loading: 'Loading...',
     emptyMermaidBlock: 'Empty Mermaid block',
     mermaidRenderFailed: 'Mermaid render failed',
+    mermaidUnsupported: 'Unsupported Mermaid dialect for inline render',
     viewRich: 'View rich',
     viewSource: 'View source',
   },
@@ -96,6 +79,7 @@ const DIRECT_READER_COPY: Record<'en' | 'zh', DirectReaderCopy> = {
     loading: '加载中...',
     emptyMermaidBlock: 'Mermaid 代码块为空',
     mermaidRenderFailed: 'Mermaid 渲染失败',
+    mermaidUnsupported: '当前内联渲染不支持的 Mermaid 方言',
     viewRich: '富文本视图',
     viewSource: '源码视图',
   },
@@ -291,276 +275,12 @@ function stripStudioMetadataDrawers(content: string): string {
   return keptLines.join('\n');
 }
 
-const remarkBiLinks: Plugin<[], Root> = () => {
-  return (tree: Root, file: VFile) => {
-    const source = typeof file?.value === 'string' ? file.value : '';
-    transformBiLinks(tree as unknown as MarkdownAstNode, source);
-  };
-};
-
-function transformBiLinks(node: MarkdownAstNode, source: string): void {
-  if (!node.children || node.children.length === 0) {
-    return;
-  }
-
-  for (let index = 0; index < node.children.length; index += 1) {
-    const child = node.children[index];
-
-    if (child.type === 'text' && typeof child.value === 'string') {
-      const replacement = splitTextWithBiLinks(child.value, sliceNodeSource(child, source));
-      if (replacement) {
-        node.children.splice(index, 1, ...replacement);
-        index += replacement.length - 1;
-        continue;
-      }
-    }
-
-    transformBiLinks(child, source);
-  }
-}
-
-function splitTextWithBiLinks(value: string, rawSource: string | null): MarkdownAstNode[] | null {
-  BI_LINK_RE.lastIndex = 0;
-  let match: RegExpExecArray | null = BI_LINK_RE.exec(value);
-  if (!match) {
-    return null;
-  }
-
-  const nodes: MarkdownAstNode[] = [];
-  let lastIndex = 0;
-  const valueToRawMap = rawSource ? buildValueToRawIndexMap(value, rawSource) : null;
-
-  while (match) {
-    const matchStart = match.index;
-    const matchEnd = matchStart + match[0].length;
-
-    if (isEscapedBiLinkInRaw(rawSource, valueToRawMap, matchStart)) {
-      nodes.push({
-        type: 'text',
-        value: value.slice(lastIndex, matchEnd),
-      });
-      lastIndex = matchEnd;
-      match = BI_LINK_RE.exec(value);
-      continue;
-    }
-
-    if (isEmbeddedBiLink(value, matchStart)) {
-      nodes.push({
-        type: 'text',
-        value: value.slice(lastIndex, matchEnd),
-      });
-      lastIndex = matchEnd;
-      match = BI_LINK_RE.exec(value);
-      continue;
-    }
-
-    if (matchStart > lastIndex) {
-      nodes.push({
-        type: 'text',
-        value: value.slice(lastIndex, matchStart),
-      });
-    }
-
-    const parsed = parseBiLink(match[1]);
-    if (parsed) {
-      nodes.push({
-        type: 'link',
-        url: `bilink:${encodeURIComponent(parsed.target)}`,
-        children: [{ type: 'text', value: parsed.label }],
-      });
-    } else {
-      nodes.push({
-        type: 'text',
-        value: match[0],
-      });
-    }
-
-    lastIndex = matchEnd;
-    match = BI_LINK_RE.exec(value);
-  }
-
-  if (lastIndex < value.length) {
-    nodes.push({
-      type: 'text',
-      value: value.slice(lastIndex),
-    });
-  }
-
-  return nodes;
-}
-
-function decodeBiLinkHref(href: string): string {
-  const encoded = href.slice('bilink:'.length);
-  try {
-    return decodeURIComponent(encoded);
-  } catch {
-    return encoded;
-  }
-}
-
-function hasInternalUriPrefix(value: string): boolean {
-  const lower = value.toLowerCase();
-  return INTERNAL_URI_PREFIXES.some((prefix) => lower.startsWith(prefix));
-}
-
-function looksLikePathOrSemanticTarget(candidate: string): boolean {
-  const value = candidate.trim();
-  if (!value) {
-    return false;
-  }
-  if (hasInternalUriPrefix(value)) {
-    return true;
-  }
-  return (
-    value.includes('/') ||
-    value.includes('\\') ||
-    value.includes('.') ||
-    value.includes(':') ||
-    value.includes('#') ||
-    value.startsWith('~') ||
-    value.startsWith('@')
-  );
-}
-
-function parseBiLink(raw: string): { target: string; label: string } | null {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  const pipeIndex = trimmed.indexOf('|');
-  if (pipeIndex < 0) {
-    return { target: trimmed, label: trimmed };
-  }
-
-  const first = trimmed.slice(0, pipeIndex).trim();
-  const second = trimmed.slice(pipeIndex + 1).trim();
-  if (!first && !second) {
-    return null;
-  }
-  if (!second) {
-    return { target: first, label: first };
-  }
-  if (!first) {
-    return { target: second, label: second };
-  }
-
-  const firstHasWhitespace = /\s/.test(first);
-  const secondHasWhitespace = /\s/.test(second);
-
-  // Preferred form: [[target|label]], fallback: [[label|target]]
-  if (
-    (!looksLikePathOrSemanticTarget(first) && looksLikePathOrSemanticTarget(second)) ||
-    (firstHasWhitespace && !secondHasWhitespace)
-  ) {
-    return { target: second, label: first };
-  }
-  return { target: first, label: second };
-}
-
 function isEmbeddedBiLink(source: string, matchStart: number): boolean {
   return matchStart > 0 && source[matchStart - 1] === '!';
 }
 
 function isEscapedBiLink(source: string, matchStart: number): boolean {
   return matchStart > 0 && source[matchStart - 1] === '\\';
-}
-
-function sliceNodeSource(node: MarkdownAstNode, source: string): string | null {
-  const start = node.position?.start?.offset;
-  const end = node.position?.end?.offset;
-  if (typeof start !== 'number' || typeof end !== 'number') {
-    return null;
-  }
-  return source.slice(start, end);
-}
-
-function buildValueToRawIndexMap(value: string, rawSource: string): number[] {
-  const map = new Array<number>(value.length);
-  let valueIndex = 0;
-  let rawIndex = 0;
-
-  while (valueIndex < value.length && rawIndex < rawSource.length) {
-    if (
-      rawSource[rawIndex] === '\\' &&
-      rawIndex + 1 < rawSource.length &&
-      rawSource[rawIndex + 1] === value[valueIndex]
-    ) {
-      rawIndex += 1;
-    }
-
-    map[valueIndex] = rawIndex;
-
-    if (rawSource[rawIndex] === value[valueIndex]) {
-      valueIndex += 1;
-      rawIndex += 1;
-      continue;
-    }
-
-    rawIndex += 1;
-  }
-
-  return map;
-}
-
-function isEscapedBiLinkInRaw(
-  rawSource: string | null,
-  valueToRawMap: number[] | null,
-  matchStart: number
-): boolean {
-  if (!rawSource || !valueToRawMap) {
-    return false;
-  }
-
-  const rawIndex = valueToRawMap[matchStart];
-  if (typeof rawIndex !== 'number' || rawIndex <= 0) {
-    return false;
-  }
-  return rawSource[rawIndex - 1] === '\\';
-}
-
-function directReaderUrlTransform(url: string): string {
-  if (url.startsWith('bilink:') || hasInternalUriPrefix(url)) {
-    return url;
-  }
-  return defaultUrlTransform(url);
-}
-
-function isBlockCode(codeClassName: string | undefined, rawValue: string): boolean {
-  if (typeof codeClassName === 'string' && /language-([\w-]+)/.test(codeClassName)) {
-    return true;
-  }
-
-  return /\r?\n/.test(rawValue);
-}
-
-function renderMermaidNode(source: string, copy: DirectReaderCopy): React.ReactElement {
-  const trimmed = source.trim();
-  if (!trimmed) {
-    return <div className="direct-reader__mermaid direct-reader__mermaid--empty">{copy.emptyMermaidBlock}</div>;
-  }
-
-  try {
-    const svg = renderMermaidSVG(trimmed, {
-      bg: 'var(--tokyo-bg, #24283b)',
-      fg: 'var(--tokyo-text, #c0caf5)',
-      accent: 'var(--neon-blue, #7dcfff)',
-      transparent: true,
-    });
-    return <div className="direct-reader__mermaid" dangerouslySetInnerHTML={{ __html: svg }} />;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return (
-      <div className="direct-reader__mermaid-fallback">
-        <div className="direct-reader__mermaid direct-reader__mermaid--error">
-          {copy.mermaidRenderFailed}: {message}
-        </div>
-        <pre className="direct-reader__code" data-lang="mermaid">
-          <code className="language-mermaid">{trimmed}</code>
-        </pre>
-      </div>
-    );
-  }
 }
 
 export function DirectReader({
@@ -642,124 +362,6 @@ export function DirectReader({
     },
     [onBiLinkClick]
   );
-
-  const markdownComponents = useMemo<Components>(() => {
-    return {
-      h1({ children }) {
-        return <h1 className="direct-reader__h1">{children}</h1>;
-      },
-      h2({ children }) {
-        return <h2 className="direct-reader__h2">{children}</h2>;
-      },
-      h3({ children }) {
-        return <h3 className="direct-reader__h3">{children}</h3>;
-      },
-      p({ children }) {
-        return <p className="direct-reader__p">{children}</p>;
-      },
-      ul({ children }) {
-        return <ul className="direct-reader__ul">{children}</ul>;
-      },
-      ol({ children }) {
-        return <ol className="direct-reader__ol">{children}</ol>;
-      },
-      li({ children }) {
-        return <li className="direct-reader__li">{children}</li>;
-      },
-      blockquote({ children }) {
-        return <blockquote className="direct-reader__blockquote">{children}</blockquote>;
-      },
-      table({ children }) {
-        return (
-          <div className="direct-reader__table-wrap">
-            <table className="direct-reader__table">{children}</table>
-          </div>
-        );
-      },
-      thead({ children }) {
-        return <thead className="direct-reader__thead">{children}</thead>;
-      },
-      tbody({ children }) {
-        return <tbody className="direct-reader__tbody">{children}</tbody>;
-      },
-      tr({ children }) {
-        return <tr className="direct-reader__tr">{children}</tr>;
-      },
-      th({ children }) {
-        return <th className="direct-reader__th">{children}</th>;
-      },
-      td({ children }) {
-        return <td className="direct-reader__td">{children}</td>;
-      },
-      a({ href, children }) {
-        if (typeof href === 'string' && href.startsWith('bilink:')) {
-          const link = decodeBiLinkHref(href);
-          return (
-            <button
-              type="button"
-              className="direct-reader__bilink"
-              data-link={link}
-              onClick={() => onBiLinkClick?.(link)}
-            >
-              {children}
-            </button>
-          );
-        }
-
-        if (typeof href === 'string' && hasInternalUriPrefix(href) && onBiLinkClick) {
-          const target = href.startsWith('$') ? href.slice(1) : href;
-          return (
-            <button
-              type="button"
-              className="direct-reader__bilink"
-              data-link={target}
-              onClick={() => onBiLinkClick(target)}
-            >
-              {children}
-            </button>
-          );
-        }
-
-        return (
-          <a className="direct-reader__link" href={href} target="_blank" rel="noreferrer noopener">
-            {children}
-          </a>
-        );
-      },
-      code({ className: codeClassName, children }: any) {
-        const languageMatch = /language-([\w-]+)/.exec(codeClassName || '');
-        const language = (languageMatch?.[1] || 'plaintext').toLowerCase();
-        const rawValue = String(children ?? '');
-        const value = rawValue.replace(/\n$/, '');
-        const isBlock = isBlockCode(codeClassName, rawValue);
-
-        if (isBlock) {
-          if (language === 'mermaid') {
-            return renderMermaidNode(value, copy);
-          }
-
-          return (
-            <pre className="direct-reader__code" data-lang={language}>
-              <code className={codeClassName}>
-                <CodeSyntaxHighlighter
-                  source={value}
-                  language={language}
-                  sourcePath={path}
-                />
-              </code>
-            </pre>
-          );
-        }
-
-        const inlineClassName = ['direct-reader__inline-code', codeClassName].filter(Boolean).join(' ');
-        return (
-          <code className={inlineClassName}>
-            {children}
-          </code>
-        );
-      },
-    };
-  }, [copy, onBiLinkClick]);
 
   const renderSourceLine = useCallback(
     (sourceLine: string, lineNumber: number, syntaxLanguage: string | null) => {
@@ -915,27 +517,16 @@ export function DirectReader({
         </div>
       ) : (
         <div className="direct-reader__content">
-          {content ? (
-            isMarkdownDocument ? (
-              <MarkdownWaterfall
-                content={renderedMarkdownContent}
-                path={path}
-                locale={locale}
-                onBiLinkClick={onBiLinkClick}
-              />
-            ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath, remarkBiLinks]}
-                rehypePlugins={[rehypeKatex]}
-                urlTransform={directReaderUrlTransform}
-                components={markdownComponents}
-              >
-                {renderedMarkdownContent}
-              </ReactMarkdown>
-            )
-          ) : (
-            <div className="direct-reader__empty">{copy.emptyContent}</div>
-          )}
+          <Suspense fallback={<div className="direct-reader__loading-inline">{copy.loading}</div>}>
+            <DirectReaderRichContent
+              content={renderedMarkdownContent}
+              copy={copy}
+              isMarkdownDocument={isMarkdownDocument}
+              locale={locale}
+              onBiLinkClick={onBiLinkClick}
+              path={path}
+            />
+          </Suspense>
         </div>
       )}
 

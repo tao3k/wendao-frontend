@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
   getVfsContent: vi.fn(),
   getGraphNeighbors: vi.fn(),
   getCodeAstAnalysis: vi.fn(),
+  getCodeAstRetrievalChunksArrow: vi.fn(),
+  getMarkdownAnalysis: vi.fn(),
+  getMarkdownRetrievalChunksArrow: vi.fn(),
 }));
 
 // Mock the api module
@@ -38,6 +41,9 @@ vi.mock('../../../api', () => ({
     getVfsContent: mocks.getVfsContent,
     getGraphNeighbors: mocks.getGraphNeighbors,
     getCodeAstAnalysis: mocks.getCodeAstAnalysis,
+    getCodeAstRetrievalChunksArrow: mocks.getCodeAstRetrievalChunksArrow,
+    getMarkdownAnalysis: mocks.getMarkdownAnalysis,
+    getMarkdownRetrievalChunksArrow: mocks.getMarkdownRetrievalChunksArrow,
   },
   getUiCapabilitiesSync: mocks.getUiCapabilitiesSync,
 }));
@@ -107,6 +113,14 @@ describe('SearchBar', () => {
       projections: [],
       diagnostics: [],
     });
+    mockedApi.getCodeAstRetrievalChunksArrow.mockResolvedValue([]);
+    mockedApi.getMarkdownAnalysis.mockResolvedValue({
+      path: 'main/docs/index.md',
+      title: 'Documentation Index',
+      nodes: [],
+      retrievalAtoms: [],
+    });
+    mockedApi.getMarkdownRetrievalChunksArrow.mockResolvedValue([]);
   });
 
   const createMockSearchResponse = (query: string, hits: Array<{

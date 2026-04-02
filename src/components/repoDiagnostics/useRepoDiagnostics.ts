@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api';
-import type { RepoIndexStatus } from '../StatusBar';
+import type { RepoIndexStatus } from '../statusBar/types';
 import { requestRepoIndexPriority } from '../repoIndexPriority';
 import {
   buildUnsupportedManifest,

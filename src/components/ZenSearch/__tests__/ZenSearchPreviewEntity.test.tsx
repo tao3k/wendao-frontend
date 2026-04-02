@@ -9,10 +9,11 @@ vi.mock('../StructuredDashboard', () => ({
 }));
 
 vi.mock('../../panels/DirectReader/MarkdownWaterfall', () => ({
-  MarkdownWaterfall: (props: { onSectionPivot?: unknown }) => (
+  MarkdownWaterfall: (props: { onSectionPivot?: unknown; analysis?: unknown }) => (
     <div
       data-testid="mock-markdown-waterfall"
       data-has-section-pivot={typeof props.onSectionPivot === 'function' ? 'yes' : 'no'}
+      data-has-analysis={props.analysis ? 'yes' : 'no'}
     />
   ),
 }));
@@ -53,6 +54,17 @@ describe('ZenSearchPreviewEntity', () => {
         preview={buildPreview({
           contentPath: 'kernel/docs/index.md',
           contentType: 'text/markdown',
+          markdownAnalysis: {
+            path: 'kernel/docs/index.md',
+            documentHash: 'hash',
+            nodeCount: 1,
+            edgeCount: 0,
+            nodes: [],
+            edges: [],
+            projections: [],
+            retrievalAtoms: [],
+            diagnostics: [],
+          },
         })}
       />
     );
@@ -62,6 +74,7 @@ describe('ZenSearchPreviewEntity', () => {
       'data-has-section-pivot',
       'yes'
     );
+    expect(screen.getByTestId('mock-markdown-waterfall')).toHaveAttribute('data-has-analysis', 'yes');
     expect(container.querySelector('.zen-preview-content__markdown-frame')).toBeTruthy();
     expect(screen.queryByTestId('mock-structured-dashboard')).toBeNull();
   });

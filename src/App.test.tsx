@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   getVfsContentMock: vi.fn(),
   getGraphNeighborsMock: vi.fn(),
   resolveStudioPathMock: vi.fn(),
+  getJuliaDeploymentArtifactMock: vi.fn(),
+  getJuliaDeploymentArtifactTomlMock: vi.fn(),
   editorStore: {
     currentXml: '<xml />',
     setCurrentXml: vi.fn(),
@@ -71,15 +73,35 @@ vi.mock('./components', () => ({
   StatusBar: (props: Record<string, unknown>) => {
     mocks.statusBarSpy(props);
     return (
-      <button
-        type="button"
-        data-testid="status-bar"
-        onClick={() => {
-          (props.onOpenRepoDiagnostics as (() => void) | undefined)?.();
-        }}
-      >
-        {String(props.nodeCount)}
-      </button>
+      <div>
+        <button
+          type="button"
+          data-testid="status-bar"
+          onClick={() => {
+            (props.onOpenRepoDiagnostics as (() => void) | undefined)?.();
+          }}
+        >
+          {String(props.nodeCount)}
+        </button>
+        <button
+          type="button"
+          data-testid="status-bar-copy-julia-artifact"
+          onClick={() => {
+            void (props.onCopyJuliaDeploymentArtifactToml as (() => Promise<void>) | undefined)?.();
+          }}
+        >
+          copy-julia-artifact
+        </button>
+        <button
+          type="button"
+          data-testid="status-bar-download-julia-artifact"
+          onClick={() => {
+            (props.onDownloadJuliaDeploymentArtifactJson as (() => void) | undefined)?.();
+          }}
+        >
+          download-julia-artifact
+        </button>
+      </div>
     );
   },
   RepoDiagnosticsPage: (props: Record<string, unknown>) => {
@@ -137,6 +159,8 @@ vi.mock('./api', () => ({
     getVfsContent: mocks.getVfsContentMock,
     getGraphNeighbors: mocks.getGraphNeighborsMock,
     resolveStudioPath: mocks.resolveStudioPathMock,
+    getJuliaDeploymentArtifact: mocks.getJuliaDeploymentArtifactMock,
+    getJuliaDeploymentArtifactToml: mocks.getJuliaDeploymentArtifactTomlMock,
     searchKnowledge: vi.fn(),
   },
 }));
@@ -144,6 +168,12 @@ vi.mock('./api', () => ({
 describe('App topology wiring', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let createObjectUrlSpy: ReturnType<typeof vi.spyOn>;
+  let revokeObjectUrlSpy: ReturnType<typeof vi.spyOn>;
+  let clipboardWriteTextMock: ReturnType<typeof vi.fn>;
+  let createElementSpy: ReturnType<typeof vi.spyOn>;
+  let anchorClickMock: ReturnType<typeof vi.fn>;
+  let originalCreateElement: typeof document.createElement;
 
   const openZenSearchMode = async () => {
     const shortcut = mocks.keyboardShortcuts.find((entry) => entry.key === 'f' && entry.ctrl);
@@ -163,13 +193,50 @@ describe('App topology wiring', () => {
     mocks.keyboardShortcuts = [];
     mocks.fileTreeAutoHydrate = true;
     window.location.hash = '';
+    mocks.getJuliaDeploymentArtifactMock.mockResolvedValue({
+      artifactSchemaVersion: 'v1',
+      generatedAt: '2026-03-27T12:00:00Z',
+      baseUrl: 'http://127.0.0.1:18080',
+      route: '/rerank',
+      healthRoute: '/healthz',
+      schemaVersion: 'v1',
+      timeoutSecs: 30,
+      selectedTransport: 'arrow_flight',
+      launch: {
+        launcherPath: '.data/WendaoAnalyzer/scripts/run_analyzer_service.sh',
+        args: ['--service-mode', 'stream', '--analyzer-strategy', 'linear_blend'],
+      },
+    });
+    mocks.getJuliaDeploymentArtifactTomlMock.mockResolvedValue('artifact_schema_version = "v1"');
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createObjectUrlSpy = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:artifact');
+    revokeObjectUrlSpy = vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
+    clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: clipboardWriteTextMock },
+    });
+    anchorClickMock = vi.fn();
+    originalCreateElement = document.createElement.bind(document);
+    createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(((tagName: string) => {
+      if (tagName.toLowerCase() === 'a') {
+        return {
+          href: '',
+          download: '',
+          click: anchorClickMock,
+        } as unknown as HTMLAnchorElement;
+      }
+      return originalCreateElement(tagName);
+    }) as typeof document.createElement);
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+    createObjectUrlSpy.mockRestore();
+    revokeObjectUrlSpy.mockRestore();
+    createElementSpy.mockRestore();
   });
 
   it('loads live topology from the gateway and passes it into the workspace panels', async () => {
@@ -196,9 +263,13 @@ describe('App topology wiring', () => {
     });
 
     expect(mocks.get3DTopologyMock).toHaveBeenCalledTimes(1);
+    expect(mocks.getJuliaDeploymentArtifactMock).toHaveBeenCalledTimes(1);
 
-    const lastStatusBarCall = mocks.statusBarSpy.mock.calls.at(-1)?.[0] as { nodeCount: number } | undefined;
+    const lastStatusBarCall = mocks.statusBarSpy.mock.calls.at(-1)?.[0] as
+      | { nodeCount: number; juliaDeploymentArtifact?: { artifactSchemaVersion: string } | null }
+      | undefined;
     expect(lastStatusBarCall?.nodeCount).toBe(1);
+    expect(lastStatusBarCall?.juliaDeploymentArtifact?.artifactSchemaVersion).toBe('v1');
   });
 
   it('keeps the workspace hidden until the first VFS load completes', async () => {
@@ -313,6 +384,54 @@ describe('App topology wiring', () => {
       expect(screen.queryByTestId('repo-diagnostics-page')).not.toBeInTheDocument();
     });
     expect(window.location.hash).toBe('');
+  });
+
+  it('keeps the workspace running when the Julia deployment artifact probe fails', async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getJuliaDeploymentArtifactMock.mockRejectedValue(new Error('deployment unavailable'));
+
+    render(<App />);
+
+    await waitFor(() => {
+      const lastStatusBarCall = mocks.statusBarSpy.mock.calls.at(-1)?.[0] as
+        | { juliaDeploymentArtifact?: unknown }
+        | undefined;
+      expect(lastStatusBarCall?.juliaDeploymentArtifact ?? null).toBeNull();
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Julia deployment artifact probe failed; continuing without analyzer inspection.',
+      expect.any(Error)
+    );
+  });
+
+  it('wires Julia artifact copy and download actions through the status bar', async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mocks.getJuliaDeploymentArtifactMock).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTestId('status-bar-copy-julia-artifact'));
+    await waitFor(() => {
+      expect(mocks.getJuliaDeploymentArtifactTomlMock).toHaveBeenCalledTimes(1);
+    });
+    expect(clipboardWriteTextMock).toHaveBeenCalledWith('artifact_schema_version = "v1"');
+
+    fireEvent.click(screen.getByTestId('status-bar-download-julia-artifact'));
+    expect(createObjectUrlSpy).toHaveBeenCalledTimes(1);
+    expect(anchorClickMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:artifact');
   });
 
   it('restores the repo diagnostics page from the URL hash on startup', async () => {

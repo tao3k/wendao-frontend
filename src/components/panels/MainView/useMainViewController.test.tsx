@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useMainViewController } from './useMainViewController';
 import type { MainViewTab } from './mainViewTypes';
 import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../StatusBar';
+import type { RuntimeStatus } from '../../statusBar/types';
 
 function Probe({
   requestedTab = null,

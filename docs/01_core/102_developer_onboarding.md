@@ -9,14 +9,14 @@
 
 ## Overview
 
-This page is the shortest path to a usable local Qianji Studio setup. It records the current frontend commands, the gateway bind source, and the most useful verification entry points.
+This page is the shortest path to a usable local Wendao Frontend setup. It records the current frontend commands, the gateway and Flight bind sources, and the most useful verification entry points.
 
 ## Working Directory
 
-Run Qianji Studio commands from:
+Run Wendao Frontend commands from:
 
 ```bash
-.data/qianji-studio
+.data/wendao-frontend
 ```
 
 ## Environment
@@ -42,7 +42,7 @@ direnv exec . npm test
 The frontend reads its default gateway bind from:
 
 ```text
-.data/qianji-studio/wendao.toml
+.data/wendao-frontend/wendao.toml
 ```
 
 Current bind:
@@ -52,17 +52,35 @@ Current bind:
 bind = "127.0.0.1:9517"
 ```
 
+The frontend also reads its dedicated Flight target from the same file:
+
+```toml
+[search_flight]
+bind = "127.0.0.1:9527"
+schema_version = "v2"
+```
+
 ## Dev Proxy Behavior
 
 - `rspack.config.ts` reads `wendao.toml` and turns `gateway.bind` into the dev proxy target.
+- `rspack.config.ts` also proxies `/arrow.flight.protocol.FlightService/*` to the `search_flight.bind` target.
 - If `wendao.toml` cannot be read, the current fallback target is `http://localhost:8001`.
-- The practical local goal is to keep the dev proxy aligned to the `9517` gateway rather than falling back.
+- The practical local goal is to keep the dev proxy aligned to the `9517` gateway and the `9527` Flight server rather than falling back.
 
 ## Common Local Flow
 
-1. Start the Wendao gateway on the bind declared by `wendao.toml`.
-2. Start the frontend dev server with `direnv exec . npm run dev`.
-3. Open the app and confirm the explorer is using live indexed roots rather than fallback data.
+1. Start the dedicated Flight server on the bind declared by `[search_flight]`.
+2. Start the Wendao gateway on the bind declared by `[gateway]`.
+3. Start the frontend dev server with `direnv exec . npm run dev`.
+4. Open the app and confirm the explorer is using live indexed roots rather than fallback data.
+
+Current bounded local commands:
+
+```bash
+direnv exec . cargo run -p xiuxian-wendao --bin wendao_search_flight_server --features julia -- 127.0.0.1:9527 alpha/repo "$PRJ_ROOT"
+direnv exec . cargo run -p xiuxian-wendao --bin wendao --features zhenfa-router,julia -- -c .data/wendao-frontend/wendao.toml gateway start --port 9517
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm run dev'
+```
 
 ## Targeted Verification
 
@@ -73,6 +91,18 @@ direnv exec . npm test -- src/App.test.tsx src/components/ZenSearch/__tests__/Ze
 ```
 
 Zen Search is the primary surface in that suite; `SearchBar` remains a compatibility coverage target only.
+
+The current pure Flight live proof is:
+
+```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm test -- src/api/liveGateway.test.ts'
+```
+
+That command validates:
+
+1. local config push into the live gateway
+2. live graph resolution from the gateway
+3. pure Arrow Flight knowledge search against `/search/knowledge`
 
 :RELATIONS:
 :LINKS: [[README]], [[01_core/101_studio_surface_protocol]], [[01_core/103_release_checklist]], [[01_core/105_docs_conventions]], [[01_core/106_docs_maintenance_playbook]], [[03_features/204_gateway_api_contracts]], [[03_features/206_testing_and_validation]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]]

@@ -35,4 +35,35 @@ describe('useCodeFilterCatalog', () => {
     expect(result.current.kind).toContain('function');
     expect(result.current.kind).toContain('module');
   });
+
+  it('collects repo, kind, and normalized path slices from code results', () => {
+    const codeResult = {
+      category: 'symbol',
+      path: '/src/nested/example.jl',
+      codeKind: 'function',
+      codeRepo: 'kernel',
+      navigationTarget: {
+        path: '/src/nested/example.jl',
+        category: 'repo_code',
+        projectName: 'kernel',
+      },
+    } as unknown as SearchResult;
+
+    const nonCodeResult = {
+      category: 'document',
+      path: 'docs/guide.md',
+      navigationTarget: {
+        path: 'docs/guide.md',
+        category: 'document',
+      },
+    } as unknown as SearchResult;
+
+    const { result } = renderHook(() => useCodeFilterCatalog([codeResult, nonCodeResult], [], [], []));
+
+    expect(result.current.repo).toEqual(['kernel']);
+    expect(result.current.kind).toEqual(['function']);
+    expect(result.current.path).toContain('src/nested/example.jl');
+    expect(result.current.path).toContain('src/nested/example.jl');
+    expect(result.current.path).toContain('src/nested/example.jl'.split('/').slice(0, 3).join('/'));
+  });
 });

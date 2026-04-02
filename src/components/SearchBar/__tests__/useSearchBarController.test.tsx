@@ -2,18 +2,17 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSearchBarController } from '../useSearchBarController';
 
-const useSearchBarStateMock = vi.fn();
+const useSearchBarControllerStateMock = vi.fn();
 const useSearchBarResetOnOpenMock = vi.fn();
 const useSearchBarRepoSliceMock = vi.fn();
-const useSearchDataFlowMock = vi.fn();
-const useSearchBarViewModelMock = vi.fn();
+const useSearchBarControllerPresentationMock = vi.fn();
 
 vi.mock('../../../hooks', () => ({
   useDebouncedValue: (value: string) => value,
 }));
 
-vi.mock('../useSearchBarState', () => ({
-  useSearchBarState: () => useSearchBarStateMock(),
+vi.mock('../useSearchBarControllerState', () => ({
+  useSearchBarControllerState: () => useSearchBarControllerStateMock(),
 }));
 
 vi.mock('../useSearchBarResetOnOpen', () => ({
@@ -24,23 +23,18 @@ vi.mock('../useSearchBarRepoSlice', () => ({
   useSearchBarRepoSlice: (args: unknown) => useSearchBarRepoSliceMock(args),
 }));
 
-vi.mock('../useSearchDataFlow', () => ({
-  useSearchDataFlow: (args: unknown) => useSearchDataFlowMock(args),
-}));
-
-vi.mock('../useSearchBarViewModel', () => ({
-  useSearchBarViewModel: (args: unknown) => useSearchBarViewModelMock(args),
+vi.mock('../useSearchBarControllerPresentation', () => ({
+  useSearchBarControllerPresentation: (args: unknown) => useSearchBarControllerPresentationMock(args),
 }));
 
 describe('useSearchBarController', () => {
   beforeEach(() => {
-    useSearchBarStateMock.mockReset();
+    useSearchBarControllerStateMock.mockReset();
     useSearchBarResetOnOpenMock.mockReset();
     useSearchBarRepoSliceMock.mockReset();
-    useSearchDataFlowMock.mockReset();
-    useSearchBarViewModelMock.mockReset();
+    useSearchBarControllerPresentationMock.mockReset();
 
-    useSearchBarStateMock.mockReturnValue({
+    useSearchBarControllerStateMock.mockReturnValue({
       query: 'repo:gateway-sync solve',
       setQuery: vi.fn(),
       results: [],
@@ -63,6 +57,8 @@ describe('useSearchBarController', () => {
       setSortMode: vi.fn(),
       isComposing: false,
       setIsComposing: vi.fn(),
+      debouncedQuery: 'repo:gateway-sync solve',
+      debouncedAutocomplete: 'repo:gateway-sync solve',
     });
 
     useSearchBarRepoSliceMock.mockReturnValue({
@@ -78,19 +74,9 @@ describe('useSearchBarController', () => {
       codeQuickScenarios: [],
     });
 
-    useSearchDataFlowMock.mockReturnValue({
-      visibleResults: [],
+    useSearchBarControllerPresentationMock.mockReturnValue({
       visibleSections: [],
-      suggestionCount: 0,
-      resultCount: 0,
-      hasCodeFilterOnlyQueryValue: false,
-      confidenceLabel: 'n/a',
-      modeLabel: 'Code',
-      confidenceTone: 'unknown',
-      fallbackLabel: null,
-    });
-
-    useSearchBarViewModelMock.mockReturnValue({
+      interactionProps: { onModalKeyDownCapture: vi.fn() },
       getSuggestionIcon: vi.fn(),
       clearCodeFilters: vi.fn(),
       removeCodeFilter: vi.fn(),
@@ -130,20 +116,17 @@ describe('useSearchBarController', () => {
         debouncedAutocomplete: 'repo:gateway-sync solve',
       })
     );
-    expect(useSearchBarViewModelMock).toHaveBeenCalledWith(
+    expect(useSearchBarControllerPresentationMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        interactions: expect.objectContaining({
-          state: expect.objectContaining({
-            activeRepoFilter: 'gateway-sync',
-            primaryRepoFilter: 'gateway-sync',
-          }),
+        repoSlice: expect.objectContaining({
+          activeRepoFilter: 'gateway-sync',
+          primaryRepoFilter: 'gateway-sync',
         }),
       })
     );
     expect(result.current.showCodeFilterHelper).toBe(true);
     expect(result.current.shellProps).toEqual({ shell: true });
     expect(result.current.resultsPanelProps).toEqual({ panel: true });
-    expect(typeof result.current.modalProps.onClick).toBe('function');
     expect(typeof result.current.modalProps.onKeyDownCapture).toBe('function');
     expect(result.current.suggestionsPanelProps.suggestions).toEqual([]);
     expect(result.current.codeFilterHelperProps.activeEntries).toEqual([]);

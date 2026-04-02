@@ -1,6 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../StatusBar';
+import type { RuntimeStatus } from '../../statusBar/types';
 import type { MainViewRequestedTab } from './mainViewProps';
 import type { MainViewTab } from './mainViewTypes';
 

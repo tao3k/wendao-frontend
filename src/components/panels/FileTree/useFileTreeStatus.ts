@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { RepoIndexStatus } from '../../StatusBar';
+import type { RepoIndexStatus } from '../../statusBar/types';
 import type { FileTreeProps } from './types';
 
 interface UseFileTreeStatusOptions {

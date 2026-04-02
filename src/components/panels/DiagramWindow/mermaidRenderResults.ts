@@ -1,30 +1,27 @@
+import { MERMAID_RENDER_THEME } from '../mermaidRuntime';
+import { describeUnsupportedMermaidDialect } from '../mermaidRuntime';
+import type { MermaidRenderFunction } from '../mermaidRuntime';
+
 export interface MermaidRenderResult {
   source: string;
   svg: string | null;
   error?: string;
 }
 
-type MermaidRenderFunction = typeof import('beautiful-mermaid')['renderMermaidSVG'];
-
 interface BuildRenderedMermaidBlocksParams {
   mermaidSources: string[];
   renderMermaid: MermaidRenderFunction | null;
   emptyMermaidSourceLabel: string;
   mermaidLoadingLabel: string;
+  unsupportedMermaidLabel: string;
 }
-
-const MERMAID_RENDER_THEME = {
-  bg: 'var(--tokyo-bg, #24283b)',
-  fg: 'var(--tokyo-text, #c0caf5)',
-  accent: 'var(--neon-blue, #7dcfff)',
-  transparent: true,
-} as const;
 
 export function buildRenderedMermaidBlocks({
   mermaidSources,
   renderMermaid,
   emptyMermaidSourceLabel,
   mermaidLoadingLabel,
+  unsupportedMermaidLabel,
 }: BuildRenderedMermaidBlocksParams): MermaidRenderResult[] {
   return mermaidSources.map((source) => {
     const trimmed = source.trim();
@@ -33,6 +30,15 @@ export function buildRenderedMermaidBlocks({
       return {
         source,
         svg: `<div class="diagram-window__mermaid-empty">${emptyMermaidSourceLabel}</div>`,
+      };
+    }
+
+    const unsupportedDialect = describeUnsupportedMermaidDialect(trimmed);
+    if (unsupportedDialect) {
+      return {
+        source: trimmed,
+        svg: null,
+        error: `${unsupportedMermaidLabel}: ${unsupportedDialect}`,
       };
     }
 

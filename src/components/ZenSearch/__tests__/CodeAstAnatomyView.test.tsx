@@ -89,6 +89,86 @@ function buildAnalysis(): CodeAstAnalysisResponse {
         edgeCount: 2,
       },
       ],
+      retrievalAtoms: [
+        {
+          ownerId: 'fn:process_data',
+          surface: 'declaration',
+          chunkId: 'backend:decl:process_data',
+          semanticType: 'function',
+          fingerprint: 'fp:backenddecl',
+          tokenEstimate: 19,
+        },
+        {
+          ownerId: 'module:kernel',
+          surface: 'symbol',
+          chunkId: 'backend:symbol:kernel',
+          semanticType: 'module',
+          fingerprint: 'fp:backendmodule',
+          tokenEstimate: 8,
+        },
+        {
+          ownerId: 'fn:process_data',
+          surface: 'symbol',
+          chunkId: 'backend:symbol:process_data',
+          semanticType: 'function',
+          fingerprint: 'fp:backendsymbol',
+          tokenEstimate: 11,
+        },
+        {
+          ownerId: 'type:Config',
+          surface: 'symbol',
+          chunkId: 'backend:symbol:config',
+          semanticType: 'type',
+          fingerprint: 'fp:backendconfig',
+          tokenEstimate: 6,
+        },
+        {
+          ownerId: 'const:Empty',
+          surface: 'symbol',
+          chunkId: 'backend:symbol:empty',
+          semanticType: 'constant',
+          fingerprint: 'fp:backendempty',
+          tokenEstimate: 4,
+        },
+        {
+          ownerId: 'external:Vec',
+          surface: 'symbol',
+          chunkId: 'backend:symbol:vec',
+          semanticType: 'externalSymbol',
+          fingerprint: 'fp:backendvec',
+          tokenEstimate: 3,
+        },
+        {
+          ownerId: 'block:validation:5-5',
+          surface: 'block',
+          chunkId: 'backend:block:validation',
+          semanticType: 'validation',
+          fingerprint: 'fp:backendblockvalidation',
+          tokenEstimate: 7,
+          displayLabel: 'Validation Rail · backend',
+          excerpt: 'backend validation excerpt',
+        },
+        {
+          ownerId: 'block:execution:7-8',
+          surface: 'block',
+          chunkId: 'backend:block:execution',
+          semanticType: 'execution',
+          fingerprint: 'fp:backendblockexecution',
+          tokenEstimate: 10,
+          displayLabel: 'Execution Rail · backend',
+          excerpt: 'backend execution excerpt',
+        },
+        {
+          ownerId: 'block:return:10-11',
+          surface: 'block',
+          chunkId: 'backend:block:return',
+          semanticType: 'return',
+          fingerprint: 'fp:backendblockreturn',
+          tokenEstimate: 8,
+          displayLabel: 'Return Rail · backend',
+          excerpt: 'backend return excerpt',
+        },
+      ],
       focusNodeId: 'fn:process_data',
     };
   }
@@ -156,6 +236,11 @@ describe('CodeAstAnatomyView', () => {
     expect(screen.getByText('Return Type')).toBeInTheDocument();
     expect(screen.getByText('Logic Block Decomposition')).toBeInTheDocument();
     expect(screen.getByText('Symbol Semantic Overlay')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pivot declaration' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Pivot block' })).toHaveLength(3);
+    expect(document.querySelector('[data-chunk-id="backend:block:validation"]')).toBeTruthy();
+    expect(document.querySelector('[data-chunk-id="backend:block:execution"]')).toBeTruthy();
+    expect(document.querySelector('[data-chunk-id="backend:block:return"]')).toBeTruthy();
     expect(screen.getByText('Local Symbols')).toBeInTheDocument();
     expect(screen.getByText('External Symbols')).toBeInTheDocument();
     expect(screen.getByText('Pivot Anchors')).toBeInTheDocument();
@@ -166,7 +251,7 @@ describe('CodeAstAnatomyView', () => {
       .getByTestId('code-ast-waterfall-stage-declaration')
       .querySelector('.code-ast-waterfall__declaration-card');
     expect(declarationCard).toBeTruthy();
-    expect(declarationCard).toHaveAttribute('data-chunk-id', 'ast:kernel-src-lib-rs:declaration:function:l1');
+    expect(declarationCard).toHaveAttribute('data-chunk-id', 'backend:decl:process_data');
     expect(declarationCard).toHaveAttribute('data-semantic-type', 'function');
     const declarationAtom = screen.getByTestId('code-ast-declaration-atom');
     expect(declarationAtom).toHaveTextContent('Chunk');
@@ -174,9 +259,9 @@ describe('CodeAstAnatomyView', () => {
     expect(declarationAtom).toHaveTextContent('Semantic');
     expect(declarationAtom).toHaveTextContent('function');
     expect(declarationAtom).toHaveTextContent('Fingerprint');
-    expect(declarationAtom).toHaveTextContent('fp:');
+    expect(declarationAtom).toHaveTextContent('fp:backenddecl');
     expect(declarationAtom).toHaveTextContent('Tokens');
-    expect(declarationAtom).toHaveTextContent('~');
+    expect(declarationAtom).toHaveTextContent('~19');
     const signatureParts = screen.getByTestId('code-ast-signature-parts');
     expect(within(signatureParts).getByText('input')).toBeInTheDocument();
     expect(within(signatureParts).getByText('&[u8]')).toBeInTheDocument();
@@ -185,28 +270,209 @@ describe('CodeAstAnatomyView', () => {
     expect(within(signatureParts).getByText('Result<Processed>')).toBeInTheDocument();
     expect(screen.getAllByText('process_data').length).toBeGreaterThan(0);
     expect(screen.getByTestId('code-ast-waterfall-block-stack')).toBeInTheDocument();
-    expect(screen.getByText(/Validation Block ·/)).toBeInTheDocument();
-    expect(screen.getByText(/Execution Block ·/)).toBeInTheDocument();
-    expect(screen.getByText(/Return Path ·/)).toBeInTheDocument();
+    expect(screen.getByText('Validation Rail · backend')).toBeInTheDocument();
+    expect(screen.getByText('Execution Rail · backend')).toBeInTheDocument();
+    expect(screen.getByText('Return Rail · backend')).toBeInTheDocument();
+    expect(screen.getByText('backend validation excerpt')).toBeInTheDocument();
+    expect(screen.getByText('backend execution excerpt')).toBeInTheDocument();
+    expect(screen.getByText('backend return excerpt')).toBeInTheDocument();
     const blockAtoms = screen.getAllByTestId('code-ast-block-atom');
     expect(blockAtoms).toHaveLength(3);
     expect(blockAtoms[0]).toHaveTextContent('ast:02');
     expect(blockAtoms[0]).toHaveTextContent('validation');
     expect(blockAtoms[0]).toHaveTextContent('fp:');
     expect(blockAtoms[0]).toHaveTextContent('~');
-    expect(within(screen.getByTestId('code-ast-symbol-group-local')).getByText(/process_data/)).toBeInTheDocument();
+    const localGroup = screen.getByTestId('code-ast-symbol-group-local');
+    expect(within(localGroup).getByText(/process_data/)).toBeInTheDocument();
+    const localSymbolAtoms = within(localGroup).getAllByTestId('code-ast-symbol-atom');
+    expect(localSymbolAtoms[0]).toHaveTextContent('ast:05');
+    expect(localSymbolAtoms[0]).toHaveTextContent('function');
+    expect(localSymbolAtoms[0]).toHaveTextContent('fp:backendsymbol');
+    expect(localSymbolAtoms[0]).toHaveTextContent('~11');
+    fireEvent.click(within(localGroup).getAllByRole('button', { name: 'Pivot symbol' })[0]);
+    expect(onPivotQuery).toHaveBeenCalledWith('process_data');
     expect(within(screen.getByTestId('code-ast-symbol-group-external')).getByText(/Vec/)).toBeInTheDocument();
     const anchorGroup = screen.getByTestId('code-ast-symbol-group-anchors');
-    const anchorCards = within(anchorGroup).getAllByRole('button');
+    const anchorCards = within(anchorGroup).getAllByTestId('code-ast-anchor-card');
     expect(anchorCards).toHaveLength(4);
     expect(anchorCards[0]).toHaveTextContent('#1');
     expect(anchorCards[0]).toHaveTextContent('process_data');
     expect(anchorCards[0]).toHaveTextContent('refs:4');
+    const anchorAtoms = within(anchorGroup).getAllByTestId('code-ast-anchor-atom');
+    expect(anchorAtoms[0]).toHaveTextContent('ast:05');
+    expect(anchorAtoms[0]).toHaveTextContent('function');
+    expect(anchorAtoms[0]).toHaveTextContent('fp:backendsymbol');
+    expect(anchorAtoms[0]).toHaveTextContent('~11');
+    fireEvent.click(within(anchorGroup).getAllByRole('button', { name: 'Pivot anchor' })[0]);
+    expect(onPivotQuery).toHaveBeenCalledWith('process_data');
 
     fireEvent.click(within(signatureParts).getAllByRole('button')[0]);
     expect(onPivotQuery).toHaveBeenCalledWith('input');
-    fireEvent.click(screen.getAllByRole('button', { name: /process_data/ })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Pivot declaration' }));
     expect(onPivotQuery).toHaveBeenCalledWith('process_data');
+  });
+
+  it('copies declaration and block payloads for RAG', async () => {
+    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: clipboardWriteText,
+      },
+      configurable: true,
+    });
+
+    render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildResult()}
+        analysis={buildAnalysis()}
+        content={[
+          'pub fn process_data(',
+          '    input: &[u8],',
+          '    config: &Config,',
+          ') -> Result<Processed> {',
+          '    if input.is_empty() { return Err(Empty); }',
+          '',
+          '    let meta = config.parse(input);',
+          '    let results = compute(meta);',
+          '',
+          '    Ok(Processed { data: results, timestamp: now() })',
+          '}',
+        ].join('\n')}
+        loading={false}
+        error={null}
+      />
+    );
+
+    const copyButtons = screen.getAllByRole('button', { name: 'Copy for RAG' });
+    expect(copyButtons.length).toBeGreaterThanOrEqual(4);
+
+    fireEvent.click(copyButtons[0]);
+    fireEvent.click(copyButtons[1]);
+
+    await waitFor(() => {
+      expect(clipboardWriteText).toHaveBeenCalledTimes(2);
+    });
+
+    const declarationPayload = clipboardWriteText.mock.calls[0]?.[0] as string;
+    expect(declarationPayload).toContain('Declaration: process_data');
+    expect(declarationPayload).toContain('Chunk: backend:decl:process_data');
+    expect(declarationPayload).toContain('Semantic: function');
+    expect(declarationPayload).toContain('Fingerprint: fp:backenddecl');
+    expect(declarationPayload).toContain('Tokens: ~19');
+    expect(declarationPayload).toContain('Path: kernel/src/lib.rs');
+    expect(declarationPayload).toContain('Line: L1');
+    expect(declarationPayload).toContain('pub fn process_data(');
+
+    const blockPayload = clipboardWriteText.mock.calls[1]?.[0] as string;
+    expect(blockPayload).toContain('Block: Validation Rail · backend');
+    expect(blockPayload).toContain('Chunk: backend:block:validation');
+    expect(blockPayload).toContain('Semantic: validation');
+    expect(blockPayload).toContain('Fingerprint: fp:backendblockvalidation');
+    expect(blockPayload).toContain('Tokens: ~');
+    expect(blockPayload).toContain('Range: L5-L5');
+    expect(blockPayload).toContain('backend validation excerpt');
+  });
+
+  it('copies symbol payloads for RAG', async () => {
+    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: clipboardWriteText,
+      },
+      configurable: true,
+    });
+
+    render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildResult()}
+        analysis={buildAnalysis()}
+        content={[
+          'pub fn process_data(',
+          '    input: &[u8],',
+          '    config: &Config,',
+          ') -> Result<Processed> {',
+          '    if input.is_empty() { return Err(Empty); }',
+          '',
+          '    let meta = config.parse(input);',
+          '    let results = compute(meta);',
+          '',
+          '    Ok(Processed { data: results, timestamp: now() })',
+          '}',
+        ].join('\n')}
+        loading={false}
+        error={null}
+      />
+    );
+
+    const localGroup = screen.getByTestId('code-ast-symbol-group-local');
+    fireEvent.click(within(localGroup).getAllByRole('button', { name: 'Copy for RAG' })[0]);
+
+    await waitFor(() => {
+      expect(clipboardWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = clipboardWriteText.mock.calls[0]?.[0] as string;
+    expect(payload).toContain('Symbol: process_data');
+    expect(payload).toContain('Chunk: backend:symbol:process_data');
+    expect(payload).toContain('Semantic: function');
+    expect(payload).toContain('Fingerprint: fp:backendsymbol');
+    expect(payload).toContain('Tokens: ~11');
+    expect(payload).toContain('Path: kernel/src/lib.rs');
+    expect(payload).toContain('Line: L1');
+    expect(payload).toContain('References: 4');
+  });
+
+  it('copies anchor payloads for RAG', async () => {
+    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: clipboardWriteText,
+      },
+      configurable: true,
+    });
+
+    render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildResult()}
+        analysis={buildAnalysis()}
+        content={[
+          'pub fn process_data(',
+          '    input: &[u8],',
+          '    config: &Config,',
+          ') -> Result<Processed> {',
+          '    if input.is_empty() { return Err(Empty); }',
+          '',
+          '    let meta = config.parse(input);',
+          '    let results = compute(meta);',
+          '',
+          '    Ok(Processed { data: results, timestamp: now() })',
+          '}',
+        ].join('\n')}
+        loading={false}
+        error={null}
+      />
+    );
+
+    const anchorGroup = screen.getByTestId('code-ast-symbol-group-anchors');
+    fireEvent.click(within(anchorGroup).getAllByRole('button', { name: 'Copy for RAG' })[0]);
+
+    await waitFor(() => {
+      expect(clipboardWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = clipboardWriteText.mock.calls[0]?.[0] as string;
+    expect(payload).toContain('Rank: #1');
+    expect(payload).toContain('Symbol: process_data');
+    expect(payload).toContain('Chunk: backend:symbol:process_data');
+    expect(payload).toContain('Semantic: function');
+    expect(payload).toContain('Fingerprint: fp:backendsymbol');
+    expect(payload).toContain('Tokens: ~11');
+    expect(payload).toContain('Path: kernel/src/lib.rs');
+    expect(payload).toContain('Line: L1');
+    expect(payload).toContain('References: 4');
   });
 
   it('highlights TypeScript block excerpts', async () => {

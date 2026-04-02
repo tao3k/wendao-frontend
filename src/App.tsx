@@ -15,7 +15,11 @@ import {
 import { useEditorStore } from './stores';
 import { useAccessibility, useKeyboardShortcuts, type ShortcutDefinition } from './hooks';
 import { AcademicTopology } from './types';
-import { api } from './api';
+import { api, type UiJuliaDeploymentArtifact } from './api';
+import {
+  copyJuliaDeploymentArtifactToml as copyJuliaDeploymentArtifactTomlToClipboard,
+  downloadJuliaDeploymentArtifactJson as downloadJuliaDeploymentArtifactJsonFile,
+} from './components/juliaDeploymentInspection';
 import {
   buildRepoDiagnosticsHash,
   isRepoDiagnosticsHash,
@@ -160,6 +164,7 @@ function App() {
   const [repoIndexStatus, setRepoIndexStatus] = useState<RepoIndexStatus | null>(null);
   const [searchRuntimeStatus, setSearchRuntimeStatus] = useState<RuntimeStatus | null>(null);
   const [graphRuntimeStatus, setGraphRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [juliaDeploymentArtifact, setJuliaDeploymentArtifact] = useState<UiJuliaDeploymentArtifact | null>(null);
   const [topology, setTopology] = useState<AcademicTopology>(EMPTY_TOPOLOGY);
   const [isWorkspaceHydrated, setIsWorkspaceHydrated] = useState(false);
   const [isZenSearchMounted, setIsZenSearchMounted] = useState(false);
@@ -174,6 +179,21 @@ function App() {
   const [mainViewTabRequest, setMainViewTabRequest] = useState<MainViewTabRequest | null>(null);
   const [graphSidebarSummary, setGraphSidebarSummary] = useState<GraphSidebarSummary | null>(null);
   const [isRepoDiagnosticsPageOpen, setIsRepoDiagnosticsPageOpen] = useState(resolveInitialRepoDiagnosticsPageOpen);
+
+  const copyJuliaDeploymentArtifactToml = useCallback(async () => {
+    await copyJuliaDeploymentArtifactTomlToClipboard(
+      () => api.getJuliaDeploymentArtifactToml(),
+      typeof navigator === 'undefined' ? undefined : navigator.clipboard
+    );
+  }, []);
+
+  const downloadJuliaDeploymentArtifactJson = useCallback(() => {
+    downloadJuliaDeploymentArtifactJsonFile(
+      juliaDeploymentArtifact,
+      typeof window === 'undefined' ? undefined : window.URL,
+      typeof window === 'undefined' ? undefined : window.document
+    );
+  }, [juliaDeploymentArtifact]);
 
   // Use Zustand store
   const {
@@ -228,6 +248,27 @@ function App() {
     };
 
     loadLiveTopology();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadJuliaDeploymentArtifact = async () => {
+      try {
+        const artifact = await api.getJuliaDeploymentArtifact();
+        if (!cancelled) {
+          setJuliaDeploymentArtifact(artifact);
+        }
+      } catch (error) {
+        console.warn('Julia deployment artifact probe failed; continuing without analyzer inspection.', error);
+      }
+    };
+
+    void loadJuliaDeploymentArtifact();
 
     return () => {
       cancelled = true;
@@ -699,6 +740,9 @@ function App() {
               vfsStatus={vfsStatus}
               repoIndexStatus={repoIndexStatus}
               runtimeStatus={runtimeStatus}
+              juliaDeploymentArtifact={juliaDeploymentArtifact}
+              onCopyJuliaDeploymentArtifactToml={copyJuliaDeploymentArtifactToml}
+              onDownloadJuliaDeploymentArtifactJson={downloadJuliaDeploymentArtifactJson}
               onOpenRepoDiagnostics={openRepoDiagnosticsPage}
             />
           }

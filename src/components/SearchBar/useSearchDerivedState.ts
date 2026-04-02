@@ -3,7 +3,7 @@ import type { SearchFilters } from './codeSearchUtils';
 import type { SearchExecutionMode, SearchMeta } from './searchExecution';
 import { getTotalSelectableItems } from './searchKeyboardUtils';
 import type { SearchResultSection } from './searchResultSections';
-import { getVisibleResults, getVisibleSections } from './searchResultSections';
+import { getVisibleSearchView } from './searchResultSections';
 import {
   getConfidenceLabel,
   getConfidenceTone,
@@ -66,8 +66,14 @@ export function useSearchDerivedState({
 }: UseSearchDerivedStateParams): SearchDerivedState {
   return useMemo(() => {
     const searchMode = resolveSearchMode(scope);
-    const visibleResults = getVisibleResults(results, scope, sortMode, parsedCodeFilters);
-    const visibleSections = getVisibleSections(visibleResults, scope, locale, attachmentsLabel);
+    const { visibleResults, visibleSections } = getVisibleSearchView(
+      results,
+      scope,
+      sortMode,
+      parsedCodeFilters,
+      locale,
+      attachmentsLabel
+    );
     const suggestionCount = showSuggestions ? suggestionsLength : 0;
     const resultCount = visibleResults.length;
     const totalSelectableItems = getTotalSelectableItems(suggestionCount, resultCount);

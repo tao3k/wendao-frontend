@@ -1,7 +1,5 @@
-import { matchesCodeFilters } from './codeSearchUtils';
 import type { SearchFilters } from './codeSearchUtils';
-import { isCodeSearchResult } from './searchResultNormalization';
-import { dedupeSearchResults } from './searchResultIdentity';
+import { buildArrowSearchResultView } from './arrowSearchResultView';
 import type { ResultCategory, SearchResult, SearchScope, SearchSort, UiLocale } from './types';
 
 export interface SearchResultSection {
@@ -10,35 +8,33 @@ export interface SearchResultSection {
   hits: SearchResult[];
 }
 
+export interface VisibleSearchView {
+  visibleResults: SearchResult[];
+  visibleSections: SearchResultSection[];
+}
+
 export function getVisibleResults(
   results: SearchResult[],
   scope: SearchScope,
   sortMode: SearchSort,
   filters: SearchFilters
 ): SearchResult[] {
-  const scopeFiltered = results.filter((result) => {
-    if (scope === 'all') {
-      return true;
-    }
-    if (scope === 'code') {
-      if (!isCodeSearchResult(result)) {
-        return false;
-      }
-      if (!matchesCodeFilters(result, filters)) {
-        return false;
-      }
-      return true;
-    }
-    return result.category === scope;
-  });
+  return buildArrowSearchResultView(results).getVisibleResults(scope, sortMode, filters);
+}
 
-  const sorted = [...dedupeSearchResults(scopeFiltered)];
-  if (sortMode === 'path') {
-    sorted.sort((a, b) => a.path.localeCompare(b.path));
-  } else {
-    sorted.sort((a, b) => b.score - a.score);
-  }
-  return sorted;
+export function getVisibleSearchView(
+  results: SearchResult[],
+  scope: SearchScope,
+  sortMode: SearchSort,
+  filters: SearchFilters,
+  locale: UiLocale,
+  attachmentsLabel: string
+): VisibleSearchView {
+  const visibleResults = buildArrowSearchResultView(results).getVisibleResults(scope, sortMode, filters);
+  return {
+    visibleResults,
+    visibleSections: getVisibleSections(visibleResults, scope, locale, attachmentsLabel),
+  };
 }
 
 export function getVisibleSections(

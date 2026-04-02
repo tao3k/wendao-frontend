@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import App from './App';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { api } from './api';
 import { getConfig, resetConfig, toUiConfig } from './config/loader';
+
+const App = lazy(() => import('./App'));
 
 type UiLocale = 'en' | 'zh';
 
@@ -110,7 +111,19 @@ export function StudioBootstrap(): React.ReactElement {
   }, [retryToken, copy.errorFallback]);
 
   if (bootstrapState.status === 'ready') {
-    return <App />;
+    return (
+      <Suspense
+        fallback={
+          <div
+            aria-hidden="true"
+            data-testid="studio-bootstrap-surface"
+            style={BOOTSTRAP_SHELL_STYLE}
+          />
+        }
+      >
+        <App />
+      </Suspense>
+    );
   }
 
   if (bootstrapState.status === 'loading') {

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadConfig, getConfig, getConfigSync, resetConfig, toUiConfig } from '../loader';
+import {
+  loadConfig,
+  getConfig,
+  getConfigSync,
+  resetConfig,
+  resolveSearchFlightSchemaVersion,
+  toUiConfig,
+} from '../loader';
 
 describe('Config Loader', () => {
   beforeEach(() => {
@@ -234,6 +241,24 @@ dirs = ["docs"]
         },
       ]);
       expect(config2).toBe(config1);
+    });
+  });
+
+  describe('search flight helpers', () => {
+    it('resolves the configured Flight schema version', () => {
+      expect(
+        resolveSearchFlightSchemaVersion({
+          search_flight: {
+            schema_version: 'v2',
+          },
+        }),
+      ).toBe('v2');
+    });
+
+    it('requires a Flight schema version for pure Flight search', () => {
+      expect(() => resolveSearchFlightSchemaVersion({})).toThrow(
+        'wendao.toml must define [search_flight].schema_version for Flight search',
+      );
     });
   });
 

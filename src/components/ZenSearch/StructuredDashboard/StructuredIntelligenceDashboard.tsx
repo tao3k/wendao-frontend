@@ -5,262 +5,30 @@ import { ZenSearchPreviewContent } from '../ZenSearchPreviewContent';
 import { ZenSearchPreviewGraphSummary } from '../ZenSearchPreviewGraphSummary';
 import { ZenSearchPreviewHeader } from '../ZenSearchPreviewHeader';
 import type { ZenSearchPreviewState } from '../useZenSearchPreview';
-import { CodeSyntaxHighlighter } from '../../code-syntax';
 import { StructuredSlot } from './StructuredSlot';
 import { StructuredCodeInspector } from './StructuredCodeInspector';
 import { StructuredTopologyMap } from './StructuredTopologyMap';
 import { deriveStructuredEntity } from './structuredIntelligence';
+import {
+  renderChipList,
+  renderFragmentCards,
+  renderMetadataGrid,
+  renderNeighborList,
+  renderOutline,
+} from './structuredDashboardRenderers';
+import {
+  formatStructuredPath,
+  formatStructuredSideBadge,
+  resolveFocusedAnchor,
+  resolveFocusedAnchorSide,
+  STRUCTURED_LAYER_NAV,
+} from './structuredDashboardShared';
 import './StructuredIntelligenceDashboard.css';
 
 interface StructuredIntelligenceDashboardProps {
   locale: UiLocale;
   preview: ZenSearchPreviewState;
   onPivotQuery?: (query: string) => void;
-}
-
-interface StructuredAnchorDisplay {
-  label: string;
-  value: string;
-  query?: string;
-}
-
-interface StructuredLayerNavItem {
-  id: string;
-  label: string;
-}
-
-type StructuredAnchorSide = 'incoming' | 'outgoing' | null;
-
-function formatStructuredSideBadge(locale: UiLocale, side: Exclude<StructuredAnchorSide, null>): string {
-  if (locale === 'zh') {
-    return side === 'incoming' ? '前' : '后';
-  }
-
-  return side === 'incoming' ? 'In' : 'Out';
-}
-
-function formatStructuredPath(path: string): string {
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length <= 3) {
-    return path;
-  }
-
-  return `${segments[0]}/${segments[1]}/.../${segments[segments.length - 1]}`;
-}
-
-const STRUCTURED_LAYER_NAV: StructuredLayerNavItem[] = [
-  { id: 'structured-slot-topology', label: 'I. Topological Identity' },
-  { id: 'structured-slot-anatomy', label: 'II. Entity Anatomy' },
-  { id: 'structured-slot-fragments', label: 'III. Multi-slot Fragments' },
-  { id: 'structured-slot-relations', label: 'IV. Relational Projection' },
-];
-
-function renderChipList(
-  items: Array<{ label: string; value: string; query?: string }>,
-  onPivotQuery?: (query: string) => void
-): React.ReactNode {
-  if (items.length === 0) {
-    return <div className="structured-metadata-value">No structured metadata available.</div>;
-  }
-
-  return (
-    <div className="structured-chip-row">
-      {items.map((item) => (
-        <button
-          key={`${item.label}-${item.value}`}
-          type="button"
-          className="structured-chip"
-          onClick={() => item.query && onPivotQuery?.(item.query)}
-          title={item.query ? `Pivot query: ${item.query}` : item.value}
-        >
-          <span className="structured-chip__label">{item.label}</span>
-          <span className="structured-chip__value">{item.value}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function renderNeighborList(
-  items: Array<{ id: string; label: string; path: string; query?: string }>,
-  focusedAnchorId: string | null,
-  onFocusAnchorChange?: (anchorId: string | null) => void,
-  onPivotQuery?: (query: string) => void
-): React.ReactNode {
-  if (items.length === 0) {
-    return <div className="structured-metadata-value">No connected nodes.</div>;
-  }
-
-  return (
-    <div className="structured-list-row">
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className={`structured-chip${focusedAnchorId === item.id ? ' structured-chip--active' : ''}`}
-          data-testid={`structured-neighbor-${item.id}`}
-          onClick={() => {
-            onFocusAnchorChange?.(item.id);
-            item.query && onPivotQuery?.(item.query);
-          }}
-          title={item.path}
-        >
-          <span className="structured-chip__label">{item.label}</span>
-          <span className="structured-chip__value">{item.path}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function renderFragmentCards(
-  items: Array<{ kind: 'heading' | 'code' | 'math' | 'excerpt'; label: string; value: string; query?: string; language?: string }>,
-  syntaxLanguage: string | null,
-  sourcePath: string | null,
-  onPivotQuery?: (query: string) => void
-): React.ReactNode {
-  if (items.length === 0) {
-    return <div className="structured-metadata-value">No fragments detected.</div>;
-  }
-
-  return (
-    <div className="structured-fragment-stack">
-      {items.map((item, index) => (
-        <div key={`${item.kind}-${item.label}-${index}`} className="structured-fragment-card">
-          <div className="structured-fragment-card__header">
-            <div className="structured-fragment-card__title">
-              {item.kind}
-              {item.language ? ` · ${item.language}` : ''}
-            </div>
-            {item.query && (
-              <button
-                type="button"
-                className="structured-fragment-card__query"
-                onClick={() => item.query && onPivotQuery?.(item.query)}
-              >
-                {item.query}
-              </button>
-            )}
-          </div>
-          <div className="structured-fragment-card__body">
-            {item.kind === 'code' || item.kind === 'excerpt' ? (
-              <CodeSyntaxHighlighter
-                source={item.value}
-                language={item.language ?? syntaxLanguage}
-                sourcePath={sourcePath}
-              />
-            ) : (
-              item.value
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function renderMetadataGrid(
-  items: Array<{ label: string; value: string; query?: string }>,
-  onPivotQuery?: (query: string) => void
-): React.ReactNode {
-  if (items.length === 0) {
-    return <div className="structured-metadata-value">No metadata available.</div>;
-  }
-
-  return (
-    <div className="structured-metadata-grid">
-      {items.map((item) => (
-        <button
-          key={`${item.label}-${item.value}`}
-          type="button"
-          className="structured-metadata-card"
-          onClick={() => item.query && onPivotQuery?.(item.query)}
-          title={item.query ? `Pivot query: ${item.query}` : item.value}
-        >
-          <span className="structured-metadata-label">{item.label}</span>
-          <span className="structured-metadata-value">{item.value}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function renderOutline(
-  items: Array<{ label: string; value: string; query?: string }>,
-  onPivotQuery?: (query: string) => void
-): React.ReactNode {
-  if (items.length === 0) {
-    return <div className="structured-metadata-value">No outline detected.</div>;
-  }
-
-  return (
-    <ol className="structured-outline">
-      {items.map((item) => (
-        <li key={`${item.label}-${item.value}`} className="structured-outline__item">
-          <button type="button" onClick={() => item.query && onPivotQuery?.(item.query)}>
-            <span className="structured-outline__label">{item.label}</span>
-          </button>
-          <span className="structured-outline__query">{item.value}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function resolveFocusedAnchor(
-  focusedAnchorId: string | null,
-  centerAnchor: StructuredAnchorDisplay | null,
-  pathTrail: Array<{ label: string; value: string; query?: string }>,
-  neighbors: Array<{ id: string; label: string; path: string; query?: string }>
-): StructuredAnchorDisplay | null {
-  if (!focusedAnchorId) {
-    return null;
-  }
-
-  if (centerAnchor && focusedAnchorId === centerAnchor.value) {
-    return centerAnchor;
-  }
-
-  const trailAnchor = pathTrail.find((item) => item.value === focusedAnchorId);
-  if (trailAnchor) {
-    return {
-      label: trailAnchor.label,
-      value: trailAnchor.value,
-      query: trailAnchor.query,
-    };
-  }
-
-  const neighborAnchor = neighbors.find((item) => item.id === focusedAnchorId);
-  if (neighborAnchor) {
-    return {
-      label: neighborAnchor.label,
-      value: neighborAnchor.path,
-      query: neighborAnchor.query ?? neighborAnchor.path,
-    };
-  }
-
-  return centerAnchor;
-}
-
-function resolveFocusedAnchorSide(
-  focusedAnchorId: string | null,
-  centerAnchor: StructuredAnchorDisplay | null,
-  incoming: Array<{ id: string }>,
-  outgoing: Array<{ id: string }>
-): StructuredAnchorSide {
-  if (!focusedAnchorId || focusedAnchorId === centerAnchor?.value) {
-    return null;
-  }
-
-  if (incoming.some((node) => node.id === focusedAnchorId)) {
-    return 'incoming';
-  }
-
-  if (outgoing.some((node) => node.id === focusedAnchorId)) {
-    return 'outgoing';
-  }
-
-  return null;
 }
 
 export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDashboardProps> = ({

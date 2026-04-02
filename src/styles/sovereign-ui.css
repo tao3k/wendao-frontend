@@ -861,6 +861,40 @@ body {
   color: var(--neon-yellow);
 }
 
+.status-popover__line--success {
+  color: var(--neon-green);
+}
+
+.status-popover__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.status-popover__action {
+  border: 1px solid rgba(125, 207, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 31, 58, 0.92);
+  color: var(--tokyo-text);
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.status-popover__action:hover,
+.status-popover__action:focus-visible {
+  border-color: rgba(125, 207, 255, 0.48);
+  background: rgba(22, 46, 82, 0.98);
+  color: var(--neon-blue);
+  outline: none;
+}
+
 .status-text--accent {
   color: var(--neon-blue);
   text-shadow: var(--glow-blue);

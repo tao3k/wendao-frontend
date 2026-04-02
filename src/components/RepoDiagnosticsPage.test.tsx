@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { RepoDiagnosticsPage } from './RepoDiagnosticsPage';
 import { api } from '../api';
-import type { RepoIndexStatus } from './StatusBar';
+import type { RepoIndexStatus } from './statusBar/types';
 
 vi.mock('../api', () => ({
   api: {

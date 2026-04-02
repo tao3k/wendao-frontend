@@ -8,7 +8,7 @@ import type {
 } from './mainViewProps';
 import type { MainViewLocale } from './mainViewTypes';
 import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../StatusBar';
+import type { RuntimeStatus } from '../../statusBar/types';
 
 export function buildMainViewDiagramPanelProps(params: {
   selectedFile?: MainViewSelectedFile | null;

@@ -1,8 +1,7 @@
 import React from 'react';
 import type { UiLocale } from '../SearchBar/types';
 import type { ZenSearchPreviewState } from './useZenSearchPreview';
-import { ZenSearchPreviewEntity } from './ZenSearchPreviewEntity';
-import { ZenSearchPreviewPlaceholder } from './ZenSearchPreviewPlaceholder';
+import { ZenSearchPreviewShellContent } from './zenSearchPreviewShellContent';
 
 interface ZenSearchPreviewShellProps {
   locale: UiLocale;
@@ -17,11 +16,7 @@ export const ZenSearchPreviewShell: React.FC<ZenSearchPreviewShellProps> = ({
 }) => {
   return (
     <div className="zen-preview-container">
-      {!preview.selectedResult ? (
-        <ZenSearchPreviewPlaceholder locale={locale} />
-      ) : (
-        <ZenSearchPreviewEntity locale={locale} preview={preview} onPivotQuery={onPivotQuery} />
-      )}
+      <ZenSearchPreviewShellContent locale={locale} preview={preview} onPivotQuery={onPivotQuery} />
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MainViewContentPanel } from './MainViewContentPanel';
 
 const directReaderSpy = vi.fn();
 
-vi.mock('../DirectReader', () => ({
+vi.mock('./mainViewLazyPanels', () => ({
   DirectReader: (props: Record<string, unknown>) => {
     directReaderSpy(props);
     return <div data-testid="direct-reader" />;
@@ -42,7 +42,7 @@ describe('MainViewContentPanel', () => {
     expect(screen.queryByTestId('direct-reader')).not.toBeInTheDocument();
   });
 
-  it('renders DirectReader and forwards location metadata', () => {
+  it('renders DirectReader and forwards location metadata', async () => {
     render(
       <MainViewContentPanel
         selectedFile={{
@@ -59,8 +59,10 @@ describe('MainViewContentPanel', () => {
       />
     );
 
-    expect(screen.getByTestId('direct-reader')).toBeInTheDocument();
-    expect(screen.queryByText('Loading panel...')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('direct-reader')).toBeInTheDocument();
+    });
+
     const payload = directReaderSpy.mock.calls.at(-1)?.[0] as
       | { path: string; content: string; line: number; lineEnd: number; column: number }
       | undefined;

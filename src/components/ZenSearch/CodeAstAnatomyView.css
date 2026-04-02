@@ -167,6 +167,41 @@
   line-height: 1.45;
 }
 
+.code-ast-waterfall__action-row,
+.code-ast-waterfall__block-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-ast-waterfall__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 207, 255, 0.16);
+  background: rgba(125, 207, 255, 0.08);
+  color: var(--tokyo-text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.code-ast-waterfall__action:hover,
+.code-ast-waterfall__action:focus-visible {
+  border-color: rgba(125, 207, 255, 0.3);
+  background: rgba(125, 207, 255, 0.12);
+}
+
+.code-ast-waterfall__block-anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .code-ast-waterfall__atom-row {
   display: flex;
   flex-wrap: wrap;
@@ -198,6 +233,45 @@
   font-size: 0.7rem;
   font-weight: 800;
   line-height: 1.35;
+  word-break: break-word;
+}
+
+.code-ast-waterfall__symbol-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.code-ast-waterfall__symbol-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(125, 207, 255, 0.12);
+  background: rgba(8, 12, 20, 0.72);
+}
+
+.code-ast-waterfall__symbol-card-kind {
+  color: var(--tokyo-comment);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.code-ast-waterfall__symbol-card-name {
+  color: var(--tokyo-text);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.code-ast-waterfall__symbol-card-meta {
+  color: var(--tokyo-comment);
+  font-size: 0.72rem;
+  line-height: 1.45;
   word-break: break-word;
 }
 

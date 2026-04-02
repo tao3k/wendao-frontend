@@ -1,4 +1,4 @@
-import type { RepoIndexStatus, VfsStatus } from '../../StatusBar';
+import type { RepoIndexStatus, VfsStatus } from '../../statusBar/types';
 
 export type FileTreeLocale = 'en' | 'zh';
 

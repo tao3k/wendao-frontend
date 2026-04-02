@@ -140,4 +140,64 @@ describe('StatusBar', () => {
 
     expect(onOpenRepoDiagnostics).toHaveBeenCalledTimes(1);
   });
+
+  it('renders Julia deployment artifact details as a status chip', () => {
+    render(
+      <StatusBar
+        nodeCount={2}
+        vfsStatus={{ isLoading: false, error: null }}
+        juliaDeploymentArtifact={{
+          artifactSchemaVersion: 'v1',
+          generatedAt: '2026-03-27T12:00:00Z',
+          baseUrl: 'http://127.0.0.1:18080',
+          route: '/rerank',
+          healthRoute: '/healthz',
+          schemaVersion: 'v1',
+          timeoutSecs: 30,
+          launch: {
+            launcherPath: '.data/WendaoAnalyzer/scripts/run_analyzer_service.sh',
+            args: ['--service-mode', 'stream', '--analyzer-strategy', 'similarity_only'],
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('Julia rerank similarity_only')).toBeInTheDocument();
+    expect(screen.getByText('Julia deployment artifact')).toBeInTheDocument();
+    expect(screen.getByText('Service mode stream')).toBeInTheDocument();
+    expect(screen.getByText('Analyzer strategy similarity_only')).toBeInTheDocument();
+    expect(
+      screen.getByText('Launcher .data/WendaoAnalyzer/scripts/run_analyzer_service.sh')
+    ).toBeInTheDocument();
+  });
+
+  it('runs Julia artifact export actions and shows success feedback', async () => {
+    const onCopyJuliaDeploymentArtifactToml = vi.fn().mockResolvedValue(undefined);
+    const onDownloadJuliaDeploymentArtifactJson = vi.fn();
+
+    render(
+      <StatusBar
+        nodeCount={2}
+        vfsStatus={{ isLoading: false, error: null }}
+        juliaDeploymentArtifact={{
+          artifactSchemaVersion: 'v1',
+          generatedAt: '2026-03-27T12:00:00Z',
+          launch: {
+            launcherPath: '.data/WendaoAnalyzer/scripts/run_analyzer_service.sh',
+            args: ['--service-mode', 'stream'],
+          },
+        }}
+        onCopyJuliaDeploymentArtifactToml={onCopyJuliaDeploymentArtifactToml}
+        onDownloadJuliaDeploymentArtifactJson={onDownloadJuliaDeploymentArtifactJson}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy TOML' }));
+    expect(onCopyJuliaDeploymentArtifactToml).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('TOML copied')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download JSON' }));
+    expect(onDownloadJuliaDeploymentArtifactJson).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('JSON downloaded')).toBeInTheDocument();
+  });
 });

@@ -8,6 +8,7 @@ describe('mermaidRenderResults', () => {
       renderMermaid: vi.fn(),
       emptyMermaidSourceLabel: 'Empty Mermaid diagram source',
       mermaidLoadingLabel: 'Loading Mermaid runtime...',
+      unsupportedMermaidLabel: 'Unsupported Mermaid dialect for inline render',
     });
 
     expect(result).toHaveLength(1);
@@ -20,6 +21,7 @@ describe('mermaidRenderResults', () => {
       renderMermaid: null,
       emptyMermaidSourceLabel: 'Empty Mermaid diagram source',
       mermaidLoadingLabel: 'Loading Mermaid runtime...',
+      unsupportedMermaidLabel: 'Unsupported Mermaid dialect for inline render',
     });
 
     expect(result).toHaveLength(1);
@@ -34,6 +36,7 @@ describe('mermaidRenderResults', () => {
       renderMermaid,
       emptyMermaidSourceLabel: 'empty',
       mermaidLoadingLabel: 'loading',
+      unsupportedMermaidLabel: 'unsupported',
     });
 
     expect(renderMermaid).toHaveBeenCalledTimes(1);
@@ -59,10 +62,28 @@ describe('mermaidRenderResults', () => {
       renderMermaid,
       emptyMermaidSourceLabel: 'empty',
       mermaidLoadingLabel: 'loading',
+      unsupportedMermaidLabel: 'unsupported',
     });
 
     expect(result).toHaveLength(1);
     expect(result[0]?.svg).toBeNull();
     expect(result[0]?.error).toBe('boom');
+  });
+
+  it('falls back immediately for unsupported explicit mermaid dialects', () => {
+    const renderMermaid = vi.fn();
+
+    const result = buildRenderedMermaidBlocks({
+      mermaidSources: ['sequenceDiagram\nAlice->>Bob: hello'],
+      renderMermaid,
+      emptyMermaidSourceLabel: 'empty',
+      mermaidLoadingLabel: 'loading',
+      unsupportedMermaidLabel: 'unsupported',
+    });
+
+    expect(renderMermaid).not.toHaveBeenCalled();
+    expect(result).toHaveLength(1);
+    expect(result[0]?.svg).toBeNull();
+    expect(result[0]?.error).toBe('unsupported: sequence');
   });
 });

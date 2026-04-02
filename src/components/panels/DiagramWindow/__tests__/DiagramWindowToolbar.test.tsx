@@ -32,8 +32,12 @@ describe('DiagramWindowToolbar', () => {
       />
     );
 
-    expect(screen.getByText('BPMN-js')).toBeInTheDocument();
-    expect(screen.getByText('Mermaid')).toBeInTheDocument();
+    expect(
+      screen.getByText('BPMN-js', { selector: '.diagram-window__chip--bpmn' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Mermaid', { selector: '.diagram-window__chip--mermaid' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'BPMN diagram' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Combined view' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Mermaid diagram' })).toBeInTheDocument();

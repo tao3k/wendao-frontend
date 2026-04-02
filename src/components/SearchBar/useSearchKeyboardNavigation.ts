@@ -9,7 +9,7 @@ import {
   shouldAcceptTabSuggestion,
 } from './searchKeyboardUtils';
 import { toSearchSelection } from './searchResultNormalization';
-import type { SearchResult, SearchSelection } from './types';
+import type { SearchResult, SearchSelectionAction } from './types';
 
 interface UseSearchKeyboardNavigationParams {
   isComposing: boolean;
@@ -21,7 +21,7 @@ interface UseSearchKeyboardNavigationParams {
   visibleResults: SearchResult[];
   inputRef: RefObject<HTMLInputElement | null>;
   onClose: () => void;
-  onResultSelect: (selection: SearchSelection) => void;
+  onResultSelect: SearchSelectionAction;
   setQuery: Dispatch<SetStateAction<string>>;
   setShowSuggestions: Dispatch<SetStateAction<boolean>>;
   setSuggestions: Dispatch<SetStateAction<AutocompleteSuggestion[]>>;
@@ -50,6 +50,17 @@ export function useSearchKeyboardNavigation({
   setSuggestions,
   setSelectedIndex,
 }: UseSearchKeyboardNavigationParams): UseSearchKeyboardNavigationResult {
+  const closeAfterSelection = useCallback(
+    (selection: void | Promise<void>) => {
+      if (selection && typeof (selection as Promise<void>).then === 'function') {
+        void (selection as Promise<void>).then(onClose).catch(() => undefined);
+        return;
+      }
+      onClose();
+    },
+    [onClose]
+  );
+
   const applySuggestion = useCallback((suggestion?: AutocompleteSuggestion) => {
     if (!suggestion) {
       return false;
@@ -97,8 +108,7 @@ export function useSearchKeyboardNavigation({
           } else if (action.type === 'result') {
             const selectedResult = visibleResults[action.index];
             if (selectedResult) {
-              onResultSelect(toSearchSelection(selectedResult));
-              onClose();
+              closeAfterSelection(onResultSelect(toSearchSelection(selectedResult)));
             }
           }
           break;
@@ -114,6 +124,7 @@ export function useSearchKeyboardNavigation({
     },
     [
       applySuggestion,
+      closeAfterSelection,
       isComposing,
       onClose,
       onResultSelect,

@@ -379,10 +379,12 @@ function App() {
             nonce: (current?.nonce ?? 0) + 1,
           }));
         }
+        return true;
       } catch (err) {
         console.error('Failed to load file:', err);
         setSelectedFileContent(null);
         setRelationships([]);
+        return false;
       }
     },
     [selectedFileMetadata?.projectName, selectedFileMetadata?.rootLabel, setCurrentXml]
@@ -436,36 +438,45 @@ function App() {
   // Handle search result selection
   const handleSearchResultSelect = useCallback(
     async (selection: FileSelection) => {
-      setViewMode('normal');
+      const hydrated = await hydrateSelectedFile(selection);
+      if (!hydrated) {
+        return;
+      }
       setMainViewTabRequest((current) => ({
         tab: 'content',
         nonce: (current?.nonce ?? 0) + 1,
       }));
-      await hydrateSelectedFile(selection);
+      setViewMode('normal');
     },
     [hydrateSelectedFile]
   );
 
   const handleSearchResultGraphSelect = useCallback(
-    (selection: FileSelection) => {
-      setViewMode('normal');
+    async (selection: FileSelection) => {
+      const hydrated = await hydrateSelectedFile(selection);
+      if (!hydrated) {
+        return;
+      }
       setMainViewTabRequest((current) => ({
         tab: 'graph',
         nonce: (current?.nonce ?? 0) + 1,
       }));
-      void hydrateSelectedFile(selection);
+      setViewMode('normal');
     },
     [hydrateSelectedFile]
   );
 
   const handleSearchResultReferencesSelect = useCallback(
     async (selection: FileSelection) => {
-      setViewMode('normal');
+      const hydrated = await hydrateSelectedFile(selection);
+      if (!hydrated) {
+        return;
+      }
       setMainViewTabRequest((current) => ({
         tab: 'references',
         nonce: (current?.nonce ?? 0) + 1,
       }));
-      await hydrateSelectedFile(selection);
+      setViewMode('normal');
     },
     [hydrateSelectedFile]
   );

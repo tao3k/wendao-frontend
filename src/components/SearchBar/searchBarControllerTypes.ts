@@ -7,7 +7,7 @@ import type { SearchMeta } from './searchExecution';
 import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
 import type { RepoOverviewStatusSnapshot } from './useRepoOverviewStatus';
 import type { RepoSyncStatusSnapshot } from './useRepoSyncStatus';
-import type { SearchBarCopy, SearchSelection, SearchScope, SearchSort, UiLocale } from './types';
+import type { SearchBarCopy, SearchScope, SearchSelectionAction, SearchSort, UiLocale } from './types';
 
 export interface SearchBarControllerShellProps {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -45,9 +45,9 @@ export interface UseSearchBarControllerParams {
   isOpen: boolean;
   locale: UiLocale;
   onClose: () => void;
-  onResultSelect: (selection: SearchSelection) => void;
-  onReferencesResultSelect?: (selection: SearchSelection) => void;
-  onGraphResultSelect?: (selection: SearchSelection) => void;
+  onResultSelect: SearchSelectionAction;
+  onReferencesResultSelect?: SearchSelectionAction;
+  onGraphResultSelect?: SearchSelectionAction;
   onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
 }
 

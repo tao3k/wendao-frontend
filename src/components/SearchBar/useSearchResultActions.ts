@@ -6,14 +6,14 @@ import {
   resolveDefinitionSelection,
   toSearchSelection,
 } from './searchResultNormalization';
-import type { SearchResult, SearchSelection } from './types';
+import type { SearchResult, SearchSelectionAction } from './types';
 
 interface UseSearchResultActionsParams {
   onClose: () => void;
-  onResultSelect: (selection: SearchSelection) => void;
+  onResultSelect: SearchSelectionAction;
   onPreviewSelect?: (result: SearchResult) => void;
-  onReferencesResultSelect?: (selection: SearchSelection) => void;
-  onGraphResultSelect?: (selection: SearchSelection) => void;
+  onReferencesResultSelect?: SearchSelectionAction;
+  onGraphResultSelect?: SearchSelectionAction;
   setIsLoading: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string | null>>;
 }
@@ -35,14 +35,24 @@ export function useSearchResultActions({
   setIsLoading,
   setError,
 }: UseSearchResultActionsParams): UseSearchResultActionsResult {
+  const closeAfterSelection = useCallback(
+    (selection: void | Promise<void>) => {
+      if (selection && typeof (selection as Promise<void>).then === 'function') {
+        void (selection as Promise<void>).then(onClose).catch(() => undefined);
+        return;
+      }
+      onClose();
+    },
+    [onClose]
+  );
+
   const handleResultClick = useCallback(
     (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
       event?.preventDefault();
       event?.stopPropagation();
-      onResultSelect(toSearchSelection(result));
-      onClose();
+      closeAfterSelection(onResultSelect(toSearchSelection(result)));
     },
-    [onClose, onResultSelect]
+    [closeAfterSelection, onResultSelect]
   );
 
   const handleGraphResultClick = useCallback(
@@ -61,10 +71,12 @@ export function useSearchResultActions({
     (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      onReferencesResultSelect?.(toSearchSelection(result));
-      onClose();
+      if (!onReferencesResultSelect) {
+        return;
+      }
+      closeAfterSelection(onReferencesResultSelect(toSearchSelection(result)));
     },
-    [onClose, onReferencesResultSelect]
+    [closeAfterSelection, onReferencesResultSelect]
   );
 
   const handleDefinitionResultClick = useCallback(
@@ -79,7 +91,7 @@ export function useSearchResultActions({
           path: result.path,
           ...(typeof result.line === 'number' ? { line: result.line } : {}),
         });
-        onResultSelect(resolveDefinitionSelection(result, response));
+        await Promise.resolve(onResultSelect(resolveDefinitionSelection(result, response)));
         onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Definition lookup failed');

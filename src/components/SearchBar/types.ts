@@ -9,6 +9,8 @@ export type SearchSelection = StudioNavigationTarget & {
   graphPath?: string;
 };
 
+export type SearchSelectionAction = (selection: SearchSelection) => void | Promise<void>;
+
 export interface SearchResult extends SearchHit {
   category: ResultCategory;
   projectName?: string;

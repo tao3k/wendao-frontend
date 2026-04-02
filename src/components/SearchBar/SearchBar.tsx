@@ -1,14 +1,14 @@
 import React from 'react';
-import type { SearchSelection, UiLocale } from './types';
+import type { SearchSelectionAction, UiLocale } from './types';
 import { ZenSearchWindow } from '../ZenSearch';
 
 interface SearchBarProps {
   isOpen: boolean;
   locale?: UiLocale;
   onClose: () => void;
-  onResultSelect: (selection: SearchSelection) => void;
-  onReferencesResultSelect?: (selection: SearchSelection) => void;
-  onGraphResultSelect?: (selection: SearchSelection) => void;
+  onResultSelect: SearchSelectionAction;
+  onReferencesResultSelect?: SearchSelectionAction;
+  onGraphResultSelect?: SearchSelectionAction;
   onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
 }
 

@@ -13,6 +13,15 @@ function buildTabEvent() {
   } as unknown as KeyboardEvent;
 }
 
+function buildEnterEvent() {
+  return {
+    key: 'Enter',
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
+    nativeEvent: { isComposing: false },
+  } as unknown as KeyboardEvent;
+}
+
 function buildSuggestion(text: string): AutocompleteSuggestion {
   return {
     text,
@@ -95,5 +104,67 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     expect(setShowSuggestions).not.toHaveBeenCalled();
     expect(setSuggestions).not.toHaveBeenCalled();
     expect(setSelectedIndex).not.toHaveBeenCalled();
+  });
+
+  it('defers closing until an async result selection resolves', async () => {
+    const onClose = vi.fn();
+    let resolveSelection: (() => void) | null = null;
+    const onResultSelect = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSelection = resolve;
+        })
+    );
+    const event = buildEnterEvent();
+
+    const { result } = renderHook(() =>
+      useSearchKeyboardNavigation({
+        isComposing: false,
+        query: 'repo',
+        suggestions: [],
+        suggestionCount: 0,
+        resultCount: 1,
+        selectedIndex: 0,
+        visibleResults: [
+          {
+            stem: 'repo',
+            title: 'repo.rs',
+            path: 'src/repo.rs',
+            score: 0.91,
+            category: 'document',
+            navigationTarget: {
+              path: 'src/repo.rs',
+              category: 'doc',
+            },
+          } as any,
+        ],
+        inputRef: { current: null },
+        onClose,
+        onResultSelect,
+        setQuery: vi.fn(),
+        setShowSuggestions: vi.fn(),
+        setSuggestions: vi.fn(),
+        setSelectedIndex: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleKeyDown(event);
+    });
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(onResultSelect).toHaveBeenCalledWith({
+      path: 'src/repo.rs',
+      category: 'doc',
+      graphPath: 'src/repo.rs',
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSelection?.();
+      await Promise.resolve();
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

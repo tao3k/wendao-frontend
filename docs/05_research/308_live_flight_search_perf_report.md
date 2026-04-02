@@ -42,27 +42,27 @@ direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm 
 
 ### End-to-End Summary
 
-- Overall average: `5.21ms`
-- P50: `5.44ms`
-- P95: `6.07ms`
-- Max: `6.07ms`
+- Overall average: `5.11ms`
+- P50: `5.01ms`
+- P95: `6.10ms`
+- Max: `6.10ms`
 
 ### Phase Breakdown
 
-- `GetFlightInfo`: average `3.73ms`, P95 `4.46ms`
-- `DoGet`: average `1.00ms`, P95 `1.54ms`
+- `GetFlightInfo`: average `3.63ms`, P95 `4.04ms`
+- `DoGet`: average `1.00ms`, P95 `1.57ms`
 - Hit decoding: average `0.40ms`, P95 `0.55ms`
-- Arrow IPC reassembly: average `0.02ms`, P95 `0.03ms`
+- Arrow IPC reassembly: average `0.02ms`, P95 `0.06ms`
 - Metadata decoding: average `0.01ms`, P95 `0.02ms`
-- Ticket read: average `0.01ms`, P95 `0.01ms`
+- Ticket read: average `0.01ms`, P95 `0.02ms`
 
 ### Per-Query Summary
 
 | Query | Avg | P95 | Avg Hits | GetFlightInfo Avg | DoGet Avg |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `diffeq` | `5.72ms` | `6.07ms` | `3` | `4.04ms` | `1.21ms` |
-| `solver` | `5.61ms` | `5.77ms` | `18` | `3.97ms` | `1.08ms` |
-| `optimization` | `4.29ms` | `4.67ms` | `17` | `3.17ms` | `0.70ms` |
+| `diffeq` | `5.44ms` | `6.10ms` | `4` | `3.83ms` | `1.17ms` |
+| `solver` | `4.86ms` | `5.03ms` | `19` | `3.50ms` | `0.89ms` |
+| `optimization` | `5.05ms` | `5.15ms` | `18` | `3.56ms` | `0.94ms` |
 
 ## Comparison to Earlier Same-Port Checkpoints
 
@@ -73,7 +73,7 @@ direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm 
   - `GetFlightInfo`: `41.03-46.15ms`
   - `DoGet`: `0.75-1.10ms`
 - Current default `9517` gateway after restart:
-  - `GetFlightInfo`: average `3.73ms`
+  - `GetFlightInfo`: average `3.63ms`
   - `DoGet`: average `1.00ms`
 
 The important trend is stable: the frontend is not the bottleneck, and the
@@ -91,6 +91,11 @@ queries.
    material user-facing latency problem for the sampled queries.
 4. `DoGet` is now a small transport/read cost instead of a duplicate
    search-materialization cost.
+
+## Optimization Candidates
+
+- `GetFlightInfo`: average `3.63ms`, P95 `4.04ms`
+- `DoGet`: average `1.00ms`, P95 `1.57ms`
 
 ## No-Major-Issue Assessment
 

@@ -168,6 +168,7 @@ vi.mock('./api', () => ({
 describe('App topology wiring', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let createObjectUrlSpy: ReturnType<typeof vi.spyOn>;
   let revokeObjectUrlSpy: ReturnType<typeof vi.spyOn>;
   let clipboardWriteTextMock: ReturnType<typeof vi.fn>;
@@ -210,6 +211,7 @@ describe('App topology wiring', () => {
     mocks.getJuliaDeploymentArtifactTomlMock.mockResolvedValue('artifact_schema_version = "v1"');
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     createObjectUrlSpy = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:artifact');
     revokeObjectUrlSpy = vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
     clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
@@ -234,6 +236,7 @@ describe('App topology wiring', () => {
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
     createObjectUrlSpy.mockRestore();
     revokeObjectUrlSpy.mockRestore();
     createElementSpy.mockRestore();
@@ -859,12 +862,78 @@ describe('App topology wiring', () => {
       });
     });
 
+    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'false');
     expect(mocks.getVfsContentMock).toHaveBeenCalledWith('xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs');
     expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs', {
       direction: 'both',
       hops: 1,
       limit: 20,
     });
+  });
+
+  it('keeps ZenSearch open when a result hydrate fails', async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockRejectedValue(new Error('vfs unavailable'));
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: null,
+      nodes: [],
+      links: [],
+      totalNodes: 0,
+      totalLinks: 0,
+    });
+
+    render(<App />);
+    await openZenSearchMode();
+
+    await waitFor(() => {
+      const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onResultSelect: (selection: {
+              path: string;
+              category: string;
+              projectName?: string;
+              rootLabel?: string;
+            }) => Promise<void>;
+          }
+        | undefined;
+      expect(searchBarProps?.onResultSelect).toBeDefined();
+    });
+
+    const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onResultSelect: (selection: {
+            path: string;
+            category: string;
+            projectName?: string;
+            rootLabel?: string;
+          }) => Promise<void>;
+        }
+      | undefined;
+
+    await act(async () => {
+      await searchBarProps?.onResultSelect({
+        path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
+        category: 'doc',
+        projectName: 'xiuxian-wendao',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'true');
+    });
+
+    const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+      | {
+          requestedTab?: { tab: string };
+        }
+      | undefined;
+
+    expect(lastMainViewCall?.requestedTab?.tab).not.toBe('content');
+    expect(mocks.getVfsContentMock).toHaveBeenCalledWith('xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs');
   });
 
   it('recenters graph-node selections in the graph tab without jumping to content', async () => {

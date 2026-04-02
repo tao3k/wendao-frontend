@@ -1,7 +1,7 @@
 import React from 'react';
 import { useZenSearchMode } from './useZenSearchMode';
 import { ZenSearchLayout } from './ZenSearchLayout';
-import type { SearchSelection, UiLocale } from '../SearchBar/types';
+import type { SearchSelectionAction, UiLocale } from '../SearchBar/types';
 import './ZenSearchWindow.css';
 import '../SearchBar/SearchBar.css';
 
@@ -9,9 +9,9 @@ interface ZenSearchWindowProps {
   isOpen?: boolean;
   locale?: UiLocale;
   onClose: () => void;
-  onResultSelect: (selection: SearchSelection) => void;
-  onReferencesResultSelect?: (selection: SearchSelection) => void;
-  onGraphResultSelect?: (selection: SearchSelection) => void;
+  onResultSelect: SearchSelectionAction;
+  onReferencesResultSelect?: SearchSelectionAction;
+  onGraphResultSelect?: SearchSelectionAction;
   onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
 }
 

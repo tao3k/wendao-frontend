@@ -7,17 +7,25 @@ import {
   TicketSchema,
 } from "./flight/generated/Flight_pb";
 import {
-  buildKnowledgeSearchFlightDescriptor,
+  buildSearchFlightDescriptor,
   buildKnowledgeSearchFlightHeaders,
+  resolveSearchFlightRoute,
   reassembleArrowIpcStreamFromFlight,
   searchKnowledgeFlight,
 } from "./flightSearchTransport";
 
 describe("flightSearchTransport", () => {
   it("builds the canonical semantic knowledge descriptor path", () => {
-    const descriptor = buildKnowledgeSearchFlightDescriptor();
+    const descriptor = buildSearchFlightDescriptor("/search/knowledge");
 
     expect(descriptor.path).toEqual(["search", "knowledge"]);
+  });
+
+  it("routes code-biased searches through the semantic intent Flight route", () => {
+    expect(resolveSearchFlightRoute({ intent: "code_search" })).toBe("/search/intent");
+    expect(resolveSearchFlightRoute({ intent: "hybrid_search" })).toBe("/search/intent");
+    expect(resolveSearchFlightRoute({ intent: "knowledge_lookup" })).toBe("/search/knowledge");
+    expect(resolveSearchFlightRoute({})).toBe("/search/knowledge");
   });
 
   it("builds the canonical knowledge Flight metadata headers", () => {
@@ -56,6 +64,7 @@ describe("flightSearchTransport", () => {
 
   it("uses FlightInfo app_metadata plus DoGet frames to materialize knowledge search responses", async () => {
     const getFlightInfoCalls: Array<{ headers?: HeadersInit }> = [];
+    const descriptorPaths: string[][] = [];
     const doGetCalls: Array<{ headers?: HeadersInit; ticket: Uint8Array }> = [];
     const response = await searchKnowledgeFlight(
       {
@@ -63,11 +72,12 @@ describe("flightSearchTransport", () => {
         schemaVersion: "v2",
         query: "topology",
         limit: 5,
-        intent: "semantic_lookup",
+        intent: "code_search",
       },
       {
         createClient: () => ({
-          async getFlightInfo(_descriptor, options) {
+          async getFlightInfo(descriptor, options) {
+            descriptorPaths.push(descriptor.path);
             getFlightInfoCalls.push({ headers: options?.headers });
             return create(FlightInfoSchema, {
               schema: new Uint8Array([1, 2, 3]),
@@ -118,6 +128,7 @@ describe("flightSearchTransport", () => {
     );
 
     expect(getFlightInfoCalls).toHaveLength(1);
+    expect(descriptorPaths).toEqual([["search", "intent"]]);
     expect(doGetCalls).toHaveLength(1);
     expect(doGetCalls[0]?.ticket).toEqual(new Uint8Array([9, 9]));
     expect(response.query).toBe("topology");

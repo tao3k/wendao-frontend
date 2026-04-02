@@ -22,8 +22,10 @@ const WENDAO_SEARCH_LIMIT_HEADER = "x-wendao-search-limit";
 const WENDAO_SEARCH_INTENT_HEADER = "x-wendao-search-intent";
 const WENDAO_SEARCH_REPO_HEADER = "x-wendao-search-repo";
 const SEARCH_KNOWLEDGE_ROUTE = "/search/knowledge";
+const SEARCH_INTENT_ROUTE = "/search/intent";
 const IPC_CONTINUATION_TOKEN = 0xffffffff;
 const ARROW_STREAM_END = new Uint8Array([255, 255, 255, 255, 0, 0, 0, 0]);
+type SearchFlightRoute = typeof SEARCH_KNOWLEDGE_ROUTE | typeof SEARCH_INTENT_ROUTE;
 
 export interface KnowledgeSearchFlightRequest {
   baseUrl: string;
@@ -66,7 +68,7 @@ interface SearchResponseMetadata {
 }
 
 export interface FlightSearchProfile {
-  route: typeof SEARCH_KNOWLEDGE_ROUTE;
+  route: SearchFlightRoute;
   query: string;
   limit: number;
   frameCount: number;
@@ -104,10 +106,25 @@ export function resolveKnowledgeSearchFlightSchemaVersion(
   return schemaVersion;
 }
 
-export function buildKnowledgeSearchFlightDescriptor(): FlightDescriptor {
+function normalizeSearchIntent(intent?: string): string | null {
+  const normalized = intent?.trim();
+  return normalized ? normalized : null;
+}
+
+export function resolveSearchFlightRoute(
+  request: Pick<KnowledgeSearchFlightRequest, "intent">,
+): SearchFlightRoute {
+  const intent = normalizeSearchIntent(request.intent);
+  if (!intent || intent === "knowledge_lookup" || intent === "semantic_lookup") {
+    return SEARCH_KNOWLEDGE_ROUTE;
+  }
+  return SEARCH_INTENT_ROUTE;
+}
+
+export function buildSearchFlightDescriptor(route: SearchFlightRoute): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
-    path: ["search", "knowledge"],
+    path: route.slice(1).split("/"),
   });
 }
 
@@ -118,8 +135,9 @@ export function buildKnowledgeSearchFlightHeaders(
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
   headers.set(WENDAO_SEARCH_QUERY_HEADER, request.query);
   headers.set(WENDAO_SEARCH_LIMIT_HEADER, String(Math.max(1, request.limit)));
-  if (request.intent?.trim()) {
-    headers.set(WENDAO_SEARCH_INTENT_HEADER, request.intent.trim());
+  const intent = normalizeSearchIntent(request.intent);
+  if (intent) {
+    headers.set(WENDAO_SEARCH_INTENT_HEADER, intent);
   }
   if (request.repo?.trim()) {
     headers.set(WENDAO_SEARCH_REPO_HEADER, request.repo.trim());
@@ -154,11 +172,12 @@ export async function searchKnowledgeFlight(
   deps: FlightSearchTransportDeps = {},
 ): Promise<SearchResponse> {
   const totalStartMs = nowMs();
+  const route = resolveSearchFlightRoute(request);
   const headers = buildKnowledgeSearchFlightHeaders(request);
   const client = (deps.createClient ?? createFlightServiceClient)(
     request.baseUrl,
   );
-  const descriptor = buildKnowledgeSearchFlightDescriptor();
+  const descriptor = buildSearchFlightDescriptor(route);
 
   try {
     const getFlightInfoStartMs = nowMs();
@@ -201,7 +220,7 @@ export async function searchKnowledgeFlight(
     const totalMs = nowMs() - totalStartMs;
 
     deps.onProfile?.({
-      route: SEARCH_KNOWLEDGE_ROUTE,
+      route,
       query: request.query,
       limit: Math.max(1, request.limit),
       frameCount: frames.length,
@@ -267,7 +286,7 @@ function readFlightTicket(flightInfo: FlightInfo): Ticket {
   const ticketBytes = flightInfo.endpoint[0]?.ticket?.ticket;
   if (!ticketBytes || ticketBytes.byteLength === 0) {
     throw new Error(
-      `Flight route ${SEARCH_KNOWLEDGE_ROUTE} returned no readable ticket`,
+      "Flight route returned no readable ticket",
     );
   }
   return create(TicketSchema, { ticket: ticketBytes });

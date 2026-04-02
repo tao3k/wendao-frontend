@@ -10,7 +10,8 @@ import {
   buildZenSearchPreviewLoadPlan,
   isMeaningfulSelection,
   loadZenSearchPreviewBaseData,
-  loadZenSearchPreviewCodeAstData,
+  loadZenSearchPreviewCodeAstAnalysisData,
+  loadZenSearchPreviewCodeAstRetrievalAtoms,
   loadZenSearchPreviewMarkdownData,
 } from './zenSearchPreviewLoaders';
 
@@ -108,8 +109,11 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
     })();
 
     if (loadPlan.codeAstEligible) {
+      const codeAstAnalysisPromise = loadZenSearchPreviewCodeAstAnalysisData(loadPlan);
+      const codeAstRetrievalAtomsPromise = loadZenSearchPreviewCodeAstRetrievalAtoms(loadPlan);
+
       void (async () => {
-        const codeAst = await loadZenSearchPreviewCodeAstData(loadPlan);
+        const codeAst = await codeAstAnalysisPromise;
 
         if (cancelled) {
           return;
@@ -121,6 +125,30 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
           codeAstLoading: false,
           codeAstError: codeAst.codeAstError,
         }));
+
+        if (!codeAst.codeAstAnalysis) {
+          return;
+        }
+
+        const retrievalAtoms = await codeAstRetrievalAtomsPromise;
+
+        if (cancelled || !Array.isArray(retrievalAtoms) || retrievalAtoms.length === 0) {
+          return;
+        }
+
+        setState((current) => {
+          if (!current.codeAstAnalysis) {
+            return current;
+          }
+
+          return {
+            ...current,
+            codeAstAnalysis: {
+              ...current.codeAstAnalysis,
+              retrievalAtoms,
+            },
+          };
+        });
       })();
     }
 

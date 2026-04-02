@@ -152,6 +152,51 @@ export async function loadZenSearchPreviewCodeAstData(
   };
 }
 
+export async function loadZenSearchPreviewCodeAstAnalysisData(
+  plan: ZenSearchPreviewLoadPlan
+): Promise<ZenSearchPreviewCodeAstLoadResult> {
+  if (!plan.codeAstEligible) {
+    return {
+      codeAstAnalysis: null,
+      codeAstError: null,
+    };
+  }
+
+  try {
+    const codeAstAnalysis = await api.getCodeAstAnalysis(plan.contentPath, {
+      ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
+      ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
+    });
+
+    return {
+      codeAstAnalysis,
+      codeAstError: null,
+    };
+  } catch (error) {
+    return {
+      codeAstAnalysis: null,
+      codeAstError: error instanceof Error ? error.message : 'Code AST analysis failed',
+    };
+  }
+}
+
+export async function loadZenSearchPreviewCodeAstRetrievalAtoms(
+  plan: ZenSearchPreviewLoadPlan
+): Promise<RetrievalChunk[] | null> {
+  if (!plan.codeAstEligible) {
+    return null;
+  }
+
+  try {
+    return await api.getCodeAstRetrievalChunksArrow(plan.contentPath, {
+      ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
+      ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function loadZenSearchPreviewMarkdownData(
   plan: ZenSearchPreviewLoadPlan
 ): Promise<ZenSearchPreviewMarkdownLoadResult> {

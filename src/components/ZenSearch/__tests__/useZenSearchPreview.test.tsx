@@ -263,4 +263,69 @@ describe('useZenSearchPreview', () => {
       expect(result.current.content).toBe('pub fn solve() {}');
     });
   });
+
+  it('publishes AST analysis before retrieval-atom enrichment completes', async () => {
+    const selectedResult = buildCodeSearchResult();
+    const deferredAnalysis = createDeferred<{
+      repoId: string;
+      path: string;
+      language: string;
+      nodes: [];
+      edges: [];
+      projections: [];
+      diagnostics: [];
+      retrievalAtoms: [];
+    }>();
+    const deferredAtoms = createDeferred<Array<{
+      ownerId: string;
+      chunkId: string;
+      semanticType: string;
+      fingerprint: string;
+      tokenEstimate: number;
+      surface: string;
+    }>>();
+
+    mocks.getCodeAstAnalysis.mockReturnValueOnce(deferredAnalysis.promise);
+    mocks.getCodeAstRetrievalChunksArrow.mockReturnValueOnce(deferredAtoms.promise);
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    deferredAnalysis.resolve({
+      repoId: 'kernel',
+      path: 'kernel/src/lib.rs',
+      language: 'rust',
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    });
+
+    await waitFor(() => {
+      expect(result.current.codeAstLoading).toBe(false);
+      expect(result.current.codeAstAnalysis?.repoId).toBe('kernel');
+    });
+
+    expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([]);
+
+    deferredAtoms.resolve([{
+      ownerId: 'symbol:solve',
+      chunkId: 'ast:solve:declaration',
+      semanticType: 'function',
+      fingerprint: 'fp:solve',
+      tokenEstimate: 12,
+      surface: 'declaration',
+    }]);
+
+    await waitFor(() => {
+      expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([{
+        ownerId: 'symbol:solve',
+        chunkId: 'ast:solve:declaration',
+        semanticType: 'function',
+        fingerprint: 'fp:solve',
+        tokenEstimate: 12,
+        surface: 'declaration',
+      }]);
+    });
+  });
 });

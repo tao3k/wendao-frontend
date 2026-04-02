@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CodeAstAnalysisResponse,
   GraphNeighborsResponse,
@@ -31,12 +31,8 @@ export interface ZenSearchPreviewState {
   codeAstError?: string | null;
 }
 
-export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSearchPreviewState {
-  const previewIdentity = useMemo(
-    () => (selectedResult ? getSearchResultIdentity(selectedResult) : null),
-    [selectedResult]
-  );
-  const [state, setState] = useState<ZenSearchPreviewState>({
+function createEmptyPreviewState(): ZenSearchPreviewState {
+  return {
     loading: false,
     error: null,
     contentPath: null,
@@ -50,29 +46,36 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
     codeAstAnalysis: null,
     codeAstLoading: false,
     codeAstError: null,
-  });
+  };
+}
+
+export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSearchPreviewState {
+  const previewIdentity = useMemo(
+    () => (selectedResult ? getSearchResultIdentity(selectedResult) : null),
+    [selectedResult]
+  );
+  const previewCacheRef = useRef(new Map<string, ZenSearchPreviewState>());
+  const [state, setState] = useState<ZenSearchPreviewState>(createEmptyPreviewState);
 
   useEffect(() => {
     if (!isMeaningfulSelection(selectedResult)) {
-      setState({
-        loading: false,
-        error: null,
-        contentPath: null,
-        content: null,
-        contentType: null,
-        graphNeighbors: null,
-        selectedResult: null,
-        markdownAnalysis: null,
-        markdownAnalysisLoading: false,
-        markdownAnalysisError: null,
-        codeAstAnalysis: null,
-        codeAstLoading: false,
-        codeAstError: null,
-      });
+      setState(createEmptyPreviewState());
       return;
     }
 
     const loadPlan = buildZenSearchPreviewLoadPlan(selectedResult);
+    if (previewIdentity) {
+      const cachedPreview = previewCacheRef.current.get(previewIdentity);
+      if (cachedPreview) {
+        setState({
+          ...cachedPreview,
+          selectedResult,
+          contentPath: loadPlan.contentPath,
+        });
+        return;
+      }
+    }
+
     let cancelled = false;
 
     setState((current) => ({
@@ -96,16 +99,24 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
         return;
       }
 
-      setState((current) => ({
-        ...current,
-        loading: false,
-        error: base.error,
+      setState((current) => {
+        const nextState = {
+          ...current,
+          loading: false,
+          error: base.error,
         contentPath: loadPlan.contentPath,
         content: base.content,
-        contentType: base.contentType,
-        graphNeighbors: base.graphNeighbors,
-        selectedResult,
-      }));
+          contentType: base.contentType,
+          graphNeighbors: base.graphNeighbors,
+          selectedResult,
+        };
+
+        if (previewIdentity) {
+          previewCacheRef.current.set(previewIdentity, nextState);
+        }
+
+        return nextState;
+      });
     })();
 
     if (loadPlan.codeAstEligible) {
@@ -119,12 +130,20 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
           return;
         }
 
-        setState((current) => ({
-          ...current,
-          codeAstAnalysis: codeAst.codeAstAnalysis,
-          codeAstLoading: false,
-          codeAstError: codeAst.codeAstError,
-        }));
+        setState((current) => {
+          const nextState = {
+            ...current,
+            codeAstAnalysis: codeAst.codeAstAnalysis,
+            codeAstLoading: false,
+            codeAstError: codeAst.codeAstError,
+          };
+
+          if (previewIdentity) {
+            previewCacheRef.current.set(previewIdentity, nextState);
+          }
+
+          return nextState;
+        });
 
         if (!codeAst.codeAstAnalysis) {
           return;
@@ -141,13 +160,19 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
             return current;
           }
 
-          return {
+          const nextState = {
             ...current,
             codeAstAnalysis: {
               ...current.codeAstAnalysis,
               retrievalAtoms,
             },
           };
+
+          if (previewIdentity) {
+            previewCacheRef.current.set(previewIdentity, nextState);
+          }
+
+          return nextState;
         });
       })();
     }
@@ -160,12 +185,20 @@ export function useZenSearchPreview(selectedResult: SearchResult | null): ZenSea
           return;
         }
 
-        setState((current) => ({
-          ...current,
-          markdownAnalysis: markdown.markdownAnalysis,
-          markdownAnalysisLoading: false,
-          markdownAnalysisError: markdown.markdownAnalysisError,
-        }));
+        setState((current) => {
+          const nextState = {
+            ...current,
+            markdownAnalysis: markdown.markdownAnalysis,
+            markdownAnalysisLoading: false,
+            markdownAnalysisError: markdown.markdownAnalysisError,
+          };
+
+          if (previewIdentity) {
+            previewCacheRef.current.set(previewIdentity, nextState);
+          }
+
+          return nextState;
+        });
       })();
     }
 

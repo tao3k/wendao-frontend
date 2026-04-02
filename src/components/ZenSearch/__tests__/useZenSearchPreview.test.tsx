@@ -78,6 +78,20 @@ function buildCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildSecondCodeSearchResult(): SearchResult {
+  return {
+    ...buildCodeSearchResult(),
+    stem: 'Kernel Integrator',
+    title: 'Kernel Integrator',
+    path: 'kernel/src/integrator.rs',
+    navigationTarget: {
+      path: 'kernel/src/integrator.rs',
+      category: 'doc',
+      projectName: 'kernel',
+    },
+  } as SearchResult;
+}
+
 describe('useZenSearchPreview', () => {
   beforeEach(() => {
     mocks.getVfsContent.mockReset();
@@ -327,5 +341,64 @@ describe('useZenSearchPreview', () => {
         surface: 'declaration',
       }]);
     });
+  });
+
+  it('reuses cached preview state when revisiting a result identity', async () => {
+    mocks.getVfsContent.mockImplementation(async (path: string) => ({
+      content: `content:${path}`,
+      contentType: 'text/plain',
+    }));
+    mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => ({
+      repoId: 'kernel',
+      path,
+      language: 'rust',
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    }));
+    mocks.getCodeAstRetrievalChunksArrow.mockImplementation(async (path: string) => ([{
+      ownerId: `symbol:${path}`,
+      chunkId: `atom:${path}`,
+      semanticType: 'function',
+      fingerprint: `fp:${path}`,
+      tokenEstimate: 12,
+      surface: 'declaration',
+    }]));
+
+    const primary = buildCodeSearchResult();
+    const secondary = buildSecondCodeSearchResult();
+    const { result, rerender } = renderHook(
+      ({ selected }) => useZenSearchPreview(selected),
+      {
+        initialProps: { selected: primary as SearchResult | null },
+      }
+    );
+
+    await waitFor(() => {
+      expect(result.current.content).toBe('content:kernel/src/lib.rs');
+      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/lib.rs');
+    });
+
+    expect(mocks.getVfsContent).toHaveBeenCalledTimes(1);
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(1);
+
+    rerender({ selected: secondary });
+
+    await waitFor(() => {
+      expect(result.current.content).toBe('content:kernel/src/integrator.rs');
+      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/integrator.rs');
+    });
+
+    expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+
+    rerender({ selected: primary });
+
+    expect(result.current.content).toBe('content:kernel/src/lib.rs');
+    expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/lib.rs');
+    expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
   });
 });

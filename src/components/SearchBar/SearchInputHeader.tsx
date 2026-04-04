@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { startTransition, useEffect, useState } from 'react';
 import { Search, Sparkles, X } from 'lucide-react';
 import type { SearchBarCopy, UiLocale } from './types';
 
@@ -31,6 +31,12 @@ export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
   onCompositionStart,
   onCompositionEnd,
 }) => {
+  const [draftQuery, setDraftQuery] = useState(query);
+
+  useEffect(() => {
+    setDraftQuery(query);
+  }, [query]);
+
   return (
     <div className="search-input-container">
       <Search size={18} className="search-icon" />
@@ -40,8 +46,14 @@ export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
         autoFocus
         className="search-input"
         placeholder={copy.placeholder}
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
+        value={draftQuery}
+        onChange={(event) => {
+          const nextQuery = event.target.value;
+          setDraftQuery(nextQuery);
+          startTransition(() => {
+            onQueryChange(nextQuery);
+          });
+        }}
         onKeyDown={onKeyDown}
         onCompositionStart={onCompositionStart}
         onCompositionEnd={onCompositionEnd}
@@ -58,7 +70,7 @@ export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
         <span className={`search-toolbar-btn-indicator ${showSuggestions ? 'active' : 'inactive'}`} aria-hidden="true" />
       </button>
       <span className={`search-loading ${isLoading ? 'is-visible' : ''}`}>{copy.searching}</span>
-      <button className="search-close" onClick={onClose}>
+      <button type="button" className="search-close" onClick={onClose}>
         <X size={16} />
       </button>
     </div>

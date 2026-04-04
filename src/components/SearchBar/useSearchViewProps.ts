@@ -12,6 +12,7 @@ import { SearchResultsPanel } from './SearchResultsPanel';
 import { buildSearchResultsPanelProps, buildSearchShellProps } from './searchBarPanelPropsBuilder';
 import type { SearchBarControllerShellProps } from './searchBarControllerTypes';
 import type { SearchMeta } from './searchExecution';
+import { buildSearchResultsListModel } from './interface/results';
 import type { ConfidenceTone } from './searchStateUtils';
 import type { SearchResultSection } from './searchResultSections';
 import type { SearchBarCopy, SearchResult, SearchScope, SearchSort, UiLocale } from './types';
@@ -25,6 +26,7 @@ interface UseSearchViewStateParams {
   copy: SearchBarCopy;
   locale: UiLocale;
   query: string;
+  resultsQuery: string;
   isLoading: boolean;
   showSuggestions: boolean;
   scope: SearchScope;
@@ -39,8 +41,7 @@ interface UseSearchViewStateParams {
   error: string | null;
   hasCodeFilterOnlyQuery: boolean;
   visibleSections: SearchResultSection[];
-  selectedIndex: number;
-  suggestionCount: number;
+  resultSelectedIndex: number;
   canOpenReferences: boolean;
   canOpenGraph: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
@@ -59,7 +60,7 @@ interface UseSearchViewActionsParams {
   onCompositionEnd: () => void;
   onScopeChange: (scope: SearchScope) => void;
   onSortModeChange: (sortMode: SearchSort) => void;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
+  setResultSelectedIndex: Dispatch<SetStateAction<number>>;
   onOpen: (result: SearchResult, event?: MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
   onOpenDefinition: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void;
@@ -79,6 +80,7 @@ export function useSearchViewProps({
     copy,
     locale,
     query,
+    resultsQuery,
     isLoading,
     showSuggestions,
     scope,
@@ -93,8 +95,7 @@ export function useSearchViewProps({
     error,
     hasCodeFilterOnlyQuery,
     visibleSections,
-    selectedIndex,
-    suggestionCount,
+    resultSelectedIndex,
     canOpenReferences,
     canOpenGraph,
     isResultPreviewExpanded,
@@ -112,7 +113,7 @@ export function useSearchViewProps({
     onCompositionEnd,
     onScopeChange,
     onSortModeChange,
-    setSelectedIndex,
+    setResultSelectedIndex,
     onOpen,
     onOpenDefinition,
     onOpenReferences,
@@ -124,8 +125,12 @@ export function useSearchViewProps({
   searchShellProps: SearchBarControllerShellProps;
   searchResultsPanelProps: SearchResultsPanelViewProps;
 } {
-  return useMemo(() => {
-    const searchShellProps = buildSearchShellProps({
+  const searchResultsListModel = useMemo(() => (
+    buildSearchResultsListModel(visibleSections)
+  ), [visibleSections]);
+
+  const searchShellProps = useMemo(() => {
+    return buildSearchShellProps({
       inputRef,
       copy,
       locale,
@@ -153,36 +158,7 @@ export function useSearchViewProps({
       onScopeChange,
       onSortModeChange,
     });
-
-    const searchResultsPanelProps = buildSearchResultsPanelProps({
-      query,
-      copy,
-      isLoading,
-      hasCodeFilterOnlyQuery,
-      visibleSections,
-      selectedIndex,
-      suggestionCount,
-      canOpenReferences,
-      canOpenGraph,
-      isResultPreviewExpanded,
-      renderIcon,
-      renderTitle,
-      setSelectedIndex,
-      onOpen,
-      onOpenDefinition,
-      onOpenReferences,
-      onOpenGraph,
-      onTogglePreview,
-      onPreview,
-    });
-
-    return {
-      searchShellProps,
-      searchResultsPanelProps,
-    };
   }, [
-    canOpenGraph,
-    canOpenReferences,
     confidenceLabel,
     confidenceTone,
     fallbackLabel,
@@ -192,36 +168,70 @@ export function useSearchViewProps({
     repoOverviewStatus,
     repoSyncStatus,
     onApplyRepoFacet,
-    hasCodeFilterOnlyQuery,
     inputRef,
     isLoading,
-    isResultPreviewExpanded,
     locale,
     modeLabel,
     onClose,
     onCompositionEnd,
     onCompositionStart,
     onInputKeyDown,
+    onQueryChange,
+    onScopeChange,
+    onSortModeChange,
+    onToggleSuggestions,
+    query,
+    scope,
+    searchMeta,
+    showSuggestions,
+    sortMode,
+  ]);
+
+  const searchResultsPanelProps = useMemo(() => {
+    return buildSearchResultsPanelProps({
+      query: resultsQuery,
+      copy,
+      isLoading,
+      hasCodeFilterOnlyQuery,
+      rows: searchResultsListModel.rows,
+      visibleResultCount: searchResultsListModel.visibleResultCount,
+      selectedIndex: resultSelectedIndex,
+      canOpenReferences,
+      canOpenGraph,
+      isResultPreviewExpanded,
+      renderIcon,
+      renderTitle,
+      setResultSelectedIndex,
+      onOpen,
+      onOpenDefinition,
+      onOpenReferences,
+      onOpenGraph,
+      onTogglePreview,
+      onPreview,
+    });
+  }, [
+    canOpenGraph,
+    canOpenReferences,
+    copy,
+    hasCodeFilterOnlyQuery,
+    isLoading,
+    isResultPreviewExpanded,
     onOpen,
     onOpenDefinition,
     onOpenGraph,
     onOpenReferences,
-    onQueryChange,
-    onScopeChange,
-    onSortModeChange,
+    onPreview,
     onTogglePreview,
-    onToggleSuggestions,
-    query,
     renderIcon,
     renderTitle,
-    scope,
-    searchMeta,
-    selectedIndex,
-    setSelectedIndex,
-    showSuggestions,
-    sortMode,
-    suggestionCount,
-    visibleSections,
-    onPreview,
+    resultsQuery,
+    searchResultsListModel,
+    resultSelectedIndex,
+    setResultSelectedIndex,
   ]);
+
+  return {
+    searchShellProps,
+    searchResultsPanelProps,
+  };
 }

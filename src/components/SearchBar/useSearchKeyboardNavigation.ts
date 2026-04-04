@@ -3,9 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { AutocompleteSuggestion } from '../../api';
 import {
   clampSelectableIndex,
-  getTotalSelectableItems,
   isEscapeKey,
-  resolveEnterAction,
   shouldAcceptTabSuggestion,
 } from './searchKeyboardUtils';
 import { toSearchSelection } from './searchResultNormalization';
@@ -16,16 +14,19 @@ interface UseSearchKeyboardNavigationParams {
   query: string;
   suggestions: AutocompleteSuggestion[];
   suggestionCount: number;
+  activeSuggestionIndex: number;
   resultCount: number;
-  selectedIndex: number;
+  resultSelectedIndex: number;
   visibleResults: SearchResult[];
   inputRef: RefObject<HTMLInputElement | null>;
   onClose: () => void;
   onResultSelect: SearchSelectionAction;
+  onPreviewSelect?: (result: SearchResult) => void;
   setQuery: Dispatch<SetStateAction<string>>;
   setShowSuggestions: Dispatch<SetStateAction<boolean>>;
-  setSuggestions: Dispatch<SetStateAction<AutocompleteSuggestion[]>>;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
+  setResultSelectedIndex: Dispatch<SetStateAction<number>>;
+  setActiveSuggestionIndex: (index: number) => void;
+  selectSuggestion: (suggestion?: AutocompleteSuggestion) => boolean;
 }
 
 interface UseSearchKeyboardNavigationResult {
@@ -34,22 +35,32 @@ interface UseSearchKeyboardNavigationResult {
   handleSuggestionClick: (suggestion: AutocompleteSuggestion) => void;
 }
 
+interface ApplySuggestionOptions {
+  keepSuggestionsOpen?: boolean;
+}
+
 export function useSearchKeyboardNavigation({
   isComposing,
   query,
   suggestions,
   suggestionCount,
+  activeSuggestionIndex,
   resultCount,
-  selectedIndex,
+  resultSelectedIndex,
   visibleResults,
   inputRef,
   onClose,
   onResultSelect,
+  onPreviewSelect: _onPreviewSelect,
   setQuery,
   setShowSuggestions,
-  setSuggestions,
-  setSelectedIndex,
+  setResultSelectedIndex,
+  setActiveSuggestionIndex,
+  selectSuggestion,
 }: UseSearchKeyboardNavigationParams): UseSearchKeyboardNavigationResult {
+  const hasActiveSuggestions = suggestionCount > 0;
+  const hasResultItems = !hasActiveSuggestions && resultCount > 0;
+
   const closeAfterSelection = useCallback(
     (selection: void | Promise<void>) => {
       if (selection && typeof (selection as Promise<void>).then === 'function') {
@@ -61,18 +72,26 @@ export function useSearchKeyboardNavigation({
     [onClose]
   );
 
-  const applySuggestion = useCallback((suggestion?: AutocompleteSuggestion) => {
-    if (!suggestion) {
+  const applySuggestion = useCallback((
+    suggestion?: AutocompleteSuggestion,
+    { keepSuggestionsOpen = false }: ApplySuggestionOptions = {},
+  ) => {
+    if (!selectSuggestion(suggestion) || !suggestion) {
       return false;
     }
 
     setQuery(suggestion.text);
-    setShowSuggestions(true);
-    setSuggestions([]);
-    setSelectedIndex(0);
+    setShowSuggestions(keepSuggestionsOpen);
+    setResultSelectedIndex(0);
     inputRef.current?.focus();
     return true;
-  }, [inputRef, setQuery, setSelectedIndex, setShowSuggestions, setSuggestions]);
+  }, [
+    inputRef,
+    selectSuggestion,
+    setQuery,
+    setResultSelectedIndex,
+    setShowSuggestions,
+  ]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -86,30 +105,38 @@ export function useSearchKeyboardNavigation({
         return;
       }
 
-      const totalItems = getTotalSelectableItems(suggestionCount, resultCount);
-      if (totalItems <= 0) {
+      if (!hasActiveSuggestions && !hasResultItems) {
         return;
       }
 
       switch (event.key) {
         case 'ArrowDown':
           event.preventDefault();
-          setSelectedIndex((prev) => clampSelectableIndex(prev + 1, totalItems));
+          if (hasActiveSuggestions) {
+            setActiveSuggestionIndex(clampSelectableIndex(activeSuggestionIndex + 1, suggestionCount));
+          } else {
+            setResultSelectedIndex((prev) => clampSelectableIndex(prev + 1, resultCount));
+          }
           break;
         case 'ArrowUp':
           event.preventDefault();
-          setSelectedIndex((prev) => clampSelectableIndex(prev - 1, totalItems));
+          if (hasActiveSuggestions) {
+            setActiveSuggestionIndex(clampSelectableIndex(activeSuggestionIndex - 1, suggestionCount));
+          } else {
+            setResultSelectedIndex((prev) => clampSelectableIndex(prev - 1, resultCount));
+          }
           break;
         case 'Enter': {
           event.preventDefault();
-          const action = resolveEnterAction(selectedIndex, suggestionCount, resultCount);
-          if (action.type === 'suggestion') {
-            applySuggestion(suggestions[action.index]);
-          } else if (action.type === 'result') {
-            const selectedResult = visibleResults[action.index];
-            if (selectedResult) {
-              closeAfterSelection(onResultSelect(toSearchSelection(selectedResult)));
-            }
+          if (hasActiveSuggestions) {
+            applySuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0]);
+            break;
+          }
+          const selectedResult = visibleResults[
+            clampSelectableIndex(resultSelectedIndex, resultCount)
+          ];
+          if (selectedResult) {
+            closeAfterSelection(onResultSelect(toSearchSelection(selectedResult)));
           }
           break;
         }
@@ -117,7 +144,9 @@ export function useSearchKeyboardNavigation({
           if (shouldAcceptTabSuggestion(suggestionCount, query)) {
             event.preventDefault();
             event.stopPropagation();
-            applySuggestion(suggestions[0]);
+            applySuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0], {
+              keepSuggestionsOpen: true,
+            });
           }
           break;
       }
@@ -125,13 +154,17 @@ export function useSearchKeyboardNavigation({
     [
       applySuggestion,
       closeAfterSelection,
+      activeSuggestionIndex,
+      hasActiveSuggestions,
+      hasResultItems,
       isComposing,
       onClose,
       onResultSelect,
       query,
+      resultSelectedIndex,
       resultCount,
-      selectedIndex,
-      setSelectedIndex,
+      setActiveSuggestionIndex,
+      setResultSelectedIndex,
       suggestionCount,
       suggestions,
       visibleResults,
@@ -149,9 +182,11 @@ export function useSearchKeyboardNavigation({
     if (event.key === 'Tab' && shouldAcceptTabSuggestion(suggestions.length, query)) {
       event.preventDefault();
       event.stopPropagation();
-      applySuggestion(suggestions[0]);
+      applySuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0], {
+        keepSuggestionsOpen: true,
+      });
     }
-  }, [applySuggestion, onClose, query, suggestions]);
+  }, [activeSuggestionIndex, applySuggestion, onClose, query, suggestions]);
 
   const handleSuggestionClick = useCallback((suggestion: AutocompleteSuggestion) => {
     applySuggestion(suggestion);

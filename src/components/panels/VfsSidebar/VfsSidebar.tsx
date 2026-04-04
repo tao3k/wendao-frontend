@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { api } from '../../../api/clientRuntime';
 import './VfsSidebar.css';
 
 export interface VfsEntry {
@@ -69,25 +70,33 @@ export function VfsSidebar({
 
   // Fetch VFS scan results
   useEffect(() => {
+    let cancelled = false;
+
     const fetchVfs = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch('/api/vfs/scan');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        const result = await api.scanVfs();
+        if (!cancelled) {
+          setEntries(result.entries);
         }
-        const result: VfsScanResult = await response.json();
-        setEntries(result.entries);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to scan VFS');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to scan VFS');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchVfs();
+    void fetchVfs();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Build tree structure from flat entries

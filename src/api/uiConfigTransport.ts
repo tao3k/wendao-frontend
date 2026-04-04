@@ -1,4 +1,8 @@
 import type { UiCapabilities } from './apiContracts';
+import {
+  fetchControlPlaneUiCapabilities,
+  postControlPlaneUiConfig,
+} from './controlPlane/transport';
 
 export interface UiConfigTransportDeps {
   apiBase: string;
@@ -38,12 +42,11 @@ export function createUiConfigTransportState(deps: UiConfigTransportDeps): UiCon
         try {
           const config = await deps.getConfig();
           const uiConfig = deps.toUiConfig(config);
-          const response = await getFetchImpl()(`${deps.apiBase}/ui/config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(uiConfig),
-          });
-          await deps.handleResponse<void>(response);
+          await postControlPlaneUiConfig({
+            apiBase: deps.apiBase,
+            fetchImpl: getFetchImpl(),
+            handleResponse: deps.handleResponse,
+          }, uiConfig);
           return true;
         } catch {
           return false;
@@ -79,8 +82,11 @@ export function createUiConfigTransportState(deps: UiConfigTransportDeps): UiCon
     },
 
     async loadUiCapabilities(): Promise<UiCapabilities> {
-      const response = await getFetchImpl()(`${deps.apiBase}/ui/capabilities`);
-      const capabilities = await deps.handleResponse<Partial<UiCapabilities>>(response);
+      const capabilities = await fetchControlPlaneUiCapabilities<Partial<UiCapabilities>>({
+        apiBase: deps.apiBase,
+        fetchImpl: getFetchImpl(),
+        handleResponse: deps.handleResponse,
+      });
       uiCapabilitiesCache = {
         supportedLanguages: capabilities.supportedLanguages ?? [],
         supportedRepositories: capabilities.supportedRepositories ?? [],

@@ -1,6 +1,12 @@
 import { tableFromIPC } from 'apache-arrow';
 
-import type { GraphLink, GraphNeighborsResponse, GraphNode, StudioNavigationTarget } from './bindings';
+import type {
+  GraphLink,
+  GraphNeighborsResponse,
+  GraphNode,
+  StudioNavigationTarget,
+  Topology3D,
+} from './bindings';
 
 type ArrowRowRecord = Record<string, unknown>;
 
@@ -112,4 +118,63 @@ export function decodeGraphNeighborsFromArrowIpc(
     totalNodes: nodes.length,
     totalLinks: links.length,
   };
+}
+
+export function decodeTopology3DFromArrowIpc(payload: ArrayBuffer): Topology3D {
+  if (payload.byteLength === 0) {
+    return { nodes: [], links: [], clusters: [] };
+  }
+
+  const table = tableFromIPC(payload);
+  const rows = table.toArray() as ArrowRowRecord[];
+  const nodes: Topology3D['nodes'] = [];
+  const links: Topology3D['links'] = [];
+  const clusters: Topology3D['clusters'] = [];
+
+  for (const row of rows) {
+    const rowType = requireString(row, 'rowType');
+    if (rowType === 'node') {
+      nodes.push({
+        id: requireString(row, 'nodeId'),
+        name: requireString(row, 'nodeName'),
+        nodeType: requireString(row, 'nodeType'),
+        position: [
+          toOptionalNumber(row.nodePosX) ?? 0,
+          toOptionalNumber(row.nodePosY) ?? 0,
+          toOptionalNumber(row.nodePosZ) ?? 0,
+        ],
+        ...(toOptionalString(row.nodeClusterId)
+          ? { clusterId: toOptionalString(row.nodeClusterId) }
+          : {}),
+      });
+      continue;
+    }
+    if (rowType === 'link') {
+      links.push({
+        from: requireString(row, 'linkFrom'),
+        to: requireString(row, 'linkTo'),
+        ...(toOptionalString(row.linkLabel)
+          ? { label: toOptionalString(row.linkLabel) }
+          : {}),
+      });
+      continue;
+    }
+    if (rowType === 'cluster') {
+      clusters.push({
+        id: requireString(row, 'clusterId'),
+        name: requireString(row, 'clusterName'),
+        centroid: [
+          toOptionalNumber(row.clusterCentroidX) ?? 0,
+          toOptionalNumber(row.clusterCentroidY) ?? 0,
+          toOptionalNumber(row.clusterCentroidZ) ?? 0,
+        ],
+        nodeCount: toOptionalNumber(row.clusterNodeCount) ?? 0,
+        color: requireString(row, 'clusterColor'),
+      });
+      continue;
+    }
+    throw new Error(`Arrow graph payload contains unknown rowType "${rowType}"`);
+  }
+
+  return { nodes, links, clusters };
 }

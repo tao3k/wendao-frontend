@@ -24,7 +24,16 @@ describe('searchExecutionAllModeHelpers', () => {
       },
       codeResponse: {
         query: 'solver',
-        hits: [],
+        hits: [{
+          stem: 'solve',
+          title: 'solve',
+          path: 'src/solver.jl',
+          docType: 'symbol',
+          tags: ['code', 'kind:function'],
+          score: 0.88,
+          bestSection: 'solve()',
+          matchReason: 'repo_symbol_search',
+        }],
         hitCount: 1,
         selectedMode: 'code_search',
         searchMode: 'code_search',

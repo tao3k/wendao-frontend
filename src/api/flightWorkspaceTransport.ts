@@ -2,8 +2,12 @@ import { create } from '@bufbuild/protobuf';
 import { createClient, ConnectError } from '@connectrpc/connect';
 import { createGrpcWebTransport } from '@connectrpc/connect-web';
 
-import { decodeStudioNavigationTargetFromArrowIpc } from './arrowWorkspaceIpc';
-import type { StudioNavigationTarget } from './bindings';
+import {
+  decodeStudioNavigationTargetFromArrowIpc,
+  decodeVfsContentResponseFromArrowIpc,
+  decodeVfsScanResultFromArrowIpc,
+} from './arrowWorkspaceIpc';
+import type { StudioNavigationTarget, VfsContentResponse, VfsScanResult } from './bindings';
 import {
   FlightData,
   FlightDescriptor,
@@ -20,11 +24,18 @@ import { ApiClientError } from './responseTransport';
 const WENDAO_SCHEMA_VERSION_HEADER = 'x-wendao-schema-version';
 const WENDAO_VFS_PATH_HEADER = 'x-wendao-vfs-path';
 const VFS_RESOLVE_ROUTE = '/vfs/resolve';
+const VFS_CONTENT_ROUTE = '/vfs/content';
+const VFS_SCAN_ROUTE = '/vfs/scan';
+
+export interface WorkspaceFlightPathRequest {
+  baseUrl: string;
+  schemaVersion: string;
+  path: string;
+}
 
 export interface WorkspaceFlightRequest {
   baseUrl: string;
   schemaVersion: string;
-  path: string;
 }
 
 export interface FlightServiceClientLike {
@@ -43,29 +54,57 @@ export interface FlightWorkspaceTransportDeps {
   decodeNavigationTarget?: (
     payload: ArrayBuffer
   ) => StudioNavigationTarget | undefined;
+  decodeVfsContent?: (payload: ArrayBuffer) => VfsContentResponse | undefined;
+  decodeVfsScan?: (
+    payload: ArrayBuffer,
+    appMetadata: Uint8Array
+  ) => VfsScanResult;
 }
 
-export function buildWorkspaceFlightDescriptor(route: typeof VFS_RESOLVE_ROUTE): FlightDescriptor {
+export function buildWorkspaceFlightDescriptor(
+  route:
+    | typeof VFS_RESOLVE_ROUTE
+    | typeof VFS_CONTENT_ROUTE
+    | typeof VFS_SCAN_ROUTE
+): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
     path: route.slice(1).split('/'),
   });
 }
 
-export function buildVfsResolveFlightHeaders(request: WorkspaceFlightRequest): Headers {
+function buildSchemaVersionHeaders(request: WorkspaceFlightRequest): Headers {
   const headers = new Headers();
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
+  return headers;
+}
+
+function buildVfsPathFlightHeaders(request: WorkspaceFlightPathRequest): Headers {
+  const headers = buildSchemaVersionHeaders(request);
   headers.set(WENDAO_VFS_PATH_HEADER, request.path.trim());
   return headers;
 }
 
+export function buildVfsResolveFlightHeaders(request: WorkspaceFlightPathRequest): Headers {
+  return buildVfsPathFlightHeaders(request);
+}
+
+export function buildVfsContentFlightHeaders(request: WorkspaceFlightPathRequest): Headers {
+  return buildVfsPathFlightHeaders(request);
+}
+
+export function buildVfsScanFlightHeaders(request: WorkspaceFlightRequest): Headers {
+  return buildSchemaVersionHeaders(request);
+}
+
 export async function resolveStudioPathFlight(
-  request: WorkspaceFlightRequest,
+  request: WorkspaceFlightPathRequest,
   deps: FlightWorkspaceTransportDeps = {}
 ): Promise<StudioNavigationTarget> {
   const routePayload = await loadWorkspaceFlightRoute(
     request.baseUrl,
     buildVfsResolveFlightHeaders(request),
+    VFS_RESOLVE_ROUTE,
     deps
   );
   const target =
@@ -81,16 +120,59 @@ export async function resolveStudioPathFlight(
   return target;
 }
 
+export async function loadVfsContentFlight(
+  request: WorkspaceFlightPathRequest,
+  deps: FlightWorkspaceTransportDeps = {}
+): Promise<VfsContentResponse> {
+  const routePayload = await loadWorkspaceFlightRoute(
+    request.baseUrl,
+    buildVfsContentFlightHeaders(request),
+    VFS_CONTENT_ROUTE,
+    deps
+  );
+  const content =
+    (deps.decodeVfsContent ?? decodeVfsContentResponseFromArrowIpc)(
+      routePayload.payload
+    ) ?? decodeVfsContentMetadata(routePayload.appMetadata);
+  if (!content) {
+    throw new ApiClientError(
+      'FLIGHT_WORKSPACE_ERROR',
+      'Flight VFS content route returned no content payload'
+    );
+  }
+  return content;
+}
+
+export async function loadVfsScanFlight(
+  request: WorkspaceFlightRequest,
+  deps: FlightWorkspaceTransportDeps = {}
+): Promise<VfsScanResult> {
+  const routePayload = await loadWorkspaceFlightRoute(
+    request.baseUrl,
+    buildVfsScanFlightHeaders(request),
+    VFS_SCAN_ROUTE,
+    deps
+  );
+  return (deps.decodeVfsScan ?? decodeVfsScanResultFromArrowIpc)(
+    routePayload.payload,
+    routePayload.appMetadata
+  );
+}
+
 async function loadWorkspaceFlightRoute(
   baseUrl: string,
   headers: Headers,
+  route:
+    | typeof VFS_RESOLVE_ROUTE
+    | typeof VFS_CONTENT_ROUTE
+    | typeof VFS_SCAN_ROUTE,
   deps: FlightWorkspaceTransportDeps
 ): Promise<{
   appMetadata: Uint8Array;
   payload: ArrayBuffer;
 }> {
   const client = (deps.createClient ?? createFlightServiceClient)(baseUrl);
-  const descriptor = buildWorkspaceFlightDescriptor(VFS_RESOLVE_ROUTE);
+  const descriptor = buildWorkspaceFlightDescriptor(route);
   try {
     const flightInfo = await client.getFlightInfo(descriptor, { headers });
     const ticket = readFlightTicket(flightInfo);
@@ -136,6 +218,31 @@ function decodeNavigationTargetMetadata(
     navigationTarget?: StudioNavigationTarget;
   };
   return parsed.navigationTarget;
+}
+
+function decodeVfsContentMetadata(
+  appMetadata: Uint8Array
+): VfsContentResponse | undefined {
+  if (appMetadata.byteLength === 0) {
+    return undefined;
+  }
+  const parsed = JSON.parse(new TextDecoder().decode(appMetadata)) as {
+    path?: string;
+    contentType?: string;
+    content?: string;
+  };
+  if (
+    typeof parsed.path !== 'string' ||
+    typeof parsed.contentType !== 'string' ||
+    typeof parsed.content !== 'string'
+  ) {
+    return undefined;
+  }
+  return {
+    path: parsed.path,
+    contentType: parsed.contentType,
+    content: parsed.content,
+  };
 }
 
 function mapFlightWorkspaceError(error: unknown): ApiClientError {

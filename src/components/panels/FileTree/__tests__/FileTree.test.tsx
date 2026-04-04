@@ -7,8 +7,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { FileTree } from '../FileTree';
+import { api } from '../../../../api';
 import { resetConfig } from '../../../../config/loader';
 import { resetRepoIndexPriorityForTest } from '../../../repoIndexPriority';
+import * as flightSearchTransport from '../../../../api/flightSearchTransport';
+import * as flightWorkspaceTransport from '../../../../api/flightWorkspaceTransport';
 
 const originalFetch = global.fetch;
 
@@ -17,6 +20,10 @@ describe('FileTree', () => {
   let callOrder: string[] = [];
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let loadVfsScanFlightSpy: ReturnType<typeof vi.spyOn>;
+  let resolveSearchFlightSchemaVersionSpy: ReturnType<typeof vi.spyOn>;
+  let enqueueRepoIndexSpy: ReturnType<typeof vi.spyOn> | null = null;
+  let getRepoIndexStatusSpy: ReturnType<typeof vi.spyOn> | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,6 +33,17 @@ describe('FileTree', () => {
     callOrder = [];
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveSearchFlightSchemaVersionSpy = vi
+      .spyOn(flightSearchTransport, 'resolveSearchFlightSchemaVersion')
+      .mockReturnValue('v2');
+    loadVfsScanFlightSpy = vi
+      .spyOn(flightWorkspaceTransport, 'loadVfsScanFlight')
+      .mockImplementation(async () => {
+        const response = await global.fetch('/api/vfs/scan');
+        return (await (response as Response).json()) as Awaited<
+          ReturnType<typeof flightWorkspaceTransport.loadVfsScanFlight>
+        >;
+      });
   });
 
   afterEach(() => {
@@ -33,6 +51,12 @@ describe('FileTree', () => {
     resetConfig();
     resetRepoIndexPriorityForTest();
     window.localStorage.clear();
+    enqueueRepoIndexSpy?.mockRestore();
+    enqueueRepoIndexSpy = null;
+    getRepoIndexStatusSpy?.mockRestore();
+    getRepoIndexStatusSpy = null;
+    loadVfsScanFlightSpy.mockRestore();
+    resolveSearchFlightSchemaVersionSpy.mockRestore();
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
   });
@@ -127,7 +151,20 @@ describe('FileTree', () => {
   });
 
   it('prioritizes repo indexing when opening a repo-project group', async () => {
-    const enqueueBodies: string[] = [];
+    enqueueRepoIndexSpy = vi.spyOn(api, 'enqueueRepoIndex').mockResolvedValue({
+      total: 1,
+      queued: 1,
+      checking: 0,
+      syncing: 0,
+      indexing: 0,
+      ready: 0,
+      unsupported: 0,
+      failed: 0,
+      targetConcurrency: 1,
+      maxConcurrency: 1,
+      syncConcurrencyLimit: 1,
+      repos: [],
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
         return {
@@ -148,24 +185,6 @@ plugins = ["julia"]
 
       if (url === '/api/ui/config' && options?.method === 'POST') {
         return { ok: true, json: async () => ({}) } as Response;
-      }
-
-      if (url === '/api/repo/index' && options?.method === 'POST') {
-        enqueueBodies.push(String(options.body ?? ''));
-        return {
-          ok: true,
-          json: async () => ({
-            total: 1,
-            queued: 1,
-            checking: 0,
-            syncing: 0,
-            indexing: 0,
-            ready: 0,
-            unsupported: 0,
-            failed: 0,
-            repos: [],
-          }),
-        } as Response;
       }
 
       if (url === '/api/vfs/scan') {
@@ -194,7 +213,7 @@ plugins = ["julia"]
     fireEvent.click(screen.getByText('sciml'));
 
     await waitFor(() => {
-      expect(enqueueBodies).toContain(JSON.stringify({ repo: 'sciml' }));
+      expect(enqueueRepoIndexSpy).toHaveBeenCalledWith({ repo: 'sciml' });
     });
     expect(mockOnFileSelect).not.toHaveBeenCalled();
   });
@@ -261,6 +280,33 @@ plugins = ["julia"]
 
   it('derives unsupported layout summaries from repo index status payloads', async () => {
     let statusCallCount = 0;
+    getRepoIndexStatusSpy = vi.spyOn(api, 'getRepoIndexStatus').mockImplementation(async () => {
+      statusCallCount += 1;
+      return {
+        total: 3,
+        queued: 0,
+        checking: 0,
+        syncing: 0,
+        indexing: 0,
+        ready: 1,
+        unsupported: 2,
+        failed: 0,
+        repos: [
+          {
+            repoId: 'StokesDiffEq.jl',
+            phase: 'unsupported',
+            lastError: "repo 'StokesDiffEq.jl' has unsupported layout: missing Project.toml",
+            attemptCount: 1,
+          },
+          {
+            repoId: 'TensorFlowDiffEq.jl',
+            phase: 'unsupported',
+            lastError: "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
+            attemptCount: 1,
+          },
+        ],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
         return {
@@ -282,37 +328,6 @@ plugins = ["julia"]
 
       if (url === '/api/ui/config' && options?.method === 'POST') {
         return { ok: true, json: async () => ({}) } as Response;
-      }
-
-      if (url === '/api/repo/index/status') {
-        statusCallCount += 1;
-        return {
-          ok: true,
-          json: async () => ({
-            total: 3,
-            queued: 0,
-            checking: 0,
-            syncing: 0,
-            indexing: 0,
-            ready: 1,
-            unsupported: 2,
-            failed: 0,
-            repos: [
-              {
-                repo_id: 'StokesDiffEq.jl',
-                phase: 'unsupported',
-                last_error: "repo 'StokesDiffEq.jl' has unsupported layout: missing Project.toml",
-                attempt_count: 1,
-              },
-              {
-                repo_id: 'TensorFlowDiffEq.jl',
-                phase: 'unsupported',
-                last_error: "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
-                attempt_count: 1,
-              },
-            ],
-          }),
-        } as Response;
       }
 
       if (url === '/api/vfs/scan') {
@@ -548,6 +563,21 @@ plugins = ["julia"]
 
   it('reports repo index status separately from VFS status', async () => {
     const onStatusChange = vi.fn();
+    getRepoIndexStatusSpy = vi.spyOn(api, 'getRepoIndexStatus').mockResolvedValue({
+      total: 1,
+      queued: 0,
+      checking: 0,
+      syncing: 0,
+      indexing: 1,
+      ready: 0,
+      unsupported: 0,
+      failed: 0,
+      targetConcurrency: 3,
+      maxConcurrency: 15,
+      syncConcurrencyLimit: 2,
+      currentRepoId: 'sciml',
+      repos: [],
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
         return {
@@ -559,27 +589,6 @@ plugins = ["julia"]
 
       if (url === '/api/ui/config' && options?.method === 'POST') {
         return { ok: true, json: async () => ({}) } as Response;
-      }
-
-      if (url === '/api/repo/index/status') {
-        return {
-          ok: true,
-          json: async () => ({
-            total: 1,
-            queued: 0,
-            checking: 0,
-            syncing: 0,
-            indexing: 1,
-            ready: 0,
-            unsupported: 0,
-            failed: 0,
-            target_concurrency: 3,
-            max_concurrency: 15,
-            sync_concurrency_limit: 2,
-            current_repo_id: 'sciml',
-            repos: [],
-          }),
-        } as Response;
       }
 
       if (url === '/api/vfs/scan') {

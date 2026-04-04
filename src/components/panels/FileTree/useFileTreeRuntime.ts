@@ -73,7 +73,7 @@ export function useFileTreeRuntime({
 
         try {
           await api.setUiConfig(uiConfig);
-          console.log('Pushed wendao.toml config to backend:', uiConfig);
+          console.log('Pushed runtime UI config to backend:', uiConfig);
         } catch (pushErr) {
           console.warn('Failed to push config to backend:', pushErr);
         }

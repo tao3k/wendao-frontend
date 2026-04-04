@@ -77,10 +77,120 @@ The active Flight stack in `package.json` is now:
 For same-port Arrow Flight profiling against the live gateway, run:
 
 ```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test:hotspot-perf'
 direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test:live-flight-perf'
 ```
 
-The harness reads the checked-in `wendao.toml`, pushes the current UI config,
+`npm run test:hotspot-perf` records hotspot unit-trace artifacts for the live
+typing/render path, including scenario-level traces for `sec lang:julia`,
+repo-backed code-open canonicalization, and App-side repo-code hydration
+without graph fetches, plus large-result-list selection shifts that should only
+rerender the affected rows, plus a large code-result typing scenario that
+tracks the left-pane render budget under the current `react-virtuoso`
+threshold/window contract, plus dropdown selection-shift traces under the
+shared `12`-item suggestion budget, plus a controller-level suggestion-hover
+trace that proves the shell and left results pane stay stable when only the
+dropdown highlight changes, plus an autocomplete-core no-op projection trace
+that proves repeated identical suggestion collections do not add render churn,
+plus a semantic refresh-key trace that proves equivalent filter/query rerenders
+do not trigger another `autocomplete.refresh()`, plus a combined
+`SearchInputHeader -> autocomplete refresh` trace that proves one semantic
+input change only triggers one refresh, plus a SearchBar one-character
+refinement trace that proves visible results settle on the refined query
+without extra autocomplete churn, plus a keyboard suggestion-browsing trace
+that proves selecting a highlighted dropdown suggestion settles the visible
+results onto the selected query without stale result opens and closes the
+dropdown instead of keeping suggestion churn alive after acceptance,
+and writes
+`$PRJ_CACHE_HOME/agent/tmp/wendao_frontend_hotspot_perf_traces.json`.
+
+The default `all` scope now treats code filters as frontend semantics instead
+of raw backend query text: search execution and autocomplete strip `lang:`,
+`repo:`, `kind:`, and `path:` tokens down to the base query before calling the
+gateway, pure filter-only queries stay local, and the visible-result contract
+is now explicit in tests: matching code hits win when they exist, otherwise the
+view falls back to non-code results.
+
+The repo-aware code lane is now Flight-first across every repo-facing search
+facet. Same-origin Flight owns repo-content hits through
+`src/api/flightRepoSearchTransport.ts`, the gateway repo-search route now
+accepts the repo identifier per request instead of using one fixed mounted
+repo, and the explicit `doc` facet now uses the dedicated
+`/analysis/repo-doc-coverage` Flight route instead of the older JSON surface.
+
+That boundary is now explicit in the main search interface too: when a
+repo-aware `all` or `code` query has no explicit repo facet, the frontend no
+longer fans out to repo-intelligence `module`, `symbol`, or `example` JSON
+endpoints. The default repo-aware interface stays on Flight-backed
+repo-content plus Flight-backed references, and the remaining JSON surfaces
+are now limited to the intentional control-plane routes for health, UI
+config/capabilities, and Julia deployment artifact inspection.
+
+Those remaining JSON/control routes are now explicitly centralized under
+`src/api/controlPlane/*`. `src/components/panels/VfsSidebar/VfsSidebar.tsx`
+no longer issues its own `fetch('/api/vfs/scan')`; it now consumes the shared
+`api.scanVfs()` facade so production component code does not own raw `/api/`
+calls on the active studio surface.
+
+The explicit `symbol` facet now also rides that Flight route instead of the
+older repo-intelligence symbol endpoint. Parsed `kind:` filters become
+repo-search `tagFilters`, so queries such as `repo:foo kind:function solve`
+stay on the same Flight-backed repo-content surface while still narrowing to
+symbol-like code hits.
+
+The explicit `module` facet now also rides that Flight route. Repo-aware
+module queries enforce `tagFilters = ["kind:module"]` on repo-search Flight,
+and the repo-overview display-name fallback now retries that same Flight path
+instead of dropping back to `/api/repo/module-search`.
+
+The explicit `example` facet now also rides that Flight route. Repo-aware
+example queries enforce `tagFilters = ["kind:example"]` on repo-search Flight,
+and the repo-overview display-name fallback now retries that same Flight path
+instead of dropping back to `/api/repo/example-search`.
+
+The explicit `doc` facet now also stays on Flight, but it intentionally uses a
+dedicated repo doc-coverage route instead of repo-search hits. The frontend
+now calls `/analysis/repo-doc-coverage`, which returns normalized coverage
+rows plus summary metadata and an optional `module` filter without falling
+back to `/api/repo/doc-coverage`.
+
+Repo overview now also stays on Flight. The frontend `api.getRepoOverview(...)`
+path now uses the dedicated `/analysis/repo-overview` route instead of
+`/api/repo/overview`, so repo-overview status chips and repo-overview fallback
+logic no longer depend on the JSON repo-analysis surface.
+
+Repo index status now also stays on Flight. The frontend
+`api.getRepoIndexStatus(...)` path now uses `/analysis/repo-index-status`
+instead of `/api/repo/index/status`, so the active repo-aware status lane no
+longer depends on the JSON repo-index status endpoint.
+
+Repo sync now also stays on Flight. The frontend `api.getRepoSync(...)` path
+now uses `/analysis/repo-sync` instead of `/api/repo/sync`, so the active
+repo-aware query/status lane no longer depends on the JSON repo-sync surface.
+Repo index commands now also stay on Flight. The frontend
+`api.enqueueRepoIndex(...)` path now uses `/analysis/repo-index` with a
+request-scoped command id instead of `POST /api/repo/index`, so the active
+repo-aware mutation lane no longer depends on the JSON repo-index enqueue
+surface either.
+VFS scan and topology now also stay on same-origin Flight. The frontend
+`api.scanVfs()` path now uses `/vfs/scan`, and `api.get3DTopology()` now uses
+`/topology/3d`, so the remaining non-Flight `/api/` surface is limited to the
+intentional control-plane routes for health, UI config/capabilities, and Julia
+deployment artifact inspection.
+
+The legacy repo-intelligence JSON convenience methods
+`api.searchRepoModules(...)`, `api.searchRepoSymbols(...)`, and
+`api.searchRepoExamples(...)` are no longer part of the active public client
+facade. The SearchBar repo-aware lane now proves its `module` / `symbol` /
+`example` behavior directly against repo-search Flight contracts instead of
+keeping those older JSON helper methods alive in the top-level runtime client.
+The repo-index enqueue surface now also uses the dedicated
+`src/api/flightRepoIndexTransport.ts` module. The older
+`repoIndexCommandTransport.ts` helper is retired, so the frontend no longer
+keeps a JSON-only repo-index command seam alongside the Flight-backed repo
+status/search surfaces.
+
+The harness reads the checked-in `wendao.toml`, pushes the current runtime UI config,
 and measures `/search/knowledge` with the default query set `diffeq`, `solver`,
 and `optimization`. The current local config defines `179`
 `link_graph.projects.*` entries. Override `STUDIO_LIVE_FLIGHT_PERF_QUERIES`,
@@ -92,15 +202,20 @@ the harness now treats the exported `PRJ_CACHE_HOME` env var as the absolute
 project cache root directly. The JSON artifact now also includes a per-phase
 breakdown for `GetFlightInfo`, `DoGet`, Arrow IPC reassembly, hit decoding, and
 metadata decoding so live runs can identify the actual hotspot instead of only
-recording end-to-end latency. A fresh same-port `127.0.0.1:9519` gateway run
-after the runtime payload-cache and aggregate-provider response-reuse follow-ups
-showed `DoGet` dropping to roughly `0.75-1.1ms` average while `GetFlightInfo`
-still dominated at roughly `41-46ms` average, so the next optimization target
-remains route materialization work during `GetFlightInfo`. After restarting the
-default `127.0.0.1:9517` gateway and rerunning the same harness against the
-same 179-repository config, the current live profile is now `5.21ms` average,
-`6.07ms` P95, with `GetFlightInfo` averaging `3.73ms` and `DoGet` averaging
-`1.00ms`. The full report is in
+recording end-to-end latency, and it now also records the optional hotspot-unit
+artifact path/count when
+`$PRJ_CACHE_HOME/agent/tmp/wendao_frontend_hotspot_perf_traces.json` is
+present. The harness now also retries transient
+gateway-startup control-plane failures such as `EADDRNOTAVAIL` during the
+`/health` and `/ui/config` preflight, normalizes loopback origins, and waits
+for search/repo status to settle before measured runs begin, so a
+just-restarted local gateway no longer pollutes the perf suite with bootstrap
+noise. The latest same-port `127.0.0.1:9517` steady-state rerun after the
+runtime `DoGet` encoded-frame reuse slice plus the explicit `react-virtuoso`
+list-budget contract reports `2.49ms` average, `5.17ms` P95, with
+`GetFlightInfo` averaging `0.91ms`, `DoGet` averaging `0.78ms`, and the shared
+hotspot artifact carrying `19` scenario records across the default
+`179`-repository config. The full report is in
 [`docs/05_research/308_live_flight_search_perf_report.md`](./docs/05_research/308_live_flight_search_perf_report.md).
 
 ## Current Runtime Surface
@@ -182,24 +297,41 @@ same 179-repository config, the current live profile is now `5.21ms` average,
 - `ZenSearchPreviewPane.tsx` now delegates the rendered pane frame to `ZenSearchPreviewPaneView.tsx`, and `ZenSearchPreviewShell.tsx` now delegates placeholder-vs-entity branching to `zenSearchPreviewShellContent.tsx`, so the preview controller, container shell, and body routing each live in their own small module
 - Studio analysis bindings now expose a shared `RetrievalChunk` / `RetrievalChunkSurface` contract across markdown and code AST responses, while markdown/code-specific `retrievalAtoms` remain narrowed views over that same cross-surface payload
 - The frontend now ships `apache-arrow` and materializes retrieval atoms into shared Arrow-backed lookup tables, so code AST owner/surface resolution and markdown section/rich-slot range queries both run against the same columnar local query path instead of ad hoc `Map`/array scans
-- Zen preview now also loads shared retrieval chunks over Arrow IPC from `/api/analysis/markdown/retrieval-arrow` and `/api/analysis/code-ast/retrieval-arrow`, then overlays those Arrow-decoded chunks onto the existing JSON analysis payloads so the right pane gets a real Arrow transport lane without breaking current analysis consumers
-- Zen search left-pane knowledge results now also load Arrow-decoded `SearchHit[]` from `/api/search/intent/hits-arrow` in parallel with the existing JSON `/api/search/intent` response, then overlay the Arrow hits onto the unchanged JSON search metadata so `all` / `knowledge` / `code` result lists benefit from the same Arrow transport lane without widening the public `SearchResponse` contract
-- Dedicated symbol-mode search now also loads Arrow-decoded `SymbolSearchHit[]` from `/api/search/symbols/hits-arrow` in parallel with the existing JSON `/api/search/symbols` response, then overlays those Arrow hits onto the unchanged JSON symbol-search metadata so symbol-mode SearchBar queries gain the same Arrow transport lane without widening `SymbolSearchResponse`
-- Dedicated reference-mode search now also loads Arrow-decoded `ReferenceSearchHit[]` from `/api/search/references/hits-arrow` in parallel with the existing JSON `/api/search/references` response, then overlays those Arrow hits onto the unchanged JSON reference-search metadata so reference-mode SearchBar queries gain the same Arrow transport lane without widening `ReferenceSearchResponse`
-- Dedicated AST-mode search now also loads Arrow-decoded `AstSearchHit[]` from `/api/search/ast/hits-arrow` in parallel with the existing JSON `/api/search/ast` response, then overlays those Arrow hits onto the unchanged JSON AST-search metadata so AST-mode SearchBar queries gain the same Arrow transport lane without widening `AstSearchResponse`
-- Dedicated attachment-mode search now also loads Arrow-decoded `AttachmentSearchHit[]` from `/api/search/attachments/hits-arrow` in parallel with the existing JSON `/api/search/attachments` response, then overlays those Arrow hits onto the unchanged JSON attachment-search metadata so attachment-mode SearchBar queries gain the same Arrow transport lane without widening `AttachmentSearchResponse`
-- The search-side Arrow transport now also shares one backend IPC/header helper and one frontend JSON-plus-Arrow overlay helper across knowledge, symbol, reference, and AST search, so all four lanes keep their current public contracts while the transport plumbing no longer duplicates per endpoint
-- The frontend API client now also delegates Arrow-backed search URL composition and trimmed search-param normalization to `src/api/searchTransport.ts`, so `src/api/client.ts` no longer owns the repeated search-sidecar transport seam inline
-- The frontend API client now also delegates repo-search wire normalization to `src/api/repoResponseNormalizers.ts`, so `src/api/client.ts` no longer owns the repo response shape-conversion seam inline
-- The frontend API client now also delegates repeated repo endpoint GET/POST wrapper composition to `src/api/repoTransport.ts`, so `src/api/client.ts` no longer owns the repo transport seam inline
-- The frontend API client now also delegates markdown/code-ast analysis fetch path composition to `src/api/analysisTransport.ts`, so `src/api/client.ts` no longer owns the analysis transport seam inline
-- The frontend API client now also delegates UI config sync/retry state and capabilities cache behavior to `src/api/uiConfigTransport.ts`, so `src/api/client.ts` no longer owns the stateful UI config transport seam inline
+- Zen preview now consumes raw VFS content, markdown, and code-AST over the
+  same-origin Flight business routes, and the older `retrieval-arrow` overlay
+  story is no longer the active architecture
+- Zen search knowledge, symbol, reference, attachment, and AST lanes now all
+  consume the canonical same-origin Flight business routes directly; the older
+  `hits-arrow` overlay story is retired debt rather than the current frontend
+  design
+- Arrow IPC remains only as the Flight record-batch codec used by the shared
+  frontend decode helpers, not as a separate business transport surface
+- The frontend API client now delegates search, repo-search, graph, workspace,
+  document, and analysis business routes to the dedicated
+  `src/api/flight*.ts` transport modules, so `src/api/client.ts` no longer
+  owns business-route wiring inline
+- The frontend API client now also delegates repo-index commands to
+  `src/api/flightRepoIndexTransport.ts`, so the active repo-aware repo-index
+  mutation lane no longer depends on `POST /api/repo/index`
+- The frontend API client now also delegates its intentional JSON
+  control-plane surface to `src/api/controlPlane/*`, while
+  `src/api/uiConfigTransport.ts` keeps the UI config sync/retry state and
+  capabilities cache behavior
 - The frontend API client now also delegates shared `ApiClientError`, JSON response parsing, and binary response parsing to `src/api/responseTransport.ts`, so `src/api/client.ts` no longer owns the common response-transport seam inline
-- The frontend API client now also delegates the foundational health/VFS/graph gateway fetch surface to `src/api/workspaceTransport.ts`, so `src/api/client.ts` no longer owns the basic workspace transport seam inline
-- The frontend API client now also delegates autocomplete, projected-page-index, and refine-doc gateway fetch wiring to `src/api/documentTransport.ts`, so `src/api/client.ts` no longer owns the remaining document/query transport seam inline
+- The frontend API client now also delegates the remaining health seam through
+  `src/api/controlPlane/*`, while VFS scan and topology now ride the dedicated
+  `src/api/flightWorkspaceTransport.ts` and `src/api/flightGraphTransport.ts`
+  business transports
+- The frontend API client now also delegates projected-page-index and
+  refine-doc same-origin Flight wiring to
+  `src/api/flightProjectedPageIndexTransport.ts` and
+  `src/api/flightRefineEntityDocTransport.ts`, so `src/api/client.ts` no
+  longer owns the active document business-transport seam inline
 - The frontend API client now also delegates its remaining public repo/UI contract interfaces to `src/api/apiContracts.ts`, so `src/api/client.ts` no longer owns the contract surface inline
 - The frontend API client now also keeps all runtime wiring in `src/api/clientRuntime.ts`, while `src/api/client.ts` is reduced to the stable public facade for runtime exports plus type re-exports
-- Internal API helpers no longer type-import the public `client.ts` facade; `uiConfigTransport.ts` and `repoResponseNormalizers.ts` now consume `src/api/apiContracts.ts` directly so the helper dependency graph stays pointed inward
+- Internal API helpers no longer type-import the public `client.ts` facade;
+  helper modules now consume `src/api/apiContracts.ts` directly so the helper
+  dependency graph stays pointed inward
 - `src/api/index.ts` now acts as the stable public barrel for API consumers, re-exporting the facade plus the dedicated contract/error surface instead of remaining a trivial client forwarder
 - The frontend API client now also exposes the Studio Julia deployment artifact inspection surface through `api.getJuliaDeploymentArtifact()` and `api.getJuliaDeploymentArtifactToml()`, backed by a dedicated `UiJuliaDeploymentArtifact` contract in `src/api/apiContracts.ts`
 - Qianji Studio now also consumes that deployment artifact in the workspace `StatusBar`, surfacing a compact Julia rerank chip with a hover inspection popover for artifact metadata, transport coordinates, launcher path, service mode, and analyzer strategy
@@ -214,6 +346,8 @@ same 179-repository config, the current live profile is now `5.21ms` average,
 - The left-pane SearchBar now also assembles its visible result list, section stack, and code-filter catalog through local Arrow-backed view helpers, so scope filtering, code-filter matching, dedupe, sort, and code facet extraction run against shared columnar tables before the existing `SearchResult[]` rows and section props are handed back to the UI
 - SearchBar all-mode execution now delegates its multi-lane aggregation, fallback shaping, and merged runtime warning assembly to `searchExecutionAllMode.ts`, so the main execution file no longer owns the largest cross-lane branch inline
 - SearchBar all-mode execution now further delegates fallback response builders and merged result/meta shaping to `searchExecutionAllModeHelpers.ts`, so the all-mode module itself is down to fan-out orchestration plus settled-lane resolution
+- SearchBar all-mode execution now also preserves repo-aware code-search options from ZenSearch default scope, strips inline `repo:` filters before the semantic lanes are issued, keeps the default repo-aware lane on repo-search Flight plus Flight-backed references, and still forwards the raw repo-aware query into backend `code_search` intent metadata, so repo-scoped code queries work from the default full-screen search surface instead of only from dedicated code mode
+- The frontend live gateway suite now also covers the JSON repo-intelligence search surface in `src/api/liveRepoSearchGateway.test.ts`, so live repo search no longer rides only on unit mocks while same-origin Flight `code_search` is verified separately in `src/api/liveCodeSearchGateway.test.ts`
 - SearchBar code-mode execution now also delegates its repo-aware orchestration, backend intent metadata resolution, and fallback result shaping to `searchExecutionCodeMode.ts`, so the main execution file no longer owns the repo-specific code branch inline
 - SearchBar code-mode execution now further delegates repo-aware settled-result resolution, fallback selection, and standalone code-search shaping to `searchExecutionCodeModeHelpers.ts`, so the code-mode module itself is down to fan-out orchestration and route selection
 - SearchBar simple execution responders now delegate their reference, attachment, AST, symbol, and knowledge index contracts to `searchExecutionSimpleModes.ts`, so `searchExecution.ts` is now a thin mode router instead of a mixed orchestration-plus-response formatter

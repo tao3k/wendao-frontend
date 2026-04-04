@@ -65,6 +65,15 @@ function matchesArrowCodeFilters(
   return hasLanguageFilter && hasKindFilter && hasRepoFilter && hasPathFilter;
 }
 
+function hasActiveCodeFilters(filters: SearchFilters): boolean {
+  return Boolean(
+    filters.language.length
+      || filters.kind.length
+      || filters.repo.length
+      || filters.path.length
+  );
+}
+
 export function buildArrowSearchResultView(
   results: readonly SearchResult[]
 ): ArrowSearchResultView {
@@ -99,49 +108,73 @@ export function buildArrowSearchResultView(
   const readLanguage = (index: number): string => String(codeLanguageVector?.get(index) ?? '');
   const readKind = (index: number): string => String(codeKindVector?.get(index) ?? '');
   const readRepo = (index: number): string => String(codeRepoVector?.get(index) ?? '');
+  const sortVisibleRowIndices = (visibleRowIndices: number[], sortMode: SearchSort): number[] => {
+    const sorted = [...visibleRowIndices];
+    sorted.sort((left, right) => {
+      if (sortMode === 'path') {
+        return readPath(left).localeCompare(readPath(right));
+      }
+      return readScore(right) - readScore(left);
+    });
+    return sorted;
+  };
+  const collectVisibleRowIndices = (
+    includeRow: (index: number, result: SearchResult) => boolean,
+  ): number[] => {
+    const dedupedRowMap = new Map<string, number>();
+
+    for (let index = 0; index < table.numRows; index += 1) {
+      const rowIndex = readInt(index);
+      const result = results[rowIndex];
+      if (!result || !includeRow(index, result)) {
+        continue;
+      }
+
+      const identity = readIdentity(index);
+      const existingRow = dedupedRowMap.get(identity);
+      if (existingRow == null || readScore(index) > readScore(existingRow)) {
+        dedupedRowMap.set(identity, index);
+      }
+    }
+
+    return Array.from(dedupedRowMap.values());
+  };
 
   return {
     table,
     rowCount: table.numRows,
     getVisibleResults(scope: SearchScope, sortMode: SearchSort, filters: SearchFilters): SearchResult[] {
-      const dedupedRowMap = new Map<string, number>();
-
-      for (let index = 0; index < table.numRows; index += 1) {
-        const rowIndex = readInt(index);
-        const result = results[rowIndex];
-        if (!result) {
-          continue;
-        }
-
-        if (scope === 'all') {
-          // pass
-        } else if (scope === 'code') {
-          if (!isCodeSearchResult(result)) {
-            continue;
-          }
-          if (!matchesArrowCodeFilters(index, filters, readLanguage, readKind, readRepo, readPathLower)) {
-            continue;
-          }
-        } else if (readCategory(index) !== scope) {
-          continue;
-        }
-
-        const identity = readIdentity(index);
-        const existingRow = dedupedRowMap.get(identity);
-        if (existingRow == null || readScore(index) > readScore(existingRow)) {
-          dedupedRowMap.set(identity, index);
-        }
+      if (scope === 'all' && hasActiveCodeFilters(filters)) {
+        const matchingCodeRows = collectVisibleRowIndices((index, result) => (
+          isCodeSearchResult(result)
+          && matchesArrowCodeFilters(index, filters, readLanguage, readKind, readRepo, readPathLower)
+        ));
+        return sortVisibleRowIndices(matchingCodeRows, sortMode)
+          .map((index) => results[readInt(index)])
+          .filter((result): result is SearchResult => Boolean(result));
       }
 
-      const visibleRowIndices = Array.from(dedupedRowMap.values());
-      visibleRowIndices.sort((left, right) => {
-        if (sortMode === 'path') {
-          return readPath(left).localeCompare(readPath(right));
+      const visibleRowIndices = collectVisibleRowIndices((index, result) => {
+        if (scope === 'all') {
+          if (
+            isCodeSearchResult(result)
+            && hasActiveCodeFilters(filters)
+            && !matchesArrowCodeFilters(index, filters, readLanguage, readKind, readRepo, readPathLower)
+          ) {
+            return false;
+          }
+          return true;
         }
-        return readScore(right) - readScore(left);
+
+        if (scope === 'code') {
+          return isCodeSearchResult(result)
+            && matchesArrowCodeFilters(index, filters, readLanguage, readKind, readRepo, readPathLower);
+        }
+
+        return readCategory(index) === scope;
       });
 
-      return visibleRowIndices
+      return sortVisibleRowIndices(visibleRowIndices, sortMode)
         .map((index) => results[readInt(index)])
         .filter((result): result is SearchResult => Boolean(result));
     },

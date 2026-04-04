@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { ApiClientError, api } from './index';
 import type {
-  RepoModuleSearchResponse,
+  RepoSyncResponse,
   UiCapabilities,
   UiJuliaDeploymentArtifact,
 } from './index';
@@ -23,9 +23,10 @@ describe('api client facade', () => {
   });
 
   it('re-exports repo and ui contracts through the facade', () => {
-    expectTypeOf<RepoModuleSearchResponse>().toMatchTypeOf<{
+    expectTypeOf<RepoSyncResponse>().toMatchTypeOf<{
       repoId: string;
-      modules: Array<{ moduleId: string; qualifiedName: string; path: string }>;
+      mode: string;
+      healthState: string;
     }>();
     expectTypeOf<UiCapabilities>().toEqualTypeOf<{
       supportedLanguages: string[];

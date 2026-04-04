@@ -31,7 +31,6 @@ function buildDerivedState(searchMode: SearchDataFlowState['searchMode']): Searc
     visibleSections: [],
     suggestionCount: 0,
     resultCount: 0,
-    totalSelectableItems: 0,
     queryToSearch: 'repo:gateway-sync solve',
     hasCodeFilterOnlyQueryValue: false,
     confidenceLabel: 'n/a',
@@ -46,7 +45,7 @@ describe('useSearchDataFlow', () => {
     const derived = buildDerivedState('code');
     useSearchDerivedStateMock.mockReturnValue(derived);
 
-    const setSelectedIndex = vi.fn();
+    const setResultSelectedIndex = vi.fn();
     const setResults = vi.fn();
     const setSearchMeta = vi.fn();
     const setIsLoading = vi.fn();
@@ -69,8 +68,8 @@ describe('useSearchDataFlow', () => {
         query: 'repo:gateway-sync solve',
         activeCodeFilterEntriesLength: 1,
         searchMeta: null,
-        selectedIndex: 0,
-        setSelectedIndex,
+        resultSelectedIndex: 0,
+        setResultSelectedIndex,
         isOpen: true,
         primaryRepoFilter: 'gateway-sync',
         repoFacet: 'symbol',
@@ -88,8 +87,8 @@ describe('useSearchDataFlow', () => {
     expect(result.current).toBe(derived);
     expect(useSelectableIndexClampMock).toHaveBeenCalledWith({
       selectedIndex: 0,
-      totalSelectableItems: 0,
-      setSelectedIndex,
+      selectableCount: 0,
+      setSelectedIndex: setResultSelectedIndex,
     });
     expect(useSearchExecutionMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -126,8 +125,8 @@ describe('useSearchDataFlow', () => {
         query: 'gateway',
         activeCodeFilterEntriesLength: 0,
         searchMeta: null,
-        selectedIndex: 0,
-        setSelectedIndex: vi.fn(),
+        resultSelectedIndex: 0,
+        setResultSelectedIndex: vi.fn(),
         isOpen: true,
         primaryRepoFilter: 'gateway-sync',
         repoFacet: 'module',
@@ -145,6 +144,50 @@ describe('useSearchDataFlow', () => {
       expect.objectContaining({
         searchMode: 'knowledge',
         repoFilter: undefined,
+        repoFacet: null,
+      })
+    );
+  });
+
+  it('keeps repo filter for all mode so repo-aware code search can run inside ZenSearch default scope', () => {
+    const derived = buildDerivedState('all');
+    useSearchDerivedStateMock.mockReturnValue(derived);
+
+    renderHook(() =>
+      useSearchDataFlow({
+        results: [],
+        scope: 'all',
+        sortMode: 'relevance',
+        parsedCodeFilters: { repo: ['gateway-sync'], kind: [], lang: [], path: [], symbol: [], section: [], tag: [] } as any,
+        parsedCodeBaseQuery: 'solve',
+        locale: 'en',
+        attachmentsLabel: 'Attachments',
+        showSuggestions: false,
+        suggestionsLength: 0,
+        debouncedQuery: 'repo:gateway-sync solve',
+        debouncedCodeBaseQuery: 'solve',
+        query: 'repo:gateway-sync solve',
+        activeCodeFilterEntriesLength: 1,
+        searchMeta: null,
+        resultSelectedIndex: 0,
+        setResultSelectedIndex: vi.fn(),
+        isOpen: true,
+        primaryRepoFilter: 'gateway-sync',
+        repoFacet: 'module',
+        setResults: vi.fn(),
+        setSearchMeta: vi.fn(),
+        setIsLoading: vi.fn(),
+        setError: vi.fn(),
+        isLoading: false,
+        error: null,
+        runtimeSearchingMessage: 'Searching...',
+      })
+    );
+
+    expect(useSearchExecutionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        searchMode: 'all',
+        repoFilter: 'gateway-sync',
         repoFacet: null,
       })
     );

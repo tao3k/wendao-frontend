@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { executeSearchQuery, type SearchExecutionMode, type SearchMeta } from './searchExecution';
 import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
@@ -14,7 +14,7 @@ interface UseSearchExecutionParams {
   setSearchMeta: Dispatch<SetStateAction<SearchMeta | null>>;
   setIsLoading: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string | null>>;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
+  setResultSelectedIndex: Dispatch<SetStateAction<number>>;
 }
 
 export function useSearchExecution({
@@ -27,33 +27,58 @@ export function useSearchExecution({
   setSearchMeta,
   setIsLoading,
   setError,
-  setSelectedIndex,
+  setResultSelectedIndex,
 }: UseSearchExecutionParams): void {
+  const requestGenerationRef = useRef(0);
+
   useEffect(() => {
+    const requestGeneration = requestGenerationRef.current + 1;
+    requestGenerationRef.current = requestGeneration;
+
     if (!queryToSearch.trim() || !isOpen) {
       setResults([]);
       setSearchMeta(null);
+      setError(null);
+      setIsLoading(false);
       return;
     }
+
+    let isActive = true;
+    const isLatestRequest = (): boolean => (
+      isActive && requestGenerationRef.current === requestGeneration
+    );
 
     const doSearch = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const outcome = await executeSearchQuery(queryToSearch, searchMode, { repoFilter, repoFacet });
+        if (!isLatestRequest()) {
+          return;
+        }
         setResults(outcome.results);
         setSearchMeta(outcome.meta);
-        setSelectedIndex(0);
+        setResultSelectedIndex(0);
       } catch (err) {
+        if (!isLatestRequest()) {
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Search failed');
         setResults([]);
         setSearchMeta(null);
       } finally {
+        if (!isLatestRequest()) {
+          return;
+        }
         setIsLoading(false);
       }
     };
 
-    doSearch();
+    void doSearch();
+
+    return () => {
+      isActive = false;
+    };
   }, [
     isOpen,
     queryToSearch,
@@ -64,6 +89,6 @@ export function useSearchExecution({
     setIsLoading,
     setResults,
     setSearchMeta,
-    setSelectedIndex,
+    setResultSelectedIndex,
   ]);
 }

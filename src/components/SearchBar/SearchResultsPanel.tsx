@@ -1,17 +1,15 @@
 import React from 'react';
-import { normalizeCodeLineLabel } from './codeSearchUtils';
-import { isCodeSearchResult } from './searchResultNormalization';
-import { getSearchResultIdentity } from './searchResultIdentity';
-import type { SearchResultSection } from './searchResultSections';
-import { SearchResultRow } from './SearchResultRow';
 import type { SearchBarCopy, SearchResult } from './types';
+import type { SearchResultsVirtualRow } from './interface/results/buildVirtualizedSearchRows';
+import { VirtualizedSearchResultsList } from './interface/results';
 
 interface SearchResultsPanelProps {
   query: string;
   copy: SearchBarCopy;
   isLoading: boolean;
   hasCodeFilterOnlyQuery: boolean;
-  visibleSections: SearchResultSection[];
+  rows: SearchResultsVirtualRow[];
+  visibleResultCount: number;
   selectedIndex: number;
   canOpenReferences: boolean;
   canOpenGraph: boolean;
@@ -28,12 +26,13 @@ interface SearchResultsPanelProps {
   onTogglePreview: (result: SearchResult) => void;
 }
 
-export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
+export const SearchResultsPanel = React.memo(function SearchResultsPanel({
   query,
   copy,
   isLoading,
   hasCodeFilterOnlyQuery,
-  visibleSections,
+  rows,
+  visibleResultCount,
   selectedIndex,
   canOpenReferences,
   canOpenGraph,
@@ -48,10 +47,7 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   onOpenGraph,
   onPreview,
   onTogglePreview,
-}) => {
-  const visibleResultCount = visibleSections.reduce((acc, section) => acc + section.hits.length, 0);
-  let resultRenderIndex = 0;
-
+}: SearchResultsPanelProps) {
   return (
     <div className="search-results">
       {!isLoading && hasCodeFilterOnlyQuery && (
@@ -62,58 +58,27 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
         <div className="search-empty">{copy.noResultsPrefix} "{query}"</div>
       )}
 
-      {visibleSections.map((section) => (
-        <div key={section.key} className="search-section">
-          <div className="search-section-title">
-            <span>{section.title}</span>
-            <span>{section.hits.length}</span>
-          </div>
-          <div className="search-section-body">
-            {section.hits.map((result) => {
-              const displayIndex = resultRenderIndex;
-              const isSelected = displayIndex === selectedIndex;
-              const isCodeResultRow = isCodeSearchResult(result);
-              const lineRange = normalizeCodeLineLabel(result.line, result.lineEnd);
-              const previewExpanded = isResultPreviewExpanded(result);
-              resultRenderIndex += 1;
-
-              return (
-                <SearchResultRow
-                  key={getSearchResultIdentity(result)}
-                  result={result}
-                  query={query}
-                  copy={copy}
-                  isSelected={isSelected}
-                  isCodeResultRow={isCodeResultRow}
-                  lineRange={lineRange}
-                previewExpanded={previewExpanded}
-                canOpenReferences={canOpenReferences}
-                canOpenGraph={canOpenGraph}
-                openOnSelect={openOnSelect}
-                renderIcon={renderIcon}
-                renderTitle={renderTitle}
-                onHover={() => onSelectIndex(displayIndex)}
-                onSelect={(_, event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onSelectIndex(displayIndex);
-                }}
-                onOpen={onOpen}
-                onOpenDefinition={(selectedResult, event) => void onOpenDefinition(selectedResult, event)}
-                onOpenReferences={onOpenReferences}
-                onOpenGraph={onOpenGraph}
-                  onPreview={onPreview}
-                  onTogglePreview={(selectedResult, event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onTogglePreview(selectedResult);
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      <VirtualizedSearchResultsList
+        query={query}
+        copy={copy}
+        rows={rows}
+        selectedIndex={selectedIndex}
+        canOpenReferences={canOpenReferences}
+        canOpenGraph={canOpenGraph}
+        openOnSelect={openOnSelect}
+        isResultPreviewExpanded={isResultPreviewExpanded}
+        renderIcon={renderIcon}
+        renderTitle={renderTitle}
+        onSelectIndex={onSelectIndex}
+        onOpen={onOpen}
+        onOpenDefinition={onOpenDefinition}
+        onOpenReferences={onOpenReferences}
+        onOpenGraph={onOpenGraph}
+        onPreview={onPreview}
+        onTogglePreview={onTogglePreview}
+      />
     </div>
   );
-};
+});
+
+SearchResultsPanel.displayName = 'SearchResultsPanel';

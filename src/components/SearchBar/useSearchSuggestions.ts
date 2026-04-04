@@ -1,7 +1,4 @@
-import { useEffect } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import { api, type AutocompleteSuggestion } from '../../api';
-import { buildCodeFilterSuggestions } from './codeSearchUtils';
+import { useSearchAutocompleteInterface } from './interface/autocomplete';
 import type { SearchFilters } from './codeSearchUtils';
 import type { SearchScope } from './types';
 
@@ -12,7 +9,6 @@ interface UseSearchSuggestionsParams {
   debouncedAutocomplete: string;
   parsedCodeFilters: SearchFilters;
   codeFilterCatalog: SearchFilters;
-  setSuggestions: Dispatch<SetStateAction<AutocompleteSuggestion[]>>;
 }
 
 export function useSearchSuggestions({
@@ -22,41 +18,13 @@ export function useSearchSuggestions({
   debouncedAutocomplete,
   parsedCodeFilters,
   codeFilterCatalog,
-  setSuggestions,
-}: UseSearchSuggestionsParams): void {
-  useEffect(() => {
-    if (!isOpen || !showSuggestions) {
-      setSuggestions([]);
-      return;
-    }
-
-    if (scope === 'code') {
-      setSuggestions(buildCodeFilterSuggestions(debouncedAutocomplete, parsedCodeFilters, codeFilterCatalog));
-      return;
-    }
-
-    if (!debouncedAutocomplete.trim()) {
-      setSuggestions([]);
-      return;
-    }
-
-    const fetchSuggestions = async () => {
-      try {
-        const response = await api.searchAutocomplete(debouncedAutocomplete, 5);
-        setSuggestions(response.suggestions);
-      } catch {
-        setSuggestions([]);
-      }
-    };
-
-    fetchSuggestions();
-  }, [
-    codeFilterCatalog,
-    debouncedAutocomplete,
+}: UseSearchSuggestionsParams) {
+  return useSearchAutocompleteInterface({
     isOpen,
-    parsedCodeFilters,
-    scope,
-    setSuggestions,
     showSuggestions,
-  ]);
+    scope,
+    debouncedAutocomplete,
+    parsedCodeFilters,
+    codeFilterCatalog,
+  });
 }

@@ -11,13 +11,15 @@ interface ZenSearchPreviewPaneProps {
   onPivotQuery?: (query: string) => void;
 }
 
-export const ZenSearchPreviewPane: React.FC<ZenSearchPreviewPaneProps> = ({
+export const ZenSearchPreviewPane = React.memo(function ZenSearchPreviewPane({
   locale,
   selectedResult,
   prefetchResults = [],
   onPivotQuery,
-}) => {
+}: ZenSearchPreviewPaneProps) {
   const preview = useZenSearchPreview(selectedResult, prefetchResults);
 
   return <ZenSearchPreviewPaneView locale={locale} preview={preview} onPivotQuery={onPivotQuery} />;
-};
+});
+
+ZenSearchPreviewPane.displayName = 'ZenSearchPreviewPane';

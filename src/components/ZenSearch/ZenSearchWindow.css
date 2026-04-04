@@ -61,8 +61,10 @@
 
 .zen-search-results-scroll {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 0 16px 16px;
 }
 
@@ -159,7 +161,23 @@
 }
 
 .zen-search-window .search-results {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   padding: 0;
+}
+
+.zen-search-window .search-results-static-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.zen-search-window .search-results-virtual-list {
+  flex: 1;
+  min-height: 0;
 }
 
 .zen-search-window .search-result {

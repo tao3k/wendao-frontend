@@ -4,6 +4,10 @@ import type {
   AutocompleteSuggestion,
   AttachmentSearchHit,
   AstSearchHit,
+  RepoDocCoverageDoc,
+  RepoIndexStatusResponse,
+  RepoOverviewResponse,
+  RepoSyncResponse,
   ReferenceSearchHit,
   SearchBacklinkItem,
   SearchHit,
@@ -45,6 +49,18 @@ function parseOptionalJson<T>(value: unknown): T | undefined {
     return undefined;
   }
   return JSON.parse(value) as T;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  if (value && typeof value === 'object' && Symbol.iterator in value) {
+    return Array.from(value as Iterable<unknown>).filter(
+      (item): item is string => typeof item === 'string'
+    );
+  }
+  return [];
 }
 
 function decodeArrowRows<T>(
@@ -92,6 +108,172 @@ export function decodeSearchHitsFromArrowIpc(payload: ArrayBuffer): SearchHit[] 
       ...(navigationTarget ? { navigationTarget } : {}),
     };
   });
+}
+
+export function decodeRepoSearchHitsFromArrowIpc(
+  payload: ArrayBuffer,
+  fallbackRepoId: string
+): SearchHit[] {
+  return decodeArrowRows(payload, (record) => {
+    const path = requireString(record, 'path');
+    const language = toOptionalString(record.language)?.toLowerCase();
+    const tags = toStringArray(record.tags);
+    const normalizedTags =
+      language && !tags.some((tag) => tag.toLowerCase() === `lang:${language}`)
+        ? [...tags, `lang:${language}`]
+        : tags;
+    const hierarchy = toStringArray(record.hierarchy);
+    const navigationPath = toOptionalString(record.navigation_path) || path;
+    const navigationLine = toOptionalNumber(record.navigation_line);
+    const navigationLineEnd = toOptionalNumber(record.navigation_line_end);
+    const navigationTarget: StudioNavigationTarget = {
+      path: navigationPath,
+      category: 'repo_code',
+      projectName: fallbackRepoId,
+      ...(navigationLine && navigationLine > 0 ? { line: navigationLine } : {}),
+      ...(navigationLineEnd && navigationLineEnd > 0 ? { lineEnd: navigationLineEnd } : {}),
+    };
+
+    return {
+      stem: requireString(record, 'doc_id'),
+      ...(toOptionalString(record.title) ? { title: toOptionalString(record.title) } : {}),
+      path,
+      docType: 'file',
+      tags: normalizedTags,
+      score: toOptionalNumber(record.score) ?? 0,
+      ...(toOptionalString(record.best_section)
+        ? { bestSection: toOptionalString(record.best_section) }
+        : {}),
+      ...(toOptionalString(record.match_reason)
+        ? { matchReason: toOptionalString(record.match_reason) }
+        : {}),
+      ...(hierarchy.length > 0 ? { hierarchy } : {}),
+      navigationTarget,
+    };
+  });
+}
+
+export function decodeRepoDocCoverageDocsFromArrowIpc(
+  payload: ArrayBuffer,
+  fallbackRepoId: string
+): RepoDocCoverageDoc[] {
+  return decodeArrowRows(payload, (record) => ({
+    repoId: toOptionalString(record.repoId) ?? fallbackRepoId,
+    docId: requireString(record, 'docId'),
+    title: requireString(record, 'title'),
+    path: requireString(record, 'path'),
+    format: toOptionalString(record.format) ?? 'unknown',
+  }));
+}
+
+export function decodeRepoOverviewResponseFromArrowIpc(
+  payload: ArrayBuffer,
+  fallbackRepoId: string
+): RepoOverviewResponse {
+  const [overview] = decodeArrowRows(payload, (record) => ({
+    repoId: toOptionalString(record.repoId) ?? fallbackRepoId,
+    displayName: requireString(record, 'displayName'),
+    ...(toOptionalString(record.revision)
+      ? { revision: toOptionalString(record.revision) }
+      : {}),
+    moduleCount: toOptionalNumber(record.moduleCount) ?? 0,
+    symbolCount: toOptionalNumber(record.symbolCount) ?? 0,
+    exampleCount: toOptionalNumber(record.exampleCount) ?? 0,
+    docCount: toOptionalNumber(record.docCount) ?? 0,
+    ...(toOptionalString(record.hierarchicalUri)
+      ? { hierarchicalUri: toOptionalString(record.hierarchicalUri) }
+      : {}),
+  }));
+
+  if (!overview) {
+    throw new Error('Arrow repo overview payload must contain one summary row');
+  }
+
+  return overview;
+}
+
+export function decodeRepoIndexStatusResponseFromArrowIpc(
+  payload: ArrayBuffer
+): RepoIndexStatusResponse {
+  const [status] = decodeArrowRows(payload, (record) => ({
+    total: toOptionalNumber(record.total) ?? 0,
+    queued: toOptionalNumber(record.queued) ?? 0,
+    checking: toOptionalNumber(record.checking) ?? 0,
+    syncing: toOptionalNumber(record.syncing) ?? 0,
+    indexing: toOptionalNumber(record.indexing) ?? 0,
+    ready: toOptionalNumber(record.ready) ?? 0,
+    unsupported: toOptionalNumber(record.unsupported) ?? 0,
+    failed: toOptionalNumber(record.failed) ?? 0,
+    targetConcurrency: toOptionalNumber(record.targetConcurrency) ?? 0,
+    maxConcurrency: toOptionalNumber(record.maxConcurrency) ?? 0,
+    syncConcurrencyLimit: toOptionalNumber(record.syncConcurrencyLimit) ?? 0,
+    ...(toOptionalString(record.currentRepoId)
+      ? { currentRepoId: toOptionalString(record.currentRepoId) }
+      : {}),
+    repos: parseOptionalJson<RepoIndexStatusResponse['repos']>(record.reposJson) ?? [],
+  }));
+
+  if (!status) {
+    throw new Error('Arrow repo index status payload must contain one summary row');
+  }
+
+  return status;
+}
+
+export function decodeRepoSyncResponseFromArrowIpc(
+  payload: ArrayBuffer
+): RepoSyncResponse {
+  const [status] = decodeArrowRows(payload, (record) => ({
+    repoId: requireString(record, 'repoId'),
+    mode: requireString(record, 'mode'),
+    ...(toOptionalString(record.sourceKind)
+      ? { sourceKind: toOptionalString(record.sourceKind) }
+      : {}),
+    ...(toOptionalString(record.refresh)
+      ? { refresh: toOptionalString(record.refresh) }
+      : {}),
+    ...(toOptionalString(record.mirrorState)
+      ? { mirrorState: toOptionalString(record.mirrorState) }
+      : {}),
+    ...(toOptionalString(record.checkoutState)
+      ? { checkoutState: toOptionalString(record.checkoutState) }
+      : {}),
+    ...(toOptionalString(record.revision)
+      ? { revision: toOptionalString(record.revision) }
+      : {}),
+    checkoutPath: requireString(record, 'checkoutPath'),
+    ...(toOptionalString(record.mirrorPath)
+      ? { mirrorPath: toOptionalString(record.mirrorPath) }
+      : { mirrorPath: null }),
+    checkedAt: requireString(record, 'checkedAt'),
+    ...(toOptionalString(record.lastFetchedAt)
+      ? { lastFetchedAt: toOptionalString(record.lastFetchedAt) }
+      : {}),
+    ...(toOptionalString(record.upstreamUrl)
+      ? { upstreamUrl: toOptionalString(record.upstreamUrl) }
+      : { upstreamUrl: null }),
+    ...(toOptionalString(record.healthState)
+      ? { healthState: toOptionalString(record.healthState) }
+      : {}),
+    ...(toOptionalString(record.stalenessState)
+      ? { stalenessState: toOptionalString(record.stalenessState) }
+      : {}),
+    ...(toOptionalString(record.driftState)
+      ? { driftState: toOptionalString(record.driftState) }
+      : {}),
+    ...(typeof record.statusSummaryJson === 'string'
+      ? {
+          statusSummary:
+            parseOptionalJson<Record<string, unknown>>(record.statusSummaryJson) ?? undefined,
+        }
+      : {}),
+  }));
+
+  if (!status) {
+    throw new Error('Arrow repo sync payload must contain one summary row');
+  }
+
+  return status;
 }
 
 export function decodeAttachmentSearchHitsFromArrowIpc(

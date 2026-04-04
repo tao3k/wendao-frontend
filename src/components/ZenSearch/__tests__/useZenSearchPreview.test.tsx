@@ -1,5 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { recordPerfTraceSnapshot } from '../../../lib/testPerfRegistry';
+import { createPerfTrace } from '../../../lib/testPerfTrace';
 import type { SearchResult } from '../../SearchBar/types';
 import { useZenSearchPreview } from '../useZenSearchPreview';
 
@@ -40,6 +42,7 @@ function buildSearchResult(): SearchResult {
     category: 'document',
     navigationTarget: {
       path: '.data/wendao-frontend/docs/index.md',
+      graphPath: '.data/wendao-frontend/docs/index.md#semantic-root',
       category: 'knowledge',
       projectName: 'main',
       rootLabel: 'docs',
@@ -149,7 +152,7 @@ describe('useZenSearchPreview', () => {
     });
   });
 
-  it('strips internal workspace prefixes before loading VFS and graph content', async () => {
+  it('strips internal workspace prefixes for VFS while using graphPath for neighbors', async () => {
     const selectedResult = buildSearchResult();
 
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
@@ -160,7 +163,7 @@ describe('useZenSearchPreview', () => {
     });
 
     expect(mocks.getVfsContent).toHaveBeenCalledWith('main/docs/index.md');
-    expect(mocks.getGraphNeighbors).toHaveBeenCalledWith('main/docs/index.md', {
+    expect(mocks.getGraphNeighbors).toHaveBeenCalledWith('main/docs/index.md#semantic-root', {
       direction: 'both',
       hops: 1,
       limit: 20,
@@ -379,28 +382,35 @@ describe('useZenSearchPreview', () => {
     expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
   });
 
-  it('prefetches adjacent results and reuses the warmed preview without refetching', async () => {
-    mocks.getVfsContent.mockImplementation(async (path: string) => ({
-      content: `content:${path}`,
-      contentType: 'text/plain',
-    }));
-    mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => ({
-      repoId: 'kernel',
-      path,
-      language: 'rust',
-      nodes: [],
-      edges: [],
-      projections: [],
-      diagnostics: [],
-      retrievalAtoms: [{
-        ownerId: `symbol:${path}`,
-        chunkId: `atom:${path}`,
-        semanticType: 'function',
-        fingerprint: `fp:${path}`,
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }],
-    }));
+  it('prefetches adjacent results without eagerly triggering code AST analysis', async () => {
+    const trace = createPerfTrace('useZenSearchPreview.prefetch-hot-path');
+    mocks.getVfsContent.mockImplementation(async (path: string) => {
+      trace.increment('vfs-fetches');
+      return {
+        content: `content:${path}`,
+        contentType: 'text/plain',
+      };
+    });
+    mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => {
+      trace.increment('ast-fetches');
+      return {
+        repoId: 'kernel',
+        path,
+        language: 'rust',
+        nodes: [],
+        edges: [],
+        projections: [],
+        diagnostics: [],
+        retrievalAtoms: [{
+          ownerId: `symbol:${path}`,
+          chunkId: `atom:${path}`,
+          semanticType: 'function',
+          fingerprint: `fp:${path}`,
+          tokenEstimate: 12,
+          surface: 'declaration',
+        }],
+      };
+    });
 
     const primary = buildCodeSearchResult();
     const secondary = buildSecondCodeSearchResult();
@@ -421,8 +431,21 @@ describe('useZenSearchPreview', () => {
 
     await waitFor(() => {
       expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
-      expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+      expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(1);
     });
+
+    const prefetchSnapshot = trace.snapshot();
+    expect(prefetchSnapshot).toMatchObject({
+      label: 'useZenSearchPreview.prefetch-hot-path',
+      counters: {
+        'vfs-fetches': 2,
+        'ast-fetches': 1,
+      },
+    });
+    recordPerfTraceSnapshot(
+      'ZenSearch/useZenSearchPreview adjacent prefetch warm state',
+      prefetchSnapshot,
+    );
 
     rerender({
       selected: secondary,
@@ -436,5 +459,18 @@ describe('useZenSearchPreview', () => {
 
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
     expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+
+    const activationSnapshot = trace.snapshot();
+    expect(activationSnapshot).toMatchObject({
+      label: 'useZenSearchPreview.prefetch-hot-path',
+      counters: {
+        'vfs-fetches': 2,
+        'ast-fetches': 2,
+      },
+    });
+    recordPerfTraceSnapshot(
+      'ZenSearch/useZenSearchPreview adjacent selection activation',
+      activationSnapshot,
+    );
   });
 });

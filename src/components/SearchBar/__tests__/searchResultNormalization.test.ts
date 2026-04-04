@@ -2,61 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   canOpenGraphForSearchResult,
   normalizeCodeSearchHit,
-  normalizeRepoModuleHit,
-  normalizeRepoSymbolHit,
   resolveDefinitionSelection,
   toSearchSelection,
 } from '../searchResultNormalization';
 
 describe('searchResultNormalization repo hit metadata', () => {
-  it('uses backend symbol metadata for score, hierarchy, audit, and backlinks', () => {
-    const result = normalizeRepoSymbolHit({
-      repoId: 'gateway-sync',
-      symbolId: 'repo:gateway-sync:symbol:GatewaySyncPkg.solve',
-      moduleId: 'repo:gateway-sync:module:GatewaySyncPkg',
-      name: 'solve',
-      qualifiedName: 'GatewaySyncPkg.solve',
-      kind: 'function',
-      signature: 'solve() = nothing',
-      path: 'src/GatewaySyncPkg.jl',
-      score: 0.86,
-      saliencyScore: 0.9,
-      rank: 1,
-      hierarchicalUri: 'repo://gateway-sync/symbol/repo:gateway-sync:symbol:GatewaySyncPkg.solve',
-      hierarchy: ['src', 'GatewaySyncPkg.jl'],
-      implicitBacklinks: ['repo:gateway-sync:doc:README.md', 'repo:gateway-sync:doc:docs/solve.md'],
-      implicitBacklinkItems: [
-        { id: 'repo:gateway-sync:doc:README.md', title: 'README', path: 'README.md', kind: 'documents' },
-        { id: 'repo:gateway-sync:doc:docs/solve.md', title: 'solve', path: 'docs/solve.md', kind: 'documents' },
-      ],
-      projectionPageIds: ['repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md'],
-      auditStatus: 'verified',
-      verificationState: 'verified',
-    });
-
-    expect(result.score).toBe(0.9);
-    expect(result.bestSection).toBe('src / GatewaySyncPkg.jl');
-    expect(result.matchReason).toContain('backlinks:2');
-    expect(result.tags).toContain('verified');
-    expect(result.hierarchicalUri).toContain('repo://gateway-sync/symbol');
-    expect(result.implicitBacklinks).toHaveLength(2);
-    expect(result.implicitBacklinkItems).toHaveLength(2);
-    expect(result.projectionPageIds).toHaveLength(1);
-  });
-
-  it('falls back to normalized defaults when repo module metadata is absent', () => {
-    const result = normalizeRepoModuleHit({
-      repoId: 'gateway-sync',
-      moduleId: 'repo:gateway-sync:module:GatewaySyncPkg',
-      qualifiedName: 'GatewaySyncPkg',
-      path: 'src/GatewaySyncPkg.jl',
-    });
-
-    expect(result.score).toBeGreaterThan(0);
-    expect(result.bestSection).toContain('module');
-    expect(result.matchReason).toContain('repo:gateway-sync:module:GatewaySyncPkg');
-  });
-
   it('normalizes backend code_search hits into code-facing metadata', () => {
     const result = normalizeCodeSearchHit({
       stem: 'BaseModelicaPackage',
@@ -82,6 +32,25 @@ describe('searchResultNormalization repo hit metadata', () => {
     expect(result.searchSource).toBe('search-index');
   });
 
+  it('promotes live code_search symbol hits with callable signatures into function kind', () => {
+    const result = normalizeCodeSearchHit({
+      stem: 'SecondOrder',
+      title: 'ModelingToolkitStandardLibrary.SecondOrder',
+      path: 'src/Blocks/continuous.jl',
+      docType: 'symbol',
+      tags: ['ModelingToolkitStandardLibrary.jl', 'code', 'symbol', 'kind:symbol', 'julia', 'lang:julia'],
+      score: 0.79,
+      bestSection: 'SecondOrder(; name, k = 1.0, w = 1.0)',
+      matchReason: 'repo_symbol_search',
+    });
+
+    expect(result.category).toBe('symbol');
+    expect(result.codeLanguage).toBe('julia');
+    expect(result.codeKind).toBe('function');
+    expect(result.codeRepo).toBe('ModelingToolkitStandardLibrary.jl');
+    expect(result.projectName).toBe('ModelingToolkitStandardLibrary.jl');
+  });
+
   it('uses repo hint when backend code_search hit does not carry repository metadata', () => {
     const result = normalizeCodeSearchHit({
       stem: 'BaseModelica',
@@ -98,6 +67,34 @@ describe('searchResultNormalization repo hit metadata', () => {
     expect(result.codeRepo).toBe('sciml');
     expect(result.codeKind).toBe('module');
     expect(result.codeLanguage).toBe('julia');
+  });
+
+  it('preserves mixed-case repo tags for repo-backed code hits and selection paths', () => {
+    const result = normalizeCodeSearchHit({
+      stem: 'continuous',
+      title: 'continuous',
+      path: 'src/Blocks/continuous.jl',
+      docType: 'symbol',
+      tags: ['code', 'julia', 'kind:function', 'repo:ModelingToolkitStandardLibrary.jl'],
+      score: 0.91,
+      bestSection: 'continuous',
+      matchReason: 'repo_symbol_search',
+      navigationTarget: {
+        path: 'src/Blocks/continuous.jl',
+        category: 'repo_code',
+        line: 42,
+      },
+    });
+
+    expect(result.projectName).toBe('ModelingToolkitStandardLibrary.jl');
+    expect(result.codeRepo).toBe('ModelingToolkitStandardLibrary.jl');
+    expect(toSearchSelection(result)).toEqual({
+      path: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
+      category: 'repo_code',
+      projectName: 'ModelingToolkitStandardLibrary.jl',
+      line: 42,
+      graphPath: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
+    });
   });
 
   it('maps search selections to an explicit graphPath', () => {

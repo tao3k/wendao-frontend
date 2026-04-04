@@ -2,8 +2,8 @@ import { create } from '@bufbuild/protobuf';
 import { createClient, ConnectError } from '@connectrpc/connect';
 import { createGrpcWebTransport } from '@connectrpc/connect-web';
 
-import { decodeGraphNeighborsFromArrowIpc } from './arrowGraphIpc';
-import type { GraphNeighborsResponse } from './bindings';
+import { decodeGraphNeighborsFromArrowIpc, decodeTopology3DFromArrowIpc } from './arrowGraphIpc';
+import type { GraphNeighborsResponse, Topology3D } from './bindings';
 import {
   FlightData,
   FlightDescriptor,
@@ -23,6 +23,7 @@ const WENDAO_GRAPH_DIRECTION_HEADER = 'x-wendao-graph-direction';
 const WENDAO_GRAPH_HOPS_HEADER = 'x-wendao-graph-hops';
 const WENDAO_GRAPH_LIMIT_HEADER = 'x-wendao-graph-limit';
 const GRAPH_NEIGHBORS_ROUTE = '/graph/neighbors';
+const TOPOLOGY_3D_ROUTE = '/topology/3d';
 
 export interface GraphNeighborsFlightRequest {
   baseUrl: string;
@@ -31,6 +32,11 @@ export interface GraphNeighborsFlightRequest {
   direction?: string;
   hops?: number;
   limit?: number;
+}
+
+export interface GraphTopologyFlightRequest {
+  baseUrl: string;
+  schemaVersion: string;
 }
 
 export interface FlightServiceClientLike {
@@ -47,12 +53,23 @@ export interface FlightServiceClientLike {
 export interface FlightGraphTransportDeps {
   createClient?: (baseUrl: string) => FlightServiceClientLike;
   decodeGraphNeighbors?: (payload: ArrayBuffer) => GraphNeighborsResponse;
+  decodeTopology3D?: (payload: ArrayBuffer) => Topology3D;
 }
 
 export function buildGraphNeighborsFlightDescriptor(): FlightDescriptor {
+  return buildGraphFlightDescriptor(GRAPH_NEIGHBORS_ROUTE);
+}
+
+export function buildTopology3DFlightDescriptor(): FlightDescriptor {
+  return buildGraphFlightDescriptor(TOPOLOGY_3D_ROUTE);
+}
+
+function buildGraphFlightDescriptor(
+  route: typeof GRAPH_NEIGHBORS_ROUTE | typeof TOPOLOGY_3D_ROUTE,
+): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
-    path: GRAPH_NEIGHBORS_ROUTE.slice(1).split('/'),
+    path: route.slice(1).split('/'),
   });
 }
 
@@ -74,6 +91,14 @@ export function buildGraphNeighborsFlightHeaders(
   return headers;
 }
 
+export function buildTopology3DFlightHeaders(
+  request: GraphTopologyFlightRequest,
+): Headers {
+  const headers = new Headers();
+  headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
+  return headers;
+}
+
 export async function loadGraphNeighborsFlight(
   request: GraphNeighborsFlightRequest,
   deps: FlightGraphTransportDeps = {},
@@ -91,6 +116,28 @@ export async function loadGraphNeighborsFlight(
     }
     const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);
     return (deps.decodeGraphNeighbors ?? decodeGraphNeighborsFromArrowIpc)(payload);
+  } catch (error) {
+    throw mapFlightGraphError(error);
+  }
+}
+
+export async function loadTopology3DFlight(
+  request: GraphTopologyFlightRequest,
+  deps: FlightGraphTransportDeps = {},
+): Promise<Topology3D> {
+  const client = (deps.createClient ?? createFlightServiceClient)(request.baseUrl);
+  const descriptor = buildTopology3DFlightDescriptor();
+  const headers = buildTopology3DFlightHeaders(request);
+
+  try {
+    const flightInfo = await client.getFlightInfo(descriptor, { headers });
+    const ticket = readFlightTicket(flightInfo);
+    const frames: FlightData[] = [];
+    for await (const frame of client.doGet(ticket, { headers })) {
+      frames.push(frame);
+    }
+    const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);
+    return (deps.decodeTopology3D ?? decodeTopology3DFromArrowIpc)(payload);
   } catch (error) {
     throw mapFlightGraphError(error);
   }

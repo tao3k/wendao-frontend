@@ -17,7 +17,7 @@ export async function executeSearchQuery(
   }
 
   if (mode === 'all') {
-    return executeAllModeSearch(queryToSearch);
+    return executeAllModeSearch(queryToSearch, options);
   }
 
   return executeSimpleSearchMode(queryToSearch, mode);

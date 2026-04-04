@@ -21,6 +21,10 @@ function stripInternalWorkspacePrefix(path: string): string {
   return normalizedPath.replace(/^\/+/, '');
 }
 
+function isSemanticGraphNodeId(path: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:/i.test(path);
+}
+
 export function normalizeSelectionPathForVfs(selection: SelectionPathLike): string {
   const normalizedPath = stripInternalWorkspacePrefix(selection.path);
   if (normalizedPath.length === 0) {
@@ -37,4 +41,20 @@ export function normalizeSelectionPathForVfs(selection: SelectionPathLike): stri
   }
 
   return `${projectName}/${normalizedPath.replace(/^\/+/, '')}`;
+}
+
+export function normalizeSelectionPathForGraph(selection: SelectionPathLike): string {
+  const normalizedPath = stripInternalWorkspacePrefix(selection.path);
+  if (normalizedPath.length === 0) {
+    return normalizedPath;
+  }
+
+  if (isSemanticGraphNodeId(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  return normalizeSelectionPathForVfs({
+    ...selection,
+    path: normalizedPath,
+  });
 }

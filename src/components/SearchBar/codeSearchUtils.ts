@@ -12,6 +12,10 @@ export interface ParsedCodeFilters {
   filters: SearchFilters;
 }
 
+interface BuildCodeFilterSuggestionsOptions {
+  includeDefaultPrefixes?: boolean;
+}
+
 export const CODE_FILTER_PREFIXES = ['lang', 'kind', 'repo', 'path'] as const;
 export type CodeFilterPrefix = (typeof CODE_FILTER_PREFIXES)[number];
 
@@ -168,8 +172,10 @@ export function removeCodeFilterFromQuery(
 export function buildCodeFilterSuggestions(
   rawQuery: string,
   activeFilters: SearchFilters,
-  catalog: SearchFilters
+  catalog: SearchFilters,
+  options: BuildCodeFilterSuggestionsOptions = {}
 ): AutocompleteSuggestion[] {
+  const { includeDefaultPrefixes = true } = options;
   const query = rawQuery.trim();
   if (!query) {
     return [];
@@ -210,6 +216,10 @@ export function buildCodeFilterSuggestions(
       suggestionType: 'stem',
       docType: 'filter',
     }));
+  }
+
+  if (!includeDefaultPrefixes) {
+    return [];
   }
 
   return CODE_FILTER_PREFIXES.slice(0, 4).map((prefix) => ({

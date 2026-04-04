@@ -5,12 +5,13 @@ import {
   type MarkdownAnalysisResponse,
   type VfsContentResponse,
 } from '../../api';
-import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
+import { normalizeSelectionPathForGraph, normalizeSelectionPathForVfs } from '../../utils/selectionPath';
 import { isCodeSearchResult } from '../SearchBar/searchResultNormalization';
 import type { SearchResult } from '../SearchBar/types';
 
 export interface ZenSearchPreviewLoadPlan {
   contentPath: string;
+  graphPath: string;
   graphable: boolean;
   codeAstEligible: boolean;
   markdownEligible: boolean;
@@ -48,24 +49,33 @@ export interface ZenSearchPreviewMarkdownLoadResult {
 
 export function buildZenSearchPreviewLoadPlan(result: SearchResult): ZenSearchPreviewLoadPlan {
   const navigationTarget = result.navigationTarget;
+  const projectName = navigationTarget?.projectName ?? result.projectName;
+  const rootLabel = navigationTarget?.rootLabel ?? result.rootLabel;
   const contentPath = normalizeSelectionPathForVfs({
     path: navigationTarget?.path ?? result.path,
     category: navigationTarget?.category ?? result.category,
-    projectName: result.projectName ?? navigationTarget?.projectName,
-    rootLabel: result.rootLabel ?? navigationTarget?.rootLabel,
+    projectName,
+    rootLabel,
+  });
+  const graphPath = normalizeSelectionPathForGraph({
+    path: navigationTarget?.graphPath ?? navigationTarget?.path ?? result.path,
+    category: navigationTarget?.category ?? result.category,
+    projectName,
+    rootLabel,
   });
   const graphable = !isCodeSearchResult(result);
   const codeAstEligible = isCodeSearchResult(result);
   const markdownEligible = /\.(md|markdown)$/i.test(contentPath);
   const codeAstRepo =
     result.codeRepo?.trim() ||
-    result.projectName?.trim() ||
     result.navigationTarget?.projectName?.trim() ||
+    result.projectName?.trim() ||
     undefined;
   const codeAstLine = result.line ?? result.navigationTarget?.line ?? undefined;
 
   return {
     contentPath,
+    graphPath,
     graphable,
     codeAstEligible,
     markdownEligible,
@@ -84,7 +94,7 @@ export async function loadZenSearchPreviewBaseData(
   const [contentResult, graphResult] = await Promise.allSettled([
     api.getVfsContent(plan.contentPath),
     plan.graphable
-      ? api.getGraphNeighbors(plan.contentPath, { direction: 'both', hops: 1, limit: 20 })
+      ? api.getGraphNeighbors(plan.graphPath, { direction: 'both', hops: 1, limit: 20 })
       : Promise.resolve(null as GraphNeighborsResponse | null),
   ]);
 

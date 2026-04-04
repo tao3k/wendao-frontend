@@ -30,12 +30,42 @@ export interface ZenSearchPreviewState {
   codeAstError?: string | null;
 }
 
-async function buildPreviewSnapshot(result: SearchResult): Promise<ZenSearchPreviewState> {
+interface BuildPreviewSnapshotOptions {
+  includeCodeAst?: boolean;
+}
+
+function needsCodeAstLoad(
+  cachedPreview: ZenSearchPreviewState | undefined,
+  codeAstEligible: boolean
+): boolean {
+  return Boolean(
+    codeAstEligible &&
+      (!cachedPreview ||
+        (cachedPreview.codeAstAnalysis == null && cachedPreview.codeAstError == null))
+  );
+}
+
+function needsMarkdownLoad(
+  cachedPreview: ZenSearchPreviewState | undefined,
+  markdownEligible: boolean
+): boolean {
+  return Boolean(
+    markdownEligible &&
+      (!cachedPreview ||
+        (cachedPreview.markdownAnalysis == null && cachedPreview.markdownAnalysisError == null))
+  );
+}
+
+async function buildPreviewSnapshot(
+  result: SearchResult,
+  options: BuildPreviewSnapshotOptions = {}
+): Promise<ZenSearchPreviewState> {
   const loadPlan = buildZenSearchPreviewLoadPlan(result);
+  const shouldLoadCodeAst = loadPlan.codeAstEligible && options.includeCodeAst !== false;
   const [base, markdown, codeAstBase] = await Promise.all([
     loadZenSearchPreviewBaseData(loadPlan),
     loadZenSearchPreviewMarkdownData(loadPlan),
-    loadPlan.codeAstEligible ? loadZenSearchPreviewCodeAstData(loadPlan) : Promise.resolve({
+    shouldLoadCodeAst ? loadZenSearchPreviewCodeAstData(loadPlan) : Promise.resolve({
       codeAstAnalysis: null,
       codeAstError: null,
     }),
@@ -95,62 +125,79 @@ export function useZenSearchPreview(
     }
 
     const loadPlan = buildZenSearchPreviewLoadPlan(selectedResult);
-    if (previewIdentity) {
-      const cachedPreview = previewCacheRef.current.get(previewIdentity);
-      if (cachedPreview) {
-        setState({
-          ...cachedPreview,
-          selectedResult,
-          contentPath: loadPlan.contentPath,
-        });
+    const cachedPreview = previewIdentity
+      ? previewCacheRef.current.get(previewIdentity)
+      : undefined;
+    const shouldLoadCodeAst = needsCodeAstLoad(cachedPreview, loadPlan.codeAstEligible);
+    const shouldLoadMarkdown = needsMarkdownLoad(cachedPreview, loadPlan.markdownEligible);
+
+    if (cachedPreview) {
+      setState({
+        ...cachedPreview,
+        loading: false,
+        contentPath: loadPlan.contentPath,
+        selectedResult,
+        markdownAnalysisLoading: shouldLoadMarkdown,
+        codeAstLoading: shouldLoadCodeAst,
+      });
+
+      if (!shouldLoadCodeAst && !shouldLoadMarkdown) {
         return;
       }
     }
 
+    if (previewIdentity) {
+      previewInflightRef.current.delete(previewIdentity);
+    }
+
     let cancelled = false;
 
-    setState((current) => ({
-      ...current,
-      loading: true,
-      error: null,
-      contentPath: loadPlan.contentPath,
-      selectedResult,
-      markdownAnalysis: null,
-      markdownAnalysisLoading: loadPlan.markdownEligible,
-      markdownAnalysisError: null,
-      codeAstAnalysis: null,
-      codeAstLoading: loadPlan.codeAstEligible,
-      codeAstError: null,
-    }));
-
-    void (async () => {
-      const base = await loadZenSearchPreviewBaseData(loadPlan);
-
-      if (cancelled) {
-        return;
-      }
-
-      setState((current) => {
-        const nextState = {
-          ...current,
-          loading: false,
-          error: base.error,
+    if (!cachedPreview) {
+      setState((current) => ({
+        ...current,
+        loading: true,
+        error: null,
         contentPath: loadPlan.contentPath,
-        content: base.content,
-          contentType: base.contentType,
-          graphNeighbors: base.graphNeighbors,
-          selectedResult,
-        };
+        selectedResult,
+        markdownAnalysis: null,
+        markdownAnalysisLoading: shouldLoadMarkdown,
+        markdownAnalysisError: null,
+        codeAstAnalysis: null,
+        codeAstLoading: shouldLoadCodeAst,
+        codeAstError: null,
+      }));
+    }
 
-        if (previewIdentity) {
-          previewCacheRef.current.set(previewIdentity, nextState);
+    if (!cachedPreview) {
+      void (async () => {
+        const base = await loadZenSearchPreviewBaseData(loadPlan);
+
+        if (cancelled) {
+          return;
         }
 
-        return nextState;
-      });
-    })();
+        setState((current) => {
+          const nextState = {
+            ...current,
+            loading: false,
+            error: base.error,
+            contentPath: loadPlan.contentPath,
+            content: base.content,
+            contentType: base.contentType,
+            graphNeighbors: base.graphNeighbors,
+            selectedResult,
+          };
 
-    if (loadPlan.codeAstEligible) {
+          if (previewIdentity) {
+            previewCacheRef.current.set(previewIdentity, nextState);
+          }
+
+          return nextState;
+        });
+      })();
+    }
+
+    if (shouldLoadCodeAst) {
       void (async () => {
         const codeAst = await loadZenSearchPreviewCodeAstData(loadPlan);
 
@@ -175,7 +222,7 @@ export function useZenSearchPreview(
       })();
     }
 
-    if (loadPlan.markdownEligible) {
+    if (shouldLoadMarkdown) {
       void (async () => {
         const markdown = await loadZenSearchPreviewMarkdownData(loadPlan);
 
@@ -221,7 +268,7 @@ export function useZenSearchPreview(
         return;
       }
 
-      const inflight = buildPreviewSnapshot(result)
+      const inflight = buildPreviewSnapshot(result, { includeCodeAst: false })
         .then((snapshot) => {
           previewCacheRef.current.set(identity, snapshot);
           return snapshot;

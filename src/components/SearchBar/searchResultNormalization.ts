@@ -2,14 +2,11 @@ import type {
   AttachmentSearchHit,
   AstSearchHit,
   RepoDocCoverageDoc,
-  RepoExampleSearchHit,
-  RepoModuleSearchHit,
-  RepoSymbolSearchHit,
   ReferenceSearchHit,
   SearchHit,
   SymbolSearchHit,
 } from '../../api';
-import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
+import { normalizeSelectionPathForGraph, normalizeSelectionPathForVfs } from '../../utils/selectionPath';
 import type { ResultCategory, SearchResult, SearchSelection } from './types';
 
 function isNonEmptyString(value: string | undefined): value is string {
@@ -70,7 +67,15 @@ const SYMBOLIC_CODE_KINDS = new Set([
 ]);
 const NON_CODE_DOC_TYPES = new Set(['knowledge', 'skill', 'tag', 'doc', 'document']);
 
-function resolveCodeTagValue(tags: string[] | undefined, prefixes: string[]): string | undefined {
+interface ResolveCodeTagValueOptions {
+  preserveCase?: boolean;
+}
+
+function resolveCodeTagValue(
+  tags: string[] | undefined,
+  prefixes: string[],
+  options: ResolveCodeTagValueOptions = {}
+): string | undefined {
   if (!tags || tags.length === 0) {
     return undefined;
   }
@@ -82,7 +87,8 @@ function resolveCodeTagValue(tags: string[] | undefined, prefixes: string[]): st
       if (!normalizedLower.startsWith(`${prefix}:`)) {
         continue;
       }
-      const value = normalized.slice(prefix.length + 1).trim().toLowerCase();
+      const rawValue = normalized.slice(prefix.length + 1).trim();
+      const value = options.preserveCase ? rawValue : rawValue.toLowerCase();
       if (value.length > 0) {
         return value;
       }
@@ -90,6 +96,30 @@ function resolveCodeTagValue(tags: string[] | undefined, prefixes: string[]): st
   }
 
   return undefined;
+}
+
+function resolveBareRepoTag(tags: string[] | undefined): string | undefined {
+  if (!tags || tags.length === 0) {
+    return undefined;
+  }
+
+  return tags.find((tag) => {
+    const normalized = tag.trim();
+    const normalizedLower = normalized.toLowerCase();
+    if (!normalized || normalized.includes(':')) {
+      return false;
+    }
+    if (normalizedLower === 'code') {
+      return false;
+    }
+    if (KNOWN_CODE_LANGUAGES.has(normalizedLower)) {
+      return false;
+    }
+    if (KNOWN_CODE_KIND_TAGS.has(normalizedLower)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function resolveCodeLanguageFromHit(hit: SearchHit): string | undefined {
@@ -106,9 +136,28 @@ function resolveCodeLanguageFromHit(hit: SearchHit): string | undefined {
   return inferCodeLanguageFromPath(hit.path);
 }
 
+function looksFunctionLikeCodeHit(hit: SearchHit): boolean {
+  const functionLikeCandidates = [hit.bestSection, hit.title, hit.stem];
+  return functionLikeCandidates.some((candidate) => {
+    const normalized = candidate?.trim();
+    if (!normalized) {
+      return false;
+    }
+
+    if (/^(module|struct|class|trait|interface|enum)\b/i.test(normalized)) {
+      return false;
+    }
+
+    return /\(/.test(normalized);
+  });
+}
+
 function resolveCodeKindFromHit(hit: SearchHit): string | undefined {
   const explicitKind = resolveCodeTagValue(hit.tags, ['kind']);
   if (explicitKind) {
+    if (explicitKind === 'symbol' && looksFunctionLikeCodeHit(hit)) {
+      return 'function';
+    }
     return explicitKind;
   }
 
@@ -131,9 +180,14 @@ function resolveCodeRepoFromHit(hit: SearchHit, repoHint?: string): string | und
     return projectName;
   }
 
-  const explicitRepo = resolveCodeTagValue(hit.tags, ['repo', 'project']);
+  const explicitRepo = resolveCodeTagValue(hit.tags, ['repo', 'project'], { preserveCase: true });
   if (explicitRepo) {
     return explicitRepo;
+  }
+
+  const bareRepoTag = resolveBareRepoTag(hit.tags)?.trim();
+  if (bareRepoTag) {
+    return bareRepoTag;
   }
 
   const normalizedHint = repoHint?.trim();
@@ -166,46 +220,6 @@ function resolveCodeCategoryFromKind(codeKind: string | undefined, docType: stri
   return 'ast';
 }
 
-function normalizeRelevanceScore(value: number | undefined, fallback: number): number {
-  if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
-    return fallback;
-  }
-  return Math.max(0, Math.min(1, value));
-}
-
-function resolveRepoScore(
-  hit: { saliencyScore?: number; score?: number },
-  fallback: number
-): number {
-  return normalizeRelevanceScore(hit.saliencyScore ?? hit.score, fallback);
-}
-
-function renderHierarchyLabel(
-  hit: { hierarchy?: string[]; hierarchicalUri?: string },
-  fallback: string
-): string {
-  const hierarchy = hit.hierarchy?.filter((segment) => segment.trim().length > 0) ?? [];
-  if (hierarchy.length > 0) {
-    return hierarchy.join(' / ');
-  }
-  return hit.hierarchicalUri ?? fallback;
-}
-
-function appendBacklinkReason(
-  baseReason: string,
-  backlinks?: string[],
-  backlinkItems?: Array<{ id: string }>
-): string {
-  const backlinkCount =
-    backlinkItems && backlinkItems.length > 0
-      ? backlinkItems.length
-      : backlinks?.length ?? 0;
-  if (backlinkCount === 0) {
-    return baseReason;
-  }
-  return `${baseReason} · backlinks:${backlinkCount}`;
-}
-
 function knowledgeResultCategory(hit: SearchHit): ResultCategory {
   const navigationCategory =
     hit.navigationTarget?.category
@@ -233,7 +247,7 @@ function canonicalizeSearchSelection(selection: SearchSelection): SearchSelectio
     category: selection.category,
     projectName: selection.projectName,
   });
-  const canonicalGraphPath = normalizeSelectionPathForVfs({
+  const canonicalGraphPath = normalizeSelectionPathForGraph({
     path: selection.graphPath ?? selection.path,
     category: selection.category,
     projectName: selection.projectName,
@@ -258,7 +272,12 @@ export function toSearchSelection(result: SearchResult): SearchSelection {
   if (result.navigationTarget) {
     return canonicalizeSearchSelection({
       ...result.navigationTarget,
-      graphPath: result.navigationTarget.path ?? result.path,
+      projectName: result.navigationTarget.projectName ?? result.projectName,
+      rootLabel: result.navigationTarget.rootLabel ?? result.rootLabel,
+      line: result.navigationTarget.line ?? result.line,
+      lineEnd: result.navigationTarget.lineEnd ?? result.lineEnd,
+      column: result.navigationTarget.column ?? result.column,
+      graphPath: result.navigationTarget.graphPath ?? result.navigationTarget.path ?? result.path,
     });
   }
 
@@ -329,112 +348,6 @@ export function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
     codeRepo: hit.projectName ?? hit.crateName,
     searchSource: 'search-index',
     navigationTarget: hit.navigationTarget,
-  };
-}
-
-export function normalizeRepoModuleHit(hit: RepoModuleSearchHit): SearchResult {
-  const navigationTarget: SearchSelection = {
-    path: hit.path,
-    category: 'doc',
-    projectName: hit.repoId,
-  };
-
-  return {
-    stem: hit.qualifiedName,
-    title: hit.qualifiedName,
-    path: hit.path,
-    docType: 'symbol',
-    tags: ['module', hit.repoId],
-    score: resolveRepoScore(hit, 0.7),
-    bestSection: renderHierarchyLabel(hit, `module · ${hit.repoId}`),
-    matchReason: appendBacklinkReason(hit.moduleId, hit.implicitBacklinks, hit.implicitBacklinkItems),
-    category: 'symbol',
-    projectName: hit.repoId,
-    codeLanguage: inferCodeLanguageFromPath(hit.path),
-    codeKind: 'module',
-    codeRepo: hit.repoId,
-    searchSource: 'repo-intelligence',
-    hierarchicalUri: hit.hierarchicalUri,
-    hierarchy: hit.hierarchy,
-    saliencyScore: hit.saliencyScore ?? hit.score,
-    implicitBacklinks: hit.implicitBacklinks,
-    implicitBacklinkItems: hit.implicitBacklinkItems,
-    projectionPageIds: hit.projectionPageIds,
-    navigationTarget,
-  };
-}
-
-export function normalizeRepoSymbolHit(hit: RepoSymbolSearchHit): SearchResult {
-  const navigationTarget: SearchSelection = {
-    path: hit.path,
-    category: 'doc',
-    projectName: hit.repoId,
-  };
-
-  return {
-    stem: hit.name,
-    title: hit.qualifiedName || hit.name,
-    path: hit.path,
-    docType: 'symbol',
-    tags: [hit.kind, hit.repoId, hit.auditStatus, hit.verificationState].filter(isNonEmptyString),
-    score: resolveRepoScore(hit, 0.72),
-    bestSection: renderHierarchyLabel(hit, `${hit.kind} · ${hit.repoId}`),
-    matchReason: appendBacklinkReason(
-      hit.signature || hit.symbolId,
-      hit.implicitBacklinks,
-      hit.implicitBacklinkItems
-    ),
-    category: 'symbol',
-    projectName: hit.repoId,
-    codeLanguage: inferCodeLanguageFromPath(hit.path),
-    codeKind: hit.kind,
-    codeRepo: hit.repoId,
-    searchSource: 'repo-intelligence',
-    hierarchicalUri: hit.hierarchicalUri,
-    hierarchy: hit.hierarchy,
-    saliencyScore: hit.saliencyScore ?? hit.score,
-    auditStatus: hit.auditStatus,
-    verificationState: hit.verificationState,
-    implicitBacklinks: hit.implicitBacklinks,
-    implicitBacklinkItems: hit.implicitBacklinkItems,
-    projectionPageIds: hit.projectionPageIds,
-    navigationTarget,
-  };
-}
-
-export function normalizeRepoExampleHit(hit: RepoExampleSearchHit): SearchResult {
-  const navigationTarget: SearchSelection = {
-    path: hit.path,
-    category: 'doc',
-    projectName: hit.repoId,
-  };
-
-  return {
-    stem: hit.title,
-    title: hit.title,
-    path: hit.path,
-    docType: 'ast',
-    tags: ['example', hit.repoId],
-    score: resolveRepoScore(hit, 0.68),
-    bestSection: renderHierarchyLabel(hit, `example · ${hit.repoId}`),
-    matchReason: appendBacklinkReason(
-      hit.summary ?? hit.exampleId,
-      hit.implicitBacklinks,
-      hit.implicitBacklinkItems
-    ),
-    category: 'ast',
-    projectName: hit.repoId,
-    codeLanguage: inferCodeLanguageFromPath(hit.path),
-    codeKind: 'example',
-    codeRepo: hit.repoId,
-    searchSource: 'repo-intelligence',
-    hierarchicalUri: hit.hierarchicalUri,
-    hierarchy: hit.hierarchy,
-    saliencyScore: hit.saliencyScore ?? hit.score,
-    implicitBacklinks: hit.implicitBacklinks,
-    implicitBacklinkItems: hit.implicitBacklinkItems,
-    projectionPageIds: hit.projectionPageIds,
-    navigationTarget,
   };
 }
 

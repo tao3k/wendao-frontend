@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
-import type { SearchFilters } from './codeSearchUtils';
+import { parseCodeFilters, type SearchFilters } from './codeSearchUtils';
 import type { SearchExecutionMode, SearchMeta } from './searchExecution';
-import { getTotalSelectableItems } from './searchKeyboardUtils';
 import type { SearchResultSection } from './searchResultSections';
 import { getVisibleSearchView } from './searchResultSections';
 import {
@@ -31,15 +30,16 @@ interface UseSearchDerivedStateParams {
   query: string;
   activeCodeFilterEntriesLength: number;
   searchMeta: SearchMeta | null;
+  isLoading: boolean;
 }
 
 interface SearchDerivedState {
   searchMode: SearchExecutionMode;
   visibleResults: SearchResult[];
   visibleSections: SearchResultSection[];
+  resultsQuery: string;
   suggestionCount: number;
   resultCount: number;
-  totalSelectableItems: number;
   queryToSearch: string;
   hasCodeFilterOnlyQueryValue: boolean;
   confidenceLabel: string;
@@ -63,27 +63,81 @@ export function useSearchDerivedState({
   query,
   activeCodeFilterEntriesLength,
   searchMeta,
+  isLoading,
 }: UseSearchDerivedStateParams): SearchDerivedState {
-  return useMemo(() => {
-    const searchMode = resolveSearchMode(scope);
-    const { visibleResults, visibleSections } = getVisibleSearchView(
-      results,
-      scope,
-      sortMode,
-      parsedCodeFilters,
-      locale,
-      attachmentsLabel
-    );
-    const suggestionCount = showSuggestions ? suggestionsLength : 0;
-    const resultCount = visibleResults.length;
-    const totalSelectableItems = getTotalSelectableItems(suggestionCount, resultCount);
-    const queryToSearch = resolveQueryToSearch(searchMode, debouncedCodeBaseQuery, debouncedQuery);
-    const hasCodeFilterOnlyQueryValue = hasCodeFilterOnlyQuery(
+  const searchMode = useMemo(() => resolveSearchMode(scope), [scope]);
+  const hasCodeFilterOnlyQueryValue = useMemo(() => (
+    hasCodeFilterOnlyQuery(
       scope,
       query,
       parsedCodeBaseQuery,
       activeCodeFilterEntriesLength
+    )
+  ), [
+    activeCodeFilterEntriesLength,
+    parsedCodeBaseQuery,
+    query,
+    scope,
+  ]);
+  const queryToSearch = useMemo(() => (
+    hasCodeFilterOnlyQueryValue
+      ? ''
+      : resolveQueryToSearch(searchMode, debouncedCodeBaseQuery, debouncedQuery)
+  ), [
+    debouncedCodeBaseQuery,
+    debouncedQuery,
+    hasCodeFilterOnlyQueryValue,
+    searchMode,
+  ]);
+  const resultsQuery = useMemo(() => {
+    const settledQuery = searchMeta?.query?.trim() ?? '';
+    if (
+      isLoading
+      && (scope === 'all' || scope === 'code')
+      && settledQuery.length > 0
+      && settledQuery !== queryToSearch.trim()
+    ) {
+      return settledQuery;
+    }
+    return queryToSearch;
+  }, [
+    isLoading,
+    queryToSearch,
+    scope,
+    searchMeta?.query,
+  ]);
+  const visibleCodeFilters = useMemo(() => {
+    if (resultsQuery === queryToSearch) {
+      return parsedCodeFilters;
+    }
+    return parseCodeFilters(resultsQuery).filters;
+  }, [
+    parsedCodeFilters,
+    queryToSearch,
+    resultsQuery,
+  ]);
+
+  const { visibleResults, visibleSections } = useMemo(() => {
+    return getVisibleSearchView(
+      results,
+      scope,
+      sortMode,
+      visibleCodeFilters,
+      locale,
+      attachmentsLabel
     );
+  }, [
+    attachmentsLabel,
+    locale,
+    results,
+    scope,
+    sortMode,
+    visibleCodeFilters,
+  ]);
+
+  return useMemo(() => {
+    const suggestionCount = showSuggestions ? suggestionsLength : 0;
+    const resultCount = visibleResults.length;
     const confidenceLabel = getConfidenceLabel(searchMeta?.graphConfidenceScore, locale);
     const modeLabel = getModeLabel(searchMeta, locale);
     const confidenceTone = getConfidenceTone(searchMeta?.graphConfidenceScore);
@@ -93,9 +147,9 @@ export function useSearchDerivedState({
       searchMode,
       visibleResults,
       visibleSections,
+      resultsQuery,
       suggestionCount,
       resultCount,
-      totalSelectableItems,
       queryToSearch,
       hasCodeFilterOnlyQueryValue,
       confidenceLabel,
@@ -104,19 +158,15 @@ export function useSearchDerivedState({
       fallbackLabel,
     };
   }, [
-    activeCodeFilterEntriesLength,
-    attachmentsLabel,
-    debouncedCodeBaseQuery,
-    debouncedQuery,
-    locale,
-    parsedCodeBaseQuery,
-    parsedCodeFilters,
-    query,
-    results,
-    scope,
     searchMeta,
     showSuggestions,
-    sortMode,
     suggestionsLength,
+    visibleResults,
+    visibleSections,
+    resultsQuery,
+    searchMode,
+    hasCodeFilterOnlyQueryValue,
+    queryToSearch,
+    locale,
   ]);
 }

@@ -32,9 +32,7 @@ vi.mock('../../../api', () => ({
     searchReferences: vi.fn(),
     searchSymbols: vi.fn(),
     searchAutocomplete: vi.fn(),
-    searchRepoModules: vi.fn(),
-    searchRepoSymbols: vi.fn(),
-    searchRepoExamples: vi.fn(),
+    searchRepoContentFlight: vi.fn(),
     getRepoOverview: vi.fn(),
     getRepoDocCoverage: vi.fn(),
     getRepoProjectedPageIndexTree: vi.fn(),
@@ -72,6 +70,7 @@ describe('SearchBar', () => {
       supportedKinds: ['function', 'module', 'struct'],
     });
     mockedApi.searchAutocomplete.mockResolvedValue(createMockAutocompleteResponse([]));
+    mockedApi.searchRepoContentFlight.mockResolvedValue(createMockSearchResponse('', []));
     mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('', []));
     mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
     mockedApi.resolveDefinition.mockResolvedValue(createMockDefinitionResponse('', {
@@ -181,6 +180,22 @@ describe('SearchBar', () => {
     prefix: 'q',
     suggestions,
   });
+
+  const createDeferred = <T,>() => {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+
+    const promise = new Promise<T>((promiseResolve, promiseReject) => {
+      resolve = promiseResolve;
+      reject = promiseReject;
+    });
+
+    return {
+      promise,
+      resolve,
+      reject,
+    };
+  };
 
   const createMockSymbolResponse = (query: string, hits: Array<{
     name: string;
@@ -652,22 +667,26 @@ describe('SearchBar', () => {
   });
 
   it('should render search metadata after results load', async () => {
-    mockedApi.searchKnowledge.mockResolvedValue(
-      createMockSearchResponse('meta', [
-        {
-          stem: 'Alpha',
-          path: '/notes/alpha',
-          score: 0.9,
-          tags: ['a'],
-        },
-        {
-          stem: 'Beta',
-          path: '/notes/beta',
-          score: 0.8,
-          tags: ['b'],
-        },
-      ])
-    );
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(
+        createMockSearchResponse('meta', [
+          {
+            stem: 'Alpha',
+            path: '/notes/alpha',
+            score: 0.9,
+            tags: ['a'],
+          },
+          {
+            stem: 'Beta',
+            path: '/notes/beta',
+            score: 0.8,
+            tags: ['b'],
+          },
+        ])
+      )
+      .mockResolvedValueOnce(
+        createMockSearchResponse('meta', [])
+      );
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
@@ -675,26 +694,17 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'meta' } });
 
     await waitFor(() => {
-      const totals = screen.getAllByText('Total 2');
-      expect(totals).toHaveLength(1);
+      expect(screen.getByRole('button', { name: /Search status/i })).toHaveTextContent('2 results');
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getByRole('button', { name: /Search status/i }));
+
+    await waitFor(() => {
       expect(screen.getByText('Total 2')).toBeInTheDocument();
-      expect(screen.getByText('Mode: Hybrid + Code')).toBeInTheDocument();
+      expect(screen.getByText('Mode: Hybrid')).toBeInTheDocument();
       expect(screen.getByText('Confidence: 80%')).toBeInTheDocument();
       expect(screen.getByText('Scope: All')).toBeInTheDocument();
       expect(screen.getByText('Sort: Relevance')).toBeInTheDocument();
-      expect(
-        ['Total 2', 'Mode: Hybrid + Code', 'Confidence: 80%', 'Scope: All', 'Sort: Relevance'].map(
-          (label) => screen.getByText(label).textContent
-        )
-      ).toMatchInlineSnapshot(`
-        [
-          "Total 2",
-          "Mode: Hybrid + Code",
-          "Confidence: 80%",
-          "Scope: All",
-          "Sort: Relevance",
-        ]
-      `);
     }, { timeout: 1000 });
   });
 
@@ -723,6 +733,58 @@ describe('SearchBar', () => {
 
       expect(labels).toEqual(expect.arrayContaining(['Title', 'Tag', 'Stem', 'Heading', 'Symbol', 'Metadata']));
     }, { timeout: 1000 });
+  });
+
+  it('should keep enter selection inside the suggestion dropdown when suggestions are visible', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(
+      createMockSearchResponse('sec', [
+        {
+          stem: 'section guide',
+          title: 'section guide',
+          path: 'main/docs/section-guide.md',
+          docType: 'knowledge',
+          tags: [],
+          score: 0.9,
+          bestSection: 'section guide',
+          matchReason: 'hybrid_note_search',
+          navigationTarget: {
+            path: 'main/docs/section-guide.md',
+            category: 'knowledge',
+            projectName: 'main',
+            rootLabel: 'docs',
+          },
+        },
+      ])
+    );
+    mockedApi.searchAutocomplete.mockResolvedValue(
+      createMockAutocompleteResponse([
+        { text: 'section', suggestionType: 'stem', target: 'section' },
+        { text: 'sector', suggestionType: 'stem', target: 'sector' },
+      ])
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'sec' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('section')).toBeInTheDocument();
+      expect(screen.getByText('sector')).toBeInTheDocument();
+      expect(screen.getByText('section guide')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect((input as HTMLInputElement).value).toBe('sector');
+    }, { timeout: 1000 });
+    await waitFor(() => {
+      expect(screen.queryByTestId('search-suggestions-panel')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    expect(mockOnResultSelect).not.toHaveBeenCalled();
   });
 
   it('should request backend autocomplete in symbol and attachment scopes', async () => {
@@ -1120,7 +1182,7 @@ describe('SearchBar', () => {
     }, { timeout: 1000 });
 
     await waitFor(() => {
-      expect(screen.getAllByText('main > main/docs/index.md')).toHaveLength(2);
+      expect(screen.getAllByText('main > docs/index.md')).toHaveLength(2);
       expect(screen.getByText('property drawer · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
       expect(screen.getByText('code observation · Studio Functional Ledger · lines 3-6')).toBeInTheDocument();
     }, { timeout: 1000 });
@@ -1213,6 +1275,624 @@ describe('SearchBar', () => {
       expect(screen.getByTestId('code-ast-waterfall')).toBeInTheDocument();
       expect(screen.getByText('Code AST Waterfall')).toBeInTheDocument();
     }, { timeout: 1000 });
+  });
+
+  it('should run repo-aware code search from the default all scope when a repo filter is present', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia'],
+      supportedRepositories: ['kernel', 'gateway-sync'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(createMockSearchResponse('solve', []))
+      .mockResolvedValueOnce(createMockSearchResponse('solve', [], {
+        selectedMode: 'code_search',
+        searchMode: 'graph_only',
+        intent: 'code_search',
+        intentConfidence: 0.92,
+      }));
+    mockedApi.searchRepoContentFlight.mockResolvedValue(createMockSearchResponse('solve', [
+      {
+        stem: 'solve.jl',
+        title: 'solve.jl',
+        path: 'src/solve.jl',
+        docType: 'file',
+        tags: ['lang:julia'],
+        score: 0.93,
+        navigationTarget: {
+          path: 'src/solve.jl',
+          category: 'repo_code',
+          projectName: 'gateway-sync',
+        },
+      },
+    ], {
+      selectedMode: 'repo_search',
+      searchMode: 'repo_search',
+    }));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('solve', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'repo:gateway-sync solve' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchRepoContentFlight).toHaveBeenCalledWith('gateway-sync', 'solve', 10, {
+        languageFilters: [],
+        pathPrefixes: [],
+      });
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, 'solve', 10, {
+        intent: 'hybrid_search',
+      });
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(2, 'repo:gateway-sync solve', 10, {
+        intent: 'code_search',
+        repo: 'gateway-sync',
+      });
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getByText('solve.jl')).toBeInTheDocument();
+      expect(screen.getByText('gateway-sync > src/solve.jl')).toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('should apply lang filters to code results in the default all scope', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia', 'rust'],
+      supportedRepositories: ['sciml', 'kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(createMockSearchResponse('sec', [
+        {
+          stem: 'section guide',
+          title: 'section guide',
+          path: 'main/docs/section-guide.md',
+          docType: 'knowledge',
+          tags: [],
+          score: 0.9,
+          bestSection: 'section guide',
+          matchReason: 'hybrid_note_search',
+          navigationTarget: {
+            path: 'main/docs/section-guide.md',
+            category: 'knowledge',
+            projectName: 'main',
+            rootLabel: 'docs',
+          },
+        },
+      ]))
+      .mockResolvedValueOnce(createMockSearchResponse('sec', [
+        {
+          stem: 'solve',
+          title: 'solve',
+          path: 'sciml/src/solve.jl',
+          docType: 'symbol',
+          tags: ['code', 'lang:julia', 'kind:function'],
+          score: 0.95,
+          bestSection: 'solve(::Model)',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'sciml/src/solve.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 12,
+          },
+        },
+        {
+          stem: 'sectionize',
+          title: 'sectionize',
+          path: 'kernel/src/sectionize.rs',
+          docType: 'symbol',
+          tags: ['code', 'lang:rust', 'kind:function'],
+          score: 0.83,
+          bestSection: 'sectionize()',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'kernel/src/sectionize.rs',
+            category: 'repo_code',
+            projectName: 'kernel',
+            rootLabel: 'src',
+            line: 21,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 0.97,
+      }));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('sec', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('sec', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('sec', []));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('sec', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'sec lang:julia' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, 'sec', 10, {
+        intent: 'hybrid_search',
+      });
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(2, 'sec lang:julia', 10, {
+        intent: 'code_search',
+      });
+      expect(mockedApi.searchAst).toHaveBeenCalledWith('sec', 10);
+      expect(mockedApi.searchReferences).toHaveBeenCalledWith('sec', 10);
+      expect(mockedApi.searchSymbols).toHaveBeenCalledWith('sec', 10);
+      expect(mockedApi.searchAttachments).toHaveBeenCalledWith('sec', 10);
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getByText('solve')).toBeInTheDocument();
+      expect(screen.queryByText('sectionize')).not.toBeInTheDocument();
+      expect(screen.queryByText('section guide')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('should match the all-scope code-search interface snapshot for combined lang and kind filters', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia', 'rust'],
+      supportedRepositories: ['sciml', 'kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(createMockSearchResponse('sec', [
+        {
+          stem: 'section guide',
+          title: 'section guide',
+          path: 'main/docs/section-guide.md',
+          docType: 'knowledge',
+          tags: [],
+          score: 0.9,
+          bestSection: 'section guide',
+          matchReason: 'hybrid_note_search',
+          navigationTarget: {
+            path: 'main/docs/section-guide.md',
+            category: 'knowledge',
+            projectName: 'main',
+            rootLabel: 'docs',
+          },
+        },
+      ]))
+      .mockResolvedValueOnce(createMockSearchResponse('sec lang:julia kind:function', [
+        {
+          stem: 'solve',
+          title: 'solve',
+          path: 'sciml/src/solve.jl',
+          docType: 'symbol',
+          tags: ['code', 'lang:julia', 'kind:function'],
+          score: 0.95,
+          bestSection: 'solve(::Model)',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'sciml/src/solve.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 12,
+          },
+        },
+        {
+          stem: 'SectionModule',
+          title: 'SectionModule',
+          path: 'sciml/src/SectionModule.jl',
+          docType: 'module',
+          tags: ['code', 'lang:julia', 'kind:module'],
+          score: 0.9,
+          bestSection: 'module SectionModule',
+          matchReason: 'repo_module_search',
+          navigationTarget: {
+            path: 'sciml/src/SectionModule.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 4,
+          },
+        },
+        {
+          stem: 'sectionize',
+          title: 'sectionize',
+          path: 'kernel/src/sectionize.rs',
+          docType: 'symbol',
+          tags: ['code', 'lang:rust', 'kind:function'],
+          score: 0.83,
+          bestSection: 'sectionize()',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'kernel/src/sectionize.rs',
+            category: 'repo_code',
+            projectName: 'kernel',
+            rootLabel: 'src',
+            line: 21,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 0.97,
+      }));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('sec', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('sec', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('sec', []));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('sec', []));
+
+    const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'sec lang:julia kind:function' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, 'sec', 10, {
+        intent: 'hybrid_search',
+      });
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(2, 'sec lang:julia kind:function', 10, {
+        intent: 'code_search',
+      });
+      expect(screen.getByText('solve')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    const snapshot = {
+      sections: Array.from(container.querySelectorAll('.search-section-title')).map((node) => node.textContent || ''),
+      results: Array.from(container.querySelectorAll('.search-result')).map((node) => ({
+        title: node.querySelector('.search-result-title')?.textContent || '',
+        path: node.querySelector('.search-result-path')?.textContent || '',
+        meta: Array.from(node.querySelectorAll('.search-result-meta-pill')).map((pill) => pill.textContent || ''),
+      })),
+    };
+
+    expect(snapshot).toMatchInlineSnapshot(`
+      {
+        "results": [
+          {
+            "meta": [
+              "julia",
+              "function",
+              "sciml",
+            ],
+            "path": "sciml > src/solve.jl",
+            "title": "solve",
+          },
+        ],
+        "sections": [
+          "Symbols1",
+        ],
+      }
+    `);
+  });
+
+  it('should keep all-scope code filters code-only when lang and kind produce no matching code hits', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia', 'rust'],
+      supportedRepositories: ['sciml', 'kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(createMockSearchResponse('sec', [
+        {
+          stem: 'section guide',
+          title: 'section guide',
+          path: 'main/docs/section-guide.md',
+          docType: 'knowledge',
+          tags: [],
+          score: 0.9,
+          bestSection: 'section guide',
+          matchReason: 'hybrid_note_search',
+          navigationTarget: {
+            path: 'main/docs/section-guide.md',
+            category: 'knowledge',
+            projectName: 'main',
+            rootLabel: 'docs',
+          },
+        },
+      ]))
+      .mockResolvedValueOnce(createMockSearchResponse('sec lang:julia kind:function', [
+        {
+          stem: 'SectionModule',
+          title: 'SectionModule',
+          path: 'sciml/src/SectionModule.jl',
+          docType: 'module',
+          tags: ['code', 'lang:julia', 'kind:module'],
+          score: 0.9,
+          bestSection: 'module SectionModule',
+          matchReason: 'repo_module_search',
+          navigationTarget: {
+            path: 'sciml/src/SectionModule.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 4,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 0.97,
+      }));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('sec', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('sec', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('sec', []));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('sec', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'sec lang:julia kind:function' } });
+
+    await waitFor(() => {
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, 'sec', 10, {
+        intent: 'hybrid_search',
+      });
+      expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(2, 'sec lang:julia kind:function', 10, {
+        intent: 'code_search',
+      });
+    }, { timeout: 1000 });
+
+    await waitFor(() => {
+      expect(screen.getByText('No results found for "sec lang:julia kind:function"')).toBeInTheDocument();
+      expect(document.querySelectorAll('.search-result')).toHaveLength(0);
+      expect(screen.queryByText('section guide')).not.toBeInTheDocument();
+      expect(screen.queryByText('SectionModule')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('keeps the previous settled all-scope code results visible while a narrower kind filter is still loading', async () => {
+    const firstCodeSearch = createDeferred<ReturnType<typeof createMockSearchResponse>>();
+    const secondCodeSearch = createDeferred<ReturnType<typeof createMockSearchResponse>>();
+
+    mockedApi.searchKnowledge.mockImplementation(async (query, _limit, options) => {
+      if (options?.intent === 'hybrid_search') {
+        return createMockSearchResponse(String(query), []);
+      }
+
+      if (query === 'sec lang:julia') {
+        return firstCodeSearch.promise;
+      }
+
+      if (query === 'sec lang:julia kind:function') {
+        return secondCodeSearch.promise;
+      }
+
+      return createMockSearchResponse(String(query), []);
+    });
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('sec', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('sec', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('sec', []));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('sec', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'sec lang:julia' } });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    });
+
+    await act(async () => {
+      firstCodeSearch.resolve(createMockSearchResponse('sec lang:julia', [
+        {
+          stem: 'SectionModule',
+          title: 'SectionModule',
+          path: 'sciml/src/SectionModule.jl',
+          docType: 'module',
+          tags: ['code', 'lang:julia', 'kind:module'],
+          score: 0.9,
+          bestSection: 'module SectionModule',
+          matchReason: 'repo_module_search',
+          navigationTarget: {
+            path: 'sciml/src/SectionModule.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 4,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 0.97,
+      }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('SectionModule')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    fireEvent.change(input, { target: { value: 'sec lang:julia kind:function' } });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    });
+
+    await waitFor(() => {
+      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('sec lang:julia kind:function', 10, {
+        intent: 'code_search',
+      });
+      expect(screen.getByText('SectionModule')).toBeInTheDocument();
+      expect(screen.queryByText('No results found for "sec lang:julia kind:function"')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    await act(async () => {
+      secondCodeSearch.resolve(createMockSearchResponse('sec lang:julia kind:function', [
+        {
+          stem: 'solve',
+          title: 'solve',
+          path: 'sciml/src/solve.jl',
+          docType: 'symbol',
+          tags: ['code', 'lang:julia', 'kind:function'],
+          score: 0.95,
+          bestSection: 'solve(::Model)',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'sciml/src/solve.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 12,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 0.97,
+      }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('solve')).toBeInTheDocument();
+      expect(screen.queryByText('SectionModule')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
+  it('should snapshot the all-scope code-search call contract for combined lang and kind filters', async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ['julia', 'rust'],
+      supportedRepositories: ['sciml', 'kernel'],
+      supportedKinds: ['function', 'module', 'struct'],
+    });
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(createMockSearchResponse('sec', []))
+      .mockResolvedValueOnce(createMockSearchResponse('sec lang:julia kind:function', [
+        {
+          stem: 'solve',
+          title: 'solve',
+          path: 'sciml/src/solve.jl',
+          docType: 'symbol',
+          tags: ['code', 'lang:julia', 'kind:function'],
+          score: 0.95,
+          bestSection: 'solve(::Model)',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'sciml/src/solve.jl',
+            category: 'repo_code',
+            projectName: 'sciml',
+            rootLabel: 'src',
+            line: 12,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 0.97,
+      }));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('sec', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('sec', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('sec', []));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse('sec', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'sec lang:julia kind:function' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('solve')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchKnowledge.mock.calls.slice(0, 2)).toMatchInlineSnapshot(`
+      [
+        [
+          "sec",
+          10,
+          {
+            "intent": "hybrid_search",
+          },
+        ],
+        [
+          "sec lang:julia kind:function",
+          10,
+          {
+            "intent": "code_search",
+          },
+        ],
+      ]
+    `);
+  });
+
+  it('should provide all-scope code filter suggestions while still using autocomplete for plain queries', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+    mockedApi.searchAutocomplete
+      .mockResolvedValue(
+        createMockAutocompleteResponse([
+          {
+            text: 'section',
+            suggestionType: 'stem',
+          },
+        ]),
+      );
+
+    const { container } = render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'lang:j' } });
+
+    await waitFor(() => {
+      const suggestionTexts = Array.from(container.querySelectorAll('.search-suggestion .suggestion-text')).map(
+        (node) => node.textContent || ''
+      );
+      const suggestionTypes = Array.from(container.querySelectorAll('.search-suggestion .suggestion-type')).map(
+        (node) => node.textContent || ''
+      );
+
+      expect(suggestionTexts).toContain('lang:julia');
+      expect(suggestionTypes).toContain('Filter');
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchAutocomplete).not.toHaveBeenCalledWith('lang:j', 5);
+
+    fireEvent.change(input, { target: { value: 'sec' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('section')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchAutocomplete).toHaveBeenLastCalledWith('sec', 5);
+
+    fireEvent.change(input, { target: { value: 'sec lang:j' } });
+
+    await waitFor(() => {
+      const suggestionTexts = Array.from(container.querySelectorAll('.search-suggestion .suggestion-text')).map(
+        (node) => node.textContent || ''
+      );
+
+      expect(suggestionTexts).toContain('sec lang:julia');
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchAutocomplete).toHaveBeenLastCalledWith('sec', 5);
+  });
+
+  it('should show the code filter-only hint and skip all-scope search requests until a keyword is present', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse('', []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse('', []));
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse('', []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse('', []));
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'lang:julia kind:function' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Add a keyword with filters to run code search, for example: repo:gateway-sync lang:julia solve')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    expect(mockedApi.searchKnowledge).not.toHaveBeenCalled();
+    expect(mockedApi.searchSymbols).not.toHaveBeenCalled();
+    expect(mockedApi.searchAst).not.toHaveBeenCalled();
+    expect(mockedApi.searchReferences).not.toHaveBeenCalled();
   });
 
   it('should pass structured jump metadata when opening an AST result', async () => {
@@ -1632,7 +2312,7 @@ describe('SearchBar', () => {
     fireEvent.change(input, { target: { value: 'lang:rust kind:struct RepoScanner' } });
 
     await waitFor(() => {
-      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('RepoScanner', 10, {
+      expect(mockedApi.searchKnowledge).toHaveBeenCalledWith('lang:rust kind:struct RepoScanner', 10, {
         intent: 'code_search',
       });
     }, { timeout: 1000 });
@@ -1641,6 +2321,56 @@ describe('SearchBar', () => {
       expect(document.querySelector('.search-code-filter-chip[title="lang:rust"]')).not.toBeNull();
       expect(document.querySelector('.search-code-filter-chip[title="kind:struct"]')).not.toBeNull();
     }, { timeout: 1000 });
+  });
+
+  it('should preserve repo-backed path canonicalization when navigationTarget omits projectName', async () => {
+    mockedApi.searchKnowledge.mockResolvedValue(
+      createMockSearchResponse('continuous', [
+        {
+          stem: 'continuous',
+          title: 'continuous',
+          path: 'src/Blocks/continuous.jl',
+          docType: 'symbol',
+          tags: ['code', 'julia', 'kind:function', 'repo:ModelingToolkitStandardLibrary.jl'],
+          score: 0.91,
+          bestSection: 'continuous',
+          matchReason: 'repo_symbol_search',
+          navigationTarget: {
+            path: 'src/Blocks/continuous.jl',
+            category: 'repo_code',
+            line: 42,
+          },
+        },
+      ], {
+        selectedMode: 'code_search',
+        searchMode: 'code_search',
+        intent: 'code_search',
+        intentConfidence: 1,
+      })
+    );
+
+    render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
+
+    openAdvancedScopes();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+
+    const input = screen.getByPlaceholderText('Search knowledge graph... (Ctrl+F)');
+    fireEvent.change(input, { target: { value: 'continuous' } });
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(1);
+    }, { timeout: 1000 });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open' })[0]!);
+
+    expect(mockOnResultSelect).toHaveBeenCalledWith({
+      path: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
+      category: 'repo_code',
+      projectName: 'ModelingToolkitStandardLibrary.jl',
+      line: 42,
+      graphPath: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
+    });
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('should show code filter-only hint and skip code search requests when no keyword is present', async () => {

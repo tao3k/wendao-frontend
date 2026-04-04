@@ -2,33 +2,19 @@ import { describe, expectTypeOf, it } from 'vitest';
 import type {
   RepoBacklinkItem,
   RepoIndexStatusResponse,
-  RepoModuleSearchResponse,
-  RepoSymbolSearchResponse,
+  RepoSyncResponse,
   UiCapabilities,
   UiJuliaDeploymentArtifact,
 } from './apiContracts';
 
 describe('api contracts', () => {
-  it('keeps the repo module response contract stable', () => {
-    expectTypeOf<RepoModuleSearchResponse>().toMatchTypeOf<{
+  it('keeps the repo sync response contract stable', () => {
+    expectTypeOf<RepoSyncResponse>().toMatchTypeOf<{
       repoId: string;
-      modules: Array<{
-        moduleId: string;
-        qualifiedName: string;
-        path: string;
-      }>;
-    }>();
-  });
-
-  it('keeps the repo symbol response contract stable', () => {
-    expectTypeOf<RepoSymbolSearchResponse>().toMatchTypeOf<{
-      repoId: string;
-      symbols: Array<{
-        symbolId: string;
-        name: string;
-        kind: string;
-        path: string;
-      }>;
+      mode: string;
+      healthState?: string;
+      stalenessState?: string;
+      driftState?: string;
     }>();
   });
 

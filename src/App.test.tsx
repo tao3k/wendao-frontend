@@ -2,6 +2,8 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from './App';
+import { recordPerfTraceSnapshot } from './lib/testPerfRegistry';
+import { createPerfTrace } from './lib/testPerfTrace';
 
 const mocks = vi.hoisted(() => ({
   mainViewSpy: vi.fn(),
@@ -10,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   zenSearchSpy: vi.fn(),
   statusBarSpy: vi.fn(),
   repoDiagnosticsPageSpy: vi.fn(),
+  activePerfTrace: null as { markRender: () => void } | null,
   fileTreeAutoHydrate: true,
   keyboardShortcuts: [] as Array<{ key: string; ctrl?: boolean; action: () => void }>,
   get3DTopologyMock: vi.fn(),
@@ -66,6 +69,7 @@ vi.mock('./components', () => ({
   },
   MainView: (props: Record<string, unknown>) => {
     mocks.mainViewSpy(props);
+    mocks.activePerfTrace?.markRender();
     return <div data-testid="main-view" />;
   },
   PropertyEditor: () => <div data-testid="property-editor" />,
@@ -125,6 +129,7 @@ vi.mock('./components', () => ({
 vi.mock('./components/ZenSearch', () => ({
   ZenSearchWindow: (props: Record<string, unknown>) => {
     mocks.zenSearchSpy(props);
+    mocks.activePerfTrace?.markRender();
     return (
       <div
         data-testid="zen-search-window"
@@ -191,6 +196,7 @@ describe('App topology wiring', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.activePerfTrace = null;
     mocks.keyboardShortcuts = [];
     mocks.fileTreeAutoHydrate = true;
     window.location.hash = '';
@@ -234,6 +240,7 @@ describe('App topology wiring', () => {
   });
 
   afterEach(() => {
+    mocks.activePerfTrace = null;
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
     consoleErrorSpy.mockRestore();
@@ -1156,6 +1163,173 @@ describe('App topology wiring', () => {
       expect(lastMainViewCall?.requestedTab?.tab).toBe('graph');
       expect(lastMainViewCall?.graphCenterNodeId).toBe('main/docs/index.md#section:overview');
     });
+
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith(
+      'main/docs/index.md#section:overview',
+      {
+        direction: 'both',
+        hops: 1,
+        limit: 20,
+      }
+    );
+  });
+
+  it('preserves semantic graph node ids for repo-backed graph selections', async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: 'module SparseConnectivityTracerTests' });
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: {
+        id: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
+        label: 'Sparse Connectivity Tracer Tests',
+        path: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
+        nodeType: 'doc',
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    render(<App />);
+    await openZenSearchMode();
+
+    await waitFor(() => {
+      const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onGraphResultSelect: (selection: {
+              path: string;
+              category: string;
+              projectName?: string;
+              graphPath?: string;
+            }) => Promise<void>;
+          }
+        | undefined;
+      expect(searchBarProps?.onGraphResultSelect).toBeDefined();
+    });
+
+    const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onGraphResultSelect: (selection: {
+            path: string;
+            category: string;
+            projectName?: string;
+            graphPath?: string;
+          }) => Promise<void>;
+        }
+      | undefined;
+
+    await act(async () => {
+      await searchBarProps?.onGraphResultSelect({
+        path: 'DataInterpolations.jl/test/sparseconnectivitytracer_tests.jl',
+        graphPath: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
+        category: 'doc',
+        projectName: 'DataInterpolations.jl',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith(
+        'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
+        {
+          direction: 'both',
+          hops: 1,
+          limit: 20,
+        }
+      );
+    });
+  });
+
+  it('records repo-backed code hydration without graph fetches when bare selection paths are canonicalized', async () => {
+    const trace = createPerfTrace('AppHotspotPerf.repo-backed-code-selection');
+    mocks.activePerfTrace = trace;
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockImplementation(async () => {
+      trace.increment('get-vfs-content-calls');
+      return { content: 'module Continuous' };
+    });
+    mocks.getGraphNeighborsMock.mockImplementation(async () => {
+      trace.increment('get-graph-neighbors-calls');
+      return {
+        center: {
+          id: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
+          label: 'continuous',
+          path: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
+          nodeType: 'doc',
+          isCenter: true,
+          distance: 0,
+        },
+        nodes: [],
+        links: [],
+        totalNodes: 1,
+        totalLinks: 0,
+      };
+    });
+
+    render(<App />);
+    await openZenSearchMode();
+
+    await waitFor(() => {
+      const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onResultSelect: (selection: {
+              path: string;
+              category: string;
+              projectName?: string;
+              line?: number;
+            }) => Promise<void>;
+          }
+        | undefined;
+      expect(searchBarProps?.onResultSelect).toBeDefined();
+    });
+
+    const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onResultSelect: (selection: {
+            path: string;
+            category: string;
+            projectName?: string;
+            line?: number;
+          }) => Promise<void>;
+        }
+      | undefined;
+
+    trace.reset();
+    await trace.measureAsync('hydrate-repo-code-selection', async () => {
+      await act(async () => {
+        await searchBarProps?.onResultSelect({
+          path: 'src/Blocks/continuous.jl',
+          category: 'repo_code',
+          projectName: 'ModelingToolkitStandardLibrary.jl',
+          line: 42,
+        });
+      });
+
+      await waitFor(() => {
+        expect(mocks.getVfsContentMock).toHaveBeenCalledWith(
+          'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl'
+        );
+      });
+    });
+
+    expect(mocks.getGraphNeighborsMock).not.toHaveBeenCalled();
+    const snapshot = trace.snapshot();
+    expect(snapshot.counters['get-vfs-content-calls']).toBe(1);
+    expect(snapshot.counters['get-graph-neighbors-calls'] ?? 0).toBe(0);
+    expect(snapshot.renderCount).toBeLessThanOrEqual(8);
+    recordPerfTraceSnapshot(
+      'App hotspot scenario: repo-backed code selection',
+      snapshot,
+    );
   });
 
   it('resolves bi-links through the graph surface and then hydrates the linked file into content view', async () => {

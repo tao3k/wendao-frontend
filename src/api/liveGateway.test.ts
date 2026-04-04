@@ -9,9 +9,22 @@ import {
   toUiConfig,
 } from '../config/loader';
 import { loadGraphNeighborsFlight } from './flightGraphTransport';
+import { loadTopology3DFlight } from './flightGraphTransport';
 import { loadMarkdownAnalysisFlight } from './flightAnalysisTransport';
+import { loadRepoProjectedPageIndexTreeFlight } from './flightProjectedPageIndexTransport';
+import { loadRepoIndexFlight } from './flightRepoIndexTransport';
+import { loadRepoIndexStatusFlight } from './flightRepoIndexStatusTransport';
+import { searchRepoContentFlight } from './flightRepoSearchTransport';
+import { loadRepoSyncFlight } from './flightRepoSyncTransport';
+import { loadRefineEntityDocFlight } from './flightRefineEntityDocTransport';
+import { loadVfsContentFlight, loadVfsScanFlight } from './flightWorkspaceTransport';
 import { decodeSearchHitsFromArrowIpc } from './arrowSearchIpc';
 import { searchKnowledgeFlight } from './flightSearchTransport';
+import {
+  decodeRepoIndexStatusResponseFromArrowIpc,
+  decodeRepoSearchHitsFromArrowIpc,
+  decodeRepoSyncResponseFromArrowIpc,
+} from './arrowSearchIpc';
 
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === '1' || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
@@ -19,6 +32,7 @@ const liveDescribe = runLiveGateway ? describe : describe.skip;
 
 type LiveUiConfig = {
   projects: Array<{ name: string; root: string; dirs: string[] }>;
+  repoProjects?: Array<{ id: string }>;
 };
 
 type LiveVfsScanResult = {
@@ -67,11 +81,22 @@ type LiveSearchResponse = {
   }>;
 };
 
+type LiveProjectedPageIndexTreesResponse = {
+  repo_id: string;
+  trees: Array<{
+    page_id: string;
+    path: string;
+    title: string;
+    root_count: number;
+  }>;
+};
+
 let gatewayOrigin = '';
 let flightOrigin = '';
 let flightSchemaVersion = '';
 let qianjiDocPath = '';
 let targetProjectName = '';
+let targetRepoId = '';
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
   if (process.env.STUDIO_LIVE_GATEWAY_URL) {
@@ -131,6 +156,59 @@ async function fetchFirstResolvableGraphNeighbors(
   throw lastError ?? new Error('expected one graph-resolvable candidate path');
 }
 
+function buildRepoSearchQueries(repoId: string): string[] {
+  const trimmed = repoId.trim();
+  if (!trimmed) {
+    return [];
+  }
+  const withoutJl = trimmed.replace(/\.jl$/i, '');
+  return [...new Set(['solve', 'test', 'load', 'build', 'main', 'a', trimmed, withoutJl])];
+}
+
+async function fetchFirstRefinableSymbolId(repoId: string): Promise<string> {
+  const tryPickSymbolId = (stems: string[]): string | undefined =>
+    stems.find((stem) => stem.trim().startsWith('repo:'))
+    ?? stems.find((stem) => stem.trim().length > 0);
+
+  for (const query of buildRepoSearchQueries(repoId)) {
+    const repoSearch = await searchRepoContentFlight(
+      {
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        repo: repoId,
+        query,
+        limit: 5,
+        tagFilters: ['kind:function'],
+      },
+      {
+        decodeRepoSearchHits: decodeRepoSearchHitsFromArrowIpc,
+      },
+    );
+    const symbolId = tryPickSymbolId(repoSearch.hits.map((hit) => hit.stem));
+    if (symbolId) {
+      return symbolId;
+    }
+
+    const codeSearch = await searchKnowledgeFlight(
+      {
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        query: `repo:${repoId} kind:function ${query}`,
+        limit: 10,
+        intent: 'code_search',
+      },
+      {
+        decodeSearchHits: decodeSearchHitsFromArrowIpc,
+      },
+    ) as LiveSearchResponse;
+    const fallbackSymbolId = tryPickSymbolId(codeSearch.hits.map((hit) => hit.stem));
+    if (fallbackSymbolId) {
+      return fallbackSymbolId;
+    }
+  }
+  throw new Error(`expected repo ${repoId} to expose one refinable symbol`);
+}
+
 liveDescribe('live gateway studio contract', () => {
   beforeAll(async () => {
     const uiConfig = await readLocalUiConfig();
@@ -139,6 +217,10 @@ liveDescribe('live gateway studio contract', () => {
       uiConfig.projects.find((project) => project.name !== 'kernel')?.name ||
       uiConfig.projects[0]?.name ||
       '';
+    targetRepoId =
+      uiConfig.repoProjects?.[0]?.id ||
+      uiConfig.projects.find((project) => project.name === 'kernel')?.name ||
+      targetProjectName;
     await fetchJson<string>('/health');
     await fetchJson<LiveUiConfig>('/ui/config', {
       method: 'POST',
@@ -148,7 +230,10 @@ liveDescribe('live gateway studio contract', () => {
       body: JSON.stringify(uiConfig),
     });
 
-    const scan = await fetchJson<LiveVfsScanResult>('/vfs/scan');
+    const scan = await loadVfsScanFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+    }) as LiveVfsScanResult;
     const candidate = scan.entries.find(
       (entry) => entry.projectName === targetProjectName && !entry.isDir && entry.path.endsWith('.md')
     );
@@ -163,7 +248,10 @@ liveDescribe('live gateway studio contract', () => {
     const config = await fetchJson<LiveUiConfig>('/ui/config');
     expect(config.projects.map((project) => project.name)).toContain(targetProjectName);
 
-    const scan = await fetchJson<LiveVfsScanResult>('/vfs/scan');
+    const scan = await loadVfsScanFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+    }) as LiveVfsScanResult;
     const entry = scan.entries.find((candidate) => candidate.path === qianjiDocPath);
     expect(entry).toBeDefined();
     expect(entry?.projectName).toBe(targetProjectName);
@@ -186,6 +274,134 @@ liveDescribe('live gateway studio contract', () => {
     expect(response.center.navigationTarget?.path).toBe(qianjiDocPath);
     expect(response.center.navigationTarget?.category).toBeDefined();
     expect(response.totalNodes).toBeGreaterThanOrEqual(1);
+  });
+
+  it('returns VFS content over same-origin Flight for a live studio document', async () => {
+    const response = await loadVfsContentFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      path: qianjiDocPath,
+    });
+
+    expect(response.path).toBe(qianjiDocPath);
+    expect(response.contentType.length).toBeGreaterThan(0);
+    expect(response.content.length).toBeGreaterThan(0);
+  });
+
+  it('returns topology 3d over same-origin Flight for a live studio graph', async () => {
+    const response = await loadTopology3DFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+    });
+
+    expect(response.nodes.length).toBeGreaterThan(0);
+    expect(response.links.length).toBeGreaterThanOrEqual(0);
+    expect(response.clusters.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('returns projected page-index trees over same-origin Flight for a live repo page', async () => {
+    const projectedTrees = await fetchJson<LiveProjectedPageIndexTreesResponse>(
+      `/repo/projected-page-index-trees?repo=${encodeURIComponent(targetRepoId)}`,
+    );
+    const projectedTree = projectedTrees.trees.find((tree) => tree.path.endsWith('.md'));
+
+    expect(
+      projectedTree,
+      `expected projected page-index trees for repo ${targetRepoId} to include one markdown page`,
+    ).toBeDefined();
+
+    const response = await loadRepoProjectedPageIndexTreeFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      repo: targetRepoId,
+      pageId: projectedTree!.page_id,
+    });
+
+    expect(response.repo_id).toBe(targetRepoId);
+    expect(response.page_id).toBe(projectedTree!.page_id);
+    expect(response.path).toBe(projectedTree!.path);
+    expect(response.root_count).toBeGreaterThanOrEqual(1);
+  });
+
+  it('returns refine-doc payloads over same-origin Flight for a live repo symbol', async () => {
+    const symbolId = await fetchFirstRefinableSymbolId(targetRepoId);
+
+    const response = await loadRefineEntityDocFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      request: {
+        repo_id: targetRepoId,
+        entity_id: symbolId,
+        user_hints: 'Summarize usage and intent.',
+      },
+    });
+
+    expect(response.repo_id).toBe(targetRepoId);
+    expect(response.entity_id).toBe(symbolId);
+    expect(response.refined_content.length).toBeGreaterThan(0);
+    expect(response.verification_state.length).toBeGreaterThan(0);
+  });
+
+  it('returns repo index status over same-origin Flight for a live configured repo', async () => {
+    const response = await loadRepoIndexStatusFlight(
+      {
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        repo: targetRepoId,
+      },
+      {
+        decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+      },
+    );
+
+    expect(response.total).toBeGreaterThanOrEqual(1);
+    expect(response.targetConcurrency).toBeGreaterThanOrEqual(1);
+    expect(response.maxConcurrency).toBeGreaterThanOrEqual(response.targetConcurrency);
+    expect(
+      response.repos.some((repo) => repo.repoId === targetRepoId),
+      `expected repo index status to include ${targetRepoId}`,
+    ).toBe(true);
+  });
+
+  it('enqueues repo index work over same-origin Flight for a live configured repo', async () => {
+    const response = await loadRepoIndexFlight(
+      {
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        requestId: `live-repo-index-${Date.now()}`,
+        repo: targetRepoId,
+        refresh: false,
+      },
+      {
+        decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+      },
+    );
+
+    expect(response.total).toBeGreaterThanOrEqual(1);
+    expect(
+      response.repos.some((repo) => repo.repoId === targetRepoId),
+      `expected repo index command response to include ${targetRepoId}`,
+    ).toBe(true);
+  });
+
+  it('returns repo sync status over same-origin Flight for a live configured repo', async () => {
+    const response = await loadRepoSyncFlight(
+      {
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        repo: targetRepoId,
+        mode: 'status',
+      },
+      {
+        decodeRepoSyncResponse: decodeRepoSyncResponseFromArrowIpc,
+      },
+    );
+
+    expect(response.repoId).toBe(targetRepoId);
+    expect(response.mode).toBe('status');
+    expect(response.healthState?.length ?? 0).toBeGreaterThan(0);
+    expect(response.stalenessState?.length ?? 0).toBeGreaterThan(0);
+    expect(response.driftState?.length ?? 0).toBeGreaterThan(0);
   });
 
   it('returns graph-resolvable knowledge search hits from the live gateway', async () => {

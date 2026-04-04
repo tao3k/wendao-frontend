@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
 } from '../SearchBar/searchBarControllerTypes';
+import { getSearchResultIdentity } from '../SearchBar/searchResultIdentity';
 import type { SearchResult } from '../SearchBar/types';
 import { ZenSearchHeader } from './ZenSearchHeader';
 import { ZenSearchPreviewPane } from './ZenSearchPreviewPane';
@@ -18,8 +19,10 @@ interface ZenSearchWorkspaceProps {
   showCodeFilterHelper: boolean;
 }
 
-function flattenVisibleResults(visibleSections: SearchBarControllerResultsPanelProps['visibleSections']): SearchResult[] {
-  return visibleSections.flatMap((section) => section.hits);
+function flattenVisibleResults(rows: SearchBarControllerResultsPanelProps['rows']): SearchResult[] {
+  return rows.flatMap((row): SearchResult[] => (
+    row.type === 'result' ? [row.result] : []
+  ));
 }
 
 function buildAdjacentPreviewCandidates(
@@ -44,10 +47,61 @@ export const ZenSearchWorkspace: React.FC<ZenSearchWorkspaceProps> = ({
   codeFilterHelperProps,
   showCodeFilterHelper,
 }) => {
-  const visibleResults = flattenVisibleResults(resultsPanelProps.visibleSections);
-  const selectedResult =
-    visibleResults[resultsPanelProps.selectedIndex] ?? visibleResults[0] ?? null;
-  const prefetchResults = buildAdjacentPreviewCandidates(visibleResults, resultsPanelProps.selectedIndex);
+  const suggestions = suggestionsPanelProps.suggestions ?? [];
+  const suggestionSelectionActive =
+    Boolean(suggestionsPanelProps.showSuggestions)
+    && (suggestionsPanelProps.selectedIndex ?? -1) >= 0
+    && (suggestionsPanelProps.selectedIndex ?? -1) < suggestions.length;
+  const visibleResults = useMemo(
+    () => flattenVisibleResults(resultsPanelProps.rows),
+    [resultsPanelProps.rows]
+  );
+  const visibleResultIdentitySet = useMemo(
+    () => new Set(visibleResults.map((result) => getSearchResultIdentity(result))),
+    [visibleResults]
+  );
+  const lastExplicitSelectionRef = useRef<SearchResult | null>(null);
+  const selectedResult = useMemo(() => {
+    const explicitSelectedResult =
+      resultsPanelProps.selectedIndex >= 0
+        ? (visibleResults[resultsPanelProps.selectedIndex] ?? null)
+        : null;
+    if (explicitSelectedResult) {
+      lastExplicitSelectionRef.current = explicitSelectedResult;
+      return explicitSelectedResult;
+    }
+
+    if (suggestionSelectionActive) {
+      const lastExplicitSelection = lastExplicitSelectionRef.current;
+      if (
+        lastExplicitSelection &&
+        visibleResultIdentitySet.has(getSearchResultIdentity(lastExplicitSelection))
+      ) {
+        return lastExplicitSelection;
+      }
+
+      const fallbackVisibleResult = visibleResults[0] ?? null;
+      if (fallbackVisibleResult) {
+        lastExplicitSelectionRef.current = fallbackVisibleResult;
+      }
+      return fallbackVisibleResult;
+    }
+
+    const defaultResult = visibleResults[0] ?? null;
+    if (defaultResult) {
+      lastExplicitSelectionRef.current = defaultResult;
+    }
+    return defaultResult;
+  }, [
+    resultsPanelProps.selectedIndex,
+    suggestionSelectionActive,
+    visibleResultIdentitySet,
+    visibleResults,
+  ]);
+  const prefetchResults = useMemo(
+    () => buildAdjacentPreviewCandidates(visibleResults, resultsPanelProps.selectedIndex),
+    [resultsPanelProps.selectedIndex, visibleResults]
+  );
 
   return (
     <div className="zen-search-body" data-testid="zen-search-body">

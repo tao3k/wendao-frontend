@@ -5,8 +5,6 @@ import { useCodeFilterPresentation } from './useCodeFilterPresentation';
 import { useRepoSearchState } from './useRepoSearchState';
 import { useSearchSuggestions } from './useSearchSuggestions';
 
-type SetSuggestions = Parameters<typeof useSearchSuggestions>[0]['setSuggestions'];
-
 interface UseSearchBarRepoSliceParams {
   query: string;
   debouncedQuery: string;
@@ -16,7 +14,6 @@ interface UseSearchBarRepoSliceParams {
   locale: UiLocale;
   results: SearchResult[];
   showSuggestions: boolean;
-  setSuggestions: SetSuggestions;
 }
 
 export function useSearchBarRepoSlice({
@@ -28,7 +25,6 @@ export function useSearchBarRepoSlice({
   locale,
   results,
   showSuggestions,
-  setSuggestions,
 }: UseSearchBarRepoSliceParams) {
   const repoState = useRepoSearchState({
     query,
@@ -53,18 +49,18 @@ export function useSearchBarRepoSlice({
     locale,
   });
 
-  useSearchSuggestions({
+  const autocomplete = useSearchSuggestions({
     isOpen,
     showSuggestions,
     scope,
     debouncedAutocomplete,
     parsedCodeFilters: repoState.parsedCodeInput.filters,
     codeFilterCatalog,
-    setSuggestions,
   });
 
   return {
     ...repoState,
     ...codeFilterPresentation,
+    ...autocomplete,
   };
 }

@@ -1,19 +1,16 @@
 import {
   api,
   RepoDocCoverageResponse,
-  RepoExampleSearchResponse,
-  RepoModuleSearchResponse,
-  RepoSymbolSearchResponse,
   ReferenceSearchResponse,
+  SearchResponse,
 } from '../../api';
 import {
   errorMessage,
+  normalizeCodeSearchHit,
   normalizeReferenceHit,
   normalizeRepoDocCoverageHit,
-  normalizeRepoExampleHit,
-  normalizeRepoModuleHit,
-  normalizeRepoSymbolHit,
 } from './searchResultNormalization';
+import { parseCodeFilters } from './codeSearchUtils';
 import { resolveFallbackQueryFromDisplayName, shouldUseRepoOverviewFallback } from './repoFacetFallback';
 import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
 import type { SearchResult } from './types';
@@ -31,6 +28,37 @@ export interface RepoIntelligenceExecutionResult {
 
 interface RepoIntelligenceCodeSearchOptions {
   facet?: RepoOverviewFacet | null;
+}
+
+function createEmptyRepoContentSearchResponse(query: string): SearchResponse {
+  return {
+    query,
+    hitCount: 0,
+    hits: [],
+    selectedMode: 'repo_search',
+    searchMode: 'repo_search',
+  };
+}
+
+function createEmptyReferenceSearchResponse(query: string): ReferenceSearchResponse {
+  return {
+    query,
+    hits: [],
+    hitCount: 0,
+    selectedScope: 'references',
+  };
+}
+
+function buildRepoSymbolFacetTagFilters(parsedCodeQuery: ReturnType<typeof parseCodeFilters>): string[] {
+  return parsedCodeQuery.filters.kind.map((kind) => `kind:${kind}`);
+}
+
+function buildRepoModuleFacetTagFilters(): string[] {
+  return ['kind:module'];
+}
+
+function buildRepoExampleFacetTagFilters(): string[] {
+  return ['kind:example'];
 }
 
 function filterReferencesByRepo(
@@ -132,44 +160,66 @@ export async function executeRepoIntelligenceCodeSearch(
   }
 
   if (facet === 'module') {
+    const parsedCodeQuery = parseCodeFilters(queryToSearch);
+    const moduleQuery = parsedCodeQuery.baseQuery.length > 0 ? parsedCodeQuery.baseQuery : queryToSearch;
     const { response, fallbackApplied } = await searchFacetWithOverviewFallback(
       repoFilter,
-      queryToSearch,
+      moduleQuery,
       'module',
-      (query) => api.searchRepoModules(repoFilter, query, 10),
-      (result) => result.modules.length
+      (query) => api.searchRepoContentFlight(repoFilter, query, 10, {
+        languageFilters: parsedCodeQuery.filters.language,
+        pathPrefixes: parsedCodeQuery.filters.path,
+        tagFilters: buildRepoModuleFacetTagFilters(),
+      }),
+      (result) => result.hitCount
     );
     return {
-      results: response.modules.map(normalizeRepoModuleHit),
-      hitCount: response.modules.length,
+      results: response.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
+      hitCount: response.hitCount,
       fallbackApplied,
     };
   }
 
   if (facet === 'example') {
+    const parsedCodeQuery = parseCodeFilters(queryToSearch);
+    const exampleQuery = parsedCodeQuery.baseQuery.length > 0 ? parsedCodeQuery.baseQuery : queryToSearch;
     const { response, fallbackApplied } = await searchFacetWithOverviewFallback(
       repoFilter,
-      queryToSearch,
+      exampleQuery,
       'example',
-      (query) => api.searchRepoExamples(repoFilter, query, 10),
-      (result) => result.examples.length
+      (query) => api.searchRepoContentFlight(repoFilter, query, 10, {
+        languageFilters: parsedCodeQuery.filters.language,
+        pathPrefixes: parsedCodeQuery.filters.path,
+        tagFilters: buildRepoExampleFacetTagFilters(),
+      }),
+      (result) => result.hitCount
     );
     return {
-      results: response.examples.map(normalizeRepoExampleHit),
-      hitCount: response.examples.length,
+      results: response.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
+      hitCount: response.hitCount,
       fallbackApplied,
     };
   }
 
   if (facet === 'symbol') {
+    const parsedCodeQuery = parseCodeFilters(queryToSearch);
+    const symbolQuery = parsedCodeQuery.baseQuery.length > 0 ? parsedCodeQuery.baseQuery : queryToSearch;
     const symbolSearchPromise = searchFacetWithOverviewFallback(
       repoFilter,
-      queryToSearch,
+      symbolQuery,
       'symbol',
-      (query) => api.searchRepoSymbols(repoFilter, query, 10),
-      (result) => result.symbols.length
+      (query) => api.searchRepoContentFlight(repoFilter, query, 10, {
+        languageFilters: parsedCodeQuery.filters.language,
+        pathPrefixes: parsedCodeQuery.filters.path,
+        tagFilters: buildRepoSymbolFacetTagFilters(parsedCodeQuery),
+      }),
+      (result) => result.hitCount
     );
-    const settled = await Promise.allSettled([symbolSearchPromise, api.searchReferences(queryToSearch, 10)]);
+    const referenceSearchPromise =
+      parsedCodeQuery.baseQuery.length > 0
+        ? api.searchReferences(symbolQuery, 10)
+        : Promise.resolve(createEmptyReferenceSearchResponse(symbolQuery));
+    const settled = await Promise.allSettled([symbolSearchPromise, referenceSearchPromise]);
     const failures = settled
       .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
       .map((result) => errorMessage(result.reason));
@@ -180,43 +230,44 @@ export async function executeRepoIntelligenceCodeSearch(
 
     const repoSymbolResult:
       | {
-          response: RepoSymbolSearchResponse;
+          response: SearchResponse;
           fallbackApplied?: {
             facet: Exclude<RepoOverviewFacet, 'doc'>;
             fromQuery: string;
             toQuery: string;
           };
-        }
-      =
+        } =
       settled[0].status === 'fulfilled'
         ? settled[0].value
-        : { response: { repoId: repoFilter, symbols: [] } };
+        : { response: createEmptyRepoContentSearchResponse(symbolQuery) };
     const referenceResponse: ReferenceSearchResponse =
       settled[1].status === 'fulfilled'
         ? settled[1].value
-        : {
-            query: queryToSearch,
-            hits: [],
-            hitCount: 0,
-            selectedScope: 'references',
-          };
+        : createEmptyReferenceSearchResponse(symbolQuery);
     const filteredReferenceResponse = filterReferencesByRepo(referenceResponse, repoFilter);
 
     return {
       results: [
-        ...repoSymbolResult.response.symbols.map(normalizeRepoSymbolHit),
+        ...repoSymbolResult.response.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
         ...filteredReferenceResponse.hits.map(normalizeReferenceHit),
       ],
-      hitCount: repoSymbolResult.response.symbols.length + filteredReferenceResponse.hitCount,
+      hitCount: repoSymbolResult.response.hitCount + filteredReferenceResponse.hitCount,
       partialError: failures.length > 0 ? `Partial search results: ${failures.join(' | ')}` : undefined,
       fallbackApplied: repoSymbolResult.fallbackApplied,
     };
   }
 
+  const parsedCodeQuery = parseCodeFilters(queryToSearch);
+  const repoContentSearchPromise =
+    parsedCodeQuery.baseQuery.length > 0
+      ? api.searchRepoContentFlight(repoFilter, parsedCodeQuery.baseQuery, 10, {
+          languageFilters: parsedCodeQuery.filters.language,
+          pathPrefixes: parsedCodeQuery.filters.path,
+        })
+      : Promise.resolve(createEmptyRepoContentSearchResponse(queryToSearch));
+
   const settled = await Promise.allSettled([
-    api.searchRepoSymbols(repoFilter, queryToSearch, 10),
-    api.searchRepoModules(repoFilter, queryToSearch, 10),
-    api.searchRepoExamples(repoFilter, queryToSearch, 10),
+    repoContentSearchPromise,
     api.searchReferences(queryToSearch, 10),
   ]);
   const failures = settled
@@ -227,21 +278,13 @@ export async function executeRepoIntelligenceCodeSearch(
     throw new Error(failures[0] || 'Search failed');
   }
 
-  const repoSymbolResponse: RepoSymbolSearchResponse =
+  const repoContentResponse: SearchResponse =
     settled[0].status === 'fulfilled'
       ? settled[0].value
-      : { repoId: repoFilter, symbols: [] };
-  const repoModuleResponse: RepoModuleSearchResponse =
+      : createEmptyRepoContentSearchResponse(parsedCodeQuery.baseQuery || queryToSearch);
+  const referenceResponse: ReferenceSearchResponse =
     settled[1].status === 'fulfilled'
       ? settled[1].value
-      : { repoId: repoFilter, modules: [] };
-  const repoExampleResponse: RepoExampleSearchResponse =
-    settled[2].status === 'fulfilled'
-      ? settled[2].value
-      : { repoId: repoFilter, examples: [] };
-  const referenceResponse: ReferenceSearchResponse =
-    settled[3].status === 'fulfilled'
-      ? settled[3].value
       : {
           query: queryToSearch,
           hits: [],
@@ -252,16 +295,10 @@ export async function executeRepoIntelligenceCodeSearch(
 
   return {
     results: [
-      ...repoSymbolResponse.symbols.map(normalizeRepoSymbolHit),
-      ...repoModuleResponse.modules.map(normalizeRepoModuleHit),
-      ...repoExampleResponse.examples.map(normalizeRepoExampleHit),
+      ...repoContentResponse.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
       ...filteredReferenceResponse.hits.map(normalizeReferenceHit),
     ],
-    hitCount:
-      repoSymbolResponse.symbols.length
-      + repoModuleResponse.modules.length
-      + repoExampleResponse.examples.length
-      + filteredReferenceResponse.hitCount,
+    hitCount: repoContentResponse.hitCount + filteredReferenceResponse.hitCount,
     partialError: failures.length > 0 ? `Partial search results: ${failures.join(' | ')}` : undefined,
   };
 }

@@ -3,6 +3,14 @@ import { api, getUiCapabilitiesSync, resetUiCapabilitiesCache } from './index';
 import * as flightAnalysisTransport from './flightAnalysisTransport';
 import * as flightDocumentTransport from './flightDocumentTransport';
 import * as flightGraphTransport from './flightGraphTransport';
+import * as flightProjectedPageIndexTransport from './flightProjectedPageIndexTransport';
+import * as flightRefineEntityDocTransport from './flightRefineEntityDocTransport';
+import * as flightRepoDocCoverageTransport from './flightRepoDocCoverageTransport';
+import * as flightRepoIndexTransport from './flightRepoIndexTransport';
+import * as flightRepoIndexStatusTransport from './flightRepoIndexStatusTransport';
+import * as flightRepoOverviewTransport from './flightRepoOverviewTransport';
+import * as flightRepoSyncTransport from './flightRepoSyncTransport';
+import * as flightRepoSearchTransport from './flightRepoSearchTransport';
 import * as flightSearchTransport from './flightSearchTransport';
 import * as flightWorkspaceTransport from './flightWorkspaceTransport';
 import { ApiClientError } from './responseTransport';
@@ -31,105 +39,6 @@ dirs = ["docs"]
     ),
   );
 }
-
-describe('api client repo search normalization', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('parses snake_case symbol_hits metadata in a backward-compatible shape', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
-      new Response(
-        JSON.stringify({
-          repo_id: 'gateway-sync',
-          symbol_hits: [{
-            symbol: {
-              repo_id: 'gateway-sync',
-              symbol_id: 'repo:gateway-sync:symbol:GatewaySyncPkg.solve',
-              module_id: 'repo:gateway-sync:module:GatewaySyncPkg',
-              name: 'solve',
-              qualified_name: 'GatewaySyncPkg.solve',
-              kind: 'function',
-              path: 'src/GatewaySyncPkg.jl',
-              signature: 'solve() = nothing',
-              audit_status: 'verified',
-            },
-            score: 0.86,
-            rank: 1,
-            saliency_score: 0.92,
-            hierarchical_uri: 'repo://gateway-sync/symbol/repo:gateway-sync:symbol:GatewaySyncPkg.solve',
-            hierarchy: ['src', 'GatewaySyncPkg.jl'],
-            implicit_backlinks: ['repo:gateway-sync:doc:README.md'],
-            implicit_backlink_items: [{
-              id: 'repo:gateway-sync:doc:README.md',
-              title: 'README',
-              path: 'README.md',
-              kind: 'documents',
-            }],
-            projection_page_ids: ['repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md'],
-            verification_state: 'verified',
-          }],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
-
-    const response = await api.searchRepoSymbols('gateway-sync', 'solve', 10);
-    const first = response.symbols[0];
-
-    expect(first?.repoId).toBe('gateway-sync');
-    expect(first?.symbolId).toContain('GatewaySyncPkg.solve');
-    expect(first?.saliencyScore).toBe(0.92);
-    expect(first?.hierarchicalUri).toContain('repo://gateway-sync/symbol');
-    expect(first?.implicitBacklinks).toHaveLength(1);
-    expect(first?.implicitBacklinkItems?.[0]?.title).toBe('README');
-    expect(first?.implicitBacklinkItems?.[0]?.kind).toBe('documents');
-    expect(first?.auditStatus).toBe('verified');
-    expect(first?.verificationState).toBe('verified');
-  });
-
-  it('parses camelCase moduleHits metadata in a backward-compatible shape', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
-      new Response(
-        JSON.stringify({
-          repoId: 'gateway-sync',
-          moduleHits: [{
-            module: {
-              repoId: 'gateway-sync',
-              moduleId: 'repo:gateway-sync:module:GatewaySyncPkg',
-              qualifiedName: 'GatewaySyncPkg',
-              path: 'src/GatewaySyncPkg.jl',
-            },
-            score: 0.74,
-            rank: 2,
-            saliencyScore: 0.78,
-            hierarchicalUri: 'repo://gateway-sync/module/repo:gateway-sync:module:GatewaySyncPkg',
-            hierarchy: ['src', 'GatewaySyncPkg.jl'],
-            implicitBacklinks: ['repo:gateway-sync:doc:README.md'],
-            implicitBacklinkItems: [{
-              id: 'repo:gateway-sync:doc:README.md',
-              title: 'README',
-              path: 'README.md',
-              kind: 'documents',
-            }],
-            projectionPageIds: ['repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:README.md'],
-          }],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
-
-    const response = await api.searchRepoModules('gateway-sync', 'GatewaySyncPkg', 10);
-    const first = response.modules[0];
-
-    expect(first?.repoId).toBe('gateway-sync');
-    expect(first?.moduleId).toContain('GatewaySyncPkg');
-    expect(first?.score).toBe(0.74);
-    expect(first?.saliencyScore).toBe(0.78);
-    expect(first?.hierarchy).toEqual(['src', 'GatewaySyncPkg.jl']);
-    expect(first?.implicitBacklinkItems?.[0]?.path).toBe('README.md');
-  });
-});
 
 describe('api client Flight document transport', () => {
   afterEach(() => {
@@ -218,6 +127,323 @@ describe('api client Flight document transport', () => {
   });
 });
 
+describe('api client Flight repo transport', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetUiCapabilitiesCache();
+  });
+
+  it('routes repo-content search through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const repoSearchSpy = vi
+      .spyOn(flightRepoSearchTransport, 'searchRepoContentFlight')
+      .mockResolvedValue({
+        query: 'solve',
+        hitCount: 1,
+        hits: [{
+          stem: 'solve.jl',
+          title: 'solve.jl',
+          path: 'src/solve.jl',
+          docType: 'file',
+          tags: ['lang:julia'],
+          score: 0.91,
+          navigationTarget: {
+            path: 'src/solve.jl',
+            category: 'repo_code',
+            projectName: 'gateway-sync',
+          },
+        }],
+        selectedMode: 'repo_search',
+        searchMode: 'repo_search',
+      });
+
+    const response = await api.searchRepoContentFlight('gateway-sync', 'solve', 5, {
+      languageFilters: ['julia'],
+      pathPrefixes: ['src/'],
+    });
+
+    expect(repoSearchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+        query: 'solve',
+        limit: 5,
+        languageFilters: ['julia'],
+        pathPrefixes: ['src/'],
+      }),
+      expect.any(Object),
+    );
+    expect(response.searchMode).toBe('repo_search');
+    expect(response.hits[0]?.navigationTarget?.projectName).toBe('gateway-sync');
+  });
+
+  it('routes repo doc coverage through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const repoDocCoverageSpy = vi
+      .spyOn(flightRepoDocCoverageTransport, 'loadRepoDocCoverageFlight')
+      .mockResolvedValue({
+        repoId: 'gateway-sync',
+        moduleId: 'GatewaySyncPkg',
+        coveredSymbols: 3,
+        uncoveredSymbols: 1,
+        hierarchicalUri: 'repo://gateway-sync/docs',
+        hierarchy: ['repo', 'gateway-sync'],
+        docs: [{
+          repoId: 'gateway-sync',
+          docId: 'repo:gateway-sync:doc:docs/solve.md',
+          title: 'solve',
+          path: 'docs/solve.md',
+          format: 'markdown',
+        }],
+      });
+
+    const response = await api.getRepoDocCoverage('gateway-sync', 'GatewaySyncPkg');
+
+    expect(repoDocCoverageSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+        moduleQualifiedName: 'GatewaySyncPkg',
+      }),
+      expect.any(Object),
+    );
+    expect(response.repoId).toBe('gateway-sync');
+    expect(response.docs[0]?.path).toBe('docs/solve.md');
+  });
+
+  it('routes repo overview through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const repoOverviewSpy = vi
+      .spyOn(flightRepoOverviewTransport, 'loadRepoOverviewFlight')
+      .mockResolvedValue({
+        repoId: 'gateway-sync',
+        displayName: 'Gateway Sync',
+        revision: 'rev:123',
+        moduleCount: 3,
+        symbolCount: 8,
+        exampleCount: 2,
+        docCount: 5,
+        hierarchicalUri: 'repo://gateway-sync',
+        hierarchy: ['repo', 'gateway-sync'],
+      });
+
+    const response = await api.getRepoOverview('gateway-sync');
+
+    expect(repoOverviewSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+      }),
+      expect.any(Object),
+    );
+    expect(response.displayName).toBe('Gateway Sync');
+    expect(response.moduleCount).toBe(3);
+  });
+
+  it('routes repo index status through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const repoIndexStatusSpy = vi
+      .spyOn(flightRepoIndexStatusTransport, 'loadRepoIndexStatusFlight')
+      .mockResolvedValue({
+        total: 3,
+        queued: 1,
+        checking: 0,
+        syncing: 1,
+        indexing: 1,
+        ready: 1,
+        unsupported: 0,
+        failed: 0,
+        targetConcurrency: 2,
+        maxConcurrency: 4,
+        syncConcurrencyLimit: 1,
+        currentRepoId: 'gateway-sync',
+        repos: [{
+          repoId: 'gateway-sync',
+          phase: 'ready',
+          lastRevision: 'rev:123',
+          attemptCount: 2,
+        }],
+      });
+
+    const response = await api.getRepoIndexStatus('gateway-sync');
+
+    expect(repoIndexStatusSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+      }),
+      expect.any(Object),
+    );
+    expect(response.total).toBe(3);
+    expect(response.repos[0]?.repoId).toBe('gateway-sync');
+  });
+
+  it('routes repo index commands through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const repoIndexSpy = vi
+      .spyOn(flightRepoIndexTransport, 'loadRepoIndexFlight')
+      .mockResolvedValue({
+        total: 1,
+        queued: 1,
+        checking: 0,
+        syncing: 0,
+        indexing: 0,
+        ready: 0,
+        unsupported: 0,
+        failed: 0,
+        targetConcurrency: 1,
+        maxConcurrency: 2,
+        syncConcurrencyLimit: 1,
+        currentRepoId: 'gateway-sync',
+        repos: [{
+          repoId: 'gateway-sync',
+          phase: 'queued',
+          attemptCount: 1,
+        }],
+      });
+
+    const response = await api.enqueueRepoIndex({ repo: 'gateway-sync', refresh: true });
+
+    expect(repoIndexSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+        refresh: true,
+      }),
+      expect.any(Object),
+    );
+    expect(typeof repoIndexSpy.mock.calls[0]?.[0]?.requestId).toBe('string');
+    expect(response.queued).toBe(1);
+    expect(response.repos[0]?.phase).toBe('queued');
+  });
+
+  it('routes repo sync through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const repoSyncSpy = vi
+      .spyOn(flightRepoSyncTransport, 'loadRepoSyncFlight')
+      .mockResolvedValue({
+        repoId: 'gateway-sync',
+        mode: 'status',
+        sourceKind: 'managed_remote',
+        refresh: 'fetch',
+        mirrorState: 'validated',
+        checkoutState: 'reused',
+        revision: 'rev:123',
+        checkoutPath: '/tmp/gateway-sync',
+        mirrorPath: '/tmp/gateway-sync.mirror',
+        checkedAt: '2026-04-03T19:15:00Z',
+        lastFetchedAt: '2026-04-03T19:10:00Z',
+        upstreamUrl: 'https://example.com/repo.git',
+        healthState: 'healthy',
+        stalenessState: 'fresh',
+        driftState: 'in_sync',
+        statusSummary: {
+          healthState: 'healthy',
+          driftState: 'in_sync',
+          attentionRequired: false,
+        },
+      });
+
+    const response = await api.getRepoSync('gateway-sync', 'status');
+
+    expect(repoSyncSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+        mode: 'status',
+      }),
+      expect.any(Object),
+    );
+    expect(response.repoId).toBe('gateway-sync');
+    expect(response.healthState).toBe('healthy');
+  });
+
+  it('routes repo projected page-index trees through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const projectedPageIndexTreeSpy = vi
+      .spyOn(
+        flightProjectedPageIndexTransport,
+        'loadRepoProjectedPageIndexTreeFlight',
+      )
+      .mockResolvedValue({
+        repo_id: 'gateway-sync',
+        page_id:
+          'repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md',
+        path: 'docs/solve.md',
+        doc_id: 'repo:gateway-sync:doc:docs/solve.md',
+        title: 'solve',
+        root_count: 1,
+        roots: [{
+          node_id: 'repo:gateway-sync:doc:docs/solve.md#root',
+          title: 'solve',
+          level: 1,
+          structural_path: ['solve'],
+          line_range: [1, 3],
+          token_count: 4,
+          is_thinned: false,
+          text: 'solve docs',
+          children: [],
+        }],
+      });
+
+    const response = await api.getRepoProjectedPageIndexTree(
+      'gateway-sync',
+      'repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md',
+    );
+
+    expect(projectedPageIndexTreeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        repo: 'gateway-sync',
+        pageId:
+          'repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md',
+      }),
+      expect.any(Object),
+    );
+    expect(response.path).toBe('docs/solve.md');
+    expect(response.roots[0]?.title).toBe('solve');
+  });
+
+  it('routes refine-doc through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const refineDocSpy = vi
+      .spyOn(flightRefineEntityDocTransport, 'loadRefineEntityDocFlight')
+      .mockResolvedValue({
+        repo_id: 'gateway-sync',
+        entity_id: 'repo:gateway-sync:symbol:GatewaySyncPkg.solve',
+        refined_content: '## Refined Explanation\n\nUse `solve()`.',
+        verification_state: 'verified',
+      });
+
+    const response = await api.refineEntityDoc({
+      repo_id: 'gateway-sync',
+      entity_id: 'repo:gateway-sync:symbol:GatewaySyncPkg.solve',
+      user_hints: 'Explain solve()',
+    });
+
+    expect(refineDocSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: 'http://localhost:3000',
+        schemaVersion: 'v2',
+        request: {
+          repo_id: 'gateway-sync',
+          entity_id: 'repo:gateway-sync:symbol:GatewaySyncPkg.solve',
+          user_hints: 'Explain solve()',
+        },
+      }),
+      expect.any(Object),
+    );
+    expect(response.verification_state).toBe('verified');
+  });
+});
+
 describe('api client ui capabilities contract', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -254,6 +480,54 @@ describe('api client Flight workspace transport', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     resetUiCapabilitiesCache();
+  });
+
+  it('routes VFS content through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const contentSpy = vi
+      .spyOn(flightWorkspaceTransport, 'loadVfsContentFlight')
+      .mockResolvedValue({
+        path: 'main/docs/index.md',
+        contentType: 'text/plain',
+        content: '# Index',
+      });
+
+    const response = await api.getVfsContent('docs/index.md');
+
+    expect(contentSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+      path: 'docs/index.md',
+    });
+    expect(response.content).toBe('# Index');
+  });
+
+  it('routes VFS scan through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const scanSpy = vi
+      .spyOn(flightWorkspaceTransport, 'loadVfsScanFlight')
+      .mockResolvedValue({
+        entries: [{
+          path: 'main/docs/index.md',
+          name: 'index.md',
+          isDir: false,
+          category: 'doc',
+          size: 42,
+          modified: 9,
+          hasFrontmatter: true,
+        }],
+        fileCount: 1,
+        dirCount: 0,
+        scanDurationMs: 4,
+      });
+
+    const response = await api.scanVfs();
+
+    expect(scanSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+    });
+    expect(response.fileCount).toBe(1);
   });
 
   it('routes studio path resolution through same-origin Flight', async () => {
@@ -434,6 +708,30 @@ describe('api client graph neighbors contract', () => {
       limit: undefined,
     });
     expect(response.totalNodes).toBe(0);
+  });
+
+  it('loads topology 3d through same-origin Flight', async () => {
+    mockFrontendFlightConfigFetch();
+    const flightSpy = vi
+      .spyOn(flightGraphTransport, 'loadTopology3DFlight')
+      .mockResolvedValue({
+        nodes: [{
+          id: 'main/docs/index.md',
+          name: 'index.md',
+          nodeType: 'doc',
+          position: [0, 0, 0],
+        }],
+        links: [],
+        clusters: [],
+      });
+
+    const response = await api.get3DTopology();
+
+    expect(flightSpy).toHaveBeenCalledWith({
+      baseUrl: 'http://localhost:3000',
+      schemaVersion: 'v2',
+    });
+    expect(response.nodes[0]?.id).toBe('main/docs/index.md');
   });
 });
 

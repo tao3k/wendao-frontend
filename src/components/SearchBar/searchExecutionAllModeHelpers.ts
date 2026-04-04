@@ -16,15 +16,28 @@ import {
 import { formatSearchMode } from './searchPresentation';
 import { dedupeSearchResults } from './searchResultIdentity';
 import type { SearchExecutionOutcome } from './searchExecutionTypes';
+import type { SearchResult } from './types';
 
 export interface AllModeResolvedResponses {
+  queryToSearch: string;
   knowledgeResponse: SearchResponse;
   codeResponse: SearchResponse;
+  codeOutcome?: SearchExecutionOutcome | null;
   astResponse: AstSearchResponse;
   referenceResponse: ReferenceSearchResponse;
   symbolResponse: SymbolSearchResponse;
   attachmentResponse: AttachmentSearchResponse;
   failures: string[];
+}
+
+function resolveCodeResults(
+  codeResponse: SearchResponse,
+  codeOutcome?: SearchExecutionOutcome | null,
+): SearchResult[] {
+  if (codeOutcome) {
+    return codeOutcome.results;
+  }
+  return codeResponse.hits.map((hit) => normalizeCodeSearchHit(hit));
 }
 
 export function createFallbackKnowledgeResponse(
@@ -85,16 +98,20 @@ export function createFallbackAttachmentResponse(query: string): AttachmentSearc
 }
 
 export function buildAllModeOutcome({
+  queryToSearch,
   knowledgeResponse,
   codeResponse,
+  codeOutcome,
   astResponse,
   referenceResponse,
   symbolResponse,
   attachmentResponse,
   failures,
 }: AllModeResolvedResponses): SearchExecutionOutcome {
+  const codeResults = resolveCodeResults(codeResponse, codeOutcome);
+  const codeRuntimeWarning = codeOutcome?.meta.runtimeWarning;
   const semanticSuffix = [
-    codeResponse.hitCount > 0 ? 'Code' : null,
+    codeResults.length > 0 ? 'Code' : null,
     astResponse.hitCount > 0 ? 'AST' : null,
     referenceResponse.hitCount > 0 ? 'References' : null,
     symbolResponse.hitCount > 0 ? 'Symbols' : null,
@@ -105,17 +122,21 @@ export function buildAllModeOutcome({
 
   const mergedResults = dedupeSearchResults([
     ...knowledgeResponse.hits.map(normalizeKnowledgeHit),
-    ...codeResponse.hits.map((hit) => normalizeCodeSearchHit(hit)),
+    ...codeResults,
     ...astResponse.hits.map(normalizeAstHit),
     ...referenceResponse.hits.map(normalizeReferenceHit),
     ...symbolResponse.hits.map(normalizeSymbolHit),
     ...attachmentResponse.hits.map(normalizeAttachmentHit),
   ]);
+  const runtimeWarningSegments = [
+    codeRuntimeWarning,
+    failures.length > 0 ? `Partial search results: ${failures.join(' | ')}` : undefined,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     results: mergedResults,
     meta: {
-      query: knowledgeResponse.query,
+      query: queryToSearch,
       hitCount: mergedResults.length,
       selectedMode: semanticSuffix
         ? `${formatSearchMode(knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode, 'en')} + ${semanticSuffix}`
@@ -124,11 +145,14 @@ export function buildAllModeOutcome({
       graphConfidenceScore: knowledgeResponse.graphConfidenceScore,
       intent: knowledgeResponse.intent,
       intentConfidence: knowledgeResponse.intentConfidence,
-      partial: codeResponse.partial,
-      indexingState: codeResponse.indexingState,
-      pendingRepos: codeResponse.pendingRepos,
-      skippedRepos: codeResponse.skippedRepos,
-      runtimeWarning: failures.length > 0 ? `Partial search results: ${failures.join(' | ')}` : undefined,
+      partial: codeOutcome?.meta.partial ?? codeResponse.partial,
+      indexingState: codeOutcome?.meta.indexingState ?? codeResponse.indexingState,
+      pendingRepos: codeOutcome?.meta.pendingRepos ?? codeResponse.pendingRepos,
+      skippedRepos: codeOutcome?.meta.skippedRepos ?? codeResponse.skippedRepos,
+      runtimeWarning: runtimeWarningSegments.length > 0 ? runtimeWarningSegments.join(' | ') : undefined,
+      repoFallbackFacet: codeOutcome?.meta.repoFallbackFacet,
+      repoFallbackFromQuery: codeOutcome?.meta.repoFallbackFromQuery,
+      repoFallbackToQuery: codeOutcome?.meta.repoFallbackToQuery,
     },
   };
 }

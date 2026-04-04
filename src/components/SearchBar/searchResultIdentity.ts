@@ -1,4 +1,5 @@
 import type { SearchResult } from './types';
+import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
 
 function identitySegment(value: string | number | undefined): string {
   return value == null ? '' : String(value);
@@ -6,7 +7,12 @@ function identitySegment(value: string | number | undefined): string {
 
 export function getSearchResultIdentity(result: SearchResult): string {
   const navigationTarget = result.navigationTarget;
-  const primaryPath = navigationTarget?.path ?? result.path;
+  const primaryPath = normalizeSelectionPathForVfs({
+    path: navigationTarget?.path ?? result.path,
+    category: navigationTarget?.category ?? result.category,
+    projectName: navigationTarget?.projectName ?? result.projectName,
+    rootLabel: navigationTarget?.rootLabel ?? result.rootLabel,
+  });
   const primaryLine = navigationTarget?.line ?? result.line;
   const primaryColumn = navigationTarget?.column ?? result.column;
   const primaryLabel = result.title ?? result.stem ?? result.path;

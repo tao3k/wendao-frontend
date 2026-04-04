@@ -25,10 +25,14 @@ export function resolveSearchMode(scope: SearchScope): SearchExecutionMode {
 
 export function resolveQueryToSearch(
   searchMode: SearchExecutionMode,
-  codeSearchBaseQuery: string,
+  _codeSearchBaseQuery: string,
   debouncedQuery: string
 ): string {
-  return searchMode === 'code' ? codeSearchBaseQuery : debouncedQuery;
+  if (searchMode === 'code' || searchMode === 'all') {
+    return debouncedQuery;
+  }
+
+  return debouncedQuery;
 }
 
 export function getModeLabel(searchMeta: SearchMeta | null, locale: UiLocale): string {
@@ -130,5 +134,8 @@ export function hasCodeFilterOnlyQuery(
   baseQuery: string,
   activeFilterCount: number
 ): boolean {
-  return scope === 'code' && query.trim().length > 0 && !baseQuery && activeFilterCount > 0;
+  return (scope === 'code' || scope === 'all')
+    && query.trim().length > 0
+    && !baseQuery
+    && activeFilterCount > 0;
 }

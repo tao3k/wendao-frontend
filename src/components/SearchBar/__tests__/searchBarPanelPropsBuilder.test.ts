@@ -107,15 +107,15 @@ describe('searchBarPanelPropsBuilder', () => {
     expect(result.codeFilterHelperProps).toBe(codeFilterHelperProps);
   });
 
-  it('builds results panel props and offsets selected index by suggestion count', () => {
+  it('builds results panel props without suggestion offsets', () => {
     const copy = { noResults: 'No results' } as unknown as SearchBarControllerResultsPanelProps['copy'];
-    const visibleSections = [] as SearchBarControllerResultsPanelProps['visibleSections'];
+    const rows = [] as SearchBarControllerResultsPanelProps['rows'];
     const isResultPreviewExpanded: SearchBarControllerResultsPanelProps['isResultPreviewExpanded'] = vi.fn(
       () => false
     );
     const renderIcon: SearchBarControllerResultsPanelProps['renderIcon'] = vi.fn();
     const renderTitle: SearchBarControllerResultsPanelProps['renderTitle'] = vi.fn();
-    const setSelectedIndex = vi.fn();
+    const setResultSelectedIndex = vi.fn();
     const onOpen: SearchBarControllerResultsPanelProps['onOpen'] = vi.fn();
     const onOpenDefinition: SearchBarControllerResultsPanelProps['onOpenDefinition'] = vi.fn();
     const onOpenReferences: SearchBarControllerResultsPanelProps['onOpenReferences'] = vi.fn();
@@ -127,15 +127,15 @@ describe('searchBarPanelPropsBuilder', () => {
       copy,
       isLoading: false,
       hasCodeFilterOnlyQuery: false,
-      visibleSections,
+      rows,
+      visibleResultCount: 0,
       selectedIndex: 6,
-      suggestionCount: 2,
       canOpenReferences: true,
       canOpenGraph: true,
       isResultPreviewExpanded,
       renderIcon,
       renderTitle,
-      setSelectedIndex,
+      setResultSelectedIndex,
       onOpen,
       onOpenDefinition,
       onOpenReferences,
@@ -143,7 +143,7 @@ describe('searchBarPanelPropsBuilder', () => {
       onTogglePreview,
     });
 
-    expect(result.selectedIndex).toBe(4);
+    expect(result.selectedIndex).toBe(6);
     expect(result.onOpen).toBe(onOpen);
     expect(result.onOpenDefinition).toBe(onOpenDefinition);
     expect(result.onOpenReferences).toBe(onOpenReferences);
@@ -151,6 +151,6 @@ describe('searchBarPanelPropsBuilder', () => {
     expect(result.onTogglePreview).toBe(onTogglePreview);
 
     result.onSelectIndex(3);
-    expect(setSelectedIndex).toHaveBeenCalledWith(5);
+    expect(setResultSelectedIndex).toHaveBeenCalledWith(3);
   });
 });

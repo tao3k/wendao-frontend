@@ -22,6 +22,7 @@ Runtime role:
 
 - Resolves the effective frontend-facing configuration loaded from `wendao.toml`.
 - Declares indexed roots and UI-level gateway settings.
+- `POST /api/ui/config` is a runtime synchronization surface for the active gateway process, not a disk-persistence contract for rewriting `wendao.toml`.
 
 ### Virtual File System
 

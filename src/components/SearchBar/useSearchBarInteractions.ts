@@ -4,6 +4,7 @@ import { useSearchInputInteractions } from './useSearchInputInteractions';
 import { useSearchKeyboardNavigation } from './useSearchKeyboardNavigation';
 import { useSearchResultActions } from './useSearchResultActions';
 import { useSearchResultPreviewState } from './useSearchResultPreviewState';
+import type { SearchResult } from './types';
 
 type SearchInputInteractionsArgs = Parameters<typeof useSearchInputInteractions>[0];
 type CodeFilterInteractionsArgs = Parameters<typeof useCodeFilterInteractions>[0];
@@ -16,8 +17,9 @@ interface UseSearchBarInteractionsStateParams {
   query: SearchKeyboardNavigationArgs['query'];
   suggestions: SearchKeyboardNavigationArgs['suggestions'];
   suggestionCount: SearchKeyboardNavigationArgs['suggestionCount'];
+  activeSuggestionIndex: SearchKeyboardNavigationArgs['activeSuggestionIndex'];
   resultCount: SearchKeyboardNavigationArgs['resultCount'];
-  selectedIndex: SearchKeyboardNavigationArgs['selectedIndex'];
+  resultSelectedIndex: SearchKeyboardNavigationArgs['resultSelectedIndex'];
   visibleResults: SearchKeyboardNavigationArgs['visibleResults'];
   activeRepoFilter?: RepoQueryActionsArgs['activeRepoFilter'];
   primaryRepoFilter?: RepoQueryActionsArgs['primaryRepoFilter'];
@@ -31,8 +33,8 @@ interface UseSearchBarInteractionsActionsParams {
   setIsComposing: SearchInputInteractionsArgs['setIsComposing'];
   setQuery: SearchKeyboardNavigationArgs['setQuery'];
   setShowSuggestions: SearchKeyboardNavigationArgs['setShowSuggestions'];
-  setSuggestions: SearchKeyboardNavigationArgs['setSuggestions'];
-  setSelectedIndex: SearchKeyboardNavigationArgs['setSelectedIndex'];
+  setResultSelectedIndex: SearchKeyboardNavigationArgs['setResultSelectedIndex'];
+  setActiveSuggestionIndex: SearchKeyboardNavigationArgs['setActiveSuggestionIndex'];
   setScope: RepoQueryActionsArgs['setScope'];
   onClose: SearchKeyboardNavigationArgs['onClose'];
   onResultSelect: SearchKeyboardNavigationArgs['onResultSelect'];
@@ -41,6 +43,7 @@ interface UseSearchBarInteractionsActionsParams {
   onGraphResultSelect: SearchResultActionsArgs['onGraphResultSelect'];
   setIsLoading: SearchResultActionsArgs['setIsLoading'];
   setError: SearchResultActionsArgs['setError'];
+  selectSuggestion: SearchKeyboardNavigationArgs['selectSuggestion'];
 }
 
 interface UseSearchBarInteractionsParams {
@@ -54,8 +57,9 @@ export function useSearchBarInteractions({
     query,
     suggestions,
     suggestionCount,
+    activeSuggestionIndex,
     resultCount,
-    selectedIndex,
+    resultSelectedIndex,
     visibleResults,
     activeRepoFilter,
     primaryRepoFilter,
@@ -68,8 +72,8 @@ export function useSearchBarInteractions({
     setIsComposing,
     setQuery,
     setShowSuggestions,
-    setSuggestions,
-    setSelectedIndex,
+    setResultSelectedIndex,
+    setActiveSuggestionIndex,
     setScope,
     onClose,
     onResultSelect,
@@ -78,6 +82,7 @@ export function useSearchBarInteractions({
     onGraphResultSelect,
     setIsLoading,
     setError,
+    selectSuggestion,
   },
 }: UseSearchBarInteractionsParams) {
   const input = useSearchInputInteractions({
@@ -94,8 +99,9 @@ export function useSearchBarInteractions({
     query,
     suggestions,
     suggestionCount,
+    activeSuggestionIndex,
     resultCount,
-    selectedIndex,
+    resultSelectedIndex,
     visibleResults,
     inputRef,
     onClose,
@@ -103,8 +109,9 @@ export function useSearchBarInteractions({
     onPreviewSelect,
     setQuery,
     setShowSuggestions,
-    setSuggestions,
-    setSelectedIndex,
+    setResultSelectedIndex,
+    setActiveSuggestionIndex,
+    selectSuggestion,
   });
   const results = useSearchResultActions({
     onPreviewSelect,

@@ -6,7 +6,9 @@ import type {
   SymbolSearchResponse,
 } from '../../api';
 import { api } from '../../api';
+import { stripCodeFilters } from './codeSearchUtils';
 import { errorMessage } from './searchResultNormalization';
+import { executeRepoIntelligenceCodeSearch } from './repoIntelligenceSearchExecution';
 import {
   buildAllModeOutcome,
   createFallbackAttachmentResponse,
@@ -15,16 +17,53 @@ import {
   createFallbackReferenceResponse,
   createFallbackSymbolResponse,
 } from './searchExecutionAllModeHelpers';
-import type { SearchExecutionOutcome } from './searchExecutionTypes';
+import { resolveCodeSearchIntentMeta, resolveRepoAwareCodeModeOutcome } from './searchExecutionCodeModeHelpers';
+import type { SearchExecutionOptions, SearchExecutionOutcome } from './searchExecutionTypes';
 
-export async function executeAllModeSearch(queryToSearch: string): Promise<SearchExecutionOutcome> {
+function resolveAllModeSemanticQuery(rawQuery: string): string {
+  const strippedQuery = stripCodeFilters(rawQuery).trim();
+  return strippedQuery.length > 0 ? strippedQuery : rawQuery.trim();
+}
+
+async function executeRepoAwareAllModeCodeSearch(
+  rawCodeQuery: string,
+  repoIntelligenceQuery: string,
+  repoFilter: string,
+  options: SearchExecutionOptions,
+): Promise<SearchExecutionOutcome> {
+  const repoFacet = options.repoFacet ?? null;
+  const [repoIntelligenceSettled, codeIntentSettled] = await Promise.allSettled([
+    executeRepoIntelligenceCodeSearch(repoIntelligenceQuery, repoFilter, {
+      facet: repoFacet,
+    }),
+    resolveCodeSearchIntentMeta(rawCodeQuery, repoFilter, 10),
+  ]);
+
+  return resolveRepoAwareCodeModeOutcome({
+    queryToSearch: rawCodeQuery,
+    repoFilter,
+    repoFacet,
+    repoIntelligenceSettled,
+    codeIntentSettled,
+  });
+}
+
+export async function executeAllModeSearch(
+  queryToSearch: string,
+  options: SearchExecutionOptions = {}
+): Promise<SearchExecutionOutcome> {
+  const repoFilter = options.repoFilter?.trim();
+  const trimmedQuery = queryToSearch.trim();
+  const semanticQuery = resolveAllModeSemanticQuery(queryToSearch);
   const settled = await Promise.allSettled([
-    api.searchKnowledge(queryToSearch, 10, { intent: 'hybrid_search' }),
-    api.searchKnowledge(queryToSearch, 10, { intent: 'code_search' }),
-    api.searchAst(queryToSearch, 10),
-    api.searchReferences(queryToSearch, 10),
-    api.searchSymbols(queryToSearch, 10),
-    api.searchAttachments(queryToSearch, 10),
+    api.searchKnowledge(semanticQuery, 10, { intent: 'hybrid_search' }),
+    repoFilter
+      ? executeRepoAwareAllModeCodeSearch(trimmedQuery, semanticQuery, repoFilter, options)
+      : api.searchKnowledge(trimmedQuery, 10, { intent: 'code_search' }),
+    api.searchAst(semanticQuery, 10),
+    api.searchReferences(semanticQuery, 10),
+    api.searchSymbols(semanticQuery, 10),
+    api.searchAttachments(semanticQuery, 10),
   ]);
   const failures = settled
     .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -38,10 +77,14 @@ export async function executeAllModeSearch(queryToSearch: string): Promise<Searc
     settled[0].status === 'fulfilled'
       ? settled[0].value
       : createFallbackKnowledgeResponse(queryToSearch, 'hybrid_search', 'hybrid');
-  const codeResponse =
-    settled[1].status === 'fulfilled'
+  const codeOutcome =
+    repoFilter && settled[1].status === 'fulfilled'
       ? settled[1].value
-      : createFallbackKnowledgeResponse(queryToSearch, 'code_search', 'code_search');
+      : null;
+  const codeResponse =
+    !repoFilter && settled[1].status === 'fulfilled'
+      ? settled[1].value
+      : createFallbackKnowledgeResponse(trimmedQuery, 'code_search', 'code_search');
   const astResponse =
     settled[2].status === 'fulfilled'
       ? settled[2].value
@@ -60,8 +103,10 @@ export async function executeAllModeSearch(queryToSearch: string): Promise<Searc
       : createFallbackAttachmentResponse(queryToSearch);
 
   return buildAllModeOutcome({
+    queryToSearch,
     knowledgeResponse,
     codeResponse,
+    codeOutcome,
     astResponse,
     referenceResponse,
     symbolResponse,

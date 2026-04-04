@@ -1063,7 +1063,7 @@ dirs = ["docs"]
 plugins = []
 
 [link_graph.projects.main]
-root = "~/projects/xiuxian-artisan-workshop"
+root = "~/ghq/github.com/tao3k/xiuxian-artisan-workshop"
 dirs = [
     "docs",
     "internal_skills",

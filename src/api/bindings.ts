@@ -52,17 +52,6 @@ export interface VfsContentResponse {
   contentType: string;
 }
 
-// === Graph Types ===
-
-export interface NodeNeighbors {
-  nodeId: string;
-  name: string;
-  nodeType: string;
-  incoming: string[];
-  outgoing: string[];
-  twoHop: string[];
-}
-
 export interface GraphNode {
   id: string;
   label: string;

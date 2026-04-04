@@ -1,34 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeSelectionPathForVfs } from '../selectionPath';
+import {
+  normalizeSelectionPathForGraph,
+  normalizeSelectionPathForVfs,
+} from '../selectionPath';
 
-describe('normalizeSelectionPathForVfs', () => {
-  it('preserves relative document paths after stripping workspace prefixes', () => {
+describe('selectionPath', () => {
+  it('canonicalizes workspace-local VFS paths into project-scoped paths', () => {
     expect(
       normalizeSelectionPathForVfs({
-        path: 'docs/02_dev/HANDBOOK.md',
+        path: '.data/wendao-frontend/docs/guide.md',
         category: 'knowledge',
         projectName: 'main',
+        rootLabel: 'docs',
       })
-    ).toBe('main/docs/02_dev/HANDBOOK.md');
+    ).toBe('main/docs/guide.md');
   });
 
-  it('strips internal workspace prefixes before canonicalizing', () => {
+  it('preserves semantic graph node ids without VFS-style project prefixing', () => {
     expect(
-      normalizeSelectionPathForVfs({
-        path: '.data/wendao-frontend/docs/index.md',
+      normalizeSelectionPathForGraph({
+        path: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
+        category: 'doc',
+        projectName: 'DataInterpolations.jl',
+        rootLabel: 'test',
+      })
+    ).toBe('repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl');
+  });
+
+  it('canonicalizes workspace-local graph subnodes when the graph id is path-based', () => {
+    expect(
+      normalizeSelectionPathForGraph({
+        path: '.data/wendao-frontend/docs/guide.md#semantic-root',
         category: 'knowledge',
         projectName: 'main',
+        rootLabel: 'docs',
       })
-    ).toBe('main/docs/index.md');
-  });
-
-  it('preserves already canonical project-scoped paths', () => {
-    expect(
-      normalizeSelectionPathForVfs({
-        path: 'kernel/docs/index.md',
-        category: 'knowledge',
-        projectName: 'kernel',
-      })
-    ).toBe('kernel/docs/index.md');
+    ).toBe('main/docs/guide.md#semantic-root');
   });
 });

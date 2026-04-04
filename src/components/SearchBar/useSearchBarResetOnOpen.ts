@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import type { AutocompleteSuggestion } from '../../api';
 import type { SearchMeta } from './searchExecution';
 import type { SearchResult, SearchScope, SearchSort } from './types';
 
@@ -11,8 +10,8 @@ interface UseSearchBarResetOnOpenParams {
   setResults: Dispatch<SetStateAction<SearchResult[]>>;
   setError: Dispatch<SetStateAction<string | null>>;
   setSearchMeta: Dispatch<SetStateAction<SearchMeta | null>>;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
-  setSuggestions: Dispatch<SetStateAction<AutocompleteSuggestion[]>>;
+  setResultSelectedIndex: Dispatch<SetStateAction<number>>;
+  clearSuggestions: () => void;
   setShowSuggestions: Dispatch<SetStateAction<boolean>>;
   setScope: Dispatch<SetStateAction<SearchScope>>;
   setSortMode: Dispatch<SetStateAction<SearchSort>>;
@@ -25,8 +24,8 @@ export function useSearchBarResetOnOpen({
   setResults,
   setError,
   setSearchMeta,
-  setSelectedIndex,
-  setSuggestions,
+  setResultSelectedIndex,
+  clearSuggestions,
   setShowSuggestions,
   setScope,
   setSortMode,
@@ -41,8 +40,8 @@ export function useSearchBarResetOnOpen({
     setResults([]);
     setError(null);
     setSearchMeta(null);
-    setSelectedIndex(0);
-    setSuggestions([]);
+    setResultSelectedIndex(0);
+    clearSuggestions();
     setShowSuggestions(true);
     setScope('all');
     setSortMode('relevance');
@@ -54,9 +53,9 @@ export function useSearchBarResetOnOpen({
     setResults,
     setScope,
     setSearchMeta,
-    setSelectedIndex,
+    setResultSelectedIndex,
     setShowSuggestions,
     setSortMode,
-    setSuggestions,
+    clearSuggestions,
   ]);
 }

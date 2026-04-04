@@ -24,8 +24,8 @@ interface UseSearchDataFlowParams {
   query: string;
   activeCodeFilterEntriesLength: number;
   searchMeta: SearchMeta | null;
-  selectedIndex: number;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
+  resultSelectedIndex: number;
+  setResultSelectedIndex: Dispatch<SetStateAction<number>>;
   isOpen: boolean;
   primaryRepoFilter?: string;
   repoFacet?: RepoOverviewFacet | null;
@@ -56,8 +56,8 @@ export function useSearchDataFlow({
   query,
   activeCodeFilterEntriesLength,
   searchMeta,
-  selectedIndex,
-  setSelectedIndex,
+  resultSelectedIndex,
+  setResultSelectedIndex,
   isOpen,
   primaryRepoFilter,
   repoFacet,
@@ -85,25 +85,28 @@ export function useSearchDataFlow({
     query,
     activeCodeFilterEntriesLength,
     searchMeta,
+    isLoading,
   });
+  const repoAwareSearchMode =
+    derivedState.searchMode === 'code' || derivedState.searchMode === 'all';
 
   useSelectableIndexClamp({
-    selectedIndex,
-    totalSelectableItems: derivedState.totalSelectableItems,
-    setSelectedIndex,
+    selectedIndex: resultSelectedIndex,
+    selectableCount: derivedState.resultCount,
+    setSelectedIndex: setResultSelectedIndex,
   });
 
   useSearchExecution({
     isOpen,
     queryToSearch: derivedState.queryToSearch,
     searchMode: derivedState.searchMode,
-    repoFilter: derivedState.searchMode === 'code' ? primaryRepoFilter : undefined,
+    repoFilter: repoAwareSearchMode ? primaryRepoFilter : undefined,
     repoFacet: derivedState.searchMode === 'code' ? repoFacet : null,
     setResults,
     setSearchMeta,
     setIsLoading,
     setError,
-    setSelectedIndex,
+    setResultSelectedIndex,
   });
 
   useRuntimeSearchStatus({

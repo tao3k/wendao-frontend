@@ -26,7 +26,7 @@ import {
   parseRepoDiagnosticsHash,
 } from './components/repoDiagnosticsLocation';
 import { buildPositionCache, mergeTopologyPositions } from './utils';
-import { normalizeSelectionPathForVfs } from './utils/selectionPath';
+import { normalizeSelectionPathForGraph, normalizeSelectionPathForVfs } from './utils/selectionPath';
 import './styles/UI.css';
 
 const LazyZenSearchWindow = lazy(async () => {
@@ -35,6 +35,7 @@ const LazyZenSearchWindow = lazy(async () => {
 });
 
 const INTERNAL_BI_LINK_PREFIXES = ['wendao://', '$wendao://', 'id:'] as const;
+const GRAPH_HYDRATION_SELECTION_CATEGORIES = new Set(['doc', 'knowledge', 'skill', 'tag']);
 
 interface Relationship {
   from?: string;
@@ -124,6 +125,10 @@ function resolveBiLinkFallbackPath(link: string, projectName?: string): string {
     category: 'doc',
     ...(projectName ? { projectName } : {}),
   });
+}
+
+function canHydrateGraphForSelection(category: string): boolean {
+  return GRAPH_HYDRATION_SELECTION_CATEGORIES.has(category);
 }
 
 function syncRepoDiagnosticsHash(isOpen: boolean): void {
@@ -315,7 +320,7 @@ function App() {
         category: resolvedSelectionCategory,
         ...(resolvedSelectionProjectName ? { projectName: resolvedSelectionProjectName } : {}),
       });
-      const resolvedGraphPath = normalizeSelectionPathForVfs({
+      const resolvedGraphPath = normalizeSelectionPathForGraph({
         path: graphPath ?? resolvedSelectionPath,
         category: resolvedSelectionCategory,
         ...(resolvedSelectionProjectName ? { projectName: resolvedSelectionProjectName } : {}),
@@ -352,20 +357,24 @@ function App() {
           /\\.(mmd|mermaid)$/i.test(resolvedPath) || /```\\s*mermaid[\\s\\S]*?```/i.test(content);
         const isBpmnFile = /<\\s*bpmn:definitions\\b/i.test(content);
 
-        try {
-          const neighbors = await api.getGraphNeighbors(resolvedPath, {
-            direction: 'both',
-            hops: 1,
-            limit: 20,
-          });
-          const liveRelationships: Relationship[] = neighbors.links.map((link) => ({
-            from: link.source,
-            to: link.target,
-            type: link.direction,
-          }));
-          setRelationships(liveRelationships);
-        } catch (relationshipErr) {
-          console.warn('Relationship load failed, keeping references empty.', relationshipErr);
+        if (canHydrateGraphForSelection(resolvedSelectionCategory)) {
+          try {
+            const neighbors = await api.getGraphNeighbors(resolvedGraphPath, {
+              direction: 'both',
+              hops: 1,
+              limit: 20,
+            });
+            const liveRelationships: Relationship[] = neighbors.links.map((link) => ({
+              from: link.source,
+              to: link.target,
+              type: link.direction,
+            }));
+            setRelationships(liveRelationships);
+          } catch (relationshipErr) {
+            console.warn('Relationship load failed, keeping references empty.', relationshipErr);
+            setRelationships([]);
+          }
+        } else {
           setRelationships([]);
         }
 

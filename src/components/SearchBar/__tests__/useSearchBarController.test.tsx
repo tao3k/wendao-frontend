@@ -43,12 +43,10 @@ describe('useSearchBarController', () => {
       setIsLoading: vi.fn(),
       searchMeta: null,
       setSearchMeta: vi.fn(),
-      selectedIndex: 0,
-      setSelectedIndex: vi.fn(),
+      resultSelectedIndex: 0,
+      setResultSelectedIndex: vi.fn(),
       error: null,
       setError: vi.fn(),
-      suggestions: [],
-      setSuggestions: vi.fn(),
       showSuggestions: true,
       setShowSuggestions: vi.fn(),
       scope: 'code',
@@ -72,6 +70,11 @@ describe('useSearchBarController', () => {
       activeCodeFilterEntries: [],
       codeQuickExampleTokens: [],
       codeQuickScenarios: [],
+      suggestions: [],
+      activeSuggestionIndex: 0,
+      setActiveSuggestionIndex: vi.fn(),
+      selectSuggestion: vi.fn(),
+      clearSuggestions: vi.fn(),
     });
 
     useSearchBarControllerPresentationMock.mockReturnValue({

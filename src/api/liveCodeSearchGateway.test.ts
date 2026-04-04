@@ -8,6 +8,7 @@ import { searchKnowledgeFlight } from './flightSearchTransport';
 import { decodeSearchHitsFromArrowIpc } from './arrowSearchIpc';
 import type { WendaoConfig } from '../config/loader';
 import { resolveSearchFlightSchemaVersion } from '../config/loader';
+import { normalizeCodeSearchHit } from '../components/SearchBar/searchResultNormalization';
 
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === '1' || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
@@ -104,5 +105,43 @@ liveDescribe('live gateway code search contract', () => {
       const projectName = hit.navigationTarget?.projectName?.trim();
       return Boolean(projectName && projectName !== 'main' && projectName !== 'kernel');
     })).toBe(true);
+  });
+
+  it('surfaces the live all-scope filter query contract for sec lang:julia kind:function', async () => {
+    const response = await searchKnowledgeFlight(
+      {
+        baseUrl: gatewayOrigin,
+        schemaVersion: flightSchemaVersion,
+        query: 'sec lang:julia kind:function',
+        limit: 10,
+        intent: 'code_search',
+      },
+      {
+        decodeSearchHits: decodeSearchHitsFromArrowIpc,
+      },
+    );
+
+    expect(response.intent).toBe('code_search');
+    expect(response.query).toBe('sec lang:julia kind:function');
+
+    if (response.hits.length === 0) {
+      expect(response.hits).toEqual([]);
+      return;
+    }
+
+    response.hits.forEach((hit) => {
+      const normalized = normalizeCodeSearchHit(hit);
+      const languageTag = hit.tags?.find((tag) => tag.toLowerCase().startsWith('lang:'));
+      const normalizedPath = hit.path.toLowerCase();
+
+      expect(
+        languageTag?.toLowerCase() === 'lang:julia' || normalizedPath.endsWith('.jl'),
+        `expected live code_search hit to remain Julia-filtered: ${JSON.stringify(hit)}`,
+      ).toBe(true);
+      expect(
+        normalized.codeKind === 'function',
+        `expected frontend-normalized code_search hit to remain function-filtered: ${JSON.stringify(hit)}`,
+      ).toBe(true);
+    });
   });
 });

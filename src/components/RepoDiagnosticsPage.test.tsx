@@ -325,6 +325,7 @@ describe('RepoDiagnosticsPage', () => {
     const copiedText = clipboardWriteTextMock.mock.calls[0]?.[0] as string;
     expect(copiedText).toContain('# action_key = retry_with_lower_sync_concurrency');
     expect(copiedText).toContain('# retry_scope = repo');
+    expect(copiedText).toContain('/analysis/repo-index');
     expect(copiedText).toContain('XIUXIAN_WENDAO_REPO_INDEX_SYNC_CONCURRENCY="1"');
     expect(copiedText).toContain('/api/repo/index');
     expect(copiedText).toContain(`"repo":"AutoOffload.jl"`);

@@ -12,7 +12,6 @@ import type {
   VfsScanEntry,
   VfsScanResult,
   VfsContentResponse,
-  NodeNeighbors,
   Topology3D,
   GraphNeighborsResponse,
   UiConfig,
@@ -65,7 +64,6 @@ export type {
   VfsScanEntry,
   VfsScanResult,
   VfsContentResponse,
-  NodeNeighbors,
   Topology3D,
   GraphNeighborsResponse,
   UiConfig,
@@ -113,16 +111,10 @@ export type {
   RepoBacklinkItem,
   RepoDocCoverageDoc,
   RepoDocCoverageResponse,
-  RepoExampleSearchHit,
-  RepoExampleSearchResponse,
   RepoIndexEntryStatus,
   RepoIndexRequest,
   RepoIndexStatusResponse,
-  RepoModuleSearchHit,
-  RepoModuleSearchResponse,
   RepoOverviewResponse,
-  RepoSymbolSearchHit,
-  RepoSymbolSearchResponse,
   RepoSyncResponse,
   UiCapabilities,
 };
@@ -132,37 +124,32 @@ import {
   decodeAttachmentSearchHitsFromArrowIpc,
   decodeAstSearchHitsFromArrowIpc,
   decodeDefinitionHitsFromArrowIpc,
+  decodeRepoDocCoverageDocsFromArrowIpc,
+  decodeRepoIndexStatusResponseFromArrowIpc,
+  decodeRepoOverviewResponseFromArrowIpc,
+  decodeRepoSyncResponseFromArrowIpc,
+  decodeRepoSearchHitsFromArrowIpc,
   decodeReferenceSearchHitsFromArrowIpc,
   decodeSearchHitsFromArrowIpc,
   decodeSymbolSearchHitsFromArrowIpc,
 } from './arrowSearchIpc';
+import {
+  decodeProjectedPageIndexTreeFromArrowIpc,
+  decodeRefineEntityDocResponseFromArrowIpc,
+} from './arrowDocumentIpc';
 import * as flightSearchTransport from './flightSearchTransport';
+import * as flightProjectedPageIndexTransport from './flightProjectedPageIndexTransport';
+import * as flightRefineEntityDocTransport from './flightRefineEntityDocTransport';
+import * as flightRepoDocCoverageTransport from './flightRepoDocCoverageTransport';
+import * as flightRepoIndexTransport from './flightRepoIndexTransport';
+import * as flightRepoIndexStatusTransport from './flightRepoIndexStatusTransport';
+import * as flightRepoOverviewTransport from './flightRepoOverviewTransport';
+import * as flightRepoSyncTransport from './flightRepoSyncTransport';
+import * as flightRepoSearchTransport from './flightRepoSearchTransport';
 import * as flightAnalysisTransport from './flightAnalysisTransport';
 import * as flightDocumentTransport from './flightDocumentTransport';
 import * as flightGraphTransport from './flightGraphTransport';
 import * as flightWorkspaceTransport from './flightWorkspaceTransport';
-import {
-  normalizeRepoDocCoverageResponse,
-  normalizeRepoExampleSearchResponse,
-  normalizeRepoIndexStatusResponse,
-  normalizeRepoModuleSearchResponse,
-  normalizeRepoOverviewResponse,
-  normalizeRepoSymbolSearchResponse,
-  normalizeRepoSyncResponse,
-  type RepoDocCoverageResponseWire,
-  type RepoExampleSearchResponseWire,
-  type RepoIndexStatusResponseWire,
-  type RepoModuleSearchResponseWire,
-  type RepoOverviewResponseWire,
-  type RepoSymbolSearchResponseWire,
-  type RepoSyncResponseWire,
-} from './repoResponseNormalizers';
-import {
-  fetchRepoIndexStatusResponse,
-  fetchRepoScopedResponse,
-  fetchRepoSearchResponse,
-  postRepoIndexResponse,
-} from './repoTransport';
 import {
   ApiClientError,
   handleResponse,
@@ -170,32 +157,22 @@ import {
 } from './responseTransport';
 import { createUiConfigTransportState } from './uiConfigTransport';
 import {
-  fetchHealthResponse,
-  fetchNodeNeighborsResponse,
-  fetchTopology3DResponse,
-  fetchVfsContentResponse,
-  fetchVfsEntryResponse,
-  fetchVfsRootResponse,
-  fetchVfsScanResponse,
-} from './workspaceTransport';
+  fetchControlPlaneJuliaDeploymentArtifact,
+  fetchControlPlaneJuliaDeploymentArtifactToml,
+  fetchControlPlaneUiConfig,
+  postControlPlaneUiConfig,
+} from './controlPlane/transport';
 import {
-  fetchProjectedPageIndexTreeResponse,
-  postRefineEntityDocResponse,
-} from './documentTransport';
+  fetchHealthResponse,
+} from './workspaceTransport';
 import type {
   RepoBacklinkItem,
   RepoDocCoverageDoc,
   RepoDocCoverageResponse,
-  RepoExampleSearchHit,
-  RepoExampleSearchResponse,
   RepoIndexEntryStatus,
   RepoIndexRequest,
   RepoIndexStatusResponse,
-  RepoModuleSearchHit,
-  RepoModuleSearchResponse,
   RepoOverviewResponse,
-  RepoSymbolSearchHit,
-  RepoSymbolSearchResponse,
   RepoSyncResponse,
   UiCapabilities,
   UiJuliaDeploymentArtifact,
@@ -226,21 +203,19 @@ export function resetUiCapabilitiesCache(): void {
   uiConfigTransportState.resetUiCapabilitiesCache();
 }
 
-const repoTransportDeps = {
-  apiBase: API_BASE,
-  handleResponse,
-  withUiConfigSyncRetry: uiConfigTransportState.withUiConfigSyncRetry,
-};
-
 const workspaceTransportDeps = {
   apiBase: API_BASE,
   handleResponse,
 };
 
-const documentTransportDeps = {
+const controlPlaneJsonTransportDeps = {
   apiBase: API_BASE,
   handleResponse,
-  withUiConfigSyncRetry: uiConfigTransportState.withUiConfigSyncRetry,
+};
+
+const controlPlaneTextTransportDeps = {
+  apiBase: API_BASE,
+  handleTextResponse,
 };
 
 function resolveBrowserFlightBaseUrl(): string {
@@ -251,6 +226,13 @@ function resolveBrowserFlightBaseUrl(): string {
     return globalThis.location.origin;
   }
   return '';
+}
+
+function nextRepoIndexFlightRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `repo-index-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 /**
@@ -269,24 +251,15 @@ export const api = {
   // === VFS Endpoints ===
 
   /**
-   * Get VFS entry metadata by path
-   */
-  async getVfsEntry(path: string): Promise<VfsEntry> {
-    return fetchVfsEntryResponse(workspaceTransportDeps, path);
-  },
-
-  /**
-   * List VFS root entries
-   */
-  async listVfsRoot(): Promise<VfsEntry[]> {
-    return fetchVfsRootResponse(workspaceTransportDeps);
-  },
-
-  /**
    * Get raw file content from VFS
    */
   async getVfsContent(path: string): Promise<VfsContentResponse> {
-    return fetchVfsContentResponse(workspaceTransportDeps, path);
+    const config = await getConfig();
+    return flightWorkspaceTransport.loadVfsContentFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      path,
+    });
   },
 
   /**
@@ -305,17 +278,16 @@ export const api = {
    * Scan VFS directories for files
    */
   async scanVfs(): Promise<VfsScanResult> {
-    return fetchVfsScanResponse(workspaceTransportDeps);
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightWorkspaceTransport.loadVfsScanFlight({
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      });
+    });
   },
 
   // === Graph Endpoints ===
-
-  /**
-   * Get node neighbors (2-hop cluster)
-   */
-  async getNodeNeighbors(nodeId: string): Promise<NodeNeighbors> {
-    return fetchNodeNeighborsResponse(workspaceTransportDeps, nodeId);
-  },
 
   /**
    * Get graph neighbors for Obsidian-like visualization
@@ -340,7 +312,13 @@ export const api = {
    * Get full 3D topology for visualization
    */
   async get3DTopology(): Promise<Topology3D> {
-    return fetchTopology3DResponse(workspaceTransportDeps);
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightGraphTransport.loadTopology3DFlight({
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      });
+    });
   },
 
   // === Search Endpoints ===
@@ -366,6 +344,43 @@ export const api = {
         },
         {
           decodeSearchHits: decodeSearchHitsFromArrowIpc,
+        },
+      );
+    });
+  },
+
+  /**
+   * Search repo-scoped repo-content rows through the repo-search Flight route.
+   */
+  async searchRepoContentFlight(
+    repo: string,
+    query: string,
+    limit: number = 10,
+    options?: {
+      languageFilters?: string[];
+      pathPrefixes?: string[];
+      titleFilters?: string[];
+      tagFilters?: string[];
+      filenameFilters?: string[];
+    }
+  ): Promise<SearchResponse> {
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRepoSearchTransport.searchRepoContentFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          repo,
+          query,
+          limit,
+          languageFilters: options?.languageFilters,
+          pathPrefixes: options?.pathPrefixes,
+          titleFilters: options?.titleFilters,
+          tagFilters: options?.tagFilters,
+          filenameFilters: options?.filenameFilters,
+        },
+        {
+          decodeRepoSearchHits: decodeRepoSearchHitsFromArrowIpc,
         },
       );
     });
@@ -475,106 +490,102 @@ export const api = {
   },
 
   /**
-   * Search repo-intelligence module records from one configured repository.
-   */
-  async searchRepoModules(repo: string, query: string, limit: number = 10): Promise<RepoModuleSearchResponse> {
-    return fetchRepoSearchResponse(
-      repoTransportDeps,
-      '/repo/module-search',
-      repo,
-      query,
-      limit,
-      normalizeRepoModuleSearchResponse,
-    );
-  },
-
-  /**
-   * Search repo-intelligence symbol records from one configured repository.
-   */
-  async searchRepoSymbols(repo: string, query: string, limit: number = 10): Promise<RepoSymbolSearchResponse> {
-    return fetchRepoSearchResponse(
-      repoTransportDeps,
-      '/repo/symbol-search',
-      repo,
-      query,
-      limit,
-      normalizeRepoSymbolSearchResponse,
-    );
-  },
-
-  /**
-   * Search repo-intelligence example records from one configured repository.
-   */
-  async searchRepoExamples(repo: string, query: string, limit: number = 10): Promise<RepoExampleSearchResponse> {
-    return fetchRepoSearchResponse(
-      repoTransportDeps,
-      '/repo/example-search',
-      repo,
-      query,
-      limit,
-      normalizeRepoExampleSearchResponse,
-    );
-  },
-
-  /**
    * Inspect normalized repo overview counts from repo-intelligence.
    */
   async getRepoOverview(repo: string): Promise<RepoOverviewResponse> {
-    return fetchRepoScopedResponse(
-      repoTransportDeps,
-      '/repo/overview',
-      repo,
-      {},
-      normalizeRepoOverviewResponse,
-    );
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRepoOverviewTransport.loadRepoOverviewFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          repo,
+        },
+        {
+          decodeRepoOverviewResponse: decodeRepoOverviewResponseFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
    * Inspect normalized doc coverage rows from repo-intelligence.
    */
   async getRepoDocCoverage(repo: string, moduleQualifiedName?: string): Promise<RepoDocCoverageResponse> {
-    return fetchRepoScopedResponse(
-      repoTransportDeps,
-      '/repo/doc-coverage',
-      repo,
-      { module: moduleQualifiedName },
-      normalizeRepoDocCoverageResponse,
-    );
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRepoDocCoverageTransport.loadRepoDocCoverageFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          repo,
+          moduleQualifiedName,
+        },
+        {
+          decodeRepoDocCoverageDocs: decodeRepoDocCoverageDocsFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
    * Inspect repo sync/status state for one managed repository.
    */
   async getRepoSync(repo: string, mode: 'ensure' | 'refresh' | 'status' = 'status'): Promise<RepoSyncResponse> {
-    return fetchRepoScopedResponse(
-      repoTransportDeps,
-      '/repo/sync',
-      repo,
-      { mode },
-      normalizeRepoSyncResponse,
-    );
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRepoSyncTransport.loadRepoSyncFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          repo,
+          mode,
+        },
+        {
+          decodeRepoSyncResponse: decodeRepoSyncResponseFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
    * Get aggregated background repo index progress for the current UI config.
    */
   async getRepoIndexStatus(repo?: string): Promise<RepoIndexStatusResponse> {
-    return fetchRepoIndexStatusResponse(
-      repoTransportDeps,
-      repo,
-      normalizeRepoIndexStatusResponse,
-    );
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRepoIndexStatusTransport.loadRepoIndexStatusFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          ...(repo?.trim() ? { repo } : {}),
+        },
+        {
+          decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
    * Enqueue one or more repositories for background indexing.
    */
   async enqueueRepoIndex(request: RepoIndexRequest = {}): Promise<RepoIndexStatusResponse> {
-    return postRepoIndexResponse(
-      repoTransportDeps,
-      request,
-      normalizeRepoIndexStatusResponse,
-    );
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRepoIndexTransport.loadRepoIndexFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          requestId: nextRepoIndexFlightRequestId(),
+          repo: request.repo,
+          refresh: request.refresh,
+        },
+        {
+          decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
@@ -601,14 +612,39 @@ export const api = {
    * Get a deterministic projected page-index tree for a repository page.
    */
   async getRepoProjectedPageIndexTree(repo: string, pageId: string): Promise<ProjectedPageIndexTree> {
-    return fetchProjectedPageIndexTreeResponse(documentTransportDeps, repo, pageId);
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightProjectedPageIndexTransport.loadRepoProjectedPageIndexTreeFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          repo,
+          pageId,
+        },
+        {
+          decodeProjectedPageIndexTree: decodeProjectedPageIndexTreeFromArrowIpc,
+        },
+      );
+    });
   },
 
   /**
    * Refine documentation for an entity using the Trinity loop.
    */
   async refineEntityDoc(request: RefineEntityDocRequest): Promise<RefineEntityDocResponse> {
-    return postRefineEntityDocResponse(documentTransportDeps, request);
+    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
+      const config = await getConfig();
+      return flightRefineEntityDocTransport.loadRefineEntityDocFlight(
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+          request,
+        },
+        {
+          decodeRefineEntityDocResponse: decodeRefineEntityDocResponseFromArrowIpc,
+        },
+      );
+    });
   },
 
   // === Analysis Endpoints ===
@@ -683,8 +719,7 @@ export const api = {
    * Get UI configuration from backend
    */
   async getUiConfig(): Promise<UiConfig> {
-    const response = await fetch(`${API_BASE}/ui/config`);
-    return handleResponse<UiConfig>(response);
+    return fetchControlPlaneUiConfig<UiConfig>(controlPlaneJsonTransportDeps);
   },
 
   /**
@@ -698,29 +733,24 @@ export const api = {
    * Get the resolved Julia deployment artifact as structured JSON.
    */
   async getJuliaDeploymentArtifact(): Promise<UiJuliaDeploymentArtifact> {
-    const response = await fetch(`${API_BASE}/ui/julia-deployment-artifact`);
-    return handleResponse<UiJuliaDeploymentArtifact>(response);
+    return fetchControlPlaneJuliaDeploymentArtifact<UiJuliaDeploymentArtifact>(
+      controlPlaneJsonTransportDeps,
+    );
   },
 
   /**
    * Get the resolved Julia deployment artifact as TOML text.
    */
   async getJuliaDeploymentArtifactToml(): Promise<string> {
-    const response = await fetch(`${API_BASE}/ui/julia-deployment-artifact?format=toml`);
-    return handleTextResponse(response);
+    return fetchControlPlaneJuliaDeploymentArtifactToml(controlPlaneTextTransportDeps);
   },
 
   /**
    * Update UI configuration on backend
-   * This allows frontend to push config loaded from wendao.toml
+   * This allows frontend to synchronize runtime UI config loaded from wendao.toml.
    */
   async setUiConfig(config: UiConfig): Promise<void> {
-    const response = await fetch(`${API_BASE}/ui/config`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-    await handleResponse<void>(response);
+    await postControlPlaneUiConfig(controlPlaneJsonTransportDeps, config);
   },
 };
 

@@ -8,6 +8,7 @@ import { SaliencyIndicator } from './SaliencyIndicator';
 import { TopoBreadcrumbs } from './TopoBreadcrumbs';
 
 interface SearchResultRowProps {
+  displayIndex: number;
   result: SearchResult;
   query: string;
   copy: SearchBarCopy;
@@ -20,17 +21,18 @@ interface SearchResultRowProps {
   openOnSelect?: boolean;
   renderIcon: (docType?: string) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
-  onHover: () => void;
-  onSelect: (result: SearchResult, event: React.MouseEvent<HTMLDivElement>) => void;
+  onHoverIndex: (index: number) => void;
+  onSelectIndex: (index: number) => void;
   onOpen: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
+  onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenGraph: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onPreview: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
-  onTogglePreview: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
+  onTogglePreviewResult: (result: SearchResult) => void;
 }
 
-export const SearchResultRow: React.FC<SearchResultRowProps> = ({
+export const SearchResultRow = React.memo(function SearchResultRow({
+  displayIndex,
   result,
   query,
   copy,
@@ -43,16 +45,27 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
   openOnSelect = true,
   renderIcon,
   renderTitle,
-  onHover,
-  onSelect,
+  onHoverIndex,
+  onSelectIndex,
   onOpen,
   onOpenDefinition,
   onOpenReferences,
   onOpenGraph,
   onPreview,
-  onTogglePreview,
-}) => {
-  const displayPath = isCodeResultRow && result.codeRepo ? `${result.codeRepo} > ${result.path}` : result.path;
+  onTogglePreviewResult,
+}: SearchResultRowProps) {
+  const displayPath = (() => {
+    if (!isCodeResultRow || !result.codeRepo) {
+      return result.path;
+    }
+
+    const repoPrefix = `${result.codeRepo}/`;
+    if (result.path.startsWith(repoPrefix)) {
+      return `${result.codeRepo} > ${result.path.slice(repoPrefix.length)}`;
+    }
+
+    return `${result.codeRepo} > ${result.path}`;
+  })();
   const codeMetaPills = isCodeResultRow ? buildCodeMetaPills(result, lineRange) : [];
   const hierarchyHint = isCodeResultRow ? resolveHierarchyHint(result) : null;
   const graphActionAvailable = canOpenGraph && canOpenGraphForSearchResult(result);
@@ -61,12 +74,12 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
     <div
       className={`search-result ${isSelected ? 'selected' : ''} ${isCodeResultRow ? 'search-result-code' : ''}`}
       onClick={(event) => {
-        onSelect(result, event);
+        onSelectIndex(displayIndex);
         if (openOnSelect) {
           onOpen(result, event);
         }
       }}
-      onMouseEnter={onHover}
+      onMouseEnter={() => onHoverIndex(displayIndex)}
     >
       <div className="search-result-main">
         {renderIcon(result.docType)}
@@ -119,7 +132,11 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
           <button
             type="button"
             className="search-result-preview-toggle"
-            onClick={(event) => onTogglePreview(result, event)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onTogglePreviewResult(result);
+            }}
           >
             {previewExpanded ? 'Hide preview' : 'Show preview'}
           </button>
@@ -176,4 +193,6 @@ export const SearchResultRow: React.FC<SearchResultRowProps> = ({
       </div>
     </div>
   );
-};
+});
+
+SearchResultRow.displayName = 'SearchResultRow';

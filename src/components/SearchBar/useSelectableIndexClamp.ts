@@ -4,18 +4,18 @@ import { clampSelectableIndex } from './searchKeyboardUtils';
 
 interface UseSelectableIndexClampParams {
   selectedIndex: number;
-  totalSelectableItems: number;
+  selectableCount: number;
   setSelectedIndex: Dispatch<SetStateAction<number>>;
 }
 
 export function useSelectableIndexClamp({
   selectedIndex,
-  totalSelectableItems,
+  selectableCount,
   setSelectedIndex,
 }: UseSelectableIndexClampParams): void {
   useEffect(() => {
-    if (selectedIndex < 0 || selectedIndex >= totalSelectableItems) {
-      setSelectedIndex(clampSelectableIndex(selectedIndex, totalSelectableItems));
+    if (selectedIndex < 0 || selectedIndex >= selectableCount) {
+      setSelectedIndex(clampSelectableIndex(selectedIndex, selectableCount));
     }
-  }, [selectedIndex, setSelectedIndex, totalSelectableItems]);
+  }, [selectedIndex, selectableCount, setSelectedIndex]);
 }

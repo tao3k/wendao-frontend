@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useDeferredValue } from 'react';
 import { buildSearchBarInteractionProps } from './searchBarInteractionPropsBuilder';
 import {
   buildSearchBarInteractionActions,
@@ -57,12 +57,10 @@ export function useSearchBarControllerPresentation({
     setIsLoading,
     searchMeta,
     setSearchMeta,
-    selectedIndex,
-    setSelectedIndex,
+    resultSelectedIndex,
+    setResultSelectedIndex,
     error,
     setError,
-    suggestions,
-    setSuggestions,
     showSuggestions,
     setShowSuggestions,
     scope,
@@ -73,7 +71,6 @@ export function useSearchBarControllerPresentation({
     setIsComposing,
     debouncedQuery,
   } = controllerState;
-
   const {
     parsedCodeInput,
     parsedCodeSearch,
@@ -83,13 +80,17 @@ export function useSearchBarControllerPresentation({
     repoOverviewStatus,
     repoSyncStatus,
     activeCodeFilterEntries,
+    suggestions,
+    activeSuggestionIndex,
+    setActiveSuggestionIndex,
+    selectSuggestion,
   } = repoSlice;
 
   const searchDataFlowParams = buildSearchDataFlowParams({
     results,
     scope,
     sortMode,
-    parsedCodeFilters: parsedCodeInput.filters,
+    parsedCodeFilters: parsedCodeSearch.filters,
     parsedCodeBaseQuery: parsedCodeInput.baseQuery,
     locale,
     attachmentsLabel: copy.attachments,
@@ -100,8 +101,8 @@ export function useSearchBarControllerPresentation({
     query,
     activeCodeFilterEntriesLength: activeCodeFilterEntries.length,
     searchMeta,
-    selectedIndex,
-    setSelectedIndex,
+    resultSelectedIndex,
+    setResultSelectedIndex,
     isOpen,
     primaryRepoFilter,
     repoFacet,
@@ -117,6 +118,7 @@ export function useSearchBarControllerPresentation({
   const {
     visibleResults,
     visibleSections,
+    resultsQuery,
     suggestionCount,
     resultCount,
     hasCodeFilterOnlyQueryValue,
@@ -125,6 +127,7 @@ export function useSearchBarControllerPresentation({
     confidenceTone,
     fallbackLabel,
   } = useSearchDataFlow(searchDataFlowParams);
+  const deferredResultsQuery = useDeferredValue(resultsQuery);
 
   const selectPreviewResult = useCallback((result: (typeof visibleResults)[number]) => {
     const targetIdentity = getSearchResultIdentity(result);
@@ -132,17 +135,21 @@ export function useSearchBarControllerPresentation({
       (candidate) => getSearchResultIdentity(candidate) === targetIdentity
     );
     if (previewIndex >= 0) {
-      setSelectedIndex(previewIndex);
+      setResultSelectedIndex(previewIndex);
     }
-  }, [visibleResults, setSelectedIndex]);
+  }, [visibleResults, setResultSelectedIndex]);
+  const toggleSuggestions = useCallback(() => {
+    setShowSuggestions((value) => !value);
+  }, [setShowSuggestions]);
 
   const interactionState = buildSearchBarInteractionState({
     isComposing,
     query,
     suggestions,
     suggestionCount,
+    activeSuggestionIndex,
     resultCount,
-    selectedIndex,
+    resultSelectedIndex,
     visibleResults,
     activeRepoFilter,
     primaryRepoFilter,
@@ -155,8 +162,8 @@ export function useSearchBarControllerPresentation({
     setIsComposing,
     setQuery: controllerState.setQuery,
     setShowSuggestions,
-    setSuggestions,
-    setSelectedIndex,
+    setResultSelectedIndex,
+    setActiveSuggestionIndex,
     setScope,
     onClose,
     onResultSelect,
@@ -165,6 +172,7 @@ export function useSearchBarControllerPresentation({
     onGraphResultSelect,
     setIsLoading,
     setError,
+    selectSuggestion,
   });
 
   const viewState = buildSearchBarViewState({
@@ -172,6 +180,7 @@ export function useSearchBarControllerPresentation({
     copy,
     locale,
     query,
+    resultsQuery: deferredResultsQuery,
     isLoading,
     showSuggestions,
     scope,
@@ -186,8 +195,7 @@ export function useSearchBarControllerPresentation({
     error,
     hasCodeFilterOnlyQuery: hasCodeFilterOnlyQueryValue,
     visibleSections,
-    selectedIndex,
-    suggestionCount,
+    resultSelectedIndex,
     canOpenReferences: Boolean(onReferencesResultSelect),
     canOpenGraph: Boolean(onGraphResultSelect),
     renderIcon,
@@ -195,11 +203,11 @@ export function useSearchBarControllerPresentation({
   });
   const viewActions = buildSearchBarViewActions({
     onQueryChange: controllerState.setQuery,
-    onToggleSuggestions: () => setShowSuggestions((value) => !value),
+    onToggleSuggestions: toggleSuggestions,
     onClose,
     onScopeChange: setScope,
     onSortModeChange: setSortMode,
-    setSelectedIndex,
+    setResultSelectedIndex,
     onPreview: selectPreviewResult,
   });
 

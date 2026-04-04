@@ -219,6 +219,8 @@ function buildRetryRepoIndexCommand(input: {
     .map(([key, value]) => `${key}=${JSON.stringify(value)}`);
   const envPrefix = envAssignments.length > 0 ? `${envAssignments.join(' ')} ` : '';
   return [
+    '# canonical_active_route = /analysis/repo-index (Arrow Flight)',
+    '# manual_shell_fallback = /api/repo/index compatibility route',
     `${envPrefix}curl -sS -X POST ${JSON.stringify(`${input.origin}/api/repo/index`)} \\`,
     "  -H 'Content-Type: application/json' \\",
     `  -d '${JSON.stringify({ repo: input.repoId, refresh: true })}'`,

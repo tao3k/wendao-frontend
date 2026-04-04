@@ -6,11 +6,17 @@ import * as TOML from "smol-toml";
 
 import type { WendaoConfig } from "../config/loader";
 import { resolveSearchFlightSchemaVersion, toUiConfig } from "../config/loader";
-import { decodeSearchHitsFromArrowIpc } from "./arrowSearchIpc";
+import {
+  decodeRepoIndexStatusResponseFromArrowIpc,
+  decodeSearchHitsFromArrowIpc,
+} from "./arrowSearchIpc";
+import { loadRepoIndexStatusFlight } from "./flightRepoIndexStatusTransport";
 import {
   searchKnowledgeFlight,
   type FlightSearchProfile,
 } from "./flightSearchTransport";
+import type { PerfTraceArtifact } from "../lib/testPerfRegistry";
+import { resolveHotspotPerfArtifactPath } from "../lib/testPerfRegistry";
 
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === "1" ||
@@ -21,6 +27,14 @@ const DEFAULT_QUERIES = ["diffeq", "solver", "optimization"];
 const DEFAULT_LIMIT = 20;
 const DEFAULT_WARMUP_RUNS = 1;
 const DEFAULT_MEASURED_RUNS = 3;
+const GATEWAY_BOOT_RETRY_COUNT = 45;
+const GATEWAY_BOOT_RETRY_DELAY_MS = 1000;
+const GATEWAY_REQUEST_RETRY_COUNT = 6;
+const GATEWAY_REQUEST_RETRY_DELAY_MS = 500;
+const GATEWAY_STABLE_RETRY_COUNT = 30;
+const GATEWAY_STABLE_RETRY_DELAY_MS = 1000;
+const LIVE_PERF_HOOK_TIMEOUT_MS = 120_000;
+const LIVE_PERF_TEST_TIMEOUT_MS = 180_000;
 
 let gatewayOrigin = "";
 let flightSchemaVersion = "";
@@ -72,6 +86,34 @@ type PerfSummary = {
   >;
   phases: Record<string, PhaseSummary>;
   optimizationCandidates: string[];
+  hotspotTraceArtifactPath?: string;
+  hotspotTraceRecordCount?: number;
+};
+
+type SearchIndexStatusEnvelope = {
+  indexing: number;
+  corpora?: Array<{
+    corpus: string;
+    phase?: string;
+    activeEpoch?: number | null;
+    rowCount?: number | null;
+  }>;
+  statusReason?: {
+    action?: string;
+    blockingCorpusCount?: number;
+  };
+};
+
+type RepoIndexStatusEnvelope = {
+  total: number;
+  active: number;
+  queued: number;
+  checking: number;
+  syncing: number;
+  indexing: number;
+  ready: number;
+  unsupported: number;
+  failed: number;
 };
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
@@ -84,6 +126,20 @@ function resolveGatewayOrigin(config: WendaoConfig): string {
     return bind.replace(/\/+$/, "");
   }
   return `http://${bind}`;
+}
+
+function normalizeLoopbackGatewayOrigin(origin: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    return origin;
+  }
+  if (parsed.hostname !== "127.0.0.1") {
+    return origin;
+  }
+  parsed.hostname = "localhost";
+  return parsed.toString().replace(/\/+$/, "");
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -117,6 +173,43 @@ function resolvePerfArtifactStem(): string {
     "tmp",
     "wendao_frontend_live_flight_search_perf",
   );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolvePromise) => {
+    setTimeout(resolvePromise, ms);
+  });
+}
+
+function isRetryableGatewayError(error: unknown): boolean {
+  const retryableCodes = new Set([
+    "EADDRNOTAVAIL",
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "UND_ERR_CONNECT_TIMEOUT",
+  ]);
+  const pending = [error];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!(current instanceof Error)) {
+      continue;
+    }
+    const withCode = current as Error & {
+      code?: string;
+      cause?: unknown;
+      errors?: unknown[];
+    };
+    if (withCode.code && retryableCodes.has(withCode.code)) {
+      return true;
+    }
+    if (Array.isArray(withCode.errors)) {
+      pending.push(...withCode.errors);
+    }
+    if (withCode.cause) {
+      pending.push(withCode.cause);
+    }
+  }
+  return false;
 }
 
 function average(values: number[]): number {
@@ -156,6 +249,41 @@ function summarizeProfilePhases(
   };
 }
 
+function isSearchIndexStable(status: SearchIndexStatusEnvelope): boolean {
+  const repoCorpora = (status.corpora ?? []).filter(
+    (corpus) =>
+      corpus.corpus === "repo_entity" || corpus.corpus === "repo_content_chunk",
+  );
+  const hasReadableRepoCorpora =
+    repoCorpora.length === 2 &&
+    repoCorpora.every(
+      (corpus) =>
+        corpus.phase !== "failed" &&
+        (corpus.activeEpoch ?? null) !== null &&
+        (corpus.rowCount ?? 0) > 0,
+    );
+
+  return (
+    status.indexing === 0 && status.statusReason?.action !== "wait"
+  ) || (
+    (status.statusReason?.blockingCorpusCount ?? 0) === 0 &&
+    hasReadableRepoCorpora
+  );
+}
+
+function isRepoIndexStable(status: RepoIndexStatusEnvelope): boolean {
+  return (
+    status.active === 0 &&
+    status.queued === 0 &&
+    status.checking === 0 &&
+    status.syncing === 0 &&
+    status.indexing === 0
+  ) || (
+    status.total > 0 &&
+    status.ready + status.failed + status.unsupported > 0
+  );
+}
+
 function deriveOptimizationCandidates(
   phases: Record<string, PhaseSummary>,
 ): string[] {
@@ -163,6 +291,10 @@ function deriveOptimizationCandidates(
     .filter(([, stats]) => stats.avgMs >= 1)
     .sort((left, right) => right[1].avgMs - left[1].avgMs)
     .map(([phase, stats]) => `${phase}: avg=${stats.avgMs}ms p95=${stats.p95Ms}ms`);
+}
+
+function jsonEquivalent(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function encodeMeasurementsCsv(measurements: PerfMeasurement[]): string {
@@ -182,6 +314,7 @@ function encodeMeasurementsCsv(measurements: PerfMeasurement[]): string {
 async function writePerfArtifacts(
   summary: PerfSummary,
   measurements: PerfMeasurement[],
+  hotspotArtifact: PerfTraceArtifact | null,
 ): Promise<{ jsonPath: string; csvPath: string }> {
   const stem = resolvePerfArtifactStem();
   const jsonPath = `${stem}.json`;
@@ -189,11 +322,20 @@ async function writePerfArtifacts(
   await mkdir(resolve(stem, ".."), { recursive: true });
   await writeFile(
     jsonPath,
-    `${JSON.stringify({ summary, measurements }, null, 2)}\n`,
+    `${JSON.stringify({ summary, measurements, hotspotArtifact }, null, 2)}\n`,
     "utf8",
   );
   await writeFile(csvPath, `${encodeMeasurementsCsv(measurements)}\n`, "utf8");
   return { jsonPath, csvPath };
+}
+
+async function readHotspotPerfArtifact(): Promise<PerfTraceArtifact | null> {
+  try {
+    const content = await readFile(resolveHotspotPerfArtifactPath(), "utf8");
+    return JSON.parse(content) as PerfTraceArtifact;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -206,29 +348,202 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function fetchJsonWithRetry<T>(
+  path: string,
+  init: RequestInit | undefined,
+  retries: number,
+  retryDelayMs: number,
+): Promise<T> {
+  return fetchWithRetry(
+    () => fetchJson<T>(path, init),
+    retries,
+    retryDelayMs,
+  );
+}
+
+async function fetchWithRetry<T>(
+  run: () => Promise<T>,
+  retries: number,
+  retryDelayMs: number,
+): Promise<T> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableGatewayError(error) || attempt === retries) {
+        throw error;
+      }
+      await sleep(retryDelayMs);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 async function readLocalUiConfig(): Promise<ReturnType<typeof toUiConfig>> {
   const tomlPath = resolve(process.cwd(), "wendao.toml");
   const tomlContent = await readFile(tomlPath, "utf8");
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
-  gatewayOrigin = resolveGatewayOrigin(config);
+  gatewayOrigin = normalizeLoopbackGatewayOrigin(resolveGatewayOrigin(config));
   flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
   configuredRepoCount = Object.keys(config.link_graph?.projects ?? {}).length;
   return toUiConfig(config);
 }
 
+async function waitForStableGatewayState(): Promise<void> {
+  let lastSearchStatus: SearchIndexStatusEnvelope | null = null;
+  let lastRepoStatus: RepoIndexStatusEnvelope | null = null;
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= GATEWAY_STABLE_RETRY_COUNT; attempt += 1) {
+    try {
+      lastSearchStatus = await fetchJsonWithRetry<SearchIndexStatusEnvelope>(
+        "/search/index/status",
+        undefined,
+        GATEWAY_REQUEST_RETRY_COUNT,
+        GATEWAY_REQUEST_RETRY_DELAY_MS,
+      );
+      lastRepoStatus = await fetchWithRetry(
+        () =>
+          loadRepoIndexStatusFlight(
+            {
+              baseUrl: gatewayOrigin,
+              schemaVersion: flightSchemaVersion,
+            },
+            {
+              decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+            },
+          ) as Promise<RepoIndexStatusEnvelope>,
+        GATEWAY_REQUEST_RETRY_COUNT,
+        GATEWAY_REQUEST_RETRY_DELAY_MS,
+      );
+      if (
+        isSearchIndexStable(lastSearchStatus) &&
+        isRepoIndexStable(lastRepoStatus)
+      ) {
+        return;
+      }
+      lastError = null;
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableGatewayError(error)) {
+        throw error;
+      }
+    }
+    await sleep(GATEWAY_STABLE_RETRY_DELAY_MS);
+  }
+  throw new Error(
+    `live Flight perf harness timed out waiting for stable gateway state: search=${JSON.stringify(lastSearchStatus)} repo=${JSON.stringify(lastRepoStatus)} lastError=${lastError instanceof Error ? lastError.message : JSON.stringify(lastError)}`,
+  );
+}
+
+describe("live Flight perf gateway state helpers", () => {
+  it("accepts readable repo-backed search state during background indexing", () => {
+    expect(
+      isSearchIndexStable({
+        indexing: 2,
+        statusReason: {
+          action: "inspect_repo_sync",
+          blockingCorpusCount: 0,
+        },
+        corpora: [
+          {
+            corpus: "repo_entity",
+            phase: "indexing",
+            activeEpoch: 1,
+            rowCount: 42,
+          },
+          {
+            corpus: "repo_content_chunk",
+            phase: "indexing",
+            activeEpoch: 2,
+            rowCount: 420,
+          },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      isRepoIndexStable({
+        total: 177,
+        active: 3,
+        queued: 101,
+        checking: 2,
+        syncing: 1,
+        indexing: 0,
+        ready: 66,
+        failed: 1,
+        unsupported: 6,
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects blocking search state before repo-backed corpora are readable", () => {
+    expect(
+      isSearchIndexStable({
+        indexing: 2,
+        statusReason: {
+          action: "resync_repo",
+          blockingCorpusCount: 2,
+        },
+        corpora: [
+          {
+            corpus: "repo_entity",
+            phase: "indexing",
+            activeEpoch: null,
+            rowCount: null,
+          },
+          {
+            corpus: "repo_content_chunk",
+            phase: "indexing",
+            activeEpoch: null,
+            rowCount: null,
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isRepoIndexStable({
+        total: 177,
+        active: 1,
+        queued: 176,
+        checking: 0,
+        syncing: 0,
+        indexing: 0,
+        ready: 0,
+        failed: 0,
+        unsupported: 0,
+      }),
+    ).toBe(false);
+  });
+});
+
 liveDescribe("live Flight knowledge search performance", () => {
   beforeAll(async () => {
     const uiConfig = await readLocalUiConfig();
     uiProjectCount = uiConfig.projects.length;
-    await fetchJson<string>("/health");
-    await fetchJson("/ui/config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(uiConfig),
-    });
-  });
+    await fetchJsonWithRetry<string>(
+      "/health",
+      undefined,
+      GATEWAY_BOOT_RETRY_COUNT,
+      GATEWAY_BOOT_RETRY_DELAY_MS,
+    );
+    const currentUiConfig = await fetchJsonWithRetry<unknown>(
+      "/ui/config",
+      undefined,
+      GATEWAY_BOOT_RETRY_COUNT,
+      GATEWAY_BOOT_RETRY_DELAY_MS,
+    );
+    if (!jsonEquivalent(currentUiConfig, uiConfig)) {
+      await fetchJsonWithRetry("/ui/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(uiConfig),
+      }, GATEWAY_BOOT_RETRY_COUNT, GATEWAY_BOOT_RETRY_DELAY_MS);
+    }
+    await waitForStableGatewayState();
+  }, LIVE_PERF_HOOK_TIMEOUT_MS);
 
   it("reports latency across the configured multi-repo Flight search surface", async () => {
     const queries = parseQueries(process.env.STUDIO_LIVE_FLIGHT_PERF_QUERIES);
@@ -247,12 +562,7 @@ liveDescribe("live Flight knowledge search performance", () => {
 
     const measurements: PerfMeasurement[] = [];
     for (const query of queries) {
-      for (
-        let iteration = 1;
-        iteration <= warmupRuns + measuredRuns;
-        iteration += 1
-      ) {
-        const runKind = iteration <= warmupRuns ? "warmup" : "measured";
+      for (let iteration = 1; iteration <= warmupRuns; iteration += 1) {
         const start = performance.now();
         const response = await searchKnowledgeFlight(
           {
@@ -266,7 +576,46 @@ liveDescribe("live Flight knowledge search performance", () => {
             onProfile: (profile) => {
               measurements.push({
                 query,
-                runKind,
+                runKind: "warmup",
+                iteration,
+                durationMs: profile.totalMs,
+                hitCount: profile.hitCount,
+                profile,
+              });
+            },
+          },
+        );
+        const durationMs = performance.now() - start;
+        const latestMeasurement = measurements.at(-1);
+        if (!latestMeasurement || latestMeasurement.query !== query) {
+          throw new Error(`missing Flight profile for query "${query}" iteration ${iteration}`);
+        }
+        latestMeasurement.durationMs = durationMs;
+        expect(
+          response.hits.length,
+          `expected live Flight hits for query "${query}"`,
+        ).toBeGreaterThan(0);
+      }
+      await waitForStableGatewayState();
+      for (
+        let iteration = warmupRuns + 1;
+        iteration <= warmupRuns + measuredRuns;
+        iteration += 1
+      ) {
+        const start = performance.now();
+        const response = await searchKnowledgeFlight(
+          {
+            baseUrl: gatewayOrigin,
+            schemaVersion: flightSchemaVersion,
+            query,
+            limit,
+          },
+          {
+            decodeSearchHits: decodeSearchHitsFromArrowIpc,
+            onProfile: (profile) => {
+              measurements.push({
+                query,
+                runKind: "measured",
                 iteration,
                 durationMs: profile.totalMs,
                 hitCount: profile.hitCount,
@@ -319,6 +668,7 @@ liveDescribe("live Flight knowledge search performance", () => {
     const allLatencies = measured.map((entry) => entry.durationMs);
     const allProfiles = measured.map((entry) => entry.profile);
     const phases = summarizeProfilePhases(allProfiles);
+    const hotspotArtifact = await readHotspotPerfArtifact();
     const summary: PerfSummary = {
       gatewayOrigin,
       configuredRepoCount,
@@ -337,14 +687,23 @@ liveDescribe("live Flight knowledge search performance", () => {
       perQuery,
       phases,
       optimizationCandidates: deriveOptimizationCandidates(phases),
+      hotspotTraceArtifactPath: hotspotArtifact
+        ? resolveHotspotPerfArtifactPath()
+        : undefined,
+      hotspotTraceRecordCount: hotspotArtifact?.records.length,
     };
-    const artifacts = await writePerfArtifacts(summary, measurements);
+    const artifacts = await writePerfArtifacts(summary, measurements, hotspotArtifact);
 
     console.info(`\n[flight-search-perf] ${JSON.stringify(summary, null, 2)}`);
     console.info(
       `[flight-search-perf-artifacts] json=${artifacts.jsonPath} csv=${artifacts.csvPath}`,
     );
+    if (hotspotArtifact) {
+      console.info(
+        `[flight-search-perf-hotspots] json=${resolveHotspotPerfArtifactPath()} records=${hotspotArtifact.records.length}`,
+      );
+    }
 
     expect(summary.overall.runs).toBe(queries.length * measuredRuns);
-  });
+  }, LIVE_PERF_TEST_TIMEOUT_MS);
 });

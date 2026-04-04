@@ -36,37 +36,25 @@ describe('searchExecution repo intelligence routing', () => {
       intent: 'code_search',
       intentConfidence: 0.87,
     });
-    vi.spyOn(api, 'searchRepoSymbols').mockResolvedValue({
-      repoId: 'gateway-sync',
-      symbols: [{
-        repoId: 'gateway-sync',
-        symbolId: 'repo:gateway-sync:symbol:GatewaySyncPkg.solve',
-        moduleId: 'repo:gateway-sync:module:GatewaySyncPkg',
-        name: 'solve',
-        qualifiedName: 'GatewaySyncPkg.solve',
-        kind: 'function',
-        signature: 'solve() = nothing',
+    vi.spyOn(api, 'searchRepoContentFlight').mockResolvedValue({
+      query: 'solve',
+      hitCount: 1,
+      hits: [{
+        stem: 'solve',
+        title: 'solve',
         path: 'src/GatewaySyncPkg.jl',
+        docType: 'symbol',
+        tags: ['code', 'lang:julia', 'kind:function'],
+        score: 0.94,
+        bestSection: 'solve() = nothing',
+        navigationTarget: {
+          path: 'src/GatewaySyncPkg.jl',
+          category: 'repo_code',
+          projectName: 'gateway-sync',
+        },
       }],
-    });
-    vi.spyOn(api, 'searchRepoModules').mockResolvedValue({
-      repoId: 'gateway-sync',
-      modules: [{
-        repoId: 'gateway-sync',
-        moduleId: 'repo:gateway-sync:module:GatewaySyncPkg',
-        qualifiedName: 'GatewaySyncPkg',
-        path: 'src/GatewaySyncPkg.jl',
-      }],
-    });
-    vi.spyOn(api, 'searchRepoExamples').mockResolvedValue({
-      repoId: 'gateway-sync',
-      examples: [{
-        repoId: 'gateway-sync',
-        exampleId: 'repo:gateway-sync:example:examples/solve_demo.jl',
-        title: 'solve_demo',
-        summary: null,
-        path: 'examples/solve_demo.jl',
-      }],
+      selectedMode: 'repo_search',
+      searchMode: 'repo_search',
     });
     vi.spyOn(api, 'searchReferences').mockResolvedValue({
       query: 'solve',
@@ -115,12 +103,12 @@ describe('searchExecution repo intelligence routing', () => {
         },
       ],
     });
-
     const result = await executeSearchQuery('solve', 'code', { repoFilter: 'gateway-sync' });
 
-    expect(api.searchRepoSymbols).toHaveBeenCalledWith('gateway-sync', 'solve', 10);
-    expect(api.searchRepoModules).toHaveBeenCalledWith('gateway-sync', 'solve', 10);
-    expect(api.searchRepoExamples).toHaveBeenCalledWith('gateway-sync', 'solve', 10);
+    expect(api.searchRepoContentFlight).toHaveBeenCalledWith('gateway-sync', 'solve', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+    });
     expect(api.enqueueRepoIndex).toHaveBeenCalledWith({ repo: 'gateway-sync' });
     expect(api.searchKnowledge).toHaveBeenCalledWith('solve', 10, {
       intent: 'code_search',
@@ -130,9 +118,9 @@ describe('searchExecution repo intelligence routing', () => {
     expect(result.meta.searchMode).toBe('graph_only');
     expect(result.meta.intent).toBe('code_search');
     expect(result.meta.intentConfidence).toBe(0.87);
-    expect(result.results.length).toBe(4);
-    expect(result.meta.hitCount).toBe(4);
-    expect(result.results[0]?.searchSource).toBe('repo-intelligence');
+    expect(result.results.length).toBe(2);
+    expect(result.meta.hitCount).toBe(2);
+    expect(result.results[0]?.searchSource).toBe('search-index');
   });
 
   it('falls back to backend code_search hits when repo-intelligence returns empty', async () => {
@@ -154,17 +142,12 @@ describe('searchExecution repo intelligence routing', () => {
       intent: 'code_search',
       intentConfidence: 1.0,
     });
-    vi.spyOn(api, 'searchRepoSymbols').mockResolvedValue({
-      repoId: 'sciml',
-      symbols: [],
-    });
-    vi.spyOn(api, 'searchRepoModules').mockResolvedValue({
-      repoId: 'sciml',
-      modules: [],
-    });
-    vi.spyOn(api, 'searchRepoExamples').mockResolvedValue({
-      repoId: 'sciml',
-      examples: [],
+    vi.spyOn(api, 'searchRepoContentFlight').mockResolvedValue({
+      query: 'modelica',
+      hitCount: 0,
+      hits: [],
+      selectedMode: 'repo_search',
+      searchMode: 'repo_search',
     });
     vi.spyOn(api, 'searchReferences').mockResolvedValue({
       query: 'modelica',
@@ -175,7 +158,10 @@ describe('searchExecution repo intelligence routing', () => {
 
     const result = await executeSearchQuery('modelica', 'code', { repoFilter: 'sciml' });
 
-    expect(api.searchRepoSymbols).toHaveBeenCalledWith('sciml', 'modelica', 10);
+    expect(api.searchRepoContentFlight).toHaveBeenCalledWith('sciml', 'modelica', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+    });
     expect(api.searchKnowledge).toHaveBeenCalledWith('modelica', 10, {
       intent: 'code_search',
       repo: 'sciml',
@@ -220,15 +206,12 @@ describe('searchExecution repo intelligence routing', () => {
     const symbolSpy = vi.spyOn(api, 'searchSymbols');
     const astSpy = vi.spyOn(api, 'searchAst');
     const referenceSpy = vi.spyOn(api, 'searchReferences');
-    const repoSpy = vi.spyOn(api, 'searchRepoSymbols');
-
     const result = await executeSearchQuery('solve', 'code');
 
     expect(api.searchKnowledge).toHaveBeenCalledWith('solve', 10, { intent: 'code_search' });
     expect(symbolSpy).not.toHaveBeenCalled();
     expect(astSpy).not.toHaveBeenCalled();
     expect(referenceSpy).not.toHaveBeenCalled();
-    expect(repoSpy).not.toHaveBeenCalled();
     expect(api.enqueueRepoIndex).not.toHaveBeenCalled();
     expect(result.meta.selectedMode).toBe('code_search');
     expect(result.meta.searchMode).toBe('code_search');
@@ -274,9 +257,7 @@ describe('searchExecution repo intelligence routing', () => {
       pendingRepos: ['sciml'],
       skippedRepos: [],
     });
-    vi.spyOn(api, 'searchRepoSymbols').mockRejectedValue(new Error('REPO_INDEX_PENDING'));
-    vi.spyOn(api, 'searchRepoModules').mockRejectedValue(new Error('REPO_INDEX_PENDING'));
-    vi.spyOn(api, 'searchRepoExamples').mockRejectedValue(new Error('REPO_INDEX_PENDING'));
+    vi.spyOn(api, 'searchRepoContentFlight').mockRejectedValue(new Error('REPO_INDEX_PENDING'));
     vi.spyOn(api, 'searchReferences').mockResolvedValue({
       query: 'reexport',
       hitCount: 0,
@@ -293,7 +274,7 @@ describe('searchExecution repo intelligence routing', () => {
     expect(result.meta.runtimeWarning).toBeUndefined();
   });
 
-  it('routes doc facet to repo doc coverage endpoint', async () => {
+  it('routes doc facet through repo doc coverage Flight', async () => {
     vi.spyOn(api, 'searchKnowledge').mockResolvedValue({
       query: 'docs',
       hitCount: 0,
@@ -316,15 +297,12 @@ describe('searchExecution repo intelligence routing', () => {
         format: 'md',
       }],
     });
-    const repoSymbolSpy = vi.spyOn(api, 'searchRepoSymbols');
-
     const result = await executeSearchQuery('docs', 'code', {
       repoFilter: 'gateway-sync',
       repoFacet: 'doc',
     });
 
     expect(api.getRepoDocCoverage).toHaveBeenCalledWith('gateway-sync');
-    expect(repoSymbolSpy).not.toHaveBeenCalled();
     expect(result.meta.selectedMode).toBe('Code (Repo: gateway-sync · doc)');
     expect(result.meta.searchMode).toBe('graph_only');
     expect(result.meta.intent).toBe('code_search');
@@ -346,19 +324,34 @@ describe('searchExecution repo intelligence routing', () => {
       intent: 'code_search',
       intentConfidence: 0.69,
     });
-    const searchRepoModulesSpy = vi.spyOn(api, 'searchRepoModules')
+    const searchRepoContentFlightSpy = vi.spyOn(api, 'searchRepoContentFlight')
       .mockResolvedValueOnce({
-        repoId: 'gateway-sync',
-        modules: [],
+        query: 'module',
+        hitCount: 0,
+        hits: [],
+        selectedMode: 'repo_search',
+        searchMode: 'repo_search',
       })
       .mockResolvedValueOnce({
-        repoId: 'gateway-sync',
-        modules: [{
-          repoId: 'gateway-sync',
-          moduleId: 'repo:gateway-sync:module:GatewaySyncPkg',
-          qualifiedName: 'GatewaySyncPkg',
+        query: 'GatewaySyncPkg',
+        hitCount: 1,
+        hits: [{
+          stem: 'GatewaySyncPkg',
+          title: 'GatewaySyncPkg',
           path: 'src/GatewaySyncPkg.jl',
+          docType: 'module',
+          tags: ['code', 'lang:julia', 'kind:module'],
+          score: 0.97,
+          bestSection: 'module GatewaySyncPkg',
+          navigationTarget: {
+            path: 'src/GatewaySyncPkg.jl',
+            category: 'repo_code',
+            projectName: 'gateway-sync',
+            line: 1,
+          },
         }],
+        selectedMode: 'repo_search',
+        searchMode: 'repo_search',
       });
     vi.spyOn(api, 'getRepoOverview').mockResolvedValue({
       repoId: 'gateway-sync',
@@ -375,8 +368,16 @@ describe('searchExecution repo intelligence routing', () => {
       repoFacet: 'module',
     });
 
-    expect(searchRepoModulesSpy).toHaveBeenNthCalledWith(1, 'gateway-sync', 'module', 10);
-    expect(searchRepoModulesSpy).toHaveBeenNthCalledWith(2, 'gateway-sync', 'GatewaySyncPkg', 10);
+    expect(searchRepoContentFlightSpy).toHaveBeenNthCalledWith(1, 'gateway-sync', 'module', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+      tagFilters: ['kind:module'],
+    });
+    expect(searchRepoContentFlightSpy).toHaveBeenNthCalledWith(2, 'gateway-sync', 'GatewaySyncPkg', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+      tagFilters: ['kind:module'],
+    });
     expect(result.meta.selectedMode).toBe('Code (Repo: gateway-sync · module)');
     expect(result.meta.searchMode).toBe('graph_only');
     expect(result.meta.intent).toBe('code_search');
@@ -385,6 +386,85 @@ describe('searchExecution repo intelligence routing', () => {
     expect(result.meta.repoFallbackToQuery).toBe('GatewaySyncPkg');
     expect(result.meta.hitCount).toBe(1);
     expect(api.searchKnowledge).toHaveBeenCalledWith('module', 10, {
+      intent: 'code_search',
+      repo: 'gateway-sync',
+    });
+  });
+
+  it('uses repo overview display name as fallback query for empty example facet results', async () => {
+    vi.spyOn(api, 'searchKnowledge').mockResolvedValue({
+      query: 'example',
+      hitCount: 0,
+      hits: [],
+      selectedMode: 'graph_only',
+      searchMode: 'graph_only',
+      intent: 'code_search',
+      intentConfidence: 0.71,
+    });
+    const searchRepoContentFlightSpy = vi.spyOn(api, 'searchRepoContentFlight')
+      .mockResolvedValueOnce({
+        query: 'example',
+        hitCount: 0,
+        hits: [],
+        selectedMode: 'repo_search',
+        searchMode: 'repo_search',
+      })
+      .mockResolvedValueOnce({
+        query: 'GatewaySyncPkg',
+        hitCount: 1,
+        hits: [{
+          stem: 'solve_demo',
+          title: 'solve_demo',
+          path: 'examples/solve_demo.jl',
+          docType: 'file',
+          tags: ['code', 'lang:julia', 'kind:example'],
+          score: 0.96,
+          bestSection: 'example solve_demo',
+          navigationTarget: {
+            path: 'examples/solve_demo.jl',
+            category: 'repo_code',
+            projectName: 'gateway-sync',
+            line: 1,
+          },
+        }],
+        selectedMode: 'repo_search',
+        searchMode: 'repo_search',
+      });
+    vi.spyOn(api, 'getRepoOverview').mockResolvedValue({
+      repoId: 'gateway-sync',
+      displayName: 'GatewaySyncPkg',
+      revision: 'abc',
+      moduleCount: 1,
+      symbolCount: 2,
+      exampleCount: 1,
+      docCount: 3,
+    });
+
+    const result = await executeSearchQuery('example', 'code', {
+      repoFilter: 'gateway-sync',
+      repoFacet: 'example',
+    });
+
+    expect(searchRepoContentFlightSpy).toHaveBeenNthCalledWith(1, 'gateway-sync', 'example', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+      tagFilters: ['kind:example'],
+    });
+    expect(searchRepoContentFlightSpy).toHaveBeenNthCalledWith(2, 'gateway-sync', 'GatewaySyncPkg', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+      tagFilters: ['kind:example'],
+    });
+    expect(result.meta.selectedMode).toBe('Code (Repo: gateway-sync · example)');
+    expect(result.meta.searchMode).toBe('graph_only');
+    expect(result.meta.intent).toBe('code_search');
+    expect(result.meta.repoFallbackFacet).toBe('example');
+    expect(result.meta.repoFallbackFromQuery).toBe('example');
+    expect(result.meta.repoFallbackToQuery).toBe('GatewaySyncPkg');
+    expect(result.meta.hitCount).toBe(1);
+    expect(result.results[0]?.codeKind).toBe('example');
+    expect(result.results[0]?.searchSource).toBe('search-index');
+    expect(api.searchKnowledge).toHaveBeenCalledWith('example', 10, {
       intent: 'code_search',
       repo: 'gateway-sync',
     });
@@ -495,6 +575,115 @@ describe('searchExecution repo intelligence routing', () => {
     expect(knowledgeSpy).toHaveBeenCalledWith('solve', 10, { intent: 'code_search' });
     expect(result.meta.searchMode).toBe('hybrid');
     expect(result.meta.intent).toBe('hybrid_search');
+    expect(result.meta.hitCount).toBe(1);
+  });
+
+  it('passes repo-aware code search hints through all mode when query contains repo filters', async () => {
+    const knowledgeSpy = vi.spyOn(api, 'searchKnowledge').mockImplementation(
+      async (query, _limit, options) => {
+        if (options?.intent === 'code_search') {
+          expect(query).toBe('repo:gateway-sync solve');
+          expect(options.repo).toBe('gateway-sync');
+          return {
+            query: 'repo:gateway-sync solve',
+            hitCount: 1,
+            hits: [{
+              stem: 'solve',
+              title: 'solve',
+              path: 'src/GatewaySyncPkg.jl',
+              docType: 'symbol',
+              tags: ['code', 'kind:function', 'repo:gateway-sync'],
+              score: 0.91,
+              bestSection: 'solve()',
+              matchReason: 'repo_symbol_search',
+              navigationTarget: {
+                path: 'src/GatewaySyncPkg.jl',
+                category: 'repo_code',
+                projectName: 'gateway-sync',
+                rootLabel: 'gateway-sync',
+              },
+            }],
+            selectedMode: 'code_search',
+            searchMode: 'code_search',
+            intent: 'code_search',
+            intentConfidence: 1.0,
+          };
+        }
+
+        expect(query).toBe('solve');
+        return {
+          query: 'solve',
+          hitCount: 0,
+          hits: [],
+          graphConfidenceScore: 0.22,
+          selectedMode: 'hybrid',
+          searchMode: 'hybrid',
+          intent: 'hybrid_search',
+          intentConfidence: 0.52,
+        };
+      }
+    );
+    vi.spyOn(api, 'searchRepoContentFlight').mockResolvedValue({
+      query: 'solve',
+      hitCount: 1,
+      hits: [{
+        stem: 'solve',
+        title: 'solve',
+        path: 'src/GatewaySyncPkg.jl',
+        docType: 'symbol',
+        tags: ['code', 'lang:julia', 'kind:function'],
+        score: 0.94,
+        bestSection: 'solve()',
+        navigationTarget: {
+          path: 'src/GatewaySyncPkg.jl',
+          category: 'repo_code',
+          projectName: 'gateway-sync',
+          rootLabel: 'gateway-sync',
+        },
+      }],
+      selectedMode: 'repo_search',
+      searchMode: 'repo_search',
+    });
+    vi.spyOn(api, 'searchAst').mockResolvedValue({
+      query: 'solve',
+      hitCount: 0,
+      selectedScope: 'definitions',
+      hits: [],
+    });
+    vi.spyOn(api, 'searchReferences').mockResolvedValue({
+      query: 'solve',
+      hitCount: 0,
+      selectedScope: 'references',
+      hits: [],
+    });
+    vi.spyOn(api, 'searchSymbols').mockResolvedValue({
+      query: 'solve',
+      hitCount: 0,
+      selectedScope: 'project',
+      hits: [],
+    });
+    vi.spyOn(api, 'searchAttachments').mockResolvedValue({
+      query: 'solve',
+      hitCount: 0,
+      selectedScope: 'attachments',
+      hits: [],
+    });
+
+    const result = await executeSearchQuery('repo:gateway-sync solve', 'all', {
+      repoFilter: 'gateway-sync',
+    });
+
+    expect(knowledgeSpy).toHaveBeenCalledWith('solve', 10, { intent: 'hybrid_search' });
+    expect(knowledgeSpy).toHaveBeenCalledWith('repo:gateway-sync solve', 10, {
+      intent: 'code_search',
+      repo: 'gateway-sync',
+    });
+    expect(api.searchRepoContentFlight).toHaveBeenCalledWith('gateway-sync', 'solve', 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+    });
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.codeRepo).toBe('gateway-sync');
     expect(result.meta.hitCount).toBe(1);
   });
 

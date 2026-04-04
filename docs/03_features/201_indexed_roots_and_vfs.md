@@ -24,7 +24,7 @@ Qianji Studio exposes the Wendao VFS surface through the `Indexed Roots` explore
 - `GET /api/vfs/scan` is the authoritative explorer payload.
 - Grouped roots and descendants should expose `projectName` and `rootLabel` for tree grouping.
 - VFS entries also carry `projectRoot` and `projectDirs` for hover provenance, so `FileTree` does not need to recover project metadata from local path parsing or `wendao.toml` heuristics.
-- The frontend still pushes `wendao.toml` through `/api/ui/config`, but the steady-state explorer render is gateway-owned after that synchronization step.
+- The frontend still pushes runtime UI config derived from `wendao.toml` through `/api/ui/config`, but that control-plane sync is runtime-only and should not rewrite the workspace `wendao.toml` file on disk.
 
 ## UX Expectations
 

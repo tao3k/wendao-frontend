@@ -48,8 +48,7 @@ type BuildSearchShellPropsParams = SearchBarControllerShellProps;
 interface BuildSearchResultsPanelPropsParams
   extends Omit<SearchBarControllerResultsPanelProps, 'selectedIndex' | 'onSelectIndex'> {
   selectedIndex: number;
-  suggestionCount: number;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
+  setResultSelectedIndex: Dispatch<SetStateAction<number>>;
 }
 
 export function buildSearchShellProps(params: BuildSearchShellPropsParams): SearchBarControllerShellProps {
@@ -63,15 +62,15 @@ export function buildSearchResultsPanelProps({
   copy,
   isLoading,
   hasCodeFilterOnlyQuery,
-  visibleSections,
+  rows,
+  visibleResultCount,
   selectedIndex,
-  suggestionCount,
   canOpenReferences,
   canOpenGraph,
   isResultPreviewExpanded,
   renderIcon,
   renderTitle,
-  setSelectedIndex,
+  setResultSelectedIndex,
   onOpen,
   onOpenDefinition,
   onOpenReferences,
@@ -84,14 +83,15 @@ export function buildSearchResultsPanelProps({
     copy,
     isLoading,
     hasCodeFilterOnlyQuery,
-    visibleSections,
-    selectedIndex: selectedIndex - suggestionCount,
+    rows,
+    visibleResultCount,
+    selectedIndex,
     canOpenReferences,
     canOpenGraph,
     isResultPreviewExpanded,
     renderIcon,
     renderTitle,
-    onSelectIndex: (index) => setSelectedIndex(index + suggestionCount),
+    onSelectIndex: setResultSelectedIndex,
     onOpen,
     onOpenDefinition,
     onOpenReferences,

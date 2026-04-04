@@ -107,6 +107,72 @@ describe('getVisibleResults', () => {
     expect(visible[0]?.path).toBe('sciml/src/solve.jl');
   });
 
+  it('prefers matching code hits in all mode when active code filters have matches', () => {
+    const results: SearchResult[] = [
+      makeResult({
+        path: 'sciml/src/solve.jl',
+        category: 'symbol',
+        score: 0.8,
+        codeLanguage: 'julia',
+        codeKind: 'function',
+        codeRepo: 'sciml',
+      }),
+      makeResult({
+        path: 'kernel/src/lib.rs',
+        category: 'symbol',
+        score: 0.7,
+        codeLanguage: 'rust',
+        codeKind: 'function',
+        codeRepo: 'kernel',
+      }),
+      makeResult({
+        path: 'kernel/docs/index.md',
+        category: 'document',
+        score: 0.99,
+      }),
+    ];
+
+    const visible = getVisibleResults(results, 'all', 'relevance', {
+      language: ['julia'],
+      kind: [],
+      repo: [],
+      path: [],
+    });
+
+    expect(visible.map((result) => result.path)).toEqual([
+      'sciml/src/solve.jl',
+    ]);
+  });
+
+  it('does not leak non-code all-mode results when active code filters have no matching code hits', () => {
+    const results: SearchResult[] = [
+      makeResult({
+        path: 'main/docs/section-guide.md',
+        category: 'knowledge',
+        score: 0.99,
+        title: 'section guide',
+      }),
+      makeResult({
+        path: 'kernel/src/sectionize.rs',
+        category: 'symbol',
+        score: 0.8,
+        title: 'sectionize',
+        codeLanguage: 'rust',
+        codeKind: 'function',
+        codeRepo: 'kernel',
+      }),
+    ];
+
+    const visible = getVisibleResults(results, 'all', 'relevance', {
+      language: ['julia'],
+      kind: ['function'],
+      repo: [],
+      path: [],
+    });
+
+    expect(visible).toEqual([]);
+  });
+
   it('sorts by path when path sort is selected', () => {
     const results: SearchResult[] = [
       makeResult({ path: 'zeta/docs.md', category: 'document', score: 0.9 }),

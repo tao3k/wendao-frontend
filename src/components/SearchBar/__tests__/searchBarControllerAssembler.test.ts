@@ -1,31 +1,35 @@
-import { describe, expect, it, vi } from 'vitest';
-import { assembleSearchBarControllerResult } from '../searchBarControllerAssembler';
+import { describe, expect, it, vi } from "vitest";
+import { assembleSearchBarControllerResult } from "../searchBarControllerAssembler";
 import type {
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from '../searchBarControllerTypes';
+} from "../searchBarControllerTypes";
 
-describe('searchBarControllerAssembler', () => {
-  it('assembles controller result from segmented inputs', () => {
+describe("searchBarControllerAssembler", () => {
+  it("assembles controller result from segmented inputs", () => {
     const onModalClick = vi.fn();
     const onModalKeyDownCapture = vi.fn();
-    const onSuggestionClick: SearchBarControllerSuggestionsPanelProps['onSuggestionClick'] = vi.fn();
-    const onSuggestionHover: SearchBarControllerSuggestionsPanelProps['onSuggestionHover'] = vi.fn();
+    const onSuggestionClick: SearchBarControllerSuggestionsPanelProps["onSuggestionClick"] =
+      vi.fn();
+    const onSuggestionHover: SearchBarControllerSuggestionsPanelProps["onSuggestionHover"] =
+      vi.fn();
     const onInsertPrefix = vi.fn();
     const onApplyExample = vi.fn();
     const onApplyScenario = vi.fn();
     const onRemoveFilter = vi.fn();
     const onClearFilters = vi.fn();
 
-    const shellProps = { query: 'repo:xiuxian' } as unknown as SearchBarControllerShellProps;
-    const resultsPanelProps = { query: 'xiuxian' } as unknown as SearchBarControllerResultsPanelProps;
+    const shellProps = { query: "repo:xiuxian" } as unknown as SearchBarControllerShellProps;
+    const resultsPanelProps = {
+      query: "xiuxian",
+    } as unknown as SearchBarControllerResultsPanelProps;
 
     const result = assembleSearchBarControllerResult({
-      locale: 'en',
+      locale: "en",
       copy: {
-        codeFilterTitle: 'Code filters',
-      } as unknown as Parameters<typeof assembleSearchBarControllerResult>[0]['copy'],
+        codeFilterTitle: "Code filters",
+      } as unknown as Parameters<typeof assembleSearchBarControllerResult>[0]["copy"],
       showSuggestions: true,
       suggestions: [],
       selectedIndex: 3,

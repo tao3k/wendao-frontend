@@ -51,7 +51,7 @@
 
 .property-editor__type--event {
   background: rgba(74, 222, 128, 0.15);
-  color: #4ADE80;
+  color: #4ade80;
 }
 
 .property-editor__type--gateway {
@@ -65,6 +65,8 @@
 }
 
 .property-group__header {
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -72,6 +74,12 @@
   cursor: pointer;
   user-select: none;
   transition: background 0.15s;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .property-group__header:hover {
@@ -190,6 +198,8 @@
 }
 
 .property-editor__tab {
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -198,10 +208,11 @@
   border: none;
   color: var(--text-muted);
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.15s ease;
+  text-align: left;
 }
 
 .property-editor__tab:hover {
@@ -251,7 +262,7 @@
 
 .relationship-node {
   color: var(--text-primary);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 }
 
 .relationship-arrow {
@@ -285,7 +296,7 @@
 .property-editor__path {
   font-size: 11px;
   color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   margin-top: 4px;
   word-break: break-all;
 }
@@ -312,8 +323,7 @@
   border: 1px solid rgba(125, 207, 255, 0.14);
   border-radius: 14px;
   background:
-    radial-gradient(circle at 8% 18%, rgba(125, 207, 255, 0.16), transparent 42%),
-    var(--acrylic-bg);
+    radial-gradient(circle at 8% 18%, rgba(125, 207, 255, 0.16), transparent 42%), var(--acrylic-bg);
   backdrop-filter: blur(10px);
   box-shadow:
     var(--shadow-sm),
@@ -392,7 +402,7 @@
 }
 
 .property-editor__insight-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -514,7 +524,7 @@
 }
 
 .property-editor__legend-item[data-tooltip]::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 16px;
   top: calc(125% + 2px);
@@ -574,8 +584,19 @@
 }
 
 .property-editor__stage-row {
+  appearance: none;
+  -webkit-appearance: none;
   padding: 4px 0;
-  transition: transform 120ms ease, opacity 120ms ease;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease;
 }
 
 .property-editor__stage-row + .property-editor__stage-row {
@@ -638,7 +659,9 @@
   background: linear-gradient(90deg, rgba(125, 207, 255, 0.86), rgba(130, 208, 234, 0.9));
   min-width: 2px;
   display: block;
-  transition: width 200ms ease, opacity 160ms ease;
+  transition:
+    width 200ms ease,
+    opacity 160ms ease;
 }
 
 .property-editor__stage-row-fill.is-active {

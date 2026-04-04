@@ -1,7 +1,7 @@
-import type { AcademicNode, AcademicTopology } from '../../../types';
-import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../statusBar/types';
-import type { MainViewLocale, MainViewTab } from './mainViewTypes';
+import type { AcademicNode, AcademicTopology } from "../../../types";
+import type { GraphSidebarSummary } from "../GraphView/types";
+import type { RuntimeStatus } from "../../statusBar/types";
+import type { MainViewLocale, MainViewTab } from "./mainViewTypes";
 
 export interface MainViewSelectedFile {
   path: string;
@@ -37,7 +37,7 @@ export interface MainViewGraphSelection {
 }
 
 export interface MainViewGraphOptions {
-  direction: 'both';
+  direction: "both";
   hops: number;
   limit: number;
 }

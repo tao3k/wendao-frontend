@@ -1,10 +1,13 @@
-import React from 'react';
-import type { UiLocale } from '../SearchBar/types';
-import type { ZenSearchPreviewState } from './useZenSearchPreview';
+import React from "react";
+import type { UiLocale } from "../SearchBar/types";
+import type { ZenSearchPreviewState } from "./useZenSearchPreview";
 
 interface ZenSearchPreviewHeaderProps {
   locale: UiLocale;
-  preview: Pick<ZenSearchPreviewState, 'selectedResult' | 'contentPath' | 'loading' | 'error' | 'content'>;
+  preview: Pick<
+    ZenSearchPreviewState,
+    "selectedResult" | "contentPath" | "loading" | "error" | "content"
+  >;
 }
 
 export const ZenSearchPreviewHeader: React.FC<ZenSearchPreviewHeaderProps> = ({
@@ -16,10 +19,7 @@ export const ZenSearchPreviewHeader: React.FC<ZenSearchPreviewHeaderProps> = ({
   }
 
   const title =
-    preview.selectedResult.title ||
-    preview.selectedResult.stem ||
-    preview.contentPath ||
-    '';
+    preview.selectedResult.title || preview.selectedResult.stem || preview.contentPath || "";
   const showLoading = preview.loading && !preview.content;
 
   return (
@@ -29,7 +29,7 @@ export const ZenSearchPreviewHeader: React.FC<ZenSearchPreviewHeaderProps> = ({
 
       {showLoading && (
         <div className="zen-preview-loading">
-          {locale === 'zh' ? '正在加载预览...' : 'Loading preview...'}
+          {locale === "zh" ? "正在加载预览..." : "Loading preview..."}
         </div>
       )}
 

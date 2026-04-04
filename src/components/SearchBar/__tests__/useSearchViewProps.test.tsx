@@ -1,27 +1,27 @@
-import { renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { recordPerfTraceSnapshot } from '../../../lib/testPerfRegistry';
-import { createPerfTrace } from '../../../lib/testPerfTrace';
-import { useSearchViewProps } from '../useSearchViewProps';
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
+import { createPerfTrace } from "../../../lib/testPerfTrace";
+import { useSearchViewProps } from "../useSearchViewProps";
 
-describe('useSearchViewProps', () => {
-  it('keeps the shell input on the live query while the results panel can use a deferred query', () => {
+describe("useSearchViewProps", () => {
+  it("keeps the shell input on the live query while the results panel can use a deferred query", () => {
     const { result } = renderHook(() =>
       useSearchViewProps({
         state: {
           inputRef: { current: null },
           copy: {} as any,
-          locale: 'en',
-          query: 'sec lang:julia',
-          resultsQuery: 'sec lang:juli',
+          locale: "en",
+          query: "sec lang:julia",
+          resultsQuery: "sec lang:juli",
           isLoading: false,
           showSuggestions: false,
-          scope: 'all',
-          sortMode: 'relevance',
+          scope: "all",
+          sortMode: "relevance",
           searchMeta: null,
-          modeLabel: 'default',
-          confidenceLabel: 'n/a',
-          confidenceTone: 'unknown',
+          modeLabel: "default",
+          confidenceLabel: "n/a",
+          confidenceTone: "unknown",
           fallbackLabel: null,
           repoOverviewStatus: null,
           repoSyncStatus: null,
@@ -54,16 +54,16 @@ describe('useSearchViewProps', () => {
           onTogglePreview: vi.fn(),
           onPreview: vi.fn(),
         },
-      })
+      }),
     );
 
-    expect(result.current.searchShellProps.query).toBe('sec lang:julia');
-    expect(result.current.searchResultsPanelProps.query).toBe('sec lang:juli');
+    expect(result.current.searchShellProps.query).toBe("sec lang:julia");
+    expect(result.current.searchResultsPanelProps.query).toBe("sec lang:juli");
     expect(result.current.searchResultsPanelProps.rows).toEqual([]);
     expect(result.current.searchResultsPanelProps.visibleResultCount).toBe(0);
   });
 
-  it('reuses shell props when only results-panel state changes', () => {
+  it("reuses shell props when only results-panel state changes", () => {
     const onQueryChange = vi.fn();
     const onToggleSuggestions = vi.fn();
     const onClose = vi.fn();
@@ -80,22 +80,22 @@ describe('useSearchViewProps', () => {
     const onTogglePreview = vi.fn();
     const onPreview = vi.fn();
     const renderTitle = vi.fn((text: string) => text);
-    const trace = createPerfTrace('useSearchViewProps.shell-stability');
+    const trace = createPerfTrace("useSearchViewProps.shell-stability");
     const baseProps = {
       state: {
         inputRef: { current: null },
         copy: {} as any,
-        locale: 'en' as const,
-        query: 'solver',
-        resultsQuery: 'solver',
+        locale: "en" as const,
+        query: "solver",
+        resultsQuery: "solver",
         isLoading: false,
         showSuggestions: false,
-        scope: 'all' as const,
-        sortMode: 'relevance' as const,
+        scope: "all" as const,
+        sortMode: "relevance" as const,
         searchMeta: null,
-        modeLabel: 'default',
-        confidenceLabel: 'n/a',
-        confidenceTone: 'unknown' as const,
+        modeLabel: "default",
+        confidenceLabel: "n/a",
+        confidenceTone: "unknown" as const,
         fallbackLabel: null,
         repoOverviewStatus: null,
         repoSyncStatus: null,
@@ -103,21 +103,21 @@ describe('useSearchViewProps', () => {
         hasCodeFilterOnlyQuery: false,
         visibleSections: [
           {
-            key: 'document',
-            title: 'Documents',
+            key: "document",
+            title: "Documents",
             hits: [
               {
-                stem: 'Solver',
-                title: 'Solver',
-                path: 'kernel/docs/solver.md',
-                docType: 'doc',
+                stem: "Solver",
+                title: "Solver",
+                path: "kernel/docs/solver.md",
+                docType: "doc",
                 tags: [],
                 score: 0.8,
-                category: 'document',
+                category: "document",
                 navigationTarget: {
-                  path: 'kernel/docs/solver.md',
-                  category: 'doc',
-                  projectName: 'kernel',
+                  path: "kernel/docs/solver.md",
+                  category: "doc",
+                  projectName: "kernel",
                 },
               },
             ],
@@ -155,13 +155,13 @@ describe('useSearchViewProps', () => {
       (props: typeof baseProps) => useSearchViewProps(props),
       {
         initialProps: baseProps,
-      }
+      },
     );
 
     const initialShellProps = result.current.searchShellProps;
     const initialRows = result.current.searchResultsPanelProps.rows;
     trace.reset();
-    trace.measure('results-only-rerender', () => {
+    trace.measure("results-only-rerender", () => {
       rerender({
         ...baseProps,
         state: {
@@ -175,14 +175,11 @@ describe('useSearchViewProps', () => {
     expect(result.current.searchShellProps).toBe(initialShellProps);
     expect(result.current.searchResultsPanelProps.rows).toBe(initialRows);
     expect(result.current.searchResultsPanelProps.visibleResultCount).toBe(1);
-    trace.increment('shell-props-reused');
-    trace.increment('rows-reused');
+    trace.increment("shell-props-reused");
+    trace.increment("rows-reused");
     const snapshot = trace.snapshot();
-    expect(snapshot.counters['shell-props-reused']).toBe(1);
-    expect(snapshot.counters['rows-reused']).toBe(1);
-    recordPerfTraceSnapshot(
-      'SearchBar/useSearchViewProps shell stability',
-      snapshot,
-    );
+    expect(snapshot.counters["shell-props-reused"]).toBe(1);
+    expect(snapshot.counters["rows-reused"]).toBe(1);
+    recordPerfTraceSnapshot("SearchBar/useSearchViewProps shell stability", snapshot);
   });
 });

@@ -1,11 +1,8 @@
-import React from 'react';
-import type { UiLocale } from '../SearchBar/types';
-import type { ZenSearchPreviewState } from './useZenSearchPreview';
-import {
-  ZenMarkdownPreviewBridge,
-  ZenStructuredPreviewBridge,
-} from './zenSearchPreviewBridges';
-import { isMarkdownPreview } from './zenSearchPreviewSurface';
+import React from "react";
+import type { UiLocale } from "../SearchBar/types";
+import type { ZenSearchPreviewState } from "./useZenSearchPreview";
+import { ZenMarkdownPreviewBridge, ZenStructuredPreviewBridge } from "./zenSearchPreviewBridges";
+import { isMarkdownPreview } from "./zenSearchPreviewSurface";
 
 interface ZenSearchPreviewEntityProps {
   locale: UiLocale;
@@ -24,5 +21,7 @@ export const ZenSearchPreviewEntity: React.FC<ZenSearchPreviewEntityProps> = ({
     );
   }
 
-  return <ZenStructuredPreviewBridge locale={locale} preview={preview} onPivotQuery={onPivotQuery} />;
+  return (
+    <ZenStructuredPreviewBridge locale={locale} preview={preview} onPivotQuery={onPivotQuery} />
+  );
 };

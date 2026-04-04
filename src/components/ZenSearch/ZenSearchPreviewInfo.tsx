@@ -1,5 +1,5 @@
-import React from 'react';
-import type { UiLocale } from '../SearchBar/types';
+import React from "react";
+import type { UiLocale } from "../SearchBar/types";
 
 interface ZenSearchPreviewInfoProps {
   locale: UiLocale;
@@ -24,7 +24,7 @@ export const ZenSearchPreviewInfo: React.FC<ZenSearchPreviewInfoProps> = ({
     <div className="zen-preview-info">
       {showLoading && (
         <div className="zen-preview-loading">
-          {locale === 'zh' ? '正在加载预览...' : 'Loading preview...'}
+          {locale === "zh" ? "正在加载预览..." : "Loading preview..."}
         </div>
       )}
 

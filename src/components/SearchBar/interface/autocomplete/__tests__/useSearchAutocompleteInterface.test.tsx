@@ -1,22 +1,22 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SEARCH_SUGGESTION_RENDER_LIMIT } from '../../../searchSuggestionBudget';
-import { useSearchAutocompleteInterface } from '../useSearchAutocompleteInterface';
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SEARCH_SUGGESTION_RENDER_LIMIT } from "../../../searchSuggestionBudget";
+import { useSearchAutocompleteInterface } from "../useSearchAutocompleteInterface";
 
 const searchAutocompleteMock = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../../../api', () => ({
+vi.mock("../../../../../api", () => ({
   api: {
     searchAutocomplete: searchAutocompleteMock,
   },
 }));
 
-describe('useSearchAutocompleteInterface', () => {
+describe("useSearchAutocompleteInterface", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('projects autocomplete-core suggestions and active item selection through a single interface state', async () => {
+  it("projects autocomplete-core suggestions and active item selection through a single interface state", async () => {
     const parsedCodeFilters = {
       language: [],
       kind: [],
@@ -24,38 +24,40 @@ describe('useSearchAutocompleteInterface', () => {
       path: [],
     };
     const codeFilterCatalog = {
-      language: ['julia'],
-      kind: ['function'],
-      repo: ['sciml'],
-      path: ['src/'],
+      language: ["julia"],
+      kind: ["function"],
+      repo: ["sciml"],
+      path: ["src/"],
     };
     searchAutocompleteMock.mockResolvedValue({
-      prefix: 'sec',
+      prefix: "sec",
       suggestions: [
         {
-          text: 'section',
-          suggestionType: 'stem',
+          text: "section",
+          suggestionType: "stem",
         },
       ],
     });
 
-    const { result, unmount } = renderHook(() => useSearchAutocompleteInterface({
-      isOpen: true,
-      showSuggestions: true,
-      scope: 'all',
-      debouncedAutocomplete: 'sec lang:j',
-      parsedCodeFilters,
-      codeFilterCatalog,
-    }));
+    const { result, unmount } = renderHook(() =>
+      useSearchAutocompleteInterface({
+        isOpen: true,
+        showSuggestions: true,
+        scope: "all",
+        debouncedAutocomplete: "sec lang:j",
+        parsedCodeFilters,
+        codeFilterCatalog,
+      }),
+    );
 
     await waitFor(() => {
       expect(result.current.suggestions).toHaveLength(3);
     });
 
     expect(result.current.suggestions.map((suggestion) => suggestion.text)).toEqual([
-      'sec lang:julia',
-      'sec lang:j',
-      'section',
+      "sec lang:julia",
+      "sec lang:j",
+      "section",
     ]);
     expect(result.current.activeSuggestionIndex).toBe(0);
 
@@ -78,7 +80,7 @@ describe('useSearchAutocompleteInterface', () => {
     unmount();
   });
 
-  it('caps projected suggestions to the shared visible dropdown budget', async () => {
+  it("caps projected suggestions to the shared visible dropdown budget", async () => {
     const parsedCodeFilters = {
       language: [],
       kind: [],
@@ -86,27 +88,29 @@ describe('useSearchAutocompleteInterface', () => {
       path: [],
     };
     const codeFilterCatalog = {
-      language: ['julia'],
-      kind: ['function'],
-      repo: ['sciml'],
-      path: ['src/'],
+      language: ["julia"],
+      kind: ["function"],
+      repo: ["sciml"],
+      path: ["src/"],
     };
     searchAutocompleteMock.mockResolvedValue({
-      prefix: 'sec',
+      prefix: "sec",
       suggestions: Array.from({ length: SEARCH_SUGGESTION_RENDER_LIMIT + 8 }, (_, index) => ({
         text: `section-${index}`,
-        suggestionType: 'stem',
+        suggestionType: "stem",
       })),
     });
 
-    const { result } = renderHook(() => useSearchAutocompleteInterface({
-      isOpen: true,
-      showSuggestions: true,
-      scope: 'all',
-      debouncedAutocomplete: 'sec',
-      parsedCodeFilters,
-      codeFilterCatalog,
-    }));
+    const { result } = renderHook(() =>
+      useSearchAutocompleteInterface({
+        isOpen: true,
+        showSuggestions: true,
+        scope: "all",
+        debouncedAutocomplete: "sec",
+        parsedCodeFilters,
+        codeFilterCatalog,
+      }),
+    );
 
     await waitFor(() => {
       expect(searchAutocompleteMock).toHaveBeenCalled();

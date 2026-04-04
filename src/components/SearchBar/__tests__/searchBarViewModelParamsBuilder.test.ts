@@ -1,22 +1,22 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from "vitest";
 import {
   buildSearchBarInteractionActions,
   buildSearchBarInteractionState,
   buildSearchBarViewActions,
   buildSearchBarViewModelParams,
   buildSearchBarViewState,
-} from '../searchBarViewModelParamsBuilder';
+} from "../searchBarViewModelParamsBuilder";
 import type {
   SearchBarInteractionActions,
   SearchBarInteractionState,
   SearchBarViewActions,
   SearchBarViewState,
-} from '../searchBarViewModelParamsBuilder';
+} from "../searchBarViewModelParamsBuilder";
 
-describe('searchBarViewModelParamsBuilder', () => {
-  it('builds interaction state and actions from raw params', () => {
+describe("searchBarViewModelParamsBuilder", () => {
+  it("builds interaction state and actions from raw params", () => {
     const interactionState = {
-      query: 'gateway',
+      query: "gateway",
       selectedIndex: 2,
     } as unknown as SearchBarInteractionState;
     const interactionActions = {
@@ -33,9 +33,9 @@ describe('searchBarViewModelParamsBuilder', () => {
     expect(builtActions).not.toBe(interactionActions);
   });
 
-  it('builds view state and actions from raw params', () => {
+  it("builds view state and actions from raw params", () => {
     const viewState = {
-      query: 'repo:xiuxian',
+      query: "repo:xiuxian",
       isLoading: false,
     } as unknown as SearchBarViewState;
     const viewActions = {
@@ -52,10 +52,10 @@ describe('searchBarViewModelParamsBuilder', () => {
     expect(builtViewActions).not.toBe(viewActions);
   });
 
-  it('builds useSearchBarViewModel params envelope', () => {
-    const interactionState = { query: 'q' } as unknown as SearchBarInteractionState;
+  it("builds useSearchBarViewModel params envelope", () => {
+    const interactionState = { query: "q" } as unknown as SearchBarInteractionState;
     const interactionActions = { onClose: vi.fn() } as unknown as SearchBarInteractionActions;
-    const viewState = { query: 'q' } as unknown as SearchBarViewState;
+    const viewState = { query: "q" } as unknown as SearchBarViewState;
     const viewActions = { onClose: vi.fn() } as unknown as SearchBarViewActions;
 
     const result = buildSearchBarViewModelParams({

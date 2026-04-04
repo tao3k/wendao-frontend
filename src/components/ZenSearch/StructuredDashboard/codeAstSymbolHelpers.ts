@@ -1,23 +1,21 @@
 import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
-} from '../../../api';
-import {
-  buildCodeAstRetrievalAtom,
-  resolveDisplayRetrievalAtom,
-} from './codeAstRetrievalHelpers';
-import { normalizeKind, normalizeText } from './codeAstProjectionShared';
-import type { CodeAstSymbolGroup, CodeAstSymbolModel } from './codeAstAnatomy';
+} from "../../../api";
+import { buildCodeAstRetrievalAtom, resolveDisplayRetrievalAtom } from "./codeAstRetrievalHelpers";
+import { normalizeKind, normalizeText } from "./codeAstProjectionShared";
+import type { CodeAstSymbolGroup, CodeAstSymbolModel } from "./codeAstAnatomy";
 
 function countReferences(analysis: CodeAstAnalysisResponse, nodeId: string): number {
-  return analysis.edges.filter((edge) => edge.sourceId === nodeId || edge.targetId === nodeId).length;
+  return analysis.edges.filter((edge) => edge.sourceId === nodeId || edge.targetId === nodeId)
+    .length;
 }
 
 export function buildSymbols(
   analysis: CodeAstAnalysisResponse,
   selectedPath: string,
   focusNodeId: string | null,
-  retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>
+  retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>,
 ): CodeAstSymbolModel[] {
   const connectedNodeIds = new Set<string>(
     focusNodeId
@@ -30,7 +28,7 @@ export function buildSymbols(
           }
           return [];
         })
-      : []
+      : [],
   );
 
   return analysis.nodes
@@ -45,20 +43,20 @@ export function buildSymbols(
       return (
         sameFile ||
         connectedNodeIds.has(node.id) ||
-        normalizeKind(node.kind) === 'externalsymbol' ||
+        normalizeKind(node.kind) === "externalsymbol" ||
         node.id === focusNodeId
       );
     })
     .map((node) => ({
       id: node.id,
       label: node.label,
-      kind: normalizeKind(node.kind) || 'other',
+      kind: normalizeKind(node.kind) || "other",
       path: normalizeText(node.path) ?? selectedPath,
       line: node.line,
       references: countReferences(analysis, node.id),
       query: node.label,
     }))
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       if (left.line != null && right.line != null && left.line !== right.line) {
         return left.line - right.line;
       }
@@ -68,31 +66,40 @@ export function buildSymbols(
       return left.label.localeCompare(right.label);
     })
     .slice(0, 10)
-    .map((symbol, index) => ({
-      ...symbol,
-      atom: resolveDisplayRetrievalAtom(
+    .map((symbol, index) => {
+      const atom = resolveDisplayRetrievalAtom(
         retrievalAtomLookup,
         symbol.id,
-        'symbol',
+        "symbol",
         index + 5,
         () =>
           buildCodeAstRetrievalAtom(
             symbol.path,
-            'symbol',
+            "symbol",
             symbol.kind,
             `${symbol.label}-l${symbol.line ?? 0}`,
             index + 5,
-            `${symbol.label}|${symbol.kind}|${symbol.path}|${symbol.line ?? ''}|refs:${symbol.references}`
-          )
-      ),
-    }));
+            `${symbol.label}|${symbol.kind}|${symbol.path}|${symbol.line ?? ""}|refs:${symbol.references}`,
+          ),
+      );
+      return {
+        id: symbol.id,
+        label: symbol.label,
+        kind: symbol.kind,
+        path: symbol.path,
+        line: symbol.line,
+        references: symbol.references,
+        query: symbol.query,
+        atom,
+      };
+    });
 }
 
 export function buildSymbolGroups(symbols: CodeAstSymbolModel[]): CodeAstSymbolGroup[] {
-  const localSymbols = symbols.filter((symbol) => symbol.kind !== 'externalsymbol');
-  const externalSymbols = symbols.filter((symbol) => symbol.kind === 'externalsymbol');
+  const localSymbols = symbols.filter((symbol) => symbol.kind !== "externalsymbol");
+  const externalSymbols = symbols.filter((symbol) => symbol.kind === "externalsymbol");
   const pivotAnchors = [...symbols]
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       if (left.references !== right.references) {
         return right.references - left.references;
       }
@@ -105,21 +112,21 @@ export function buildSymbolGroups(symbols: CodeAstSymbolModel[]): CodeAstSymbolG
 
   return [
     {
-      id: 'local',
-      title: 'Local Symbols',
-      empty: 'No local symbols.',
+      id: "local",
+      title: "Local Symbols",
+      empty: "No local symbols.",
       symbols: localSymbols,
     },
     {
-      id: 'external',
-      title: 'External Symbols',
-      empty: 'No external symbols.',
+      id: "external",
+      title: "External Symbols",
+      empty: "No external symbols.",
       symbols: externalSymbols,
     },
     {
-      id: 'anchors',
-      title: 'Pivot Anchors',
-      empty: 'No pivot anchors.',
+      id: "anchors",
+      title: "Pivot Anchors",
+      empty: "No pivot anchors.",
       symbols: pivotAnchors,
     },
   ];

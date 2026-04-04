@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronRight, ChevronDown, Square, Circle, Diamond } from 'lucide-react';
+import React from "react";
+import { ChevronRight, ChevronDown, Square, Circle, Diamond } from "lucide-react";
 
 export interface TreeNode {
   id: string;
@@ -21,23 +21,40 @@ interface NodeTreeProps {
 
 const NodeTypeIcon: React.FC<{ type: string }> = ({ type }) => {
   const iconClass = `node-tree__icon node-tree__icon--${type}`;
-  const iconProps = { size: 14 };
 
   switch (type) {
-    case 'task':
-      return <span className={iconClass}><Square {...iconProps} /></span>;
-    case 'event':
-    case 'startEvent':
-    case 'endEvent':
-      return <span className={iconClass}><Circle {...iconProps} /></span>;
-    case 'gateway':
-    case 'exclusiveGateway':
-    case 'parallelGateway':
-      return <span className={iconClass}><Diamond {...iconProps} /></span>;
+    case "task":
+      return (
+        <span className={iconClass}>
+          <Square size={14} />
+        </span>
+      );
+    case "event":
+    case "startEvent":
+    case "endEvent":
+      return (
+        <span className={iconClass}>
+          <Circle size={14} />
+        </span>
+      );
+    case "gateway":
+    case "exclusiveGateway":
+    case "parallelGateway":
+      return (
+        <span className={iconClass}>
+          <Diamond size={14} />
+        </span>
+      );
     default:
-      return <span className={iconClass}><Square {...iconProps} /></span>;
+      return (
+        <span className={iconClass}>
+          <Square size={14} />
+        </span>
+      );
   }
 };
+
+const NODE_TREE_EMPTY_TOGGLE_STYLE = { width: 16 } as const;
 
 const NodeTreeNode: React.FC<{
   node: TreeNode;
@@ -47,46 +64,56 @@ const NodeTreeNode: React.FC<{
   onToggleExpand: (id: string) => void;
   onSelect: (node: TreeNode) => void;
   onDoubleClick?: (node: TreeNode) => void;
-}> = ({
-  node,
-  expandedNodes,
-  selectedNodeId,
-  depth,
-  onToggleExpand,
-  onSelect,
-  onDoubleClick,
-}) => {
+}> = ({ node, expandedNodes, selectedNodeId, depth, onToggleExpand, onSelect, onDoubleClick }) => {
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedNodes.has(node.id);
   const isSelected = selectedNodeId === node.id;
+  const depthStyle = React.useMemo(
+    () => ({ "--depth": depth } as React.CSSProperties),
+    [depth],
+  );
+  const handleSelect = React.useCallback(() => {
+    onSelect(node);
+  }, [node, onSelect]);
+  const handleDoubleClick = React.useCallback(() => {
+    onDoubleClick?.(node);
+  }, [node, onDoubleClick]);
+  const handleToggle = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      onToggleExpand(node.id);
+    },
+    [node.id, onToggleExpand],
+  );
 
   return (
     <li
-      className={`node-tree__node ${isSelected ? 'node-tree__node--selected' : ''}`}
+      className={`node-tree__node ${isSelected ? "node-tree__node--selected" : ""}`}
       role="treeitem"
       aria-expanded={hasChildren ? isExpanded : undefined}
-      style={{ '--depth': depth } as React.CSSProperties}
+      style={depthStyle}
     >
-      <div
-        className="node-tree__content"
-        onClick={() => onSelect(node)}
-        onDoubleClick={() => onDoubleClick?.(node)}
-      >
+      <div className="node-tree__content">
         {hasChildren ? (
           <button
+            type="button"
             className="node-tree__toggle"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand(node.id);
-            }}
+            onClick={handleToggle}
           >
             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         ) : (
-          <span style={{ width: 16 }} />
+          <span style={NODE_TREE_EMPTY_TOGGLE_STYLE} />
         )}
-        <NodeTypeIcon type={node.type} />
-        <span className="node-tree__label">{node.name || node.id}</span>
+        <button
+          type="button"
+          className="node-tree__select"
+          onClick={handleSelect}
+          onDoubleClick={handleDoubleClick}
+        >
+          <NodeTypeIcon type={node.type} />
+          <span className="node-tree__label">{node.name || node.id}</span>
+        </button>
       </div>
       {hasChildren && isExpanded && (
         <ul className="node-tree" role="group">

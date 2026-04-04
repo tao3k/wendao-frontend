@@ -1,8 +1,8 @@
-import type { SearchResult } from './types';
-import { normalizeSelectionPathForVfs } from '../../utils/selectionPath';
+import type { SearchResult } from "./types";
+import { normalizeSelectionPathForVfs } from "../../utils/selectionPath";
 
 function identitySegment(value: string | number | undefined): string {
-  return value == null ? '' : String(value);
+  return value == null ? "" : String(value);
 }
 
 export function getSearchResultIdentity(result: SearchResult): string {
@@ -17,14 +17,7 @@ export function getSearchResultIdentity(result: SearchResult): string {
   const primaryColumn = navigationTarget?.column ?? result.column;
   const primaryLabel = result.title ?? result.stem ?? result.path;
 
-  return [
-    primaryPath,
-    primaryLine,
-    primaryColumn,
-    primaryLabel,
-  ]
-    .map(identitySegment)
-    .join('::');
+  return [primaryPath, primaryLine, primaryColumn, primaryLabel].map(identitySegment).join("::");
 }
 
 export function dedupeSearchResults(results: SearchResult[]): SearchResult[] {

@@ -1,4 +1,4 @@
-import type { AcademicLink, AcademicNode, AcademicTopology } from '../types';
+import type { AcademicLink, AcademicNode, AcademicTopology } from "../types";
 
 export type TopologyPosition = [number, number, number];
 
@@ -19,7 +19,7 @@ export function deterministicNodePosition(
   nodeId: string,
   index: number,
   count: number,
-  radiusBase: number = 20
+  radiusBase: number = 20,
 ): TopologyPosition {
   const safeCount = Math.max(count, 1);
   const radius = Math.max(radiusBase, safeCount * 4);
@@ -37,27 +37,27 @@ export function deterministicNodePosition(
 }
 
 export function buildPositionCache(
-  nodes: Array<Pick<AcademicNode, 'id' | 'position'>>
+  nodes: Array<Pick<AcademicNode, "id" | "position">>,
 ): Map<string, TopologyPosition> {
   return new Map(
     nodes
       .filter(
         (
-          node
-        ): node is Pick<AcademicNode, 'id'> & {
+          node,
+        ): node is Pick<AcademicNode, "id"> & {
           position: TopologyPosition;
-        } => Array.isArray(node.position) && node.position.length === 3
+        } => Array.isArray(node.position) && node.position.length === 3,
       )
       .map((node) => [
         node.id,
         [node.position[0], node.position[1], node.position[2]] as TopologyPosition,
-      ])
+      ]),
   );
 }
 
 export function mergeTopologyPositions(
   topology: AcademicTopology,
-  cachedPositions: ReadonlyMap<string, TopologyPosition>
+  cachedPositions: ReadonlyMap<string, TopologyPosition>,
 ): AcademicTopology {
   const total = topology.nodes.length;
 
@@ -82,13 +82,13 @@ export function mergeTopologyPositions(
 }
 
 export function topologyShapeSignature(
-  nodes: Array<Pick<AcademicNode, 'id'>>,
-  links: Array<Pick<AcademicLink, 'from' | 'to'>>
+  nodes: Array<Pick<AcademicNode, "id">>,
+  links: Array<Pick<AcademicLink, "from" | "to">>,
 ): string {
-  const nodeSignature = nodes.map((node) => node.id).join('|');
+  const nodeSignature = nodes.map((node) => node.id).join("|");
   const linkSignature = links
     .map((link) => `${link.from}->${link.to}`)
-    .sort()
-    .join('|');
+    .toSorted()
+    .join("|");
   return `${nodeSignature}::${linkSignature}`;
 }

@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { getDiagramSignature, type DiagramKind } from './diagramSignature';
-import { resolveDiagramKind, resolveInitialDisplayMode, type DiagramDisplayMode } from './diagramWindowState';
-import { buildRenderedMermaidBlocks, type MermaidRenderResult } from './mermaidRenderResults';
-import { useMarkdownProjectionMermaid } from './useMarkdownProjectionMermaid';
-import { useMermaidRenderer } from './useMermaidRenderer';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { getDiagramSignature, type DiagramKind } from "./diagramSignature";
+import {
+  resolveDiagramKind,
+  resolveInitialDisplayMode,
+  type DiagramDisplayMode,
+} from "./diagramWindowState";
+import { buildRenderedMermaidBlocks, type MermaidRenderResult } from "./mermaidRenderResults";
+import { useMarkdownProjectionMermaid } from "./useMarkdownProjectionMermaid";
+import { useMermaidRenderer } from "./useMermaidRenderer";
 
 interface DiagramWindowViewModelCopy {
   emptyMermaidSource: string;
@@ -46,32 +50,28 @@ export function useDiagramWindowViewModel({
   });
 
   const mermaidSources =
-    baseSignature.mermaidSources.length > 0
-      ? baseSignature.mermaidSources
-      : analysisMermaidSources;
+    baseSignature.mermaidSources.length > 0 ? baseSignature.mermaidSources : analysisMermaidSources;
 
-  const hasBpmn = baseSignature.kind === 'bpmn' || baseSignature.kind === 'both';
+  const hasBpmn = baseSignature.kind === "bpmn" || baseSignature.kind === "both";
   const hasMermaid =
-    baseSignature.kind === 'mermaid' ||
-    baseSignature.kind === 'both' ||
-    mermaidSources.length > 0;
+    baseSignature.kind === "mermaid" || baseSignature.kind === "both" || mermaidSources.length > 0;
 
   const kind = resolveDiagramKind(hasBpmn, hasMermaid);
   const canSplitView = hasBpmn && hasMermaid;
   const [displayMode, setDisplayMode] = useState<DiagramDisplayMode>(() =>
-    resolveInitialDisplayMode(hasBpmn, hasMermaid)
+    resolveInitialDisplayMode(hasBpmn, hasMermaid),
   );
   const [mermaidResetToken, setMermaidResetToken] = useState(0);
   const renderMermaid = useMermaidRenderer({ hasMermaid, displayMode, mermaidSources });
 
   useEffect(() => {
     if (!hasBpmn) {
-      setDisplayMode('mermaid');
+      setDisplayMode("mermaid");
       return;
     }
 
     if (!hasMermaid) {
-      setDisplayMode('bpmn');
+      setDisplayMode("bpmn");
       return;
     }
   }, [hasBpmn, hasMermaid]);
@@ -85,12 +85,18 @@ export function useDiagramWindowViewModel({
         mermaidLoadingLabel: copy.mermaidLoading,
         unsupportedMermaidLabel: copy.mermaidUnsupported,
       }),
-    [copy.emptyMermaidSource, copy.mermaidLoading, copy.mermaidUnsupported, mermaidSources, renderMermaid]
+    [
+      copy.emptyMermaidSource,
+      copy.mermaidLoading,
+      copy.mermaidUnsupported,
+      mermaidSources,
+      renderMermaid,
+    ],
   );
 
-  const showBpmn = displayMode === 'bpmn' || displayMode === 'split';
-  const showMermaid = displayMode === 'mermaid' || displayMode === 'split';
-  const isSplitMode = displayMode === 'split';
+  const showBpmn = displayMode === "bpmn" || displayMode === "split";
+  const showMermaid = displayMode === "mermaid" || displayMode === "split";
+  const isSplitMode = displayMode === "split";
 
   return {
     kind,

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   loadConfig,
   getConfig,
@@ -6,9 +6,9 @@ import {
   resetConfig,
   resolveSearchFlightSchemaVersion,
   toUiConfig,
-} from '../loader';
+} from "../loader";
 
-describe('Config Loader', () => {
+describe("Config Loader", () => {
   beforeEach(() => {
     // Reset the cached config before each test
     resetConfig();
@@ -18,17 +18,17 @@ describe('Config Loader', () => {
     vi.restoreAllMocks();
   });
 
-  describe('loadConfig', () => {
-    it('should reject when wendao.toml is not found', async () => {
+  describe("loadConfig", () => {
+    it("should reject when wendao.toml is not found", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
       });
 
-      await expect(loadConfig()).rejects.toThrow('wendao.toml could not be loaded: HTTP 404');
+      await expect(loadConfig()).rejects.toThrow("wendao.toml could not be loaded: HTTP 404");
     });
 
-    it('should parse valid TOML config', async () => {
+    it("should parse valid TOML config", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -59,14 +59,14 @@ dirs = ["docs", "internal_skills"]
       `);
       expect(toUiConfig(config).repoProjects).toEqual([
         {
-          id: 'kernel',
-          root: '.',
+          id: "kernel",
+          root: ".",
           plugins: [],
         },
       ]);
     });
 
-    it('should canonicalize glob dirs and preserve regex compatibility', async () => {
+    it("should canonicalize glob dirs and preserve regex compatibility", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -85,14 +85,14 @@ dirs = ["docs", "**/*.md", "!docs/private/**", "regex:^docs/[^/]+\\\\.md$"]
 
       expect(toUiConfig(config).projects).toEqual([
         {
-          name: 'kernel',
-          root: '.',
-          dirs: ['docs', 'glob:**/*.md', 'glob:!docs/private/**', 're:^docs/[^/]+\\.md$'],
+          name: "kernel",
+          root: ".",
+          dirs: ["docs", "glob:**/*.md", "glob:!docs/private/**", "re:^docs/[^/]+\\.md$"],
         },
       ]);
     });
 
-    it('should reject when gateway.bind is missing', async () => {
+    it("should reject when gateway.bind is missing", async () => {
       const mockToml = `
 [link_graph.projects.kernel]
 root = "."
@@ -104,10 +104,10 @@ dirs = ["docs"]
         text: () => Promise.resolve(mockToml),
       });
 
-      await expect(loadConfig()).rejects.toThrow('wendao.toml must define [gateway].bind');
+      await expect(loadConfig()).rejects.toThrow("wendao.toml must define [gateway].bind");
     });
 
-    it('should reject when link_graph.projects is empty', async () => {
+    it("should reject when link_graph.projects is empty", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -121,17 +121,17 @@ bind = "127.0.0.1:9517"
       });
 
       await expect(loadConfig()).rejects.toThrow(
-        'wendao.toml must define at least one [link_graph.projects.<name>] section'
+        "wendao.toml must define at least one [link_graph.projects.<name>] section",
       );
     });
 
-    it('should surface fetch errors', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    it("should surface fetch errors", async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
-      await expect(loadConfig()).rejects.toThrow('Network error');
+      await expect(loadConfig()).rejects.toThrow("Network error");
     });
 
-    it('should reject projects without dirs during ui normalization', async () => {
+    it("should reject projects without dirs during ui normalization", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -150,7 +150,7 @@ root = "."
       expect(() => toUiConfig(config)).toThrow('project "kernel" must define at least one dir');
     });
 
-    it('should ignore repo intelligence only projects during ui normalization', async () => {
+    it("should ignore repo intelligence only projects during ui normalization", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -184,25 +184,25 @@ plugins = ["julia"]
       `);
       expect(toUiConfig(config).repoProjects).toEqual([
         {
-          id: 'kernel',
-          root: '.',
+          id: "kernel",
+          root: ".",
           plugins: [],
         },
         {
-          id: 'sciml',
-          url: 'https://github.com/SciML/DifferentialEquations.jl.git',
-          plugins: ['julia'],
+          id: "sciml",
+          url: "https://github.com/SciML/DifferentialEquations.jl.git",
+          plugins: ["julia"],
         },
       ]);
     });
   });
 
-  describe('getConfig', () => {
+  describe("getConfig", () => {
     beforeEach(() => {
       resetConfig();
     });
 
-    it('should load and cache config', async () => {
+    it("should load and cache config", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"
@@ -235,8 +235,8 @@ dirs = ["docs"]
       `);
       expect(toUiConfig(config1).repoProjects).toEqual([
         {
-          id: 'cached',
-          root: '.',
+          id: "cached",
+          root: ".",
           plugins: [],
         },
       ]);
@@ -244,35 +244,35 @@ dirs = ["docs"]
     });
   });
 
-  describe('search flight helpers', () => {
-    it('resolves the configured Flight schema version', () => {
+  describe("search flight helpers", () => {
+    it("resolves the configured Flight schema version", () => {
       expect(
         resolveSearchFlightSchemaVersion({
           search_flight: {
-            schema_version: 'v2',
+            schema_version: "v2",
           },
         }),
-      ).toBe('v2');
+      ).toBe("v2");
     });
 
-    it('requires a Flight schema version for pure Flight search', () => {
+    it("requires a Flight schema version for pure Flight search", () => {
       expect(() => resolveSearchFlightSchemaVersion({})).toThrow(
-        'wendao.toml must define [search_flight].schema_version for Flight search',
+        "wendao.toml must define [search_flight].schema_version for Flight search",
       );
     });
   });
 
-  describe('getConfigSync', () => {
+  describe("getConfigSync", () => {
     beforeEach(() => {
       resetConfig();
     });
 
-    it('should return null when config is not loaded', () => {
+    it("should return null when config is not loaded", () => {
       // Before any async load
       expect(getConfigSync()).toBeNull();
     });
 
-    it('should return cached config after loading', async () => {
+    it("should return cached config after loading", async () => {
       const mockToml = `
 [gateway]
 bind = "127.0.0.1:9517"

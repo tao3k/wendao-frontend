@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 export interface DebouncedValueOptions {
   /**
@@ -13,7 +13,7 @@ export interface DebouncedValueOptions {
 export const useDebouncedValue = <T>(
   value: T,
   delayMs: number,
-  options: DebouncedValueOptions = {}
+  options: DebouncedValueOptions = {},
 ): T => {
   const { enabled = true } = options;
   const [debouncedValue, setDebouncedValue] = useState<T>(value);

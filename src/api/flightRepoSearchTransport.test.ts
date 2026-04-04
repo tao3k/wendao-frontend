@@ -1,15 +1,8 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import {
-  FlightDataSchema,
-  FlightInfoSchema,
-  TicketSchema,
-} from "./flight/generated/Flight_pb";
-import {
-  buildRepoSearchFlightHeaders,
-  searchRepoContentFlight,
-} from "./flightRepoSearchTransport";
+import { FlightDataSchema, FlightInfoSchema, TicketSchema } from "./flight/generated/Flight_pb";
+import { buildRepoSearchFlightHeaders, searchRepoContentFlight } from "./flightRepoSearchTransport";
 
 describe("flightRepoSearchTransport", () => {
   it("builds canonical repo-search Flight headers", () => {
@@ -67,41 +60,8 @@ describe("flightRepoSearchTransport", () => {
         }),
         decodeRepoSearchHits: (payload, fallbackRepoId) => {
           expect(Array.from(new Uint8Array(payload))).toEqual([
-            1,
-            2,
-            3,
-            255,
-            255,
-            255,
-            255,
-            8,
-            0,
-            0,
-            0,
-            5,
-            6,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            7,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            255,
-            255,
-            255,
-            255,
-            0,
-            0,
-            0,
-            0,
+            1, 2, 3, 255, 255, 255, 255, 8, 0, 0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0,
+            255, 255, 255, 255, 0, 0, 0, 0,
           ]);
           expect(fallbackRepoId).toBe("gateway-sync");
           return [

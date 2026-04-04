@@ -5,13 +5,13 @@
  * Uses mocks to detect potential recursion issues.
  */
 
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, waitFor } from '@testing-library/react';
+import React from "react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, cleanup, waitFor } from "@testing-library/react";
 
 // Mock Three.js and R3F to detect infinite loops
-const mockWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-const mockError = vi.spyOn(console, 'error').mockImplementation(() => {});
+const mockWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+const mockError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 const startTransitionMock = vi.fn();
 const layoutMocks = vi.hoisted(() => ({
@@ -25,7 +25,13 @@ const layoutMocks = vi.hoisted(() => ({
 let renderCount = 0;
 const MAX_RENDERS = 100; // Threshold for infinite loop detection
 
-vi.mock('@react-three/fiber', () => ({
+function MockSphereGeometry() {}
+function MockMeshStandardMaterial() {}
+function MockLineSegments() {}
+function MockBufferGeometry() {}
+function MockFloat32BufferAttribute() {}
+
+vi.mock("@react-three/fiber", () => ({
   Canvas: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-canvas">{children}</div>
   ),
@@ -35,12 +41,12 @@ vi.mock('@react-three/fiber', () => ({
     camera: {
       position: { x: 0, y: 0, z: 50, set: vi.fn(), clone: () => ({ x: 0, y: 0, z: 50 }) },
     },
-    gl: { domElement: document.createElement('canvas') },
+    gl: { domElement: document.createElement("canvas") },
   })),
   extend: vi.fn(),
 }));
 
-vi.mock('@react-three/drei', () => ({
+vi.mock("@react-three/drei", () => ({
   Stars: () => <div data-testid="mock-stars" />,
   Float: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-float">{children}</div>
@@ -52,7 +58,7 @@ vi.mock('@react-three/drei', () => ({
   ),
 }));
 
-vi.mock('@react-three/postprocessing', () => ({
+vi.mock("@react-three/postprocessing", () => ({
   EffectComposer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-effect-composer">{children}</div>
   ),
@@ -62,7 +68,7 @@ vi.mock('@react-three/postprocessing', () => ({
   ChromaticAberration: () => <div data-testid="mock-chromatic-aberration" />,
 }));
 
-vi.mock('../../effects', () => ({
+vi.mock("../../effects", () => ({
   ChromaticAberrationShader: () => <div data-testid="mock-chromatic-shader" />,
   HyperspaceTransitionProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-hyperspace-provider">{children}</div>
@@ -70,13 +76,13 @@ vi.mock('../../effects', () => ({
   useHyperspace: () => ({
     startTransition: startTransitionMock,
     isActive: false,
-    phase: 'idle',
+    phase: "idle",
     intensity: 0,
     progress: 0,
   }),
 }));
 
-vi.mock('../../hooks', () => ({
+vi.mock("../../hooks", () => ({
   useSpatialLayout: () => ({
     nodes: [],
     clusters: [],
@@ -94,7 +100,7 @@ vi.mock('../../hooks', () => ({
   }),
 }));
 
-vi.mock('three', () => {
+vi.mock("three", () => {
   const mockVector3 = class {
     x = 0;
     y = 0;
@@ -120,7 +126,7 @@ vi.mock('three', () => {
     g = 1;
     b = 1;
     constructor(color?: string) {
-      if (color === '#7dcfff') {
+      if (color === "#7dcfff") {
         this.r = 0.49;
         this.g = 0.81;
         this.b = 1;
@@ -155,16 +161,16 @@ vi.mock('three', () => {
     Mesh: class {
       rotation = new mockVector3();
     },
-    SphereGeometry: class {},
-    MeshStandardMaterial: class {},
-    LineSegments: class {},
-    BufferGeometry: class {},
-    Float32BufferAttribute: class {},
+    SphereGeometry: MockSphereGeometry,
+    MeshStandardMaterial: MockMeshStandardMaterial,
+    LineSegments: MockLineSegments,
+    BufferGeometry: MockBufferGeometry,
+    Float32BufferAttribute: MockFloat32BufferAttribute,
   };
 });
 
 // Mock NebulaRenderer to isolate tests
-vi.mock('../NebulaRenderer', () => ({
+vi.mock("../NebulaRenderer", () => ({
   NebulaRenderer: ({
     nodes,
     links,
@@ -183,7 +189,7 @@ vi.mock('../NebulaRenderer', () => ({
   ),
 }));
 
-describe('CosmicBackground R3F Component', () => {
+describe("CosmicBackground R3F Component", () => {
   beforeEach(() => {
     renderCount = 0;
     vi.clearAllMocks();
@@ -199,8 +205,8 @@ describe('CosmicBackground R3F Component', () => {
     cleanup();
   });
 
-  it('should render without infinite loops', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should render without infinite loops", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     // Wrap render with infinite loop detection
     const DetectInfiniteLoop: React.FC = () => {
@@ -216,49 +222,49 @@ describe('CosmicBackground R3F Component', () => {
     expect(renderCount).toBeLessThan(MAX_RENDERS);
   });
 
-  it('should render with topology data', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should render with topology data", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const topology = {
       nodes: [
-        { id: 'node-1', name: 'Node 1', type: 'task' },
-        { id: 'node-2', name: 'Node 2', type: 'event' },
+        { id: "node-1", name: "Node 1", type: "task" },
+        { id: "node-2", name: "Node 2", type: "event" },
       ],
-      links: [{ from: 'node-1', to: 'node-2' }],
+      links: [{ from: "node-1", to: "node-2" }],
     };
 
     const { container } = render(<CosmicBackground topology={topology} />);
     expect(container).toBeTruthy();
   });
 
-  it('should pass topology data to NebulaRenderer', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should pass topology data to NebulaRenderer", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const topology = {
       nodes: [
-        { id: 'node-1', name: 'Node 1', type: 'task' },
-        { id: 'node-2', name: 'Node 2', type: 'event' },
+        { id: "node-1", name: "Node 1", type: "task" },
+        { id: "node-2", name: "Node 2", type: "event" },
       ],
-      links: [{ from: 'node-1', to: 'node-2' }],
+      links: [{ from: "node-1", to: "node-2" }],
     };
 
     const { getByTestId } = render(<CosmicBackground topology={topology} />);
-    const renderer = getByTestId('mock-nebula-renderer');
+    const renderer = getByTestId("mock-nebula-renderer");
 
-    expect(renderer).toHaveAttribute('data-nodes', '2');
-    expect(renderer).toHaveAttribute('data-links', '1');
-    expect(renderer).toHaveAttribute('data-layout-mode', 'static');
+    expect(renderer).toHaveAttribute("data-nodes", "2");
+    expect(renderer).toHaveAttribute("data-links", "1");
+    expect(renderer).toHaveAttribute("data-layout-mode", "static");
   });
 
-  it('initializes layout once and ignores equivalent topology rerenders', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("initializes layout once and ignores equivalent topology rerenders", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const topology = {
       nodes: [
-        { id: 'node-1', name: 'Node 1', type: 'task' },
-        { id: 'node-2', name: 'Node 2', type: 'event' },
+        { id: "node-1", name: "Node 1", type: "task" },
+        { id: "node-2", name: "Node 2", type: "event" },
       ],
-      links: [{ from: 'node-1', to: 'node-2' }],
+      links: [{ from: "node-1", to: "node-2" }],
     };
 
     const { rerender } = render(<CosmicBackground topology={topology} />);
@@ -272,10 +278,17 @@ describe('CosmicBackground R3F Component', () => {
     rerender(
       <CosmicBackground
         topology={{
-          nodes: topology.nodes.map((node) => ({ ...node })),
-          links: topology.links.map((link) => ({ ...link })),
+          nodes: topology.nodes.map((node) => ({
+            id: node.id,
+            name: node.name,
+            type: node.type,
+          })),
+          links: topology.links.map((link) => ({
+            from: link.from,
+            to: link.to,
+          })),
         }}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -284,15 +297,15 @@ describe('CosmicBackground R3F Component', () => {
     expect(layoutMocks.synchronize).not.toHaveBeenCalled();
   });
 
-  it('synchronizes layout instead of cold-initializing when topology shape changes', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("synchronizes layout instead of cold-initializing when topology shape changes", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const initialTopology = {
       nodes: [
-        { id: 'node-1', name: 'Node 1', type: 'task' },
-        { id: 'node-2', name: 'Node 2', type: 'event' },
+        { id: "node-1", name: "Node 1", type: "task" },
+        { id: "node-2", name: "Node 2", type: "event" },
       ],
-      links: [{ from: 'node-1', to: 'node-2' }],
+      links: [{ from: "node-1", to: "node-2" }],
     };
 
     const { rerender } = render(<CosmicBackground topology={initialTopology} />);
@@ -304,16 +317,10 @@ describe('CosmicBackground R3F Component', () => {
     rerender(
       <CosmicBackground
         topology={{
-          nodes: [
-            ...initialTopology.nodes,
-            { id: 'node-3', name: 'Node 3', type: 'knowledge' },
-          ],
-          links: [
-            ...initialTopology.links,
-            { from: 'node-2', to: 'node-3' },
-          ],
+          nodes: [...initialTopology.nodes, { id: "node-3", name: "Node 3", type: "knowledge" }],
+          links: [...initialTopology.links, { from: "node-2", to: "node-3" }],
         }}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -323,34 +330,34 @@ describe('CosmicBackground R3F Component', () => {
     expect(layoutMocks.tick).toHaveBeenCalledWith(48);
   });
 
-  it('should not trigger useFrame infinite loop', async () => {
+  it("should not trigger useFrame infinite loop", async () => {
     const useFrame = vi.fn();
-    vi.doMock('@react-three/fiber', () => ({
-      ...vi.importMock('@react-three/fiber'),
+    vi.doMock("@react-three/fiber", () => ({
+      ...vi.importMock("@react-three/fiber"),
       useFrame,
     }));
 
     // Verify useFrame was called with a function
-    expect(typeof useFrame).toBe('function');
+    expect(typeof useFrame).toBe("function");
   });
 
-  it('should handle empty topology gracefully', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should handle empty topology gracefully", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const { container } = render(<CosmicBackground topology={{ nodes: [], links: [] }} />);
     expect(container).toBeTruthy();
     expect(layoutMocks.stop).toHaveBeenCalled();
   });
 
-  it('should handle undefined topology gracefully', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should handle undefined topology gracefully", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const { container } = render(<CosmicBackground />);
     expect(container).toBeTruthy();
   });
 
-  it('should not have recursive ref issues', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should not have recursive ref issues", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     // Render multiple times to check for ref accumulation issues
     const { unmount } = render(<CosmicBackground />);
@@ -363,11 +370,11 @@ describe('CosmicBackground R3F Component', () => {
     expect(true).toBe(true);
   });
 
-  it('should trigger hyperspace transitions on transitionKey changes', async () => {
-    const { CosmicBackground } = await import('../CosmicBackground');
+  it("should trigger hyperspace transitions on transitionKey changes", async () => {
+    const { CosmicBackground } = await import("../CosmicBackground");
 
     const { rerender } = render(
-      <CosmicBackground active transitionKey={1} transitionTarget={[0, 0, 50]} />
+      <CosmicBackground active transitionKey={1} transitionTarget={[0, 0, 50]} />,
     );
 
     expect(startTransitionMock).toHaveBeenCalledTimes(1);
@@ -378,7 +385,7 @@ describe('CosmicBackground R3F Component', () => {
   });
 });
 
-describe('NebulaRenderer Component', () => {
+describe("NebulaRenderer Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWarn.mockClear();
@@ -389,7 +396,7 @@ describe('NebulaRenderer Component', () => {
     cleanup();
   });
 
-  it('should not have circular primitive references', async () => {
+  it("should not have circular primitive references", async () => {
     // This test verifies the fix for the circular reference bug
     // where <primitive object={meshRef.current} /> was inside the
     // same component that creates the instancedMesh
@@ -413,17 +420,17 @@ describe('NebulaRenderer Component', () => {
   });
 });
 
-describe('Effect Chain Recursion Detection', () => {
-  it('should detect circular effect dependencies', () => {
+describe("Effect Chain Recursion Detection", () => {
+  it("should detect circular effect dependencies", () => {
     // Test that effects don't have circular dependencies
-    const effectOrder = ['Bloom', 'Vignette'];
+    const effectOrder = ["Bloom", "Vignette"];
 
     // Each effect should appear exactly once
     const uniqueEffects = new Set(effectOrder);
     expect(uniqueEffects.size).toBe(effectOrder.length);
   });
 
-  it('should not have self-referencing effect refs', async () => {
+  it("should not have self-referencing effect refs", async () => {
     // Effect refs should not create circular references
     const mockEffectRef = {
       current: {
@@ -433,13 +440,13 @@ describe('Effect Chain Recursion Detection', () => {
     };
 
     // The ref should be simple and not contain references back to itself
-    expect(mockEffectRef.current).not.toHaveProperty('self');
-    expect(mockEffectRef.current).not.toHaveProperty('ref');
+    expect(mockEffectRef.current).not.toHaveProperty("self");
+    expect(mockEffectRef.current).not.toHaveProperty("ref");
   });
 });
 
-describe('Stack Overflow Prevention', () => {
-  it('should detect potential stack overflow from recursive renders', async () => {
+describe("Stack Overflow Prevention", () => {
+  it("should detect potential stack overflow from recursive renders", async () => {
     // Simulate deep render stack detection
     const maxDepth = 50;
     let currentDepth = 0;
@@ -447,7 +454,7 @@ describe('Stack Overflow Prevention', () => {
     const detectDeepRecursion = () => {
       currentDepth++;
       if (currentDepth > maxDepth) {
-        throw new Error('Stack overflow risk: render depth exceeded');
+        throw new Error("Stack overflow risk: render depth exceeded");
       }
     };
 
@@ -464,6 +471,6 @@ describe('Stack Overflow Prevention', () => {
       for (let i = 0; i < 100; i++) {
         detectDeepRecursion();
       }
-    }).toThrow('Stack overflow risk');
+    }).toThrow("Stack overflow risk");
   });
 });

@@ -1,15 +1,15 @@
-import type { SearchBarControllerModalProps } from './searchBarControllerTypes';
+import type { SearchBarControllerModalProps } from "./searchBarControllerTypes";
 
 export interface SearchBarInteractionProps {
-  onModalClick: SearchBarControllerModalProps['onClick'];
-  onModalKeyDownCapture: SearchBarControllerModalProps['onKeyDownCapture'];
+  onModalClick: SearchBarControllerModalProps["onClick"];
+  onModalKeyDownCapture: SearchBarControllerModalProps["onKeyDownCapture"];
 }
 
 interface BuildSearchBarInteractionPropsParams {
-  onModalKeyDownCapture: SearchBarControllerModalProps['onKeyDownCapture'];
+  onModalKeyDownCapture: SearchBarControllerModalProps["onKeyDownCapture"];
 }
 
-export function createSearchBarModalClickHandler(): SearchBarControllerModalProps['onClick'] {
+export function createSearchBarModalClickHandler(): SearchBarControllerModalProps["onClick"] {
   return (event) => {
     event.stopPropagation();
   };

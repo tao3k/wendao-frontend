@@ -1,41 +1,41 @@
-import { getMainViewCopy } from './mainViewCopy';
+import { getMainViewCopy } from "./mainViewCopy";
 import {
   buildMainViewContentPanelProps,
   buildMainViewDiagramPanelProps,
   buildMainViewGraphPanelProps,
   buildMainViewReferencesPanelProps,
-} from './mainViewPanelPropsBuilder';
-import type { MainViewProps } from './mainViewProps';
-import { buildMainViewTabPanels, resolveMainViewActivePanel } from './mainViewTabPanels';
-import { createMainViewTabActions } from './mainViewTabActions';
-import { useMainViewController } from './useMainViewController';
-import { useMainViewViewModel } from './useMainViewViewModel';
+} from "./mainViewPanelPropsBuilder";
+import type { MainViewProps } from "./mainViewProps";
+import { buildMainViewTabPanels, resolveMainViewActivePanel } from "./mainViewTabPanels";
+import { createMainViewTabActions } from "./mainViewTabActions";
+import { useMainViewController } from "./useMainViewController";
+import { useMainViewViewModel } from "./useMainViewViewModel";
 
 type UseMainViewAssemblerParams = Pick<
   MainViewProps,
-  | 'locale'
-  | 'selectedFile'
-  | 'graphCenterNodeId'
-  | 'relationships'
-  | 'requestedTab'
-  | 'onGraphFileSelect'
-  | 'onGraphCenterNodeInvalid'
-  | 'onNodeClick'
-  | 'onBiLinkClick'
-  | 'onSidebarSummaryChange'
-  | 'onGraphRuntimeStatusChange'
+  | "locale"
+  | "selectedFile"
+  | "graphCenterNodeId"
+  | "relationships"
+  | "requestedTab"
+  | "onGraphFileSelect"
+  | "onGraphCenterNodeInvalid"
+  | "onNodeClick"
+  | "onBiLinkClick"
+  | "onSidebarSummaryChange"
+  | "onGraphRuntimeStatusChange"
 >;
 
 interface UseMainViewAssemblerResult {
-  activeTab: ReturnType<typeof useMainViewController>['activeTab'];
+  activeTab: ReturnType<typeof useMainViewController>["activeTab"];
   copy: ReturnType<typeof getMainViewCopy>;
-  onTabChange: (tab: ReturnType<typeof useMainViewController>['activeTab']) => void;
-  onPreloadTab: (tab: ReturnType<typeof useMainViewController>['activeTab']) => void;
+  onTabChange: (tab: ReturnType<typeof useMainViewController>["activeTab"]) => void;
+  onPreloadTab: (tab: ReturnType<typeof useMainViewController>["activeTab"]) => void;
   activePanel: ReturnType<typeof resolveMainViewActivePanel>;
 }
 
 export function useMainViewAssembler({
-  locale = 'en',
+  locale = "en",
   selectedFile,
   graphCenterNodeId,
   relationships = [],

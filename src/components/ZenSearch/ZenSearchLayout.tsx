@@ -1,12 +1,12 @@
-import React from 'react';
+import React from "react";
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from '../SearchBar/searchBarControllerTypes';
-import { ZenSearchWorkspace } from './ZenSearchWorkspace';
-import { ZenSearchShortcutsBar } from './ZenSearchShortcutsBar';
+} from "../SearchBar/searchBarControllerTypes";
+import { ZenSearchWorkspace } from "./ZenSearchWorkspace";
+import { ZenSearchShortcutsBar } from "./ZenSearchShortcutsBar";
 
 interface ZenSearchLayoutProps {
   shellProps: SearchBarControllerShellProps;

@@ -1,41 +1,41 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { act } from '@testing-library/react';
-import { useEditorStore } from '../editorStore';
-import { AcademicNode } from '../../types';
+import { describe, it, expect, beforeEach } from "vitest";
+import { act } from "@testing-library/react";
+import { useEditorStore } from "../editorStore";
+import { AcademicNode } from "../../types";
 
-describe('editorStore', () => {
+describe("editorStore", () => {
   beforeEach(() => {
     // Reset store to initial state
     useEditorStore.setState({
       selectedNodeId: null,
       selectedNode: null,
-      currentXml: '',
+      currentXml: "",
       history: [],
       historyIndex: -1,
       discoveryOpen: false,
     });
   });
 
-  describe('selection', () => {
-    it('should set selected node', () => {
-      const node: AcademicNode = { id: 'task-1', name: 'Task', type: 'task' };
+  describe("selection", () => {
+    it("should set selected node", () => {
+      const node: AcademicNode = { id: "task-1", name: "Task", type: "task" };
 
       act(() => {
         useEditorStore.getState().setSelectedNode(node);
       });
 
-      expect(useEditorStore.getState().selectedNodeId).toBe('task-1');
+      expect(useEditorStore.getState().selectedNodeId).toBe("task-1");
       expect(useEditorStore.getState().selectedNode).toEqual(node);
     });
 
-    it('should clear selection', () => {
-      const node: AcademicNode = { id: 'task-1', name: 'Task', type: 'task' };
+    it("should clear selection", () => {
+      const node: AcademicNode = { id: "task-1", name: "Task", type: "task" };
 
       act(() => {
         useEditorStore.getState().setSelectedNode(node);
       });
 
-      expect(useEditorStore.getState().selectedNodeId).toBe('task-1');
+      expect(useEditorStore.getState().selectedNodeId).toBe("task-1");
 
       act(() => {
         useEditorStore.getState().clearSelection();
@@ -45,8 +45,8 @@ describe('editorStore', () => {
       expect(useEditorStore.getState().selectedNode).toBeNull();
     });
 
-    it('should clear selection when setting null', () => {
-      const node: AcademicNode = { id: 'task-1', name: 'Task', type: 'task' };
+    it("should clear selection when setting null", () => {
+      const node: AcademicNode = { id: "task-1", name: "Task", type: "task" };
 
       act(() => {
         useEditorStore.getState().setSelectedNode(node);
@@ -60,9 +60,9 @@ describe('editorStore', () => {
     });
   });
 
-  describe('XML state', () => {
-    it('should set current XML', () => {
-      const xml = '<bpmn:definitions></bpmn:definitions>';
+  describe("XML state", () => {
+    it("should set current XML", () => {
+      const xml = "<bpmn:definitions></bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().setCurrentXml(xml);
@@ -72,9 +72,9 @@ describe('editorStore', () => {
     });
   });
 
-  describe('history', () => {
-    it('should push to history', () => {
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
+  describe("history", () => {
+    it("should push to history", () => {
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -86,10 +86,10 @@ describe('editorStore', () => {
       expect(state.historyIndex).toBe(0);
     });
 
-    it('should maintain history index correctly', () => {
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
-      const xml2 = '<bpmn:definitions>2</bpmn:definitions>';
-      const xml3 = '<bpmn:definitions>3</bpmn:definitions>';
+    it("should maintain history index correctly", () => {
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
+      const xml2 = "<bpmn:definitions>2</bpmn:definitions>";
+      const xml3 = "<bpmn:definitions>3</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -102,9 +102,9 @@ describe('editorStore', () => {
       expect(state.historyIndex).toBe(2);
     });
 
-    it('should undo and return previous XML', () => {
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
-      const xml2 = '<bpmn:definitions>2</bpmn:definitions>';
+    it("should undo and return previous XML", () => {
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
+      const xml2 = "<bpmn:definitions>2</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -120,9 +120,9 @@ describe('editorStore', () => {
       expect(useEditorStore.getState().historyIndex).toBe(0);
     });
 
-    it('should redo and return next XML', () => {
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
-      const xml2 = '<bpmn:definitions>2</bpmn:definitions>';
+    it("should redo and return next XML", () => {
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
+      const xml2 = "<bpmn:definitions>2</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -139,8 +139,8 @@ describe('editorStore', () => {
       expect(useEditorStore.getState().historyIndex).toBe(1);
     });
 
-    it('should return null when cannot undo', () => {
-      let result: string | null = 'not-null';
+    it("should return null when cannot undo", () => {
+      let result: string | null = "not-null";
       act(() => {
         result = useEditorStore.getState().undo();
       });
@@ -148,14 +148,14 @@ describe('editorStore', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null when cannot redo', () => {
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
+    it("should return null when cannot redo", () => {
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
       });
 
-      let result: string | null = 'not-null';
+      let result: string | null = "not-null";
       act(() => {
         result = useEditorStore.getState().redo();
       });
@@ -163,11 +163,11 @@ describe('editorStore', () => {
       expect(result).toBeNull();
     });
 
-    it('should report canUndo correctly', () => {
+    it("should report canUndo correctly", () => {
       expect(useEditorStore.getState().canUndo()).toBe(false);
 
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
-      const xml2 = '<bpmn:definitions>2</bpmn:definitions>';
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
+      const xml2 = "<bpmn:definitions>2</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -183,11 +183,11 @@ describe('editorStore', () => {
       expect(useEditorStore.getState().canUndo()).toBe(false);
     });
 
-    it('should report canRedo correctly', () => {
+    it("should report canRedo correctly", () => {
       expect(useEditorStore.getState().canRedo()).toBe(false);
 
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
-      const xml2 = '<bpmn:definitions>2</bpmn:definitions>';
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
+      const xml2 = "<bpmn:definitions>2</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -204,7 +204,7 @@ describe('editorStore', () => {
       expect(useEditorStore.getState().canRedo()).toBe(false);
     });
 
-    it('should limit history to 50 items', () => {
+    it("should limit history to 50 items", () => {
       act(() => {
         for (let i = 0; i < 60; i++) {
           useEditorStore.getState().pushHistory(`<xml>${i}</xml>`);
@@ -214,10 +214,10 @@ describe('editorStore', () => {
       expect(useEditorStore.getState().history.length).toBe(50);
     });
 
-    it('should truncate history when pushing after undo', () => {
-      const xml1 = '<bpmn:definitions>1</bpmn:definitions>';
-      const xml2 = '<bpmn:definitions>2</bpmn:definitions>';
-      const xml3 = '<bpmn:definitions>3</bpmn:definitions>';
+    it("should truncate history when pushing after undo", () => {
+      const xml1 = "<bpmn:definitions>1</bpmn:definitions>";
+      const xml2 = "<bpmn:definitions>2</bpmn:definitions>";
+      const xml3 = "<bpmn:definitions>3</bpmn:definitions>";
 
       act(() => {
         useEditorStore.getState().pushHistory(xml1);
@@ -233,8 +233,8 @@ describe('editorStore', () => {
     });
   });
 
-  describe('discovery panel', () => {
-    it('should toggle discovery panel', () => {
+  describe("discovery panel", () => {
+    it("should toggle discovery panel", () => {
       expect(useEditorStore.getState().discoveryOpen).toBe(false);
 
       act(() => {

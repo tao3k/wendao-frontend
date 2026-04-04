@@ -1,9 +1,9 @@
-import React from 'react';
-import { MarkdownWaterfall } from '../panels/DirectReader/MarkdownWaterfall';
-import type { UiLocale } from '../SearchBar/types';
-import type { ZenSearchPreviewState } from './useZenSearchPreview';
-import { StructuredIntelligenceDashboard } from './StructuredDashboard';
-import { ZenSearchPreviewInfo } from './ZenSearchPreviewInfo';
+import React from "react";
+import { MarkdownWaterfall } from "../panels/DirectReader/MarkdownWaterfall";
+import type { UiLocale } from "../SearchBar/types";
+import type { ZenSearchPreviewState } from "./useZenSearchPreview";
+import { StructuredIntelligenceDashboard } from "./StructuredDashboard";
+import { ZenSearchPreviewInfo } from "./ZenSearchPreviewInfo";
 
 interface ZenPreviewBridgeProps {
   locale: UiLocale;
@@ -16,7 +16,10 @@ export const ZenMarkdownPreviewBridge: React.FC<ZenPreviewBridgeProps> = ({
   preview,
   onPivotQuery,
 }) => (
-  <section className="zen-preview-content zen-preview-content--markdown" data-testid="markdown-preview-entity">
+  <section
+    className="zen-preview-content zen-preview-content--markdown"
+    data-testid="markdown-preview-entity"
+  >
     <div className="zen-preview-content__markdown-frame">
       <ZenSearchPreviewInfo
         locale={locale}
@@ -25,7 +28,7 @@ export const ZenMarkdownPreviewBridge: React.FC<ZenPreviewBridgeProps> = ({
         content={preview.content}
       />
       <MarkdownWaterfall
-        content={preview.content ?? ''}
+        content={preview.content ?? ""}
         path={preview.contentPath ?? preview.selectedResult?.path ?? undefined}
         analysis={preview.markdownAnalysis ?? undefined}
         locale={locale}
@@ -41,9 +44,5 @@ export const ZenStructuredPreviewBridge: React.FC<ZenPreviewBridgeProps> = ({
   preview,
   onPivotQuery,
 }) => (
-  <StructuredIntelligenceDashboard
-    locale={locale}
-    preview={preview}
-    onPivotQuery={onPivotQuery}
-  />
+  <StructuredIntelligenceDashboard locale={locale} preview={preview} onPivotQuery={onPivotQuery} />
 );

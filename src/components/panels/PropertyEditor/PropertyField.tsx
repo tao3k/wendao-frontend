@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useCallback } from "react";
 
 interface PropertyFieldProps {
   label: string;
   value: string | number;
-  type?: 'text' | 'number' | 'textarea';
+  type?: "text" | "number" | "textarea";
   disabled?: boolean;
   placeholder?: string;
   onChange?: (value: string) => void;
@@ -12,14 +12,20 @@ interface PropertyFieldProps {
 export const PropertyField: React.FC<PropertyFieldProps> = ({
   label,
   value,
-  type = 'text',
+  type = "text",
   disabled = false,
   placeholder,
   onChange,
 }) => {
-  const inputClass = `property-field__input ${type === 'textarea' ? 'property-field__input--textarea' : ''} ${type === 'number' ? 'property-field__input--number' : ''}`;
+  const inputClass = `property-field__input ${type === "textarea" ? "property-field__input--textarea" : ""} ${type === "number" ? "property-field__input--number" : ""}`;
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onChange?.(event.target.value);
+    },
+    [onChange],
+  );
 
-  if (type === 'textarea') {
+  if (type === "textarea") {
     return (
       <div className="property-field">
         <label className="property-field__label">{label}</label>
@@ -28,7 +34,7 @@ export const PropertyField: React.FC<PropertyFieldProps> = ({
           value={value}
           disabled={disabled}
           placeholder={placeholder}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={handleChange}
         />
       </div>
     );
@@ -43,7 +49,7 @@ export const PropertyField: React.FC<PropertyFieldProps> = ({
         value={value}
         disabled={disabled}
         placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={handleChange}
       />
     </div>
   );

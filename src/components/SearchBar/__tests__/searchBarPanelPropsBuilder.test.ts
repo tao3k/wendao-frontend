@@ -1,22 +1,22 @@
-import { describe, expect, it, vi } from 'vitest';
-import { CODE_FILTER_PREFIXES } from '../codeSearchUtils';
+import { describe, expect, it, vi } from "vitest";
+import { CODE_FILTER_PREFIXES } from "../codeSearchUtils";
 import {
   buildSearchResultsPanelProps,
   buildSearchShellProps,
   buildCodeFilterHelperProps,
   buildSearchBarControllerResult,
   buildSuggestionsPanelProps,
-} from '../searchBarPanelPropsBuilder';
+} from "../searchBarPanelPropsBuilder";
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from '../searchBarControllerTypes';
+} from "../searchBarControllerTypes";
 
-describe('searchBarPanelPropsBuilder', () => {
-  it('builds search shell props as a stable pass-through object', () => {
-    const shellProps = { query: 'repo:gateway-sync' } as unknown as SearchBarControllerShellProps;
+describe("searchBarPanelPropsBuilder", () => {
+  it("builds search shell props as a stable pass-through object", () => {
+    const shellProps = { query: "repo:gateway-sync" } as unknown as SearchBarControllerShellProps;
 
     const result = buildSearchShellProps(shellProps);
 
@@ -24,16 +24,19 @@ describe('searchBarPanelPropsBuilder', () => {
     expect(result).not.toBe(shellProps);
   });
 
-  it('builds suggestions panel props from raw values', () => {
-    const renderSuggestionIcon: SearchBarControllerSuggestionsPanelProps['renderSuggestionIcon'] = vi.fn();
-    const onSuggestionClick: SearchBarControllerSuggestionsPanelProps['onSuggestionClick'] = vi.fn();
-    const onSuggestionHover: SearchBarControllerSuggestionsPanelProps['onSuggestionHover'] = vi.fn();
+  it("builds suggestions panel props from raw values", () => {
+    const renderSuggestionIcon: SearchBarControllerSuggestionsPanelProps["renderSuggestionIcon"] =
+      vi.fn();
+    const onSuggestionClick: SearchBarControllerSuggestionsPanelProps["onSuggestionClick"] =
+      vi.fn();
+    const onSuggestionHover: SearchBarControllerSuggestionsPanelProps["onSuggestionHover"] =
+      vi.fn();
 
     const result = buildSuggestionsPanelProps({
       showSuggestions: true,
       suggestions: [],
       selectedIndex: 2,
-      locale: 'en',
+      locale: "en",
       renderSuggestionIcon,
       onSuggestionClick,
       onSuggestionHover,
@@ -43,27 +46,31 @@ describe('searchBarPanelPropsBuilder', () => {
       showSuggestions: true,
       suggestions: [],
       selectedIndex: 2,
-      locale: 'en',
+      locale: "en",
       renderSuggestionIcon,
       onSuggestionClick,
       onSuggestionHover,
     });
   });
 
-  it('builds code filter helper props and injects code filter prefixes', () => {
-    const copy = { codeFilterTitle: 'Code filters' } as unknown as SearchBarControllerCodeFilterHelperProps['copy'];
-    const activeEntries = [] as SearchBarControllerCodeFilterHelperProps['activeEntries'];
-    const exampleTokens = ['repo:gateway-sync'] as SearchBarControllerCodeFilterHelperProps['exampleTokens'];
-    const scenarios = [] as SearchBarControllerCodeFilterHelperProps['scenarios'];
-    const onInsertPrefix: SearchBarControllerCodeFilterHelperProps['onInsertPrefix'] = vi.fn();
-    const onApplyExample: SearchBarControllerCodeFilterHelperProps['onApplyExample'] = vi.fn();
-    const onApplyScenario: SearchBarControllerCodeFilterHelperProps['onApplyScenario'] = vi.fn();
-    const onRemoveFilter: SearchBarControllerCodeFilterHelperProps['onRemoveFilter'] = vi.fn();
-    const onClearFilters: SearchBarControllerCodeFilterHelperProps['onClearFilters'] = vi.fn();
+  it("builds code filter helper props and injects code filter prefixes", () => {
+    const copy = {
+      codeFilterTitle: "Code filters",
+    } as unknown as SearchBarControllerCodeFilterHelperProps["copy"];
+    const activeEntries = [] as SearchBarControllerCodeFilterHelperProps["activeEntries"];
+    const exampleTokens = [
+      "repo:gateway-sync",
+    ] as SearchBarControllerCodeFilterHelperProps["exampleTokens"];
+    const scenarios = [] as SearchBarControllerCodeFilterHelperProps["scenarios"];
+    const onInsertPrefix: SearchBarControllerCodeFilterHelperProps["onInsertPrefix"] = vi.fn();
+    const onApplyExample: SearchBarControllerCodeFilterHelperProps["onApplyExample"] = vi.fn();
+    const onApplyScenario: SearchBarControllerCodeFilterHelperProps["onApplyScenario"] = vi.fn();
+    const onRemoveFilter: SearchBarControllerCodeFilterHelperProps["onRemoveFilter"] = vi.fn();
+    const onClearFilters: SearchBarControllerCodeFilterHelperProps["onClearFilters"] = vi.fn();
 
     const result = buildCodeFilterHelperProps({
       copy,
-      locale: 'zh-CN',
+      locale: "zh-CN",
       activeEntries,
       exampleTokens,
       scenarios,
@@ -80,13 +87,17 @@ describe('searchBarPanelPropsBuilder', () => {
     expect(result.onClearFilters).toBe(onClearFilters);
   });
 
-  it('builds full controller result with modal wrappers', () => {
+  it("builds full controller result with modal wrappers", () => {
     const onModalClick = vi.fn();
     const onModalKeyDownCapture = vi.fn();
-    const shellProps = { query: 'repo:gateway-sync' } as unknown as SearchBarControllerShellProps;
+    const shellProps = { query: "repo:gateway-sync" } as unknown as SearchBarControllerShellProps;
     const resultsPanelProps = { sections: [] } as unknown as SearchBarControllerResultsPanelProps;
-    const suggestionsPanelProps = { showSuggestions: false } as unknown as SearchBarControllerSuggestionsPanelProps;
-    const codeFilterHelperProps = { prefixes: CODE_FILTER_PREFIXES } as unknown as SearchBarControllerCodeFilterHelperProps;
+    const suggestionsPanelProps = {
+      showSuggestions: false,
+    } as unknown as SearchBarControllerSuggestionsPanelProps;
+    const codeFilterHelperProps = {
+      prefixes: CODE_FILTER_PREFIXES,
+    } as unknown as SearchBarControllerCodeFilterHelperProps;
 
     const result = buildSearchBarControllerResult({
       onModalClick,
@@ -107,23 +118,24 @@ describe('searchBarPanelPropsBuilder', () => {
     expect(result.codeFilterHelperProps).toBe(codeFilterHelperProps);
   });
 
-  it('builds results panel props without suggestion offsets', () => {
-    const copy = { noResults: 'No results' } as unknown as SearchBarControllerResultsPanelProps['copy'];
-    const rows = [] as SearchBarControllerResultsPanelProps['rows'];
-    const isResultPreviewExpanded: SearchBarControllerResultsPanelProps['isResultPreviewExpanded'] = vi.fn(
-      () => false
-    );
-    const renderIcon: SearchBarControllerResultsPanelProps['renderIcon'] = vi.fn();
-    const renderTitle: SearchBarControllerResultsPanelProps['renderTitle'] = vi.fn();
+  it("builds results panel props without suggestion offsets", () => {
+    const copy = {
+      noResults: "No results",
+    } as unknown as SearchBarControllerResultsPanelProps["copy"];
+    const rows = [] as SearchBarControllerResultsPanelProps["rows"];
+    const isResultPreviewExpanded: SearchBarControllerResultsPanelProps["isResultPreviewExpanded"] =
+      vi.fn(() => false);
+    const renderIcon: SearchBarControllerResultsPanelProps["renderIcon"] = vi.fn();
+    const renderTitle: SearchBarControllerResultsPanelProps["renderTitle"] = vi.fn();
     const setResultSelectedIndex = vi.fn();
-    const onOpen: SearchBarControllerResultsPanelProps['onOpen'] = vi.fn();
-    const onOpenDefinition: SearchBarControllerResultsPanelProps['onOpenDefinition'] = vi.fn();
-    const onOpenReferences: SearchBarControllerResultsPanelProps['onOpenReferences'] = vi.fn();
-    const onOpenGraph: SearchBarControllerResultsPanelProps['onOpenGraph'] = vi.fn();
-    const onTogglePreview: SearchBarControllerResultsPanelProps['onTogglePreview'] = vi.fn();
+    const onOpen: SearchBarControllerResultsPanelProps["onOpen"] = vi.fn();
+    const onOpenDefinition: SearchBarControllerResultsPanelProps["onOpenDefinition"] = vi.fn();
+    const onOpenReferences: SearchBarControllerResultsPanelProps["onOpenReferences"] = vi.fn();
+    const onOpenGraph: SearchBarControllerResultsPanelProps["onOpenGraph"] = vi.fn();
+    const onTogglePreview: SearchBarControllerResultsPanelProps["onTogglePreview"] = vi.fn();
 
     const result = buildSearchResultsPanelProps({
-      query: 'gateway',
+      query: "gateway",
       copy,
       isLoading: false,
       hasCodeFilterOnlyQuery: false,

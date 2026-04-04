@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SearchExecutionOutcome, SearchMeta } from '../searchExecutionTypes';
-import type { SearchResult } from '../types';
-import { useSearchExecution } from '../useSearchExecution';
+import React, { useState } from "react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SearchExecutionOutcome, SearchMeta } from "../searchExecutionTypes";
+import type { SearchResult } from "../types";
+import { useSearchExecution } from "../useSearchExecution";
 
 const mocks = vi.hoisted(() => ({
   executeSearchQuery: vi.fn(),
 }));
 
-vi.mock('../searchExecution', () => ({
+vi.mock("../searchExecution", () => ({
   executeSearchQuery: mocks.executeSearchQuery,
 }));
 
@@ -34,21 +34,21 @@ function createSearchResult(stem: string): SearchResult {
     stem,
     title: stem,
     path: `sciml/src/${stem}.jl`,
-    docType: 'symbol',
-    tags: ['code', 'lang:julia', 'kind:function'],
+    docType: "symbol",
+    tags: ["code", "lang:julia", "kind:function"],
     score: 0.95,
-    category: 'symbol',
-    projectName: 'sciml',
-    rootLabel: 'src',
+    category: "symbol",
+    projectName: "sciml",
+    rootLabel: "src",
     line: 12,
-    codeLanguage: 'julia',
-    codeKind: 'function',
-    codeRepo: 'sciml',
+    codeLanguage: "julia",
+    codeKind: "function",
+    codeRepo: "sciml",
     navigationTarget: {
       path: `sciml/src/${stem}.jl`,
-      category: 'repo_code',
-      projectName: 'sciml',
-      rootLabel: 'src',
+      category: "repo_code",
+      projectName: "sciml",
+      rootLabel: "src",
       line: 12,
     },
   };
@@ -60,9 +60,9 @@ function createOutcome(query: string, stem: string): SearchExecutionOutcome {
     meta: {
       query,
       hitCount: 1,
-      selectedMode: 'code_search',
-      searchMode: 'code_search',
-      intent: 'code_search',
+      selectedMode: "code_search",
+      searchMode: "code_search",
+      intent: "code_search",
       intentConfidence: 0.97,
     },
   };
@@ -83,7 +83,7 @@ function Harness({ isOpen = true, queryToSearch }: HarnessProps) {
   useSearchExecution({
     isOpen,
     queryToSearch,
-    searchMode: 'all',
+    searchMode: "all",
     setResults,
     setSearchMeta,
     setIsLoading,
@@ -93,21 +93,21 @@ function Harness({ isOpen = true, queryToSearch }: HarnessProps) {
 
   return (
     <div>
-      <div data-testid="results">{results.map((result) => result.stem).join(',')}</div>
-      <div data-testid="meta-query">{searchMeta?.query ?? ''}</div>
-      <div data-testid="loading">{isLoading ? 'loading' : 'idle'}</div>
-      <div data-testid="error">{error ?? ''}</div>
+      <div data-testid="results">{results.map((result) => result.stem).join(",")}</div>
+      <div data-testid="meta-query">{searchMeta?.query ?? ""}</div>
+      <div data-testid="loading">{isLoading ? "loading" : "idle"}</div>
+      <div data-testid="error">{error ?? ""}</div>
       <div data-testid="selected-index">{String(resultSelectedIndex)}</div>
     </div>
   );
 }
 
-describe('useSearchExecution', () => {
+describe("useSearchExecution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('keeps the latest all-scope code-filtered query results when an older response resolves later', async () => {
+  it("keeps the latest all-scope code-filtered query results when an older response resolves later", async () => {
     const firstQuery = createDeferred<SearchExecutionOutcome>();
     const secondQuery = createDeferred<SearchExecutionOutcome>();
 
@@ -118,7 +118,7 @@ describe('useSearchExecution', () => {
     const { rerender } = render(<Harness queryToSearch="sec lang:julia" />);
 
     await waitFor(() => {
-      expect(mocks.executeSearchQuery).toHaveBeenNthCalledWith(1, 'sec lang:julia', 'all', {});
+      expect(mocks.executeSearchQuery).toHaveBeenNthCalledWith(1, "sec lang:julia", "all", {});
     });
 
     rerender(<Harness queryToSearch="sec lang:julia kind:function" />);
@@ -126,34 +126,34 @@ describe('useSearchExecution', () => {
     await waitFor(() => {
       expect(mocks.executeSearchQuery).toHaveBeenNthCalledWith(
         2,
-        'sec lang:julia kind:function',
-        'all',
+        "sec lang:julia kind:function",
+        "all",
         {},
       );
     });
 
     await act(async () => {
-      secondQuery.resolve(createOutcome('sec lang:julia kind:function', 'solve'));
+      secondQuery.resolve(createOutcome("sec lang:julia kind:function", "solve"));
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('results')).toHaveTextContent('solve');
-      expect(screen.getByTestId('meta-query')).toHaveTextContent('sec lang:julia kind:function');
-      expect(screen.getByTestId('loading')).toHaveTextContent('idle');
-      expect(screen.getByTestId('selected-index')).toHaveTextContent('0');
+      expect(screen.getByTestId("results")).toHaveTextContent("solve");
+      expect(screen.getByTestId("meta-query")).toHaveTextContent("sec lang:julia kind:function");
+      expect(screen.getByTestId("loading")).toHaveTextContent("idle");
+      expect(screen.getByTestId("selected-index")).toHaveTextContent("0");
     });
 
     await act(async () => {
-      firstQuery.resolve(createOutcome('sec lang:julia', 'sectionize'));
+      firstQuery.resolve(createOutcome("sec lang:julia", "sectionize"));
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('results')).toHaveTextContent('solve');
-      expect(screen.getByTestId('results')).not.toHaveTextContent('sectionize');
-      expect(screen.getByTestId('meta-query')).toHaveTextContent('sec lang:julia kind:function');
-      expect(screen.getByTestId('error')).toHaveTextContent('');
+      expect(screen.getByTestId("results")).toHaveTextContent("solve");
+      expect(screen.getByTestId("results")).not.toHaveTextContent("sectionize");
+      expect(screen.getByTestId("meta-query")).toHaveTextContent("sec lang:julia kind:function");
+      expect(screen.getByTestId("error")).toHaveTextContent("");
     });
   });
 });

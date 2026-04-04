@@ -5,15 +5,9 @@ export interface MermaidRenderTheme {
   readonly transparent: boolean;
 }
 
-export type MermaidRuntimeProviderName =
-  | 'beautiful-mermaid'
-  | 'compact-flow';
+export type MermaidRuntimeProviderName = "beautiful-mermaid" | "compact-flow";
 
-export type MermaidInlineDialect =
-  | 'flowchart'
-  | 'graph'
-  | 'state'
-  | 'unknown';
+export type MermaidInlineDialect = "flowchart" | "graph" | "state" | "unknown";
 
 export interface MermaidRuntimeProviderManifest {
   readonly providerName: MermaidRuntimeProviderName;
@@ -22,10 +16,7 @@ export interface MermaidRuntimeProviderManifest {
   readonly payloadNotes: readonly string[];
 }
 
-export type MermaidRenderFunction = (
-  source: string,
-  theme: MermaidRenderTheme,
-) => string;
+export type MermaidRenderFunction = (source: string, theme: MermaidRenderTheme) => string;
 
 export interface MermaidRuntimeProvider {
   readonly providerName: MermaidRuntimeProviderName;

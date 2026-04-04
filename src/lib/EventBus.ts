@@ -3,27 +3,18 @@
  * Implements the "Quantum Bridge" from wendao_cockpit_v1.md
  */
 
-import type { EventName, EventPayload, TopologyEvents } from './types/events';
+import type { EventName, EventPayload, TopologyEvents } from "./types/events";
 
 type EventCallback<T = unknown> = (payload: T) => void;
 
 interface EventBus {
-  on<E extends EventName>(
-    event: E,
-    callback: EventCallback<EventPayload<E>>
-  ): () => void;
+  on<E extends EventName>(event: E, callback: EventCallback<EventPayload<E>>): () => void;
 
-  once<E extends EventName>(
-    event: E,
-    callback: EventCallback<EventPayload<E>>
-  ): () => void;
+  once<E extends EventName>(event: E, callback: EventCallback<EventPayload<E>>): () => void;
 
   emit<E extends EventName>(event: E, payload: EventPayload<E>): void;
 
-  off<E extends EventName>(
-    event: E,
-    callback: EventCallback<EventPayload<E>>
-  ): void;
+  off<E extends EventName>(event: E, callback: EventCallback<EventPayload<E>>): void;
 
   clear(event?: EventName): void;
 }
@@ -31,10 +22,7 @@ interface EventBus {
 class EventBusImpl implements EventBus {
   private listeners = new Map<string, Set<EventCallback>>();
 
-  on<E extends EventName>(
-    event: E,
-    callback: EventCallback<EventPayload<E>>
-  ): () => void {
+  on<E extends EventName>(event: E, callback: EventCallback<EventPayload<E>>): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
@@ -44,10 +32,7 @@ class EventBusImpl implements EventBus {
     return () => this.off(event, callback);
   }
 
-  once<E extends EventName>(
-    event: E,
-    callback: EventCallback<EventPayload<E>>
-  ): () => void {
+  once<E extends EventName>(event: E, callback: EventCallback<EventPayload<E>>): () => void {
     const wrapper: EventCallback<EventPayload<E>> = (payload) => {
       this.off(event, wrapper);
       callback(payload);
@@ -68,10 +53,7 @@ class EventBusImpl implements EventBus {
     }
   }
 
-  off<E extends EventName>(
-    event: E,
-    callback: EventCallback<EventPayload<E>>
-  ): void {
+  off<E extends EventName>(event: E, callback: EventCallback<EventPayload<E>>): void {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       callbacks.delete(callback as EventCallback);

@@ -1,4 +1,4 @@
-import type { UiLocale } from '../../SearchBar/types';
+import type { UiLocale } from "../../SearchBar/types";
 
 export interface StructuredAnchorDisplay {
   label: string;
@@ -11,28 +11,28 @@ export interface StructuredLayerNavItem {
   label: string;
 }
 
-export type StructuredAnchorSide = 'incoming' | 'outgoing' | null;
+export type StructuredAnchorSide = "incoming" | "outgoing" | null;
 
 export const STRUCTURED_LAYER_NAV: StructuredLayerNavItem[] = [
-  { id: 'structured-slot-topology', label: 'I. Topological Identity' },
-  { id: 'structured-slot-anatomy', label: 'II. Entity Anatomy' },
-  { id: 'structured-slot-fragments', label: 'III. Multi-slot Fragments' },
-  { id: 'structured-slot-relations', label: 'IV. Relational Projection' },
+  { id: "structured-slot-topology", label: "I. Topological Identity" },
+  { id: "structured-slot-anatomy", label: "II. Entity Anatomy" },
+  { id: "structured-slot-fragments", label: "III. Multi-slot Fragments" },
+  { id: "structured-slot-relations", label: "IV. Relational Projection" },
 ];
 
 export function formatStructuredSideBadge(
   locale: UiLocale,
-  side: Exclude<StructuredAnchorSide, null>
+  side: Exclude<StructuredAnchorSide, null>,
 ): string {
-  if (locale === 'zh') {
-    return side === 'incoming' ? '前' : '后';
+  if (locale === "zh") {
+    return side === "incoming" ? "前" : "后";
   }
 
-  return side === 'incoming' ? 'In' : 'Out';
+  return side === "incoming" ? "In" : "Out";
 }
 
 export function formatStructuredPath(path: string): string {
-  const segments = path.split('/').filter(Boolean);
+  const segments = path.split("/").filter(Boolean);
   if (segments.length <= 3) {
     return path;
   }
@@ -44,7 +44,7 @@ export function resolveFocusedAnchor(
   focusedAnchorId: string | null,
   centerAnchor: StructuredAnchorDisplay | null,
   pathTrail: Array<{ label: string; value: string; query?: string }>,
-  neighbors: Array<{ id: string; label: string; path: string; query?: string }>
+  neighbors: Array<{ id: string; label: string; path: string; query?: string }>,
 ): StructuredAnchorDisplay | null {
   if (!focusedAnchorId) {
     return null;
@@ -79,18 +79,18 @@ export function resolveFocusedAnchorSide(
   focusedAnchorId: string | null,
   centerAnchor: StructuredAnchorDisplay | null,
   incoming: Array<{ id: string }>,
-  outgoing: Array<{ id: string }>
+  outgoing: Array<{ id: string }>,
 ): StructuredAnchorSide {
   if (!focusedAnchorId || focusedAnchorId === centerAnchor?.value) {
     return null;
   }
 
   if (incoming.some((node) => node.id === focusedAnchorId)) {
-    return 'incoming';
+    return "incoming";
   }
 
   if (outgoing.some((node) => node.id === focusedAnchorId)) {
-    return 'outgoing';
+    return "outgoing";
   }
 
   return null;

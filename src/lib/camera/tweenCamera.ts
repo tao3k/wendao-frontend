@@ -7,7 +7,7 @@
  * - Easing functions for natural-feeling animations
  */
 
-import type { Vector3, Camera } from 'three';
+import type { Vector3, Camera } from "three";
 
 /**
  * Easing functions for camera animations
@@ -97,8 +97,8 @@ const activeTweens = new Map<Camera, TweenState>();
  * Check if user prefers reduced motion
  */
 export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -122,7 +122,7 @@ function lerpVector3(start: Vector3, end: Vector3, t: number): Vector3 {
   return createVector3(
     start.x + (end.x - start.x) * t,
     start.y + (end.y - start.y) * t,
-    start.z + (end.z - start.z) * t
+    start.z + (end.z - start.z) * t,
   );
 }
 
@@ -148,7 +148,7 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
     if (target.lookAt) {
       camera.lookAt(target.lookAt[0], target.lookAt[1], target.lookAt[2]);
     }
-    if (target.zoom !== undefined && 'zoom' in camera) {
+    if (target.zoom !== undefined && "zoom" in camera) {
       zoomableCamera.zoom = target.zoom;
     }
     config.onComplete?.();
@@ -156,35 +156,39 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
   }
 
   // Get easing function
-  const easingFn = typeof config.easing === 'function'
-    ? config.easing
-    : config.easing
-      ? Easing[config.easing]
-      : Easing.easeOutCubic;
+  const easingFn =
+    typeof config.easing === "function"
+      ? config.easing
+      : config.easing
+        ? Easing[config.easing]
+        : Easing.easeOutCubic;
 
   // Store initial state
   const startPosition = createVector3(camera.position.x, camera.position.y, camera.position.z);
 
   // Get current lookAt direction (if available)
   let startLookAt: Vector3 | null = null;
-  if (target.lookAt && 'quaternion' in camera) {
+  if (target.lookAt && "quaternion" in camera) {
     // Apply quaternion rotation if available
     const q = (camera as { quaternion: { x: number; y: number; z: number; w: number } }).quaternion;
     // Simplified quaternion rotation for forward vector
-    const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+    const qx = q.x,
+      qy = q.y,
+      qz = q.z,
+      qw = q.w;
     const dx = 2 * (qx * qz + qw * qy);
     const dy = 2 * (qy * qz - qw * qx);
     const dz = 1 - 2 * (qx * qx + qy * qy);
     startLookAt = createVector3(
       camera.position.x + dx * 10,
       camera.position.y + dy * 10,
-      camera.position.z + dz * 10
+      camera.position.z + dz * 10,
     );
   }
 
   const targetPosition = createVector3(...target.position);
   const targetLookAt = target.lookAt ? createVector3(...target.lookAt) : null;
-  const startZoom = 'zoom' in camera ? zoomableCamera.zoom : 1;
+  const startZoom = "zoom" in camera ? zoomableCamera.zoom : 1;
   const targetZoom = target.zoom ?? startZoom;
 
   const state: TweenState = {
@@ -224,7 +228,7 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
     }
 
     // Interpolate zoom
-    if ('zoom' in camera) {
+    if ("zoom" in camera) {
       const newZoom = state.startZoom + (state.targetZoom - state.startZoom) * progress;
       zoomableCamera.zoom = newZoom;
       zoomableCamera.updateProjectionMatrix?.();
@@ -260,7 +264,7 @@ export function tweenCamera(camera: Camera, target: CameraTarget, config: TweenC
 export function focusOnNode(
   camera: Camera,
   nodePosition: [number, number, number],
-  options: Partial<TweenConfig> = {}
+  options: Partial<TweenConfig> = {},
 ): () => void {
   // Calculate camera position offset from node
   const offset: [number, number, number] = [0, 5, 15];
@@ -270,16 +274,20 @@ export function focusOnNode(
     nodePosition[2] + offset[2],
   ];
 
-  return tweenCamera(camera, {
-    position: cameraPosition,
-    lookAt: nodePosition,
-  }, {
-    duration: options.duration ?? getDefaultDuration(),
-    easing: options.easing ?? 'easeOutCubic',
-    onUpdate: options.onUpdate,
-    onComplete: options.onComplete,
-    onStop: options.onStop,
-  });
+  return tweenCamera(
+    camera,
+    {
+      position: cameraPosition,
+      lookAt: nodePosition,
+    },
+    {
+      duration: options.duration ?? getDefaultDuration(),
+      easing: options.easing ?? "easeOutCubic",
+      onUpdate: options.onUpdate,
+      onComplete: options.onComplete,
+      onStop: options.onStop,
+    },
+  );
 }
 
 /**
@@ -289,7 +297,7 @@ export function focusOnCluster(
   camera: Camera,
   centroid: [number, number, number],
   clusterSize: number,
-  options: Partial<TweenConfig> = {}
+  options: Partial<TweenConfig> = {},
 ): () => void {
   // Calculate distance based on cluster size
   const distance = Math.max(20, Math.sqrt(clusterSize) * 10);
@@ -299,35 +307,40 @@ export function focusOnCluster(
     centroid[2] + distance,
   ];
 
-  return tweenCamera(camera, {
-    position: cameraPosition,
-    lookAt: centroid,
-  }, {
-    duration: options.duration ?? getDefaultDuration(),
-    easing: options.easing ?? 'easeOutCubic',
-    onUpdate: options.onUpdate,
-    onComplete: options.onComplete,
-    onStop: options.onStop,
-  });
+  return tweenCamera(
+    camera,
+    {
+      position: cameraPosition,
+      lookAt: centroid,
+    },
+    {
+      duration: options.duration ?? getDefaultDuration(),
+      easing: options.easing ?? "easeOutCubic",
+      onUpdate: options.onUpdate,
+      onComplete: options.onComplete,
+      onStop: options.onStop,
+    },
+  );
 }
 
 /**
  * Reset camera to default position
  */
-export function resetCamera(
-  camera: Camera,
-  options: Partial<TweenConfig> = {}
-): () => void {
-  return tweenCamera(camera, {
-    position: [0, 50, 100],
-    lookAt: [0, 0, 0],
-  }, {
-    duration: options.duration ?? getDefaultDuration(),
-    easing: options.easing ?? 'easeInOutCubic',
-    onUpdate: options.onUpdate,
-    onComplete: options.onComplete,
-    onStop: options.onStop,
-  });
+export function resetCamera(camera: Camera, options: Partial<TweenConfig> = {}): () => void {
+  return tweenCamera(
+    camera,
+    {
+      position: [0, 50, 100],
+      lookAt: [0, 0, 0],
+    },
+    {
+      duration: options.duration ?? getDefaultDuration(),
+      easing: options.easing ?? "easeInOutCubic",
+      onUpdate: options.onUpdate,
+      onComplete: options.onComplete,
+      onStop: options.onStop,
+    },
+  );
 }
 
 /**

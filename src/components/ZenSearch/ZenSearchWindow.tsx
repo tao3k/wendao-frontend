@@ -1,9 +1,9 @@
-import React from 'react';
-import { useZenSearchMode } from './useZenSearchMode';
-import { ZenSearchLayout } from './ZenSearchLayout';
-import type { SearchSelectionAction, UiLocale } from '../SearchBar/types';
-import './ZenSearchWindow.css';
-import '../SearchBar/SearchBar.css';
+import React from "react";
+import { useZenSearchMode } from "./useZenSearchMode";
+import { ZenSearchLayout } from "./ZenSearchLayout";
+import type { SearchSelectionAction, UiLocale } from "../SearchBar/types";
+import "./ZenSearchWindow.css";
+import "../SearchBar/SearchBar.css";
 
 interface ZenSearchWindowProps {
   isOpen?: boolean;
@@ -12,12 +12,14 @@ interface ZenSearchWindowProps {
   onResultSelect: SearchSelectionAction;
   onReferencesResultSelect?: SearchSelectionAction;
   onGraphResultSelect?: SearchSelectionAction;
-  onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
+  onRuntimeStatusChange?: (
+    status: { tone: "warning" | "error"; message: string; source: "search" } | null,
+  ) => void;
 }
 
 export const ZenSearchWindow: React.FC<ZenSearchWindowProps> = ({
   isOpen = true,
-  locale = 'en',
+  locale = "en",
   onClose,
   onResultSelect,
   onReferencesResultSelect,
@@ -38,7 +40,7 @@ export const ZenSearchWindow: React.FC<ZenSearchWindowProps> = ({
     <div
       className="zen-search-window"
       data-testid="zen-search-window"
-      data-open={isOpen ? 'true' : 'false'}
+      data-open={isOpen ? "true" : "false"}
       role="dialog"
       aria-modal="true"
       aria-hidden={!isOpen}

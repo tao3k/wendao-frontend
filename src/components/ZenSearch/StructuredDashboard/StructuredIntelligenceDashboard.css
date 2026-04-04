@@ -66,13 +66,18 @@
 }
 
 .structured-dashboard__layer-nav-item {
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid rgba(125, 207, 255, 0.14);
   border-radius: 999px;
   padding: 5px 10px;
   background: rgba(125, 207, 255, 0.04);
   color: var(--tokyo-comment);
+  font: inherit;
   font-size: 0.72rem;
   font-weight: 700;
+  text-align: left;
+  cursor: pointer;
   transition:
     transform 0.15s ease,
     border-color 0.15s ease,
@@ -179,13 +184,18 @@
 }
 
 .structured-dashboard__focus-clear {
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid rgba(125, 207, 255, 0.14);
   border-radius: 999px;
   padding: 4px 9px;
   color: var(--tokyo-comment);
   background: rgba(125, 207, 255, 0.04);
+  font: inherit;
   font-size: 0.68rem;
   font-weight: 700;
+  text-align: left;
+  cursor: pointer;
   transition:
     transform 0.15s ease,
     border-color 0.15s ease,
@@ -317,13 +327,18 @@
 
 .structured-topology-map__toggle,
 .structured-topology-map__focus-clear {
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid rgba(125, 207, 255, 0.14);
   border-radius: 999px;
   padding: 5px 10px;
   color: var(--tokyo-comment);
   background: rgba(125, 207, 255, 0.04);
+  font: inherit;
   font-size: 0.72rem;
   font-weight: 700;
+  text-align: left;
+  cursor: pointer;
   transition:
     transform 0.15s ease,
     border-color 0.15s ease,
@@ -411,7 +426,10 @@
 .structured-topology-map__node circle {
   stroke: rgba(255, 255, 255, 0.3);
   stroke-width: 2;
-  transition: transform 0.15s ease, stroke 0.15s ease, fill 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    stroke 0.15s ease,
+    fill 0.15s ease;
 }
 
 .structured-topology-map__node--center circle {
@@ -463,14 +481,22 @@
 }
 
 .structured-chip {
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid rgba(125, 207, 255, 0.16);
   background: rgba(125, 207, 255, 0.08);
   color: var(--tokyo-text);
   border-radius: 999px;
   padding: 6px 10px;
+  font: inherit;
   font-size: 0.76rem;
   line-height: 1;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .structured-chip:hover {
@@ -512,6 +538,8 @@
 }
 
 .structured-metadata-card {
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -519,6 +547,10 @@
   border-radius: 10px;
   background: rgba(125, 207, 255, 0.05);
   border: 1px solid rgba(125, 207, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .structured-metadata-label {
@@ -557,6 +589,7 @@
 .structured-outline__item button,
 .structured-chip button {
   appearance: none;
+  -webkit-appearance: none;
   border: 0;
   background: transparent;
   color: inherit;
@@ -628,8 +661,15 @@
 }
 
 .structured-fragment-card__query {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
   color: var(--tokyo-comment);
+  font: inherit;
   font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
 }
 
 .structured-fragment-card__body {
@@ -641,7 +681,7 @@
 }
 
 .structured-fragment-card__body .code-syntax-highlighter {
-  font-family: var(--font-mono, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace);
+  font-family: var(--font-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
   font-size: 0.84rem;
 }
 

@@ -1,10 +1,10 @@
-import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import type { ZenSearchPreviewState } from '../useZenSearchPreview';
-import { ZenSearchPreviewShell } from '../ZenSearchPreviewShell';
+import React from "react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import type { ZenSearchPreviewState } from "../useZenSearchPreview";
+import { ZenSearchPreviewShell } from "../ZenSearchPreviewShell";
 
-vi.mock('../ZenSearchPreviewEntity', () => ({
+vi.mock("../ZenSearchPreviewEntity", () => ({
   ZenSearchPreviewEntity: () => <div data-testid="mock-zen-preview-entity" />,
 }));
 
@@ -21,38 +21,38 @@ function buildPreview(overrides: Partial<ZenSearchPreviewState> = {}): ZenSearch
   };
 }
 
-describe('ZenSearchPreviewShell', () => {
-  it('renders the placeholder when there is no selected result', () => {
+describe("ZenSearchPreviewShell", () => {
+  it("renders the placeholder when there is no selected result", () => {
     render(<ZenSearchPreviewShell locale="en" preview={buildPreview()} />);
 
-    expect(screen.getByText('Select a result to preview details')).toBeInTheDocument();
+    expect(screen.getByText("Select a result to preview details")).toBeInTheDocument();
   });
 
-  it('renders the composed preview sections for a selected result', () => {
+  it("renders the composed preview sections for a selected result", () => {
     render(
       <ZenSearchPreviewShell
         locale="en"
         preview={buildPreview({
           selectedResult: {
-            title: 'Kernel Docs',
-            stem: 'Kernel Docs',
-            path: 'kernel/docs/index.md',
-            docType: 'doc',
+            title: "Kernel Docs",
+            stem: "Kernel Docs",
+            path: "kernel/docs/index.md",
+            docType: "doc",
             tags: [],
             score: 0.98,
-            category: 'document',
+            category: "document",
             navigationTarget: {
-              path: 'kernel/docs/index.md',
-              category: 'doc',
-              projectName: 'kernel',
+              path: "kernel/docs/index.md",
+              category: "doc",
+              projectName: "kernel",
             },
-            searchSource: 'search-index',
+            searchSource: "search-index",
           } as never,
-          contentPath: 'kernel/docs/index.md',
+          contentPath: "kernel/docs/index.md",
         })}
-      />
+      />,
     );
 
-    expect(screen.getByTestId('mock-zen-preview-entity')).toBeInTheDocument();
+    expect(screen.getByTestId("mock-zen-preview-entity")).toBeInTheDocument();
   });
 });

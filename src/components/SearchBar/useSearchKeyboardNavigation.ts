@@ -1,13 +1,13 @@
-import { useCallback } from 'react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
-import type { AutocompleteSuggestion } from '../../api';
+import { useCallback } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { AutocompleteSuggestion } from "../../api";
 import {
   clampSelectableIndex,
   isEscapeKey,
   shouldAcceptTabSuggestion,
-} from './searchKeyboardUtils';
-import { toSearchSelection } from './searchResultNormalization';
-import type { SearchResult, SearchSelectionAction } from './types';
+} from "./searchKeyboardUtils";
+import { toSearchSelection } from "./searchResultNormalization";
+import type { SearchResult, SearchSelectionAction } from "./types";
 
 interface UseSearchKeyboardNavigationParams {
   isComposing: boolean;
@@ -63,35 +63,32 @@ export function useSearchKeyboardNavigation({
 
   const closeAfterSelection = useCallback(
     (selection: void | Promise<void>) => {
-      if (selection && typeof (selection as Promise<void>).then === 'function') {
+      if (selection && typeof (selection as Promise<void>).then === "function") {
         void (selection as Promise<void>).then(onClose).catch(() => undefined);
         return;
       }
       onClose();
     },
-    [onClose]
+    [onClose],
   );
 
-  const applySuggestion = useCallback((
-    suggestion?: AutocompleteSuggestion,
-    { keepSuggestionsOpen = false }: ApplySuggestionOptions = {},
-  ) => {
-    if (!selectSuggestion(suggestion) || !suggestion) {
-      return false;
-    }
+  const applySuggestion = useCallback(
+    (
+      suggestion?: AutocompleteSuggestion,
+      { keepSuggestionsOpen = false }: ApplySuggestionOptions = {},
+    ) => {
+      if (!selectSuggestion(suggestion) || !suggestion) {
+        return false;
+      }
 
-    setQuery(suggestion.text);
-    setShowSuggestions(keepSuggestionsOpen);
-    setResultSelectedIndex(0);
-    inputRef.current?.focus();
-    return true;
-  }, [
-    inputRef,
-    selectSuggestion,
-    setQuery,
-    setResultSelectedIndex,
-    setShowSuggestions,
-  ]);
+      setQuery(suggestion.text);
+      setShowSuggestions(keepSuggestionsOpen);
+      setResultSelectedIndex(0);
+      inputRef.current?.focus();
+      return true;
+    },
+    [inputRef, selectSuggestion, setQuery, setResultSelectedIndex, setShowSuggestions],
+  );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -110,37 +107,40 @@ export function useSearchKeyboardNavigation({
       }
 
       switch (event.key) {
-        case 'ArrowDown':
+        case "ArrowDown":
           event.preventDefault();
           if (hasActiveSuggestions) {
-            setActiveSuggestionIndex(clampSelectableIndex(activeSuggestionIndex + 1, suggestionCount));
+            setActiveSuggestionIndex(
+              clampSelectableIndex(activeSuggestionIndex + 1, suggestionCount),
+            );
           } else {
             setResultSelectedIndex((prev) => clampSelectableIndex(prev + 1, resultCount));
           }
           break;
-        case 'ArrowUp':
+        case "ArrowUp":
           event.preventDefault();
           if (hasActiveSuggestions) {
-            setActiveSuggestionIndex(clampSelectableIndex(activeSuggestionIndex - 1, suggestionCount));
+            setActiveSuggestionIndex(
+              clampSelectableIndex(activeSuggestionIndex - 1, suggestionCount),
+            );
           } else {
             setResultSelectedIndex((prev) => clampSelectableIndex(prev - 1, resultCount));
           }
           break;
-        case 'Enter': {
+        case "Enter": {
           event.preventDefault();
           if (hasActiveSuggestions) {
             applySuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0]);
             break;
           }
-          const selectedResult = visibleResults[
-            clampSelectableIndex(resultSelectedIndex, resultCount)
-          ];
+          const selectedResult =
+            visibleResults[clampSelectableIndex(resultSelectedIndex, resultCount)];
           if (selectedResult) {
             closeAfterSelection(onResultSelect(toSearchSelection(selectedResult)));
           }
           break;
         }
-        case 'Tab':
+        case "Tab":
           if (shouldAcceptTabSuggestion(suggestionCount, query)) {
             event.preventDefault();
             event.stopPropagation();
@@ -168,29 +168,35 @@ export function useSearchKeyboardNavigation({
       suggestionCount,
       suggestions,
       visibleResults,
-    ]
+    ],
   );
 
-  const handleModalKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (isEscapeKey(event.key)) {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-      return;
-    }
+  const handleModalKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (isEscapeKey(event.key)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+        return;
+      }
 
-    if (event.key === 'Tab' && shouldAcceptTabSuggestion(suggestions.length, query)) {
-      event.preventDefault();
-      event.stopPropagation();
-      applySuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0], {
-        keepSuggestionsOpen: true,
-      });
-    }
-  }, [activeSuggestionIndex, applySuggestion, onClose, query, suggestions]);
+      if (event.key === "Tab" && shouldAcceptTabSuggestion(suggestions.length, query)) {
+        event.preventDefault();
+        event.stopPropagation();
+        applySuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0], {
+          keepSuggestionsOpen: true,
+        });
+      }
+    },
+    [activeSuggestionIndex, applySuggestion, onClose, query, suggestions],
+  );
 
-  const handleSuggestionClick = useCallback((suggestion: AutocompleteSuggestion) => {
-    applySuggestion(suggestion);
-  }, [applySuggestion]);
+  const handleSuggestionClick = useCallback(
+    (suggestion: AutocompleteSuggestion) => {
+      applySuggestion(suggestion);
+    },
+    [applySuggestion],
+  );
 
   return {
     handleKeyDown,

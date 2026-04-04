@@ -1,9 +1,9 @@
-import type { ComponentProps, ReactElement } from 'react';
-import { MainViewContentPanel } from './MainViewContentPanel';
-import { MainViewDiagramPanel } from './MainViewDiagramPanel';
-import { MainViewGraphPanel } from './MainViewGraphPanel';
-import { MainViewReferencesPanel } from './MainViewReferencesPanel';
-import type { MainViewTab } from './mainViewTypes';
+import type { ComponentProps, ReactElement } from "react";
+import { MainViewContentPanel } from "./MainViewContentPanel";
+import { MainViewDiagramPanel } from "./MainViewDiagramPanel";
+import { MainViewGraphPanel } from "./MainViewGraphPanel";
+import { MainViewReferencesPanel } from "./MainViewReferencesPanel";
+import type { MainViewTab } from "./mainViewTypes";
 
 export interface MainViewTabPanels {
   diagram: ReactElement;
@@ -35,7 +35,7 @@ export function buildMainViewTabPanels({
 
 export function resolveMainViewActivePanel(
   tabPanels: MainViewTabPanels,
-  activeTab: MainViewTab
+  activeTab: MainViewTab,
 ): ReactElement {
   return tabPanels[activeTab];
 }

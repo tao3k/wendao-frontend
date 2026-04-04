@@ -33,7 +33,7 @@
 }
 
 .code-ast-waterfall__stage::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 10px;
   top: 14px;
@@ -142,14 +142,32 @@
   background: rgba(8, 12, 20, 0.78);
   text-align: left;
   cursor: pointer;
-  transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease,
+    background 140ms ease;
 }
 
 .code-ast-waterfall__declaration-card:hover,
-.code-ast-waterfall__declaration-card:focus-visible {
+.code-ast-waterfall__declaration-card:focus-within {
   border-color: rgba(125, 207, 255, 0.34);
   background: rgba(8, 12, 20, 0.92);
   transform: translateY(-1px);
+}
+
+.code-ast-waterfall__declaration-primary {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .code-ast-waterfall__declaration-title {
@@ -176,6 +194,8 @@
 }
 
 .code-ast-waterfall__action {
+  appearance: none;
+  -webkit-appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -184,6 +204,7 @@
   border: 1px solid rgba(125, 207, 255, 0.16);
   background: rgba(125, 207, 255, 0.08);
   color: var(--tokyo-text);
+  font: inherit;
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
@@ -302,6 +323,8 @@
 }
 
 .code-ast-waterfall__signature-pair {
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -311,6 +334,8 @@
   border-radius: 10px;
   border: 1px solid rgba(125, 207, 255, 0.16);
   background: rgba(125, 207, 255, 0.08);
+  color: inherit;
+  font: inherit;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -351,7 +376,7 @@
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.18);
   color: var(--tokyo-text);
-  font-family: var(--font-mono, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace);
+  font-family: var(--font-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
   font-size: 0.76rem;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -422,15 +447,19 @@
 }
 
 .code-ast-waterfall__block-anchor {
+  appearance: none;
+  -webkit-appearance: none;
   align-self: flex-start;
   border: 1px solid rgba(125, 207, 255, 0.16);
   border-radius: 999px;
   padding: 5px 10px;
   color: var(--neon-blue);
   background: rgba(125, 207, 255, 0.08);
+  font: inherit;
   font-size: 0.74rem;
   font-weight: 700;
   text-align: left;
+  cursor: pointer;
 }
 
 .code-ast-waterfall__block-excerpt {
@@ -439,7 +468,7 @@
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.18);
   color: var(--tokyo-text);
-  font-family: var(--font-mono, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace);
+  font-family: var(--font-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
   font-size: 0.76rem;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -508,6 +537,8 @@
 }
 
 .code-ast-waterfall__anchor-card {
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -517,6 +548,8 @@
   border-radius: 10px;
   border: 1px solid rgba(125, 207, 255, 0.16);
   background: rgba(125, 207, 255, 0.08);
+  color: inherit;
+  font: inherit;
   cursor: pointer;
   text-align: left;
 }

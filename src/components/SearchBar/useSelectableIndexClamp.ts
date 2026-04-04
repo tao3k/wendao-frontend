@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import { clampSelectableIndex } from './searchKeyboardUtils';
+import { useEffect } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { clampSelectableIndex } from "./searchKeyboardUtils";
 
 interface UseSelectableIndexClampParams {
   selectedIndex: number;

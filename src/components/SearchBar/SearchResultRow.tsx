@@ -1,11 +1,11 @@
-import React from 'react';
-import { ArrowRight } from 'lucide-react';
-import { buildCodeMetaPills, resolveHierarchyHint } from './searchResultMetadata';
-import { canOpenGraphForSearchResult } from './searchResultNormalization';
-import type { SearchBarCopy, SearchResult } from './types';
-import { SkepticBadge } from './SkepticBadge';
-import { SaliencyIndicator } from './SaliencyIndicator';
-import { TopoBreadcrumbs } from './TopoBreadcrumbs';
+import React, { useCallback, useMemo } from "react";
+import { ArrowRight } from "lucide-react";
+import { buildCodeMetaPills, resolveHierarchyHint } from "./searchResultMetadata";
+import { canOpenGraphForSearchResult } from "./searchResultNormalization";
+import type { SearchBarCopy, SearchResult } from "./types";
+import { SkepticBadge } from "./SkepticBadge";
+import { SaliencyIndicator } from "./SaliencyIndicator";
+import { TopoBreadcrumbs } from "./TopoBreadcrumbs";
 
 interface SearchResultRowProps {
   displayIndex: number;
@@ -23,8 +23,14 @@ interface SearchResultRowProps {
   renderTitle: (text: string, query: string) => React.ReactNode;
   onHoverIndex: (index: number) => void;
   onSelectIndex: (index: number) => void;
-  onOpen: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  onOpen: (
+    result: SearchResult,
+    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => void;
+  onOpenDefinition: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenGraph: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onPreview: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -54,7 +60,7 @@ export const SearchResultRow = React.memo(function SearchResultRow({
   onPreview,
   onTogglePreviewResult,
 }: SearchResultRowProps) {
-  const displayPath = (() => {
+  const displayPath = useMemo(() => {
     if (!isCodeResultRow || !result.codeRepo) {
       return result.path;
     }
@@ -65,21 +71,55 @@ export const SearchResultRow = React.memo(function SearchResultRow({
     }
 
     return `${result.codeRepo} > ${result.path}`;
-  })();
+  }, [isCodeResultRow, result.codeRepo, result.path]);
   const codeMetaPills = isCodeResultRow ? buildCodeMetaPills(result, lineRange) : [];
   const hierarchyHint = isCodeResultRow ? resolveHierarchyHint(result) : null;
   const graphActionAvailable = canOpenGraph && canOpenGraphForSearchResult(result);
+  const handleOpenFromContainer = useCallback((
+    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => {
+    onSelectIndex(displayIndex);
+    if (openOnSelect) {
+      onOpen(result, event);
+    }
+  }, [displayIndex, onOpen, onSelectIndex, openOnSelect, result]);
+  const handleContainerKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenFromContainer();
+    }
+  }, [handleOpenFromContainer]);
+  const handleMouseEnter = useCallback(() => {
+    onHoverIndex(displayIndex);
+  }, [displayIndex, onHoverIndex]);
+  const handleTogglePreview = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onTogglePreviewResult(result);
+  }, [onTogglePreviewResult, result]);
+  const handlePreview = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    onPreview(result, event);
+  }, [onPreview, result]);
+  const handleOpenClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    onOpen(result, event);
+  }, [onOpen, result]);
+  const handleOpenDefinitionClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    void onOpenDefinition(result, event);
+  }, [onOpenDefinition, result]);
+  const handleOpenReferencesClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    onOpenReferences(result, event);
+  }, [onOpenReferences, result]);
+  const handleOpenGraphClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    onOpenGraph(result, event);
+  }, [onOpenGraph, result]);
 
   return (
     <div
-      className={`search-result ${isSelected ? 'selected' : ''} ${isCodeResultRow ? 'search-result-code' : ''}`}
-      onClick={(event) => {
-        onSelectIndex(displayIndex);
-        if (openOnSelect) {
-          onOpen(result, event);
-        }
-      }}
-      onMouseEnter={() => onHoverIndex(displayIndex)}
+      className={`search-result ${isSelected ? "selected" : ""} ${isCodeResultRow ? "search-result-code" : ""}`}
+      tabIndex={0}
+      onClick={handleOpenFromContainer}
+      onKeyDown={handleContainerKeyDown}
+      onMouseEnter={handleMouseEnter}
     >
       <div className="search-result-main">
         {renderIcon(result.docType)}
@@ -100,7 +140,10 @@ export const SearchResultRow = React.memo(function SearchResultRow({
           {isCodeResultRow && (
             <div className="search-result-code-meta">
               {codeMetaPills.map((pill) => (
-                <span key={`${pill.kind}-${pill.label}`} className={`search-result-meta-pill ${pill.kind}`}>
+                <span
+                  key={`${pill.kind}-${pill.label}`}
+                  className={`search-result-meta-pill ${pill.kind}`}
+                >
                   {pill.label}
                 </span>
               ))}
@@ -109,10 +152,14 @@ export const SearchResultRow = React.memo(function SearchResultRow({
           {(result.projectName || result.rootLabel) && (
             <div className="search-result-context">
               {result.projectName && (
-                <span className="search-result-context-pill project">{copy.project}: {result.projectName}</span>
+                <span className="search-result-context-pill project">
+                  {copy.project}: {result.projectName}
+                </span>
               )}
               {result.rootLabel && (
-                <span className="search-result-context-pill root">{copy.root}: {result.rootLabel}</span>
+                <span className="search-result-context-pill root">
+                  {copy.root}: {result.rootLabel}
+                </span>
               )}
             </div>
           )}
@@ -132,18 +179,16 @@ export const SearchResultRow = React.memo(function SearchResultRow({
           <button
             type="button"
             className="search-result-preview-toggle"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onTogglePreviewResult(result);
-            }}
+            onClick={handleTogglePreview}
           >
-            {previewExpanded ? 'Hide preview' : 'Show preview'}
+            {previewExpanded ? "Hide preview" : "Show preview"}
           </button>
           {previewExpanded && (
             <div className="search-result-match">
               {result.bestSection}
-              {result.matchReason && <span className="search-result-preview-content"> · {result.matchReason}</span>}
+              {result.matchReason && (
+                <span className="search-result-preview-content"> · {result.matchReason}</span>
+              )}
             </div>
           )}
         </div>
@@ -152,28 +197,28 @@ export const SearchResultRow = React.memo(function SearchResultRow({
           <button
             type="button"
             className="search-result-action"
-            onClick={(event) => onPreview(result, event)}
+            onClick={handlePreview}
           >
             {copy.preview}
           </button>
           <button
             type="button"
             className="search-result-action"
-            onClick={(event) => onOpen(result, event)}
+            onClick={handleOpenClick}
           >
             {copy.open}
           </button>
           <button
             type="button"
             className="search-result-action primary"
-            onClick={(event) => onOpenDefinition(result, event)}
+            onClick={handleOpenDefinitionClick}
           >
             {copy.definition}
           </button>
           <button
             type="button"
             className="search-result-action"
-            onClick={(event) => onOpenReferences(result, event)}
+            onClick={handleOpenReferencesClick}
             disabled={!canOpenReferences}
             title={canOpenReferences ? copy.openReferences : copy.referencesUnavailable}
           >
@@ -183,7 +228,7 @@ export const SearchResultRow = React.memo(function SearchResultRow({
             <button
               type="button"
               className="search-result-action"
-              onClick={(event) => onOpenGraph(result, event)}
+              onClick={handleOpenGraphClick}
               title={copy.openInGraph}
             >
               {copy.graph}
@@ -195,4 +240,4 @@ export const SearchResultRow = React.memo(function SearchResultRow({
   );
 });
 
-SearchResultRow.displayName = 'SearchResultRow';
+SearchResultRow.displayName = "SearchResultRow";

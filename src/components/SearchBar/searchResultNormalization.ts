@@ -5,67 +5,70 @@ import type {
   ReferenceSearchHit,
   SearchHit,
   SymbolSearchHit,
-} from '../../api';
-import { normalizeSelectionPathForGraph, normalizeSelectionPathForVfs } from '../../utils/selectionPath';
-import type { ResultCategory, SearchResult, SearchSelection } from './types';
+} from "../../api";
+import {
+  normalizeSelectionPathForGraph,
+  normalizeSelectionPathForVfs,
+} from "../../utils/selectionPath";
+import type { ResultCategory, SearchResult, SearchSelection } from "./types";
 
 function isNonEmptyString(value: string | undefined): value is string {
-  return typeof value === 'string' && value.length > 0;
+  return typeof value === "string" && value.length > 0;
 }
 
 function inferCodeLanguageFromPath(path: string): string | undefined {
   const lower = path.toLowerCase();
-  if (lower.endsWith('.jl')) return 'julia';
-  if (lower.endsWith('.rs')) return 'rust';
-  if (lower.endsWith('.py')) return 'python';
-  if (lower.endsWith('.ts') || lower.endsWith('.tsx')) return 'typescript';
-  if (lower.endsWith('.js') || lower.endsWith('.jsx')) return 'javascript';
-  if (lower.endsWith('.go')) return 'go';
+  if (lower.endsWith(".jl")) return "julia";
+  if (lower.endsWith(".rs")) return "rust";
+  if (lower.endsWith(".py")) return "python";
+  if (lower.endsWith(".ts") || lower.endsWith(".tsx")) return "typescript";
+  if (lower.endsWith(".js") || lower.endsWith(".jsx")) return "javascript";
+  if (lower.endsWith(".go")) return "go";
   return undefined;
 }
 
 const KNOWN_CODE_LANGUAGES = new Set([
-  'julia',
-  'rust',
-  'python',
-  'typescript',
-  'javascript',
-  'go',
-  'modelica',
+  "julia",
+  "rust",
+  "python",
+  "typescript",
+  "javascript",
+  "go",
+  "modelica",
 ]);
 const KNOWN_CODE_KIND_TAGS = new Set([
-  'symbol',
-  'module',
-  'function',
-  'method',
-  'struct',
-  'class',
-  'trait',
-  'interface',
-  'enum',
-  'constant',
-  'const',
-  'macro',
-  'example',
-  'doc',
-  'reference',
+  "symbol",
+  "module",
+  "function",
+  "method",
+  "struct",
+  "class",
+  "trait",
+  "interface",
+  "enum",
+  "constant",
+  "const",
+  "macro",
+  "example",
+  "doc",
+  "reference",
 ]);
 const SYMBOLIC_CODE_KINDS = new Set([
-  'symbol',
-  'module',
-  'function',
-  'method',
-  'struct',
-  'class',
-  'trait',
-  'interface',
-  'enum',
-  'constant',
-  'const',
-  'macro',
-  'type',
+  "symbol",
+  "module",
+  "function",
+  "method",
+  "struct",
+  "class",
+  "trait",
+  "interface",
+  "enum",
+  "constant",
+  "const",
+  "macro",
+  "type",
 ]);
-const NON_CODE_DOC_TYPES = new Set(['knowledge', 'skill', 'tag', 'doc', 'document']);
+const NON_CODE_DOC_TYPES = new Set(["knowledge", "skill", "tag", "doc", "document"]);
 
 interface ResolveCodeTagValueOptions {
   preserveCase?: boolean;
@@ -74,7 +77,7 @@ interface ResolveCodeTagValueOptions {
 function resolveCodeTagValue(
   tags: string[] | undefined,
   prefixes: string[],
-  options: ResolveCodeTagValueOptions = {}
+  options: ResolveCodeTagValueOptions = {},
 ): string | undefined {
   if (!tags || tags.length === 0) {
     return undefined;
@@ -106,10 +109,10 @@ function resolveBareRepoTag(tags: string[] | undefined): string | undefined {
   return tags.find((tag) => {
     const normalized = tag.trim();
     const normalizedLower = normalized.toLowerCase();
-    if (!normalized || normalized.includes(':')) {
+    if (!normalized || normalized.includes(":")) {
       return false;
     }
-    if (normalizedLower === 'code') {
+    if (normalizedLower === "code") {
       return false;
     }
     if (KNOWN_CODE_LANGUAGES.has(normalizedLower)) {
@@ -123,7 +126,7 @@ function resolveBareRepoTag(tags: string[] | undefined): string | undefined {
 }
 
 function resolveCodeLanguageFromHit(hit: SearchHit): string | undefined {
-  const explicitLanguage = resolveCodeTagValue(hit.tags, ['lang', 'language']);
+  const explicitLanguage = resolveCodeTagValue(hit.tags, ["lang", "language"]);
   if (explicitLanguage) {
     return explicitLanguage;
   }
@@ -153,10 +156,10 @@ function looksFunctionLikeCodeHit(hit: SearchHit): boolean {
 }
 
 function resolveCodeKindFromHit(hit: SearchHit): string | undefined {
-  const explicitKind = resolveCodeTagValue(hit.tags, ['kind']);
+  const explicitKind = resolveCodeTagValue(hit.tags, ["kind"]);
   if (explicitKind) {
-    if (explicitKind === 'symbol' && looksFunctionLikeCodeHit(hit)) {
-      return 'function';
+    if (explicitKind === "symbol" && looksFunctionLikeCodeHit(hit)) {
+      return "function";
     }
     return explicitKind;
   }
@@ -180,7 +183,7 @@ function resolveCodeRepoFromHit(hit: SearchHit, repoHint?: string): string | und
     return projectName;
   }
 
-  const explicitRepo = resolveCodeTagValue(hit.tags, ['repo', 'project'], { preserveCase: true });
+  const explicitRepo = resolveCodeTagValue(hit.tags, ["repo", "project"], { preserveCase: true });
   if (explicitRepo) {
     return explicitRepo;
   }
@@ -198,46 +201,46 @@ function resolveCodeRepoFromHit(hit: SearchHit, repoHint?: string): string | und
   return undefined;
 }
 
-function resolveCodeCategoryFromKind(codeKind: string | undefined, docType: string | undefined): ResultCategory {
-  const normalizedKind = codeKind?.toLowerCase() ?? '';
-  const normalizedDocType = docType?.trim().toLowerCase() ?? '';
+function resolveCodeCategoryFromKind(
+  codeKind: string | undefined,
+  docType: string | undefined,
+): ResultCategory {
+  const normalizedKind = codeKind?.toLowerCase() ?? "";
+  const normalizedDocType = docType?.trim().toLowerCase() ?? "";
 
   if (
-    normalizedKind.includes('reference')
-    || normalizedKind.includes('usage')
-    || normalizedDocType === 'reference'
+    normalizedKind.includes("reference") ||
+    normalizedKind.includes("usage") ||
+    normalizedDocType === "reference"
   ) {
-    return 'reference';
+    return "reference";
   }
 
-  if (
-    SYMBOLIC_CODE_KINDS.has(normalizedKind)
-    || SYMBOLIC_CODE_KINDS.has(normalizedDocType)
-  ) {
-    return 'symbol';
+  if (SYMBOLIC_CODE_KINDS.has(normalizedKind) || SYMBOLIC_CODE_KINDS.has(normalizedDocType)) {
+    return "symbol";
   }
 
-  return 'ast';
+  return "ast";
 }
 
 function knowledgeResultCategory(hit: SearchHit): ResultCategory {
   const navigationCategory =
-    hit.navigationTarget?.category
-    ?? (hit.docType === 'knowledge' || hit.docType === 'skill' || hit.docType === 'tag'
+    hit.navigationTarget?.category ??
+    (hit.docType === "knowledge" || hit.docType === "skill" || hit.docType === "tag"
       ? hit.docType
       : (hit.tags?.length ?? 0) > 0
-        ? 'tag'
-        : 'doc');
+        ? "tag"
+        : "doc");
 
   switch (navigationCategory) {
-    case 'knowledge':
-      return 'knowledge';
-    case 'skill':
-      return 'skill';
-    case 'tag':
-      return 'tag';
+    case "knowledge":
+      return "knowledge";
+    case "skill":
+      return "skill";
+    case "tag":
+      return "tag";
     default:
-      return 'document';
+      return "document";
   }
 }
 
@@ -261,11 +264,18 @@ function canonicalizeSearchSelection(selection: SearchSelection): SearchSelectio
 }
 
 export function isCodeSearchResult(result: SearchResult): boolean {
-  return result.category === 'ast' || result.category === 'symbol' || result.category === 'reference';
+  return (
+    result.category === "ast" || result.category === "symbol" || result.category === "reference"
+  );
 }
 
 export function canOpenGraphForSearchResult(result: SearchResult): boolean {
-  return result.category === 'document' || result.category === 'knowledge' || result.category === 'skill' || result.category === 'tag';
+  return (
+    result.category === "document" ||
+    result.category === "knowledge" ||
+    result.category === "skill" ||
+    result.category === "tag"
+  );
 }
 
 export function toSearchSelection(result: SearchResult): SearchSelection {
@@ -283,12 +293,13 @@ export function toSearchSelection(result: SearchResult): SearchSelection {
 
   return canonicalizeSearchSelection({
     path: result.path,
-    category: result.category === 'knowledge' || result.category === 'skill' ? result.category : 'doc',
+    category:
+      result.category === "knowledge" || result.category === "skill" ? result.category : "doc",
     ...(result.projectName ? { projectName: result.projectName } : {}),
     ...(result.rootLabel ? { rootLabel: result.rootLabel } : {}),
-    ...(typeof result.line === 'number' ? { line: result.line } : {}),
-    ...(typeof result.lineEnd === 'number' ? { lineEnd: result.lineEnd } : {}),
-    ...(typeof result.column === 'number' ? { column: result.column } : {}),
+    ...(typeof result.line === "number" ? { line: result.line } : {}),
+    ...(typeof result.lineEnd === "number" ? { lineEnd: result.lineEnd } : {}),
+    ...(typeof result.column === "number" ? { column: result.column } : {}),
     graphPath: result.path,
   });
 }
@@ -297,7 +308,7 @@ export function normalizeKnowledgeHit(hit: SearchHit): SearchResult {
   const category = knowledgeResultCategory(hit);
   const navigationTarget = hit.navigationTarget ?? {
     path: hit.path,
-    category: category === 'document' ? 'doc' : category,
+    category: category === "document" ? "doc" : category,
   };
 
   return {
@@ -305,7 +316,7 @@ export function normalizeKnowledgeHit(hit: SearchHit): SearchResult {
     category,
     projectName: navigationTarget.projectName,
     rootLabel: navigationTarget.rootLabel,
-    searchSource: 'search-index',
+    searchSource: "search-index",
     navigationTarget,
   };
 }
@@ -323,30 +334,30 @@ export function normalizeCodeSearchHit(hit: SearchHit, repoHint?: string): Searc
     codeLanguage,
     codeKind,
     codeRepo,
-    searchSource: 'search-index',
+    searchSource: "search-index",
   };
 }
 
 export function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
-  const sourceLabel = hit.source === 'project' ? 'Project' : 'External';
+  const sourceLabel = hit.source === "project" ? "Project" : "External";
 
   return {
     stem: hit.name,
     title: hit.name,
     path: hit.path,
-    docType: 'symbol',
+    docType: "symbol",
     tags: [hit.kind, hit.language, hit.crateName].filter(isNonEmptyString),
     score: hit.score,
     bestSection: `${hit.kind} · ${hit.language} · line ${hit.line}`,
     matchReason: `${sourceLabel} symbol in ${hit.crateName}`,
-    category: 'symbol',
+    category: "symbol",
     projectName: hit.projectName ?? hit.crateName,
     rootLabel: hit.rootLabel,
     line: hit.line,
     codeLanguage: hit.language,
     codeKind: hit.kind,
     codeRepo: hit.projectName ?? hit.crateName,
-    searchSource: 'search-index',
+    searchSource: "search-index",
     navigationTarget: hit.navigationTarget,
   };
 }
@@ -354,7 +365,7 @@ export function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
 export function normalizeRepoDocCoverageHit(hit: RepoDocCoverageDoc): SearchResult {
   const navigationTarget: SearchSelection = {
     path: hit.path,
-    category: 'doc',
+    category: "doc",
     projectName: hit.repoId,
   };
 
@@ -362,34 +373,34 @@ export function normalizeRepoDocCoverageHit(hit: RepoDocCoverageDoc): SearchResu
     stem: hit.title || hit.path,
     title: hit.title || hit.path,
     path: hit.path,
-    docType: 'ast',
-    tags: ['doc', hit.format, hit.repoId].filter(isNonEmptyString),
+    docType: "ast",
+    tags: ["doc", hit.format, hit.repoId].filter(isNonEmptyString),
     score: 0.95,
     bestSection: `doc · ${hit.repoId}`,
     matchReason: hit.docId,
-    category: 'ast',
+    category: "ast",
     projectName: hit.repoId,
-    codeLanguage: inferCodeLanguageFromPath(hit.path) ?? 'markdown',
-    codeKind: 'doc',
+    codeLanguage: inferCodeLanguageFromPath(hit.path) ?? "markdown",
+    codeKind: "doc",
     codeRepo: hit.repoId,
-    searchSource: 'repo-intelligence',
+    searchSource: "repo-intelligence",
     navigationTarget,
   };
 }
 
 export function normalizeAstHit(hit: AstSearchHit): SearchResult {
-  const isMarkdownOutline = hit.language.toLowerCase() === 'markdown';
+  const isMarkdownOutline = hit.language.toLowerCase() === "markdown";
   const markdownNodeKind = hit.nodeKind?.toLowerCase();
   const lineSubject = !isMarkdownOutline
     ? hit.language
-    : markdownNodeKind === 'property'
-      ? 'property drawer'
-      : markdownNodeKind === 'observation'
-        ? 'code observation'
-        : markdownNodeKind === 'task'
-          ? 'markdown task'
-          : 'markdown outline';
-  const ownerSuffix = hit.ownerTitle ? ` · ${hit.ownerTitle}` : '';
+    : markdownNodeKind === "property"
+      ? "property drawer"
+      : markdownNodeKind === "observation"
+        ? "code observation"
+        : markdownNodeKind === "task"
+          ? "markdown task"
+          : "markdown outline";
+  const ownerSuffix = hit.ownerTitle ? ` · ${hit.ownerTitle}` : "";
   const lineLabel =
     hit.lineStart === hit.lineEnd
       ? `${lineSubject}${ownerSuffix} · line ${hit.lineStart}`
@@ -399,22 +410,22 @@ export function normalizeAstHit(hit: AstSearchHit): SearchResult {
     stem: hit.name,
     title: hit.name,
     path: hit.path,
-    docType: 'ast',
+    docType: "ast",
     tags: isMarkdownOutline
       ? [hit.language, hit.nodeKind, hit.rootLabel ?? hit.crateName].filter(isNonEmptyString)
       : [hit.language, hit.crateName].filter(isNonEmptyString),
     score: hit.score,
     bestSection: lineLabel,
     matchReason: hit.signature,
-    category: 'ast',
+    category: "ast",
     projectName: hit.projectName ?? hit.crateName,
     rootLabel: hit.rootLabel,
     line: hit.lineStart,
     lineEnd: hit.lineEnd,
     codeLanguage: hit.language,
-    codeKind: isMarkdownOutline ? hit.nodeKind : hit.nodeKind || 'symbol',
+    codeKind: isMarkdownOutline ? hit.nodeKind : hit.nodeKind || "symbol",
     codeRepo: hit.projectName ?? hit.crateName,
-    searchSource: 'search-index',
+    searchSource: "search-index",
     navigationTarget: hit.navigationTarget,
   };
 }
@@ -424,20 +435,20 @@ export function normalizeReferenceHit(hit: ReferenceSearchHit): SearchResult {
     stem: hit.name,
     title: `${hit.name} reference`,
     path: hit.path,
-    docType: 'reference',
+    docType: "reference",
     tags: [hit.language, hit.crateName].filter(Boolean),
     score: hit.score,
     bestSection: `${hit.language} · line ${hit.line} · col ${hit.column}`,
     matchReason: hit.lineText,
-    category: 'reference',
+    category: "reference",
     projectName: hit.projectName ?? hit.crateName,
     rootLabel: hit.rootLabel,
     line: hit.line,
     column: hit.column,
     codeLanguage: hit.language,
-    codeKind: 'reference',
+    codeKind: "reference",
     codeRepo: hit.projectName ?? hit.crateName,
-    searchSource: 'search-index',
+    searchSource: "search-index",
     navigationTarget: hit.navigationTarget,
   };
 }
@@ -446,21 +457,21 @@ export function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
   const sourceLabel = hit.sourceTitle?.trim() || hit.sourceStem;
   const navigationTarget = hit.navigationTarget ?? {
     path: hit.sourcePath,
-    category: 'doc',
+    category: "doc",
   };
   return {
     stem: hit.attachmentName,
     title: hit.attachmentName,
     path: hit.path,
-    docType: 'attachment',
+    docType: "attachment",
     tags: [`kind:${hit.kind}`, `ext:${hit.attachmentExt}`, `org:${hit.sourceId}`],
     score: hit.score,
     bestSection: hit.attachmentPath,
     matchReason: hit.visionSnippet || `Attached to ${sourceLabel}`,
-    category: 'attachment',
+    category: "attachment",
     projectName: navigationTarget.projectName,
     rootLabel: navigationTarget.rootLabel,
-    searchSource: 'search-index',
+    searchSource: "search-index",
     navigationTarget,
   };
 }
@@ -478,7 +489,7 @@ export function resolveDefinitionSelection(
       lineEnd?: number;
       navigationTarget?: SearchSelection;
     };
-  }
+  },
 ): SearchSelection {
   if (response.navigationTarget) {
     return canonicalizeSearchSelection({
@@ -496,19 +507,23 @@ export function resolveDefinitionSelection(
 
   return canonicalizeSearchSelection({
     path: response.definition?.path ?? result.path,
-    category: 'doc',
+    category: "doc",
     ...(response.definition?.projectName
       ? { projectName: response.definition.projectName }
       : response.definition?.crateName
         ? { projectName: response.definition.crateName }
         : {}),
     ...(response.definition?.rootLabel ? { rootLabel: response.definition.rootLabel } : {}),
-    ...(typeof response.definition?.lineStart === 'number' ? { line: response.definition.lineStart } : {}),
-    ...(typeof response.definition?.lineEnd === 'number' ? { lineEnd: response.definition.lineEnd } : {}),
+    ...(typeof response.definition?.lineStart === "number"
+      ? { line: response.definition.lineStart }
+      : {}),
+    ...(typeof response.definition?.lineEnd === "number"
+      ? { lineEnd: response.definition.lineEnd }
+      : {}),
     graphPath: response.definition?.path ?? result.path,
   });
 }
 
 export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Search failed';
+  return error instanceof Error ? error.message : "Search failed";
 }

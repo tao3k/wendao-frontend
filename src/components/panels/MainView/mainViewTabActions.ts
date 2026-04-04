@@ -1,5 +1,5 @@
-import type { Dispatch, SetStateAction } from 'react';
-import type { MainViewTab } from './mainViewTypes';
+import type { Dispatch, SetStateAction } from "react";
+import type { MainViewTab } from "./mainViewTypes";
 
 interface CreateMainViewTabActionsParams {
   setActiveTab: Dispatch<SetStateAction<MainViewTab>>;

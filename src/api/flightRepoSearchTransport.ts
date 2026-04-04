@@ -21,16 +21,11 @@ const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
 const WENDAO_REPO_SEARCH_QUERY_HEADER = "x-wendao-repo-search-query";
 const WENDAO_REPO_SEARCH_LIMIT_HEADER = "x-wendao-repo-search-limit";
 const WENDAO_REPO_SEARCH_REPO_HEADER = "x-wendao-repo-search-repo";
-const WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER =
-  "x-wendao-repo-search-language-filters";
-const WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER =
-  "x-wendao-repo-search-path-prefixes";
-const WENDAO_REPO_SEARCH_TITLE_FILTERS_HEADER =
-  "x-wendao-repo-search-title-filters";
-const WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER =
-  "x-wendao-repo-search-tag-filters";
-const WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER =
-  "x-wendao-repo-search-filename-filters";
+const WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER = "x-wendao-repo-search-language-filters";
+const WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER = "x-wendao-repo-search-path-prefixes";
+const WENDAO_REPO_SEARCH_TITLE_FILTERS_HEADER = "x-wendao-repo-search-title-filters";
+const WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER = "x-wendao-repo-search-tag-filters";
+const WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER = "x-wendao-repo-search-filename-filters";
 const REPO_SEARCH_ROUTE = "/search/repos/main";
 
 export interface RepoSearchFlightRequest {
@@ -51,10 +46,7 @@ interface FlightServiceClientLike {
     descriptor: FlightDescriptor,
     options?: { headers?: HeadersInit },
   ): Promise<FlightInfo>;
-  doGet(
-    ticket: Ticket,
-    options?: { headers?: HeadersInit },
-  ): AsyncIterable<FlightData>;
+  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
 }
 
 export interface FlightRepoSearchTransportDeps {
@@ -62,39 +54,17 @@ export interface FlightRepoSearchTransportDeps {
   decodeRepoSearchHits?: (payload: ArrayBuffer, fallbackRepoId: string) => SearchHit[];
 }
 
-export function buildRepoSearchFlightHeaders(
-  request: RepoSearchFlightRequest,
-): Headers {
+export function buildRepoSearchFlightHeaders(request: RepoSearchFlightRequest): Headers {
   const headers = new Headers();
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
   headers.set(WENDAO_REPO_SEARCH_REPO_HEADER, request.repo.trim());
   headers.set(WENDAO_REPO_SEARCH_QUERY_HEADER, request.query);
   headers.set(WENDAO_REPO_SEARCH_LIMIT_HEADER, String(Math.max(1, request.limit)));
-  setJoinedHeader(
-    headers,
-    WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER,
-    request.languageFilters,
-  );
-  setJoinedHeader(
-    headers,
-    WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER,
-    request.pathPrefixes,
-  );
-  setJoinedHeader(
-    headers,
-    WENDAO_REPO_SEARCH_TITLE_FILTERS_HEADER,
-    request.titleFilters,
-  );
-  setJoinedHeader(
-    headers,
-    WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER,
-    request.tagFilters,
-  );
-  setJoinedHeader(
-    headers,
-    WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER,
-    request.filenameFilters,
-  );
+  setJoinedHeader(headers, WENDAO_REPO_SEARCH_LANGUAGE_FILTERS_HEADER, request.languageFilters);
+  setJoinedHeader(headers, WENDAO_REPO_SEARCH_PATH_PREFIXES_HEADER, request.pathPrefixes);
+  setJoinedHeader(headers, WENDAO_REPO_SEARCH_TITLE_FILTERS_HEADER, request.titleFilters);
+  setJoinedHeader(headers, WENDAO_REPO_SEARCH_TAG_FILTERS_HEADER, request.tagFilters);
+  setJoinedHeader(headers, WENDAO_REPO_SEARCH_FILENAME_FILTERS_HEADER, request.filenameFilters);
   return headers;
 }
 
@@ -114,10 +84,7 @@ export async function searchRepoContentFlight(
       frames.push(frame);
     }
     const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);
-    const hits = (deps.decodeRepoSearchHits ?? missingRepoSearchHitDecoder)(
-      payload,
-      request.repo,
-    );
+    const hits = (deps.decodeRepoSearchHits ?? missingRepoSearchHitDecoder)(payload, request.repo);
     return {
       query: request.query,
       hitCount: hits.length,
@@ -130,11 +97,7 @@ export async function searchRepoContentFlight(
   }
 }
 
-function setJoinedHeader(
-  headers: Headers,
-  header: string,
-  values: string[] | undefined,
-): void {
+function setJoinedHeader(headers: Headers, header: string, values: string[] | undefined): void {
   const normalized = (values ?? [])
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
@@ -159,9 +122,7 @@ function readFlightTicket(flightInfo: FlightInfo): Ticket {
 }
 
 function missingRepoSearchHitDecoder(): never {
-  throw new Error(
-    "searchRepoContentFlight requires a decodeRepoSearchHits implementation",
-  );
+  throw new Error("searchRepoContentFlight requires a decodeRepoSearchHits implementation");
 }
 
 function mapFlightRepoSearchError(error: unknown): ApiClientError {
@@ -169,21 +130,12 @@ function mapFlightRepoSearchError(error: unknown): ApiClientError {
     return error;
   }
   if (error instanceof ConnectError) {
-    return new ApiClientError(
-      inferFlightRepoSearchErrorCode(error.message),
-      error.message,
-    );
+    return new ApiClientError(inferFlightRepoSearchErrorCode(error.message), error.message);
   }
   if (error instanceof Error) {
-    return new ApiClientError(
-      inferFlightRepoSearchErrorCode(error.message),
-      error.message,
-    );
+    return new ApiClientError(inferFlightRepoSearchErrorCode(error.message), error.message);
   }
-  return new ApiClientError(
-    "FLIGHT_REPO_SEARCH_ERROR",
-    "Unknown Flight repo-search failure",
-  );
+  return new ApiClientError("FLIGHT_REPO_SEARCH_ERROR", "Unknown Flight repo-search failure");
 }
 
 function inferFlightRepoSearchErrorCode(message: string): string {

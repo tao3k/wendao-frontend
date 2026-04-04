@@ -7,8 +7,8 @@
  * IMPORTANT: No hardcoded defaults - configuration comes exclusively from wendao.toml.
  */
 
-import * as TOML from 'smol-toml';
-import type { UiConfig, UiProjectConfig, UiRepoProjectConfig } from '../api/bindings';
+import * as TOML from "smol-toml";
+import type { UiConfig, UiProjectConfig, UiRepoProjectConfig } from "../api/bindings";
 
 /**
  * Qianji Studio configuration schema
@@ -37,20 +37,20 @@ export interface WendaoProjectConfig {
 export class WendaoConfigError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'WendaoConfigError';
+    this.name = "WendaoConfigError";
   }
 }
 
 function assertValidConfig(config: WendaoConfig): WendaoConfig {
   const gatewayBind = config.gateway?.bind?.trim();
   if (!gatewayBind) {
-    throw new WendaoConfigError('wendao.toml must define [gateway].bind');
+    throw new WendaoConfigError("wendao.toml must define [gateway].bind");
   }
 
   const projects = config.link_graph?.projects;
   if (!projects || Object.keys(projects).length === 0) {
     throw new WendaoConfigError(
-      'wendao.toml must define at least one [link_graph.projects.<name>] section'
+      "wendao.toml must define at least one [link_graph.projects.<name>] section",
     );
   }
 
@@ -66,7 +66,7 @@ function assertValidConfig(config: WendaoConfig): WendaoConfig {
  * and link_graph.projects sections.
  */
 export async function loadConfig(): Promise<WendaoConfig> {
-  const response = await fetch('/wendao.toml');
+  const response = await fetch("/wendao.toml");
   if (!response.ok) {
     throw new WendaoConfigError(`wendao.toml could not be loaded: HTTP ${response.status}`);
   }
@@ -81,13 +81,10 @@ function normalizePath(value: string | undefined): string | null {
   if (!trimmed) {
     return null;
   }
-  if (trimmed === '.') {
-    return '.';
+  if (trimmed === ".") {
+    return ".";
   }
-  const normalized = trimmed
-    .replaceAll('\\', '/')
-    .replace(/\/+$/g, '')
-    .replace(/^\.\//, '');
+  const normalized = trimmed.replaceAll("\\", "/").replace(/\/+$/g, "").replace(/^\.\//, "");
   return normalized.length > 0 ? normalized : null;
 }
 
@@ -100,7 +97,7 @@ export function resolveSearchFlightSchemaVersion(config: WendaoConfig): string {
   const schemaVersion = normalizeNonemptyString(config.search_flight?.schema_version);
   if (!schemaVersion) {
     throw new WendaoConfigError(
-      'wendao.toml must define [search_flight].schema_version for Flight search',
+      "wendao.toml must define [search_flight].schema_version for Flight search",
     );
   }
   return schemaVersion;
@@ -140,13 +137,13 @@ function normalizeDirEntry(value: string | undefined): string | null {
     return null;
   }
 
-  if (trimmed.startsWith('re:')) {
-    const pattern = trimmed.slice('re:'.length).trim();
+  if (trimmed.startsWith("re:")) {
+    const pattern = trimmed.slice("re:".length).trim();
     return pattern.length > 0 ? `re:${pattern}` : null;
   }
 
-  if (trimmed.startsWith('regex:')) {
-    const pattern = trimmed.slice('regex:'.length).trim();
+  if (trimmed.startsWith("regex:")) {
+    const pattern = trimmed.slice("regex:".length).trim();
     return pattern.length > 0 ? `re:${pattern}` : null;
   }
 
@@ -159,16 +156,16 @@ function normalizeDirEntry(value: string | undefined): string | null {
 }
 
 function normalizeGlobEntry(value: string): string | null {
-  const normalized = value.replaceAll('\\', '/');
-  if (normalized.startsWith('glob:')) {
-    const pattern = normalized.slice('glob:'.length).trim();
+  const normalized = value.replaceAll("\\", "/");
+  if (normalized.startsWith("glob:")) {
+    const pattern = normalized.slice("glob:".length).trim();
     return pattern.length > 0 ? `glob:${pattern}` : null;
   }
-  if (normalized.startsWith('!glob:')) {
-    const pattern = normalized.slice('!glob:'.length).trim();
+  if (normalized.startsWith("!glob:")) {
+    const pattern = normalized.slice("!glob:".length).trim();
     return pattern.length > 0 ? `glob:!${pattern}` : null;
   }
-  if (normalized.startsWith('!')) {
+  if (normalized.startsWith("!")) {
     const pattern = normalized.slice(1).trim();
     return pattern.length > 0 ? `glob:!${pattern}` : null;
   }
@@ -179,7 +176,7 @@ function normalizeGlobEntry(value: string): string | null {
 }
 
 function containsGlobMagic(value: string): boolean {
-  return /[*?\[\]{}]/.test(value);
+  return ["*", "?", "[", "]", "{", "}"].some((token) => value.includes(token));
 }
 
 export function toUiConfig(config: WendaoConfig): UiConfig {
@@ -192,7 +189,7 @@ export function toUiConfig(config: WendaoConfig): UiConfig {
       const hasRepoIntelligenceOnlySource =
         !!normalizePath(project.url) || (project.plugins?.length ?? 0) > 0;
       if (!trimmedName) {
-        throw new WendaoConfigError('wendao.toml contains a project with an empty name');
+        throw new WendaoConfigError("wendao.toml contains a project with an empty name");
       }
       if ((!root || dirs.length === 0) && hasRepoIntelligenceOnlySource) {
         return null;
@@ -222,19 +219,30 @@ export function toUiConfig(config: WendaoConfig): UiConfig {
       const url = normalizeNonemptyString(project.url);
       const gitRef = normalizeNonemptyString(project.ref);
       const refresh = normalizeNonemptyString(project.refresh);
-      return {
+      const repoProject: UiRepoProjectConfig = {
         id,
-        ...(root ? { root } : {}),
-        ...(url ? { url } : {}),
-        ...(gitRef ? { gitRef } : {}),
-        ...(refresh ? { refresh } : {}),
         plugins: normalizePluginList(project.plugins),
       };
+      if (root) {
+        repoProject.root = root;
+      }
+      if (url) {
+        repoProject.url = url;
+      }
+      if (gitRef) {
+        repoProject.gitRef = gitRef;
+      }
+      if (refresh) {
+        repoProject.refresh = refresh;
+      }
+      return repoProject;
     })
     .filter((project): project is UiRepoProjectConfig => project !== null);
 
   if (projects.length === 0) {
-    throw new WendaoConfigError('wendao.toml does not contain any valid link_graph.projects entries');
+    throw new WendaoConfigError(
+      "wendao.toml does not contain any valid link_graph.projects entries",
+    );
   }
 
   return { projects, repoProjects };

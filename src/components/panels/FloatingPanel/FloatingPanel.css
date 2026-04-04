@@ -108,7 +108,7 @@
 }
 
 .floating-panel__resize-handle::after {
-  content: '';
+  content: "";
   position: absolute;
   right: 4px;
   bottom: 4px;

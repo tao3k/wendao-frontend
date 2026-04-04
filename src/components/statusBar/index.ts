@@ -1,10 +1,10 @@
-export { RepoIndexStatusView } from './RepoIndexStatusView';
+export { RepoIndexStatusView } from "./RepoIndexStatusView";
 export {
   deriveJuliaInspectionModel,
   deriveRepoIndexStatusModel,
   deriveRuntimeStatusModel,
   deriveVfsStatusModel,
-} from './model';
+} from "./model";
 export type {
   RepoIndexIssue,
   RepoIndexQueuedRepo,
@@ -14,4 +14,4 @@ export type {
   RuntimeStatus,
   StatusTone,
   VfsStatus,
-} from './types';
+} from "./types";

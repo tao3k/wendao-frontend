@@ -1,5 +1,5 @@
 export function isEscapeKey(key: string): boolean {
-  return key === 'Escape' || key === 'Esc';
+  return key === "Escape" || key === "Esc";
 }
 
 export function clampSelectableIndex(index: number, totalItems: number): number {

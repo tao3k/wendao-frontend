@@ -5,7 +5,7 @@
  * from spatial_mapping_v1.md
  */
 
-import type { AcademicNode, AcademicLink } from '../../types';
+import type { AcademicNode, AcademicLink } from "../../types";
 
 /**
  * Node with 3D position for layout
@@ -84,15 +84,15 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
  * Message types for Web Worker communication
  */
 export type LayoutWorkerInput =
-  | { type: 'init'; nodes: AcademicNode[]; links: AcademicLink[]; config?: Partial<LayoutConfig> }
-  | { type: 'sync'; nodes: AcademicNode[]; links: AcademicLink[]; config?: Partial<LayoutConfig> }
-  | { type: 'tick'; count?: number }
-  | { type: 'update'; nodeId: string; position: [number, number, number] }
-  | { type: 'getNodes' }
-  | { type: 'getClusters' };
+  | { type: "init"; nodes: AcademicNode[]; links: AcademicLink[]; config?: Partial<LayoutConfig> }
+  | { type: "sync"; nodes: AcademicNode[]; links: AcademicLink[]; config?: Partial<LayoutConfig> }
+  | { type: "tick"; count?: number }
+  | { type: "update"; nodeId: string; position: [number, number, number] }
+  | { type: "getNodes" }
+  | { type: "getClusters" };
 
 export interface LayoutWorkerOutput {
-  type: 'nodes' | 'clusters' | 'tick' | 'error';
+  type: "nodes" | "clusters" | "tick" | "error";
   nodes?: LayoutNode[];
   clusters?: LayoutCluster[];
   alpha?: number;

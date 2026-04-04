@@ -1,14 +1,14 @@
-import { describe, expectTypeOf, it } from 'vitest';
+import { describe, expectTypeOf, it } from "vitest";
 import type {
   RepoBacklinkItem,
   RepoIndexStatusResponse,
   RepoSyncResponse,
   UiCapabilities,
   UiJuliaDeploymentArtifact,
-} from './apiContracts';
+} from "./apiContracts";
 
-describe('api contracts', () => {
-  it('keeps the repo sync response contract stable', () => {
+describe("api contracts", () => {
+  it("keeps the repo sync response contract stable", () => {
     expectTypeOf<RepoSyncResponse>().toMatchTypeOf<{
       repoId: string;
       mode: string;
@@ -18,7 +18,7 @@ describe('api contracts', () => {
     }>();
   });
 
-  it('keeps the UI capabilities contract stable', () => {
+  it("keeps the UI capabilities contract stable", () => {
     expectTypeOf<UiCapabilities>().toEqualTypeOf<{
       supportedLanguages: string[];
       supportedRepositories: string[];
@@ -26,7 +26,7 @@ describe('api contracts', () => {
     }>();
   });
 
-  it('keeps the Julia deployment artifact contract stable', () => {
+  it("keeps the Julia deployment artifact contract stable", () => {
     expectTypeOf<UiJuliaDeploymentArtifact>().toEqualTypeOf<{
       artifactSchemaVersion: string;
       generatedAt: string;
@@ -42,7 +42,7 @@ describe('api contracts', () => {
     }>();
   });
 
-  it('keeps the repo backlink item contract stable', () => {
+  it("keeps the repo backlink item contract stable", () => {
     expectTypeOf<RepoBacklinkItem>().toEqualTypeOf<{
       id: string;
       title?: string;
@@ -51,7 +51,7 @@ describe('api contracts', () => {
     }>();
   });
 
-  it('keeps the repo index status contract stable', () => {
+  it("keeps the repo index status contract stable", () => {
     expectTypeOf<RepoIndexStatusResponse>().toMatchTypeOf<{
       total: number;
       repos: Array<{

@@ -2,8 +2,8 @@
  * Drag handling hook for graph nodes
  */
 
-import { useCallback, useEffect, useRef } from 'react';
-import type { SimulatedNode } from './types';
+import { useCallback, useEffect, useRef } from "react";
+import type { SimulatedNode } from "./types";
 
 interface UseDragOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -36,8 +36,8 @@ export function useDrag({
         containerRectRef.current = containerRef.current.getBoundingClientRect();
       }
 
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
+      const clientY = "touches" in event ? event.touches[0].clientY : event.clientY;
 
       if (containerRectRef.current) {
         dragOffsetRef.current = {
@@ -47,7 +47,7 @@ export function useDrag({
         dragNodeIdRef.current = nodeId;
       }
     },
-    [containerRef, dragNodeIdRef]
+    [containerRef, dragNodeIdRef],
   );
 
   const handleDragMove = useCallback(
@@ -58,8 +58,8 @@ export function useDrag({
 
       event.preventDefault();
 
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
+      const clientY = "touches" in event ? event.touches[0].clientY : event.clientY;
 
       const newX = clientX - containerRectRef.current.left - dragOffsetRef.current.x;
       const newY = clientY - containerRectRef.current.top - dragOffsetRef.current.y;
@@ -70,7 +70,7 @@ export function useDrag({
 
       onNodeDrag(dragNodeIdRef.current, clampedX, clampedY);
     },
-    [width, height, onNodeDrag, dragNodeIdRef]
+    [width, height, onNodeDrag, dragNodeIdRef],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -82,16 +82,16 @@ export function useDrag({
     const handleMove = (e: MouseEvent | TouchEvent) => handleDragMove(e);
     const handleEnd = () => handleDragEnd();
 
-    window.addEventListener('mousemove', handleMove, { passive: false });
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleEnd);
+    window.addEventListener("mousemove", handleMove, { passive: false });
+    window.addEventListener("mouseup", handleEnd);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleEnd);
 
     return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleEnd);
     };
   }, [handleDragMove, handleDragEnd]);
 

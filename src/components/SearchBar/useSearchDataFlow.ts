@@ -1,13 +1,13 @@
-import type { Dispatch, SetStateAction } from 'react';
-import type { SearchFilters } from './codeSearchUtils';
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import type { SearchMeta } from './searchExecution';
-import { getRuntimeWarningMessage } from './searchStateUtils';
-import type { SearchResult, SearchScope, SearchSort, UiLocale } from './types';
-import { useRuntimeSearchStatus } from './useRuntimeSearchStatus';
-import { useSearchDerivedState } from './useSearchDerivedState';
-import { useSearchExecution } from './useSearchExecution';
-import { useSelectableIndexClamp } from './useSelectableIndexClamp';
+import type { Dispatch, SetStateAction } from "react";
+import type { SearchFilters } from "./codeSearchUtils";
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import type { SearchMeta } from "./searchExecution";
+import { getRuntimeWarningMessage } from "./searchStateUtils";
+import type { SearchResult, SearchScope, SearchSort, UiLocale } from "./types";
+import { useRuntimeSearchStatus } from "./useRuntimeSearchStatus";
+import { useSearchDerivedState } from "./useSearchDerivedState";
+import { useSearchExecution } from "./useSearchExecution";
+import { useSelectableIndexClamp } from "./useSelectableIndexClamp";
 
 interface UseSearchDataFlowParams {
   results: SearchResult[];
@@ -36,7 +36,9 @@ interface UseSearchDataFlowParams {
   isLoading: boolean;
   error: string | null;
   runtimeSearchingMessage: string;
-  onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
+  onRuntimeStatusChange?: (
+    status: { tone: "warning" | "error"; message: string; source: "search" } | null,
+  ) => void;
 }
 
 export type SearchDataFlowState = ReturnType<typeof useSearchDerivedState>;
@@ -88,7 +90,7 @@ export function useSearchDataFlow({
     isLoading,
   });
   const repoAwareSearchMode =
-    derivedState.searchMode === 'code' || derivedState.searchMode === 'all';
+    derivedState.searchMode === "code" || derivedState.searchMode === "all";
 
   useSelectableIndexClamp({
     selectedIndex: resultSelectedIndex,
@@ -101,7 +103,7 @@ export function useSearchDataFlow({
     queryToSearch: derivedState.queryToSearch,
     searchMode: derivedState.searchMode,
     repoFilter: repoAwareSearchMode ? primaryRepoFilter : undefined,
-    repoFacet: derivedState.searchMode === 'code' ? repoFacet : null,
+    repoFacet: derivedState.searchMode === "code" ? repoFacet : null,
     setResults,
     setSearchMeta,
     setIsLoading,

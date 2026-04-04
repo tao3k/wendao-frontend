@@ -5,37 +5,37 @@ import type {
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from './searchBarControllerTypes';
-import type { Dispatch, SetStateAction } from 'react';
-import type { UiLocale } from './types';
-import { CODE_FILTER_PREFIXES } from './codeSearchUtils';
+} from "./searchBarControllerTypes";
+import type { Dispatch, SetStateAction } from "react";
+import type { UiLocale } from "./types";
+import { CODE_FILTER_PREFIXES } from "./codeSearchUtils";
 
 interface BuildSuggestionsPanelPropsParams {
-  showSuggestions: SearchBarControllerSuggestionsPanelProps['showSuggestions'];
-  suggestions: SearchBarControllerSuggestionsPanelProps['suggestions'];
-  selectedIndex: SearchBarControllerSuggestionsPanelProps['selectedIndex'];
+  showSuggestions: SearchBarControllerSuggestionsPanelProps["showSuggestions"];
+  suggestions: SearchBarControllerSuggestionsPanelProps["suggestions"];
+  selectedIndex: SearchBarControllerSuggestionsPanelProps["selectedIndex"];
   locale: UiLocale;
-  renderSuggestionIcon: SearchBarControllerSuggestionsPanelProps['renderSuggestionIcon'];
-  onSuggestionClick: SearchBarControllerSuggestionsPanelProps['onSuggestionClick'];
-  onSuggestionHover: SearchBarControllerSuggestionsPanelProps['onSuggestionHover'];
+  renderSuggestionIcon: SearchBarControllerSuggestionsPanelProps["renderSuggestionIcon"];
+  onSuggestionClick: SearchBarControllerSuggestionsPanelProps["onSuggestionClick"];
+  onSuggestionHover: SearchBarControllerSuggestionsPanelProps["onSuggestionHover"];
 }
 
 interface BuildCodeFilterHelperPropsParams {
-  copy: SearchBarControllerCodeFilterHelperProps['copy'];
+  copy: SearchBarControllerCodeFilterHelperProps["copy"];
   locale: UiLocale;
-  activeEntries: SearchBarControllerCodeFilterHelperProps['activeEntries'];
-  exampleTokens: SearchBarControllerCodeFilterHelperProps['exampleTokens'];
-  scenarios: SearchBarControllerCodeFilterHelperProps['scenarios'];
-  onInsertPrefix: SearchBarControllerCodeFilterHelperProps['onInsertPrefix'];
-  onApplyExample: SearchBarControllerCodeFilterHelperProps['onApplyExample'];
-  onApplyScenario: SearchBarControllerCodeFilterHelperProps['onApplyScenario'];
-  onRemoveFilter: SearchBarControllerCodeFilterHelperProps['onRemoveFilter'];
-  onClearFilters: SearchBarControllerCodeFilterHelperProps['onClearFilters'];
+  activeEntries: SearchBarControllerCodeFilterHelperProps["activeEntries"];
+  exampleTokens: SearchBarControllerCodeFilterHelperProps["exampleTokens"];
+  scenarios: SearchBarControllerCodeFilterHelperProps["scenarios"];
+  onInsertPrefix: SearchBarControllerCodeFilterHelperProps["onInsertPrefix"];
+  onApplyExample: SearchBarControllerCodeFilterHelperProps["onApplyExample"];
+  onApplyScenario: SearchBarControllerCodeFilterHelperProps["onApplyScenario"];
+  onRemoveFilter: SearchBarControllerCodeFilterHelperProps["onRemoveFilter"];
+  onClearFilters: SearchBarControllerCodeFilterHelperProps["onClearFilters"];
 }
 
 interface BuildSearchBarControllerResultParams {
-  onModalClick: SearchBarControllerModalProps['onClick'];
-  onModalKeyDownCapture: SearchBarControllerModalProps['onKeyDownCapture'];
+  onModalClick: SearchBarControllerModalProps["onClick"];
+  onModalKeyDownCapture: SearchBarControllerModalProps["onKeyDownCapture"];
   showCodeFilterHelper: boolean;
   shellProps: SearchBarControllerShellProps;
   resultsPanelProps: SearchBarControllerResultsPanelProps;
@@ -45,13 +45,17 @@ interface BuildSearchBarControllerResultParams {
 
 type BuildSearchShellPropsParams = SearchBarControllerShellProps;
 
-interface BuildSearchResultsPanelPropsParams
-  extends Omit<SearchBarControllerResultsPanelProps, 'selectedIndex' | 'onSelectIndex'> {
+interface BuildSearchResultsPanelPropsParams extends Omit<
+  SearchBarControllerResultsPanelProps,
+  "selectedIndex" | "onSelectIndex"
+> {
   selectedIndex: number;
   setResultSelectedIndex: Dispatch<SetStateAction<number>>;
 }
 
-export function buildSearchShellProps(params: BuildSearchShellPropsParams): SearchBarControllerShellProps {
+export function buildSearchShellProps(
+  params: BuildSearchShellPropsParams,
+): SearchBarControllerShellProps {
   return {
     ...params,
   };

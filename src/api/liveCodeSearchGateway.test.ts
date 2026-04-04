@@ -1,35 +1,35 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
-import * as TOML from 'smol-toml';
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import * as TOML from "smol-toml";
 
-import type { SearchResponse } from './bindings';
-import { searchKnowledgeFlight } from './flightSearchTransport';
-import { decodeSearchHitsFromArrowIpc } from './arrowSearchIpc';
-import type { WendaoConfig } from '../config/loader';
-import { resolveSearchFlightSchemaVersion } from '../config/loader';
-import { normalizeCodeSearchHit } from '../components/SearchBar/searchResultNormalization';
+import type { SearchResponse } from "./bindings";
+import { searchKnowledgeFlight } from "./flightSearchTransport";
+import { decodeSearchHitsFromArrowIpc } from "./arrowSearchIpc";
+import type { WendaoConfig } from "../config/loader";
+import { resolveSearchFlightSchemaVersion } from "../config/loader";
+import { normalizeCodeSearchHit } from "../components/SearchBar/searchResultNormalization";
 
 const runLiveGateway =
-  process.env.RUN_LIVE_GATEWAY_TEST === '1' || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
+  process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
 
 type LiveUiCapabilities = {
   supportedRepositories: string[];
 };
 
-let gatewayOrigin = '';
-let flightSchemaVersion = '';
+let gatewayOrigin = "";
+let flightSchemaVersion = "";
 let candidateRepoQueries: string[] = [];
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
   if (process.env.STUDIO_LIVE_GATEWAY_URL) {
-    return process.env.STUDIO_LIVE_GATEWAY_URL.replace(/\/+$/, '');
+    return process.env.STUDIO_LIVE_GATEWAY_URL.replace(/\/+$/, "");
   }
 
-  const bind = config.gateway?.bind?.trim() || '127.0.0.1:9517';
-  if (bind.startsWith('http://') || bind.startsWith('https://')) {
-    return bind.replace(/\/+$/, '');
+  const bind = config.gateway?.bind?.trim() || "127.0.0.1:9517";
+  if (bind.startsWith("http://") || bind.startsWith("https://")) {
+    return bind.replace(/\/+$/, "");
   }
   return `http://${bind}`;
 }
@@ -43,32 +43,34 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 function buildCandidateQueries(repoIds: string[]): string[] {
-  return [...new Set(
-    repoIds.flatMap((repoId) => {
-      const trimmed = repoId.trim();
-      if (!trimmed) {
-        return [];
-      }
-      const withoutJl = trimmed.replace(/\.jl$/i, '');
-      return withoutJl === trimmed ? [trimmed] : [trimmed, withoutJl];
-    }),
-  )];
+  return [
+    ...new Set(
+      repoIds.flatMap((repoId) => {
+        const trimmed = repoId.trim();
+        if (!trimmed) {
+          return [];
+        }
+        const withoutJl = trimmed.replace(/\.jl$/i, "");
+        return withoutJl === trimmed ? [trimmed] : [trimmed, withoutJl];
+      }),
+    ),
+  ];
 }
 
-liveDescribe('live gateway code search contract', () => {
+liveDescribe("live gateway code search contract", () => {
   beforeAll(async () => {
-    const tomlPath = resolve(process.cwd(), 'wendao.toml');
-    const tomlContent = await readFile(tomlPath, 'utf8');
+    const tomlPath = resolve(process.cwd(), "wendao.toml");
+    const tomlContent = await readFile(tomlPath, "utf8");
     const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
     gatewayOrigin = resolveGatewayOrigin(config);
     flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
 
-    const capabilities = await fetchJson<LiveUiCapabilities>('/ui/capabilities');
+    const capabilities = await fetchJson<LiveUiCapabilities>("/ui/capabilities");
     candidateRepoQueries = buildCandidateQueries(capabilities.supportedRepositories.slice(0, 12));
     expect(candidateRepoQueries.length).toBeGreaterThan(0);
   });
 
-  it('returns repo-backed hits for code_search intent over same-origin Flight', async () => {
+  it("returns repo-backed hits for code_search intent over same-origin Flight", async () => {
     let response: SearchResponse | null = null;
     let queryUsed: string | null = null;
 
@@ -79,7 +81,7 @@ liveDescribe('live gateway code search contract', () => {
           schemaVersion: flightSchemaVersion,
           query,
           limit: 10,
-          intent: 'code_search',
+          intent: "code_search",
         },
         {
           decodeSearchHits: decodeSearchHitsFromArrowIpc,
@@ -88,7 +90,7 @@ liveDescribe('live gateway code search contract', () => {
 
       const repoBackedHit = candidate.hits.find((hit) => {
         const projectName = hit.navigationTarget?.projectName?.trim();
-        return Boolean(projectName && projectName !== 'main' && projectName !== 'kernel');
+        return Boolean(projectName && projectName !== "main" && projectName !== "kernel");
       });
 
       if (repoBackedHit) {
@@ -98,31 +100,33 @@ liveDescribe('live gateway code search contract', () => {
       }
     }
 
-    expect(queryUsed, 'expected one repo-backed code_search query').not.toBeNull();
+    expect(queryUsed, "expected one repo-backed code_search query").not.toBeNull();
     expect(response).not.toBeNull();
-    expect(response?.intent).toBe('code_search');
-    expect(response?.hits.some((hit) => {
-      const projectName = hit.navigationTarget?.projectName?.trim();
-      return Boolean(projectName && projectName !== 'main' && projectName !== 'kernel');
-    })).toBe(true);
+    expect(response?.intent).toBe("code_search");
+    expect(
+      response?.hits.some((hit) => {
+        const projectName = hit.navigationTarget?.projectName?.trim();
+        return Boolean(projectName && projectName !== "main" && projectName !== "kernel");
+      }),
+    ).toBe(true);
   });
 
-  it('surfaces the live all-scope filter query contract for sec lang:julia kind:function', async () => {
+  it("surfaces the live all-scope filter query contract for sec lang:julia kind:function", async () => {
     const response = await searchKnowledgeFlight(
       {
         baseUrl: gatewayOrigin,
         schemaVersion: flightSchemaVersion,
-        query: 'sec lang:julia kind:function',
+        query: "sec lang:julia kind:function",
         limit: 10,
-        intent: 'code_search',
+        intent: "code_search",
       },
       {
         decodeSearchHits: decodeSearchHitsFromArrowIpc,
       },
     );
 
-    expect(response.intent).toBe('code_search');
-    expect(response.query).toBe('sec lang:julia kind:function');
+    expect(response.intent).toBe("code_search");
+    expect(response.query).toBe("sec lang:julia kind:function");
 
     if (response.hits.length === 0) {
       expect(response.hits).toEqual([]);
@@ -131,15 +135,15 @@ liveDescribe('live gateway code search contract', () => {
 
     response.hits.forEach((hit) => {
       const normalized = normalizeCodeSearchHit(hit);
-      const languageTag = hit.tags?.find((tag) => tag.toLowerCase().startsWith('lang:'));
+      const languageTag = hit.tags?.find((tag) => tag.toLowerCase().startsWith("lang:"));
       const normalizedPath = hit.path.toLowerCase();
 
       expect(
-        languageTag?.toLowerCase() === 'lang:julia' || normalizedPath.endsWith('.jl'),
+        languageTag?.toLowerCase() === "lang:julia" || normalizedPath.endsWith(".jl"),
         `expected live code_search hit to remain Julia-filtered: ${JSON.stringify(hit)}`,
       ).toBe(true);
       expect(
-        normalized.codeKind === 'function',
+        normalized.codeKind === "function",
         `expected frontend-normalized code_search hit to remain function-filtered: ${JSON.stringify(hit)}`,
       ).toBe(true);
     });

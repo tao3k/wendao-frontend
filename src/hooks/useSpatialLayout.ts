@@ -5,15 +5,15 @@
  * running off-main-thread to avoid blocking the UI.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AcademicNode, AcademicLink } from '../types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { AcademicNode, AcademicLink } from "../types";
 import type {
   LayoutNode,
   LayoutCluster,
   LayoutConfig,
   LayoutWorkerInput,
   LayoutWorkerOutput,
-} from '../lib/spatial/types';
+} from "../lib/spatial/types";
 
 export interface UseSpatialLayoutOptions {
   /** Layout configuration */
@@ -69,13 +69,41 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
   const workerRef = useRef<Worker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const handleWorkerMessage = useCallback((e: MessageEvent<LayoutWorkerOutput>) => {
+    if (!mountedRef.current) return;
+
+    const data = e.data;
+    switch (data.type) {
+      case "nodes":
+        setNodes(data.nodes || []);
+        setAlpha(data.alpha ?? 1.0);
+        setIsReady(true);
+        break;
+      case "tick":
+        setNodes(data.nodes || []);
+        setAlpha(data.alpha ?? 1.0);
+        break;
+      case "clusters":
+        setClusters(data.clusters || []);
+        break;
+      case "error":
+        setError(data.error || "Unknown error");
+        setIsRunning(false);
+        break;
+    }
+  }, []);
+  const handleWorkerError = useCallback((e: ErrorEvent) => {
+    if (!mountedRef.current) return;
+    setError(e.message);
+    setIsRunning(false);
+  }, []);
 
   // Initialize worker
   useEffect(() => {
     mountedRef.current = true;
 
-    if (typeof Worker === 'undefined') {
-      setError('Web Worker not available');
+    if (typeof Worker === "undefined") {
+      setError("Web Worker not available");
       setIsReady(false);
       return () => {
         mountedRef.current = false;
@@ -83,40 +111,12 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
     }
 
     // Create worker
-    workerRef.current = new Worker(
-      new URL('../workers/spatialLayout.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-
-    workerRef.current.onmessage = (e: MessageEvent<LayoutWorkerOutput>) => {
-      if (!mountedRef.current) return;
-
-      const data = e.data;
-      switch (data.type) {
-        case 'nodes':
-          setNodes(data.nodes || []);
-          setAlpha(data.alpha ?? 1.0);
-          setIsReady(true);
-          break;
-        case 'tick':
-          setNodes(data.nodes || []);
-          setAlpha(data.alpha ?? 1.0);
-          break;
-        case 'clusters':
-          setClusters(data.clusters || []);
-          break;
-        case 'error':
-          setError(data.error || 'Unknown error');
-          setIsRunning(false);
-          break;
-      }
-    };
-
-    workerRef.current.onerror = (e) => {
-      if (!mountedRef.current) return;
-      setError(e.message);
-      setIsRunning(false);
-    };
+    workerRef.current = new Worker(new URL("../workers/spatialLayout.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    const worker = workerRef.current;
+    worker.addEventListener("message", handleWorkerMessage);
+    worker.addEventListener("error", handleWorkerError);
 
     return () => {
       mountedRef.current = false;
@@ -124,19 +124,21 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
         cancelAnimationFrame(animationFrameRef.current);
       }
       if (workerRef.current) {
+        workerRef.current.removeEventListener("message", handleWorkerMessage);
+        workerRef.current.removeEventListener("error", handleWorkerError);
         workerRef.current.terminate();
       }
     };
-  }, []);
+  }, [handleWorkerError, handleWorkerMessage]);
 
   // Animation loop
   const runAnimation = useCallback(() => {
     if (!workerRef.current || !mountedRef.current) return;
 
     workerRef.current.postMessage({
-      type: 'tick',
+      type: "tick",
       count: ticksPerFrame,
-    } as LayoutWorkerInput);
+    } as LayoutWorkerInput, []);
 
     if (alpha > 0.01 && isRunning) {
       animationFrameRef.current = requestAnimationFrame(runAnimation);
@@ -164,17 +166,17 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
       setError(null);
       setIsReady(false);
       workerRef.current.postMessage({
-        type: 'init',
+        type: "init",
         nodes: inputNodes,
         links: inputLinks,
         config,
-      } as LayoutWorkerInput);
+      } as LayoutWorkerInput, []);
 
       if (autoTick) {
         setIsRunning(true);
       }
     },
-    [config, autoTick]
+    [config, autoTick],
   );
 
   const synchronize = useCallback(
@@ -183,25 +185,25 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
 
       setError(null);
       workerRef.current.postMessage({
-        type: 'sync',
+        type: "sync",
         nodes: inputNodes,
         links: inputLinks,
         config,
-      } as LayoutWorkerInput);
+      } as LayoutWorkerInput, []);
 
       if (autoTick) {
         setIsRunning(true);
       }
     },
-    [config, autoTick]
+    [config, autoTick],
   );
 
   const tick = useCallback((count = 1) => {
     if (!workerRef.current) return;
     workerRef.current.postMessage({
-      type: 'tick',
+      type: "tick",
       count,
-    } as LayoutWorkerInput);
+    } as LayoutWorkerInput, []);
   }, []);
 
   const start = useCallback(() => {
@@ -218,17 +220,17 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
   const updatePosition = useCallback((nodeId: string, position: [number, number, number]) => {
     if (!workerRef.current) return;
     workerRef.current.postMessage({
-      type: 'update',
+      type: "update",
       nodeId,
       position,
-    } as LayoutWorkerInput);
+    } as LayoutWorkerInput, []);
   }, []);
 
   const getClusters = useCallback(() => {
     if (!workerRef.current) return;
     workerRef.current.postMessage({
-      type: 'getClusters',
-    } as LayoutWorkerInput);
+      type: "getClusters",
+    } as LayoutWorkerInput, []);
   }, []);
 
   return {

@@ -1,6 +1,6 @@
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import { buildRepoOverviewFacetQuery } from './repoOverviewQueryBuilder';
-import { buildRepoFallbackRestoreQuery } from './repoFallbackQueryBuilder';
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import { buildRepoOverviewFacetQuery } from "./repoOverviewQueryBuilder";
+import { buildRepoFallbackRestoreQuery } from "./repoFallbackQueryBuilder";
 
 interface ApplyRepoFacetQueryOptions {
   facet: RepoOverviewFacet;
@@ -17,7 +17,7 @@ interface RestoreRepoFallbackQueryOptions {
 }
 
 function pickRepoId(...candidates: Array<string | null | undefined>): string {
-  return candidates.map((value) => (value || '').trim()).find((value) => value.length > 0) || '';
+  return candidates.map((value) => (value || "").trim()).find((value) => value.length > 0) || "";
 }
 
 export function buildApplyRepoFacetQuery({

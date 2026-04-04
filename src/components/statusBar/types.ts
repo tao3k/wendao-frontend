@@ -45,12 +45,12 @@ export interface VfsStatus {
 }
 
 export interface RuntimeStatus {
-  tone: 'active' | 'warning' | 'error';
+  tone: "active" | "warning" | "error";
   message: string;
-  source?: 'search' | 'graph' | 'system';
+  source?: "search" | "graph" | "system";
 }
 
-export type StatusTone = 'active' | 'warning' | 'error';
+export type StatusTone = "active" | "warning" | "error";
 
 export interface RepoIndexStatusViewModel {
   tone: StatusTone;

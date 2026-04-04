@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useCallback, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface PropertyGroupProps {
   title: string;
@@ -13,23 +13,24 @@ export const PropertyGroup: React.FC<PropertyGroupProps> = ({
   children,
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const handleToggle = useCallback(() => {
+    setIsExpanded((current) => !current);
+  }, []);
 
   return (
     <div className="property-group">
-      <div
+      <button
+        type="button"
         className="property-group__header"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggle}
+        aria-expanded={isExpanded}
       >
         <span className="property-group__title">{title}</span>
         <span className="property-group__toggle">
           {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
-      </div>
-      {isExpanded && (
-        <div className="property-group__content">
-          {children}
-        </div>
-      )}
+      </button>
+      {isExpanded && <div className="property-group__content">{children}</div>}
     </div>
   );
 };

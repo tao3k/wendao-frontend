@@ -1,7 +1,7 @@
-import React from 'react';
-import type { UiLocale } from '../SearchBar/types';
-import type { ZenSearchPreviewState } from './useZenSearchPreview';
-import { ZenSearchPreviewShell } from './ZenSearchPreviewShell';
+import React from "react";
+import type { UiLocale } from "../SearchBar/types";
+import type { ZenSearchPreviewState } from "./useZenSearchPreview";
+import { ZenSearchPreviewShell } from "./ZenSearchPreviewShell";
 
 interface ZenSearchPreviewPaneViewProps {
   locale: UiLocale;

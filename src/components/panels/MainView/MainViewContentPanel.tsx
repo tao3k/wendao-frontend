@@ -1,7 +1,7 @@
-import React, { Suspense } from 'react';
-import type { MainViewSelectedFile } from './mainViewProps';
-import type { MainViewLocale } from './mainViewTypes';
-import { DirectReader } from './mainViewLazyPanels';
+import React, { Suspense } from "react";
+import type { MainViewSelectedFile } from "./mainViewProps";
+import type { MainViewLocale } from "./mainViewTypes";
+import { DirectReader } from "./mainViewLazyPanels";
 
 interface MainViewContentPanelProps {
   selectedFile?: MainViewSelectedFile | null;

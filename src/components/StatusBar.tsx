@@ -1,21 +1,21 @@
-import React from 'react';
-import { Layers, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import type { UiJuliaDeploymentArtifact } from '../api';
+import React, { useCallback } from "react";
+import { Layers, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import type { UiJuliaDeploymentArtifact } from "../api";
 import {
   JuliaDeploymentInspectionView,
   useJuliaDeploymentInspectionController,
-} from './juliaDeploymentInspection';
+} from "./juliaDeploymentInspection";
 import {
   deriveJuliaInspectionModel,
   deriveRepoIndexStatusModel,
   deriveRuntimeStatusModel,
   deriveVfsStatusModel,
   RepoIndexStatusView,
-} from './statusBar/index';
-import type { RepoIndexStatus, RuntimeStatus, VfsStatus } from './statusBar/types';
+} from "./statusBar/index";
+import type { RepoIndexStatus, RuntimeStatus, VfsStatus } from "./statusBar/types";
 
 interface StatusBarProps {
-  locale?: 'en' | 'zh';
+  locale?: "en" | "zh";
   nodeCount: number;
   selectedNodeId?: string | null;
   vfsStatus?: VfsStatus;
@@ -28,7 +28,7 @@ interface StatusBarProps {
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
-  locale = 'en',
+  locale = "en",
   nodeCount,
   selectedNodeId,
   vfsStatus,
@@ -41,8 +41,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const vfsModel = deriveVfsStatusModel(locale, vfsStatus);
   const repoIndexModel = deriveRepoIndexStatusModel(locale, repoIndexStatus);
-  const selectedPrefix = locale === 'zh' ? '选中:' : 'Selected:';
-  const versionLabel = locale === 'zh' ? '千机 Studio v1.0' : 'Qianji Studio v1.0';
+  const selectedPrefix = locale === "zh" ? "选中:" : "Selected:";
+  const versionLabel = locale === "zh" ? "千机 Studio v1.0" : "Qianji Studio v1.0";
   const runtimeLabel = deriveRuntimeStatusModel(locale, runtimeStatus);
   const juliaInspectionModel = deriveJuliaInspectionModel(locale, juliaDeploymentArtifact);
   const juliaInspectionController = useJuliaDeploymentInspectionController({
@@ -50,6 +50,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     onCopyToml: onCopyJuliaDeploymentArtifactToml,
     onDownloadJson: onDownloadJuliaDeploymentArtifactJson,
   });
+  const handleCopyJuliaDeploymentArtifactToml = useCallback(() => {
+    void juliaInspectionController.handleCopyToml();
+  }, [juliaInspectionController]);
 
   return (
     <>
@@ -59,7 +62,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           {nodeCount} nodes
         </span>
         {vfsStatus && (
-        <span className={`status-chip status-chip--${vfsModel.tone}`}>
+          <span className={`status-chip status-chip--${vfsModel.tone}`}>
             <span className={`status-dot status-dot--${vfsModel.tone}`} aria-hidden="true" />
             {vfsStatus.isLoading ? (
               <>
@@ -96,9 +99,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         {runtimeStatus && (
           <span className={`status-chip status-chip--${runtimeStatus.tone} status-chip--runtime`}>
             <span className={`status-dot status-dot--${runtimeStatus.tone}`} aria-hidden="true" />
-            {runtimeStatus.tone === 'warning' ? (
+            {runtimeStatus.tone === "warning" ? (
               <Loader2 size={12} className="animate-spin" />
-            ) : runtimeStatus.tone === 'error' ? (
+            ) : runtimeStatus.tone === "error" ? (
               <AlertCircle size={12} />
             ) : (
               <CheckCircle size={12} />
@@ -114,9 +117,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             canCopyToml={Boolean(onCopyJuliaDeploymentArtifactToml)}
             canDownloadJson={Boolean(onDownloadJuliaDeploymentArtifactJson)}
             actionState={juliaInspectionController.actionState}
-            onCopyToml={() => {
-              void juliaInspectionController.handleCopyToml();
-            }}
+            onCopyToml={handleCopyJuliaDeploymentArtifactToml}
             onDownloadJson={juliaInspectionController.handleDownloadJson}
           />
         )}
@@ -127,9 +128,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             {selectedPrefix} {selectedNodeId}
           </span>
         )}
-        <span className="status-text--muted">
-          {versionLabel}
-        </span>
+        <span className="status-text--muted">{versionLabel}</span>
       </div>
     </>
   );

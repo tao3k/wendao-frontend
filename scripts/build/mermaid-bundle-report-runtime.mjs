@@ -1,32 +1,28 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { buildMermaidBundleReport } from './mermaid-bundle-report-model.mjs';
+import { buildMermaidBundleReport } from "./mermaid-bundle-report-model.mjs";
 import {
   CURRENT_MERMAID_PROVIDER_MANIFEST,
   MERMAID_PROVIDER_MANIFESTS,
-} from './mermaid-provider-manifest.mjs';
+} from "./mermaid-provider-manifest.mjs";
 
 async function collectJavaScriptAssetSizes(distDir) {
   const entries = await fs.readdir(distDir, { withFileTypes: true });
-  const fileSizes = {};
-
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.js')) {
-      continue;
-    }
-
-    const entryPath = path.join(distDir, entry.name);
-    const stat = await fs.stat(entryPath);
-    fileSizes[entry.name] = stat.size;
-  }
-
-  return fileSizes;
+  const jsEntries = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".js"));
+  const sizeEntries = await Promise.all(
+    jsEntries.map(async (entry) => {
+      const entryPath = path.join(distDir, entry.name);
+      const stats = await fs.stat(entryPath);
+      return [entry.name, stats.size];
+    }),
+  );
+  return Object.fromEntries(sizeEntries);
 }
 
 export async function runMermaidBundleReport({
-  distDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'dist'),
+  distDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "dist"),
   providerName = CURRENT_MERMAID_PROVIDER_MANIFEST.providerName,
 } = {}) {
   const fileSizes = await collectJavaScriptAssetSizes(distDir);
@@ -36,13 +32,13 @@ export async function runMermaidBundleReport({
   });
 
   const summaryLines = [
-    `Provider: ${report.providerManifest ? report.providerManifest.providerName : 'none'}`,
-    `Package: ${report.providerManifest ? report.providerManifest.packageName : 'none'}`,
-    `Inline dialects: ${report.providerManifest ? report.providerManifest.supportedInlineDialects.join(', ') : 'none'}`,
+    `Provider: ${report.providerManifest ? report.providerManifest.providerName : "none"}`,
+    `Package: ${report.providerManifest ? report.providerManifest.packageName : "none"}`,
+    `Inline dialects: ${report.providerManifest ? report.providerManifest.supportedInlineDialects.join(", ") : "none"}`,
     `Mermaid assets: ${report.mermaidAssets.length}`,
     `Mermaid bytes: ${report.totalMermaidBytes}`,
-    `Largest JS asset: ${report.largestAsyncAsset ? `${report.largestAsyncAsset.asset} (${report.largestAsyncAsset.size})` : 'none'}`,
-    `Dominant Mermaid asset: ${report.dominantMermaidAsset ? `${report.dominantMermaidAsset.asset} (${report.dominantMermaidAsset.size})` : 'none'}`,
+    `Largest JS asset: ${report.largestAsyncAsset ? `${report.largestAsyncAsset.asset} (${report.largestAsyncAsset.size})` : "none"}`,
+    `Dominant Mermaid asset: ${report.dominantMermaidAsset ? `${report.dominantMermaidAsset.asset} (${report.dominantMermaidAsset.size})` : "none"}`,
     ...(report.providerManifest?.payloadNotes ?? []).map((note) => `Payload note: ${note}`),
   ];
 

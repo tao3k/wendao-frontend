@@ -9,12 +9,12 @@
  * Phase 3 (600-800ms): Aberration fades, camera settles
  */
 
-import React, { createContext, useContext, useRef, useCallback, useState } from 'react';
-import * as THREE from 'three';
-import { useFrame, useThree } from '@react-three/fiber';
-import { useCameraTween, CameraTweenConfig } from './CameraTween';
+import React, { createContext, useContext, useRef, useCallback, useMemo, useState } from "react";
+import * as THREE from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useCameraTween, CameraTweenConfig } from "./CameraTween";
 
-type TransitionPhase = 'idle' | 'warming' | 'warping' | 'cooling';
+type TransitionPhase = "idle" | "warming" | "warping" | "cooling";
 
 interface HyperspaceContextValue {
   startTransition: (targetPosition: THREE.Vector3, config?: Partial<TransitionConfig>) => void;
@@ -32,7 +32,7 @@ interface TransitionConfig extends CameraTweenConfig {
 const HyperspaceContext = createContext<HyperspaceContextValue>({
   startTransition: () => {},
   isActive: false,
-  phase: 'idle',
+  phase: "idle",
   intensity: 0,
   progress: 0,
 });
@@ -54,7 +54,7 @@ export const HyperspaceTransitionProvider: React.FC<HyperspaceTransitionProps> =
 }) => {
   const { camera } = useThree();
   const cameraTween = useCameraTween();
-  const [phase, setPhase] = useState<TransitionPhase>('idle');
+  const [phase, setPhase] = useState<TransitionPhase>("idle");
   const [intensity, setIntensity] = useState(0);
   const timeRef = useRef(0);
 
@@ -74,11 +74,11 @@ export const HyperspaceTransitionProvider: React.FC<HyperspaceTransitionProps> =
       // Calculate warp intensity for chromatic aberration
       // Update phase based on progress
       if (progress < 0.2) {
-        setPhase('warming');
+        setPhase("warming");
       } else if (progress < 0.75) {
-        setPhase('warping');
+        setPhase("warping");
       } else {
-        setPhase('cooling');
+        setPhase("cooling");
       }
 
       // Apply intensity curve
@@ -96,7 +96,7 @@ export const HyperspaceTransitionProvider: React.FC<HyperspaceTransitionProps> =
     (targetPosition: THREE.Vector3, config: Partial<TransitionConfig> = {}) => {
       const defaultConfig: TransitionConfig = {
         duration: 1200,
-        easing: 'easeInOutQuart',
+        easing: "easeInOutQuart",
         warpEffect: true,
         chromaticIntensity: 0.8,
         chromaticOffset: 0.003,
@@ -104,12 +104,12 @@ export const HyperspaceTransitionProvider: React.FC<HyperspaceTransitionProps> =
       };
 
       onTransitionStart?.();
-      setPhase('warming');
+      setPhase("warming");
 
       cameraTween.tweenTo(camera, targetPosition, defaultConfig);
 
       cameraTween.onComplete(() => {
-        setPhase('idle');
+        setPhase("idle");
         setIntensity(0);
 
         // Reset chromatic aberration
@@ -120,22 +120,21 @@ export const HyperspaceTransitionProvider: React.FC<HyperspaceTransitionProps> =
         onTransitionEnd?.();
       });
     },
-    [camera, cameraTween, chromaticAberrationRef, onTransitionStart, onTransitionEnd]
+    [camera, cameraTween, chromaticAberrationRef, onTransitionStart, onTransitionEnd],
   );
 
-  const value: HyperspaceContextValue = {
-    startTransition,
-    isActive: cameraTween.isActive,
-    phase,
-    intensity,
-    progress: cameraTween.progress,
-  };
-
-  return (
-    <HyperspaceContext.Provider value={value}>
-      {children}
-    </HyperspaceContext.Provider>
+  const value = useMemo<HyperspaceContextValue>(
+    () => ({
+      startTransition,
+      isActive: cameraTween.isActive,
+      phase,
+      intensity,
+      progress: cameraTween.progress,
+    }),
+    [cameraTween.isActive, cameraTween.progress, intensity, phase, startTransition],
   );
+
+  return <HyperspaceContext.Provider value={value}>{children}</HyperspaceContext.Provider>;
 };
 
 /**
@@ -148,11 +147,7 @@ export const HyperspaceTransition: React.FC<{
   onTransitionStart?: () => void;
   onTransitionEnd?: () => void;
 }> = ({ children, ...props }) => {
-  return (
-    <HyperspaceTransitionProvider {...props}>
-      {children}
-    </HyperspaceTransitionProvider>
-  );
+  return <HyperspaceTransitionProvider {...props}>{children}</HyperspaceTransitionProvider>;
 };
 
 export default HyperspaceTransition;

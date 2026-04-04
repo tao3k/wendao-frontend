@@ -1,64 +1,64 @@
-import { describe, expect, it } from 'vitest';
-import { buildVirtualizedSearchRows } from '../buildVirtualizedSearchRows';
-import type { SearchResultSection } from '../../../searchResultSections';
+import { describe, expect, it } from "vitest";
+import { buildVirtualizedSearchRows } from "../buildVirtualizedSearchRows";
+import type { SearchResultSection } from "../../../searchResultSections";
 
 const visibleSections: SearchResultSection[] = [
   {
-    key: 'symbol',
-    title: 'Symbols',
+    key: "symbol",
+    title: "Symbols",
     hits: [
       {
-        stem: 'solve',
-        title: 'solve',
-        path: 'sciml/src/solve.jl',
-        docType: 'symbol',
-        tags: ['code', 'julia', 'kind:function'],
+        stem: "solve",
+        title: "solve",
+        path: "sciml/src/solve.jl",
+        docType: "symbol",
+        tags: ["code", "julia", "kind:function"],
         score: 0.95,
-        category: 'symbol',
-        projectName: 'sciml',
-        codeLanguage: 'julia',
-        codeKind: 'function',
-        codeRepo: 'sciml',
+        category: "symbol",
+        projectName: "sciml",
+        codeLanguage: "julia",
+        codeKind: "function",
+        codeRepo: "sciml",
         navigationTarget: {
-          path: 'sciml/src/solve.jl',
-          category: 'repo_code',
-          projectName: 'sciml',
+          path: "sciml/src/solve.jl",
+          category: "repo_code",
+          projectName: "sciml",
           line: 12,
         },
-        searchSource: 'search-index',
+        searchSource: "search-index",
       },
     ],
   },
   {
-    key: 'reference',
-    title: 'References',
+    key: "reference",
+    title: "References",
     hits: [
       {
-        stem: 'solve reference',
-        title: 'solve reference',
-        path: 'sciml/src/model.jl',
-        docType: 'reference',
-        tags: ['julia', 'sciml'],
+        stem: "solve reference",
+        title: "solve reference",
+        path: "sciml/src/model.jl",
+        docType: "reference",
+        tags: ["julia", "sciml"],
         score: 0.7,
-        category: 'reference',
-        projectName: 'sciml',
-        codeLanguage: 'julia',
-        codeKind: 'reference',
-        codeRepo: 'sciml',
+        category: "reference",
+        projectName: "sciml",
+        codeLanguage: "julia",
+        codeKind: "reference",
+        codeRepo: "sciml",
         navigationTarget: {
-          path: 'sciml/src/model.jl',
-          category: 'repo_code',
-          projectName: 'sciml',
+          path: "sciml/src/model.jl",
+          category: "repo_code",
+          projectName: "sciml",
           line: 30,
         },
-        searchSource: 'search-index',
+        searchSource: "search-index",
       },
     ],
   },
 ];
 
-describe('buildVirtualizedSearchRows', () => {
-  it('builds a stable section/result sequence for the virtualized results interface', () => {
+describe("buildVirtualizedSearchRows", () => {
+  it("builds a stable section/result sequence for the virtualized results interface", () => {
     expect(buildVirtualizedSearchRows(visibleSections)).toMatchInlineSnapshot(`
       [
         {

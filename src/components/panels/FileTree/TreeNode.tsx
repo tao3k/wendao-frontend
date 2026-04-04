@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -9,9 +9,12 @@ import {
   FolderOpen,
   Package,
   Zap,
-} from 'lucide-react';
-import { requestRepoIndexPriority } from '../../repoIndexPriority';
-import type { FileNode, FileTreeLocale, OnFileSelect } from './types';
+} from "lucide-react";
+import { requestRepoIndexPriority } from "../../repoIndexPriority";
+import type { FileNode, FileTreeLocale, OnFileSelect } from "./types";
+
+const FILE_TREE_EMPTY_CHEVRON_STYLE = Object.freeze({ width: 14 });
+const FILE_TREE_HIDDEN_CHEVRON_STYLE = Object.freeze({ opacity: 0 });
 
 interface TreeNodeProps {
   node: FileNode;
@@ -23,10 +26,10 @@ interface TreeNodeProps {
 }
 
 function getCategoryIcon(
-  category: FileNode['category'],
+  category: FileNode["category"],
   isDir: boolean,
   isOpen: boolean,
-  isProjectGroup?: boolean
+  isProjectGroup?: boolean,
 ) {
   if (isProjectGroup) {
     return <Package size={16} className="file-tree-icon project" />;
@@ -41,11 +44,11 @@ function getCategoryIcon(
   }
 
   switch (category) {
-    case 'skill':
+    case "skill":
       return <Zap size={16} className="file-tree-icon skill" />;
-    case 'knowledge':
+    case "knowledge":
       return <BookOpen size={16} className="file-tree-icon knowledge" />;
-    case 'doc':
+    case "doc":
       return <FileText size={16} className="file-tree-icon doc" />;
     default:
       return <FileCode size={16} className="file-tree-icon other" />;
@@ -64,7 +67,12 @@ export function TreeNode({
   const isSelected = selectedPath === node.path;
   const hasChildren = node.children && node.children.length > 0;
   const isProjectPlaceholder = node.isProjectPlaceholder === true;
-  const groupSummary = node.rootLabel && node.rootLabel !== node.name && !node.isProjectGroup ? node.rootLabel : null;
+  const groupSummary =
+    node.rootLabel && node.rootLabel !== node.name && !node.isProjectGroup ? node.rootLabel : null;
+  const itemPaddingStyle = React.useMemo(
+    () => ({ paddingLeft: `${Math.min(node.level, 8) * 8 + 6}px` }),
+    [node.level],
+  );
 
   const handleClick = useCallback(() => {
     if (isProjectPlaceholder) {
@@ -72,7 +80,7 @@ export function TreeNode({
     }
 
     const focusedRepoId = node.isRepoProject
-      ? node.projectName ?? (node.isProjectGroup ? node.name : undefined)
+      ? (node.projectName ?? (node.isProjectGroup ? node.name : undefined))
       : undefined;
     requestRepoIndexPriority(focusedRepoId);
 
@@ -89,14 +97,17 @@ export function TreeNode({
   }, [isProjectPlaceholder, node, onFileSelect, toggleExpand]);
 
   return (
-    <div className={`file-tree-node ${node.isProjectGroup ? 'file-tree-project-group' : ''}`}>
-      <div
-        className={`file-tree-item ${isSelected ? 'selected' : ''} ${node.isProjectGroup ? 'is-project' : ''} ${isProjectPlaceholder ? 'is-project-placeholder' : ''}`}
-        style={{ paddingLeft: `${Math.min(node.level, 8) * 8 + 6}px` }}
+    <div className={`file-tree-node ${node.isProjectGroup ? "file-tree-project-group" : ""}`}>
+      <button
+        type="button"
+        className={`file-tree-item ${isSelected ? "selected" : ""} ${node.isProjectGroup ? "is-project" : ""} ${isProjectPlaceholder ? "is-project-placeholder" : ""}`}
+        style={itemPaddingStyle}
         onClick={handleClick}
         role="treeitem"
         aria-expanded={node.isDir ? isExpanded : undefined}
-        aria-label={node.isProjectGroup ? `${locale === 'zh' ? '项目' : 'Project'} ${node.name}` : node.name}
+        aria-label={
+          node.isProjectGroup ? `${locale === "zh" ? "项目" : "Project"} ${node.name}` : node.name
+        }
         title={node.path}
       >
         {node.isDir ? (
@@ -108,11 +119,11 @@ export function TreeNode({
                 <ChevronRight size={14} />
               )
             ) : (
-              <span style={{ width: 14 }} />
+              <span style={FILE_TREE_EMPTY_CHEVRON_STYLE} />
             )}
           </span>
         ) : (
-          <span className="file-tree-chevron" style={{ opacity: 0 }}>
+          <span className="file-tree-chevron" style={FILE_TREE_HIDDEN_CHEVRON_STYLE}>
             <ChevronRight size={14} />
           </span>
         )}
@@ -132,19 +143,19 @@ export function TreeNode({
           </>
         ) : (
           <span
-            className={`file-tree-name ${isProjectPlaceholder ? 'file-tree-name-placeholder' : ''}`}
+            className={`file-tree-name ${isProjectPlaceholder ? "file-tree-name-placeholder" : ""}`}
             title={node.name}
           >
             {node.name}
           </span>
         )}
         {groupSummary ? <span className="file-tree-root-meta">{groupSummary}</span> : null}
-      </div>
+      </button>
 
       {node.isDir && isExpanded && node.children ? (
         <div
           className={`file-tree-children ${
-            node.isProjectGroup ? 'file-tree-project-children' : ''
+            node.isProjectGroup ? "file-tree-project-children" : ""
           }`}
         >
           {node.children.map((child) => (

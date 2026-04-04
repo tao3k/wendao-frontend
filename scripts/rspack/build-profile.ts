@@ -1,5 +1,5 @@
-import type { Configuration } from '@rspack/core';
-import { BUILD_SIZE_BUDGETS } from './build-size-budgets.mjs';
+import type { Configuration } from "@rspack/core";
+import { BUILD_SIZE_BUDGETS } from "./build-size-budgets.mjs";
 
 type PluginConstructor = new (options?: unknown) => unknown;
 
@@ -9,10 +9,10 @@ interface RspackMinimizerConstructors {
 }
 
 export const RSPACK_TARGETS = Object.freeze([
-  'last 2 versions',
-  '> 0.2%',
-  'not dead',
-  'Firefox ESR',
+  "last 2 versions",
+  "> 0.2%",
+  "not dead",
+  "Firefox ESR",
 ]);
 
 export function createRspackMinimizers({
@@ -31,19 +31,19 @@ export function createRspackMinimizers({
 }
 
 export function isCountedPerformanceAsset(assetFilename: string): boolean {
-  return !assetFilename.endsWith('.map');
+  return !assetFilename.endsWith(".map");
 }
 
-export function createRspackPerformanceConfig(): NonNullable<Configuration['performance']> {
+export function createRspackPerformanceConfig(): NonNullable<Configuration["performance"]> {
   return {
-    hints: 'warning',
+    hints: "warning",
     maxAssetSize: BUILD_SIZE_BUDGETS.maxAssetSize,
     maxEntrypointSize: BUILD_SIZE_BUDGETS.maxEntrypointSize,
     assetFilter: isCountedPerformanceAsset,
   };
 }
 
-export function createRspackExperimentsConfig(): NonNullable<Configuration['experiments']> {
+export function createRspackExperimentsConfig(): NonNullable<Configuration["experiments"]> {
   return {
     css: true,
   };

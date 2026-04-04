@@ -5,10 +5,10 @@
  * positioning, and state persistence.
  */
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { FloatingPanel, FloatingPanelProps } from './FloatingPanel';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from "react";
+import { FloatingPanel, FloatingPanelProps } from "./FloatingPanel";
 
-export interface PanelConfig extends Omit<FloatingPanelProps, 'children'> {
+export interface PanelConfig extends Omit<FloatingPanelProps, "children"> {
   /** Panel content */
   content: React.ReactNode;
   /** Whether panel is visible */
@@ -56,7 +56,7 @@ const FloatingPanelManagerContext = createContext<FloatingPanelManagerContextVal
 export function useFloatingPanelManager(): FloatingPanelManagerContextValue {
   const context = useContext(FloatingPanelManagerContext);
   if (!context) {
-    throw new Error('useFloatingPanelManager must be used within FloatingPanelManagerProvider');
+    throw new Error("useFloatingPanelManager must be used within FloatingPanelManagerProvider");
   }
   return context;
 }
@@ -91,7 +91,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [onStateChange]
+    [onStateChange],
   );
 
   const registerPanel = useCallback(
@@ -110,7 +110,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [defaultWidth, defaultHeight, updatePanels]
+    [defaultWidth, defaultHeight, updatePanels],
   );
 
   const unregisterPanel = useCallback(
@@ -121,7 +121,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const showPanel = useCallback(
@@ -135,7 +135,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const hidePanel = useCallback(
@@ -149,7 +149,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const togglePanel = useCallback(
@@ -163,7 +163,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const focusPanel = useCallback(
@@ -177,7 +177,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const updatePanelPosition = useCallback(
@@ -191,7 +191,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const updatePanelSize = useCallback(
@@ -205,7 +205,7 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const setPanelMinimized = useCallback(
@@ -219,29 +219,44 @@ export function FloatingPanelManagerProvider({
         return next;
       });
     },
-    [updatePanels]
+    [updatePanels],
   );
 
   const getPanelState = useCallback(
     (id: string): PanelState | undefined => {
       return panels.get(id);
     },
-    [panels]
+    [panels],
   );
 
-  const contextValue: FloatingPanelManagerContextValue = {
-    registerPanel,
-    unregisterPanel,
-    showPanel,
-    hidePanel,
-    togglePanel,
-    focusPanel,
-    updatePanelPosition,
-    updatePanelSize,
-    setPanelMinimized,
-    getPanelState,
-    panels,
-  };
+  const contextValue = useMemo<FloatingPanelManagerContextValue>(
+    () => ({
+      registerPanel,
+      unregisterPanel,
+      showPanel,
+      hidePanel,
+      togglePanel,
+      focusPanel,
+      updatePanelPosition,
+      updatePanelSize,
+      setPanelMinimized,
+      getPanelState,
+      panels,
+    }),
+    [
+      focusPanel,
+      getPanelState,
+      hidePanel,
+      panels,
+      registerPanel,
+      setPanelMinimized,
+      showPanel,
+      togglePanel,
+      unregisterPanel,
+      updatePanelPosition,
+      updatePanelSize,
+    ],
+  );
 
   return (
     <FloatingPanelManagerContext.Provider value={contextValue}>
@@ -255,6 +270,75 @@ interface FloatingPanelRendererProps {
   panels: Map<string, PanelState>;
 }
 
+interface FloatingPanelItemProps {
+  id: string;
+  panel: PanelState;
+  unregisterPanel: (id: string) => void;
+  focusPanel: (id: string) => void;
+  updatePanelPosition: (id: string, position: [number, number]) => void;
+  updatePanelSize: (id: string, size: [number, number]) => void;
+  setPanelMinimized: (id: string, minimized: boolean) => void;
+}
+
+const FloatingPanelItem = React.memo(function FloatingPanelItem({
+  id,
+  panel,
+  unregisterPanel,
+  focusPanel,
+  updatePanelPosition,
+  updatePanelSize,
+  setPanelMinimized,
+}: FloatingPanelItemProps): React.ReactElement {
+  const handleClose = useCallback(() => {
+    unregisterPanel(id);
+  }, [id, unregisterPanel]);
+  const handleMinimize = useCallback(
+    (minimized: boolean) => {
+      setPanelMinimized(id, minimized);
+    },
+    [id, setPanelMinimized],
+  );
+  const handlePositionChange = useCallback(
+    (position: [number, number]) => {
+      updatePanelPosition(id, position);
+    },
+    [id, updatePanelPosition],
+  );
+  const handleSizeChange = useCallback(
+    (size: [number, number]) => {
+      updatePanelSize(id, size);
+    },
+    [id, updatePanelSize],
+  );
+  const handleFocus = useCallback(() => {
+    focusPanel(id);
+  }, [focusPanel, id]);
+
+  return (
+    <FloatingPanel
+      id={id}
+      title={panel.title}
+      initialPosition={panel.position}
+      initialSize={panel.size}
+      initialMinimized={panel.minimized}
+      minWidth={panel.minWidth}
+      minHeight={panel.minHeight}
+      minimizable={panel.minimizable}
+      resizable={panel.resizable}
+      closable={panel.closable}
+      zIndex={panel.zIndex}
+      className={panel.className}
+      onClose={handleClose}
+      onMinimize={handleMinimize}
+      onPositionChange={handlePositionChange}
+      onSizeChange={handleSizeChange}
+      onFocus={handleFocus}
+    >
+      {panel.content}
+    </FloatingPanel>
+  );
+});
+
 function FloatingPanelRenderer({ panels }: FloatingPanelRendererProps): React.ReactElement {
   const { unregisterPanel, focusPanel, updatePanelPosition, updatePanelSize, setPanelMinimized } =
     useFloatingPanelManager();
@@ -264,28 +348,16 @@ function FloatingPanelRenderer({ panels }: FloatingPanelRendererProps): React.Re
       {Array.from(panels.entries())
         .filter(([, panel]) => panel.visible)
         .map(([id, panel]) => (
-          <FloatingPanel
+          <FloatingPanelItem
             key={id}
             id={id}
-            title={panel.title}
-            initialPosition={panel.position}
-            initialSize={panel.size}
-            initialMinimized={panel.minimized}
-            minWidth={panel.minWidth}
-            minHeight={panel.minHeight}
-            minimizable={panel.minimizable}
-            resizable={panel.resizable}
-            closable={panel.closable}
-            zIndex={panel.zIndex}
-            className={panel.className}
-            onClose={() => unregisterPanel(id)}
-            onMinimize={(minimized) => setPanelMinimized(id, minimized)}
-            onPositionChange={(position) => updatePanelPosition(id, position)}
-            onSizeChange={(size) => updatePanelSize(id, size)}
-            onFocus={() => focusPanel(id)}
-          >
-            {panel.content}
-          </FloatingPanel>
+            panel={panel}
+            unregisterPanel={unregisterPanel}
+            focusPanel={focusPanel}
+            updatePanelPosition={updatePanelPosition}
+            updatePanelSize={updatePanelSize}
+            setPanelMinimized={setPanelMinimized}
+          />
         ))}
     </>
   );

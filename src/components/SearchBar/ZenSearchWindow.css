@@ -80,18 +80,30 @@
 
 /* Animation */
 @keyframes zen-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Style overrides for SearchResultsPanel in Zen mode */
 .zen-search-window .search-results {
   padding: 16px;
+  background: transparent;
 }
 
 .zen-search-window .search-result {
+  background: rgba(13, 17, 23, 0.42);
   border-radius: 8px;
   margin-bottom: 4px;
+}
+
+.zen-search-window .search-result:hover {
+  background: rgba(125, 207, 255, 0.08);
 }
 
 .zen-search-window .search-result.selected {

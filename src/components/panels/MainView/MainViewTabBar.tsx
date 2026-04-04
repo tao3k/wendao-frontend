@@ -1,15 +1,52 @@
-import React from 'react';
-import type { MainViewCopy } from './mainViewCopy';
-import type { MainViewTab } from './mainViewTypes';
+import React, { useCallback } from "react";
+import type { MainViewCopy } from "./mainViewCopy";
+import type { MainViewTab } from "./mainViewTypes";
 
 interface MainViewTabBarProps {
   activeTab: MainViewTab;
-  copy: Pick<
-    MainViewCopy,
-    'tabDiagram' | 'tabReferences' | 'tabGraph' | 'tabContent'
-  >;
+  copy: Pick<MainViewCopy, "tabDiagram" | "tabReferences" | "tabGraph" | "tabContent">;
   onTabChange: (tab: MainViewTab) => void;
   onPreloadTab: (tab: MainViewTab) => void;
+}
+
+interface MainViewTabButtonProps {
+  activeTab: MainViewTab;
+  tab: MainViewTab;
+  label: string;
+  shouldPreload?: boolean;
+  onTabChange: (tab: MainViewTab) => void;
+  onPreloadTab: (tab: MainViewTab) => void;
+}
+
+function MainViewTabButton({
+  activeTab,
+  tab,
+  label,
+  shouldPreload = false,
+  onTabChange,
+  onPreloadTab,
+}: MainViewTabButtonProps): React.ReactElement {
+  const handleClick = useCallback(() => {
+    onTabChange(tab);
+  }, [onTabChange, tab]);
+
+  const handlePreload = useCallback(() => {
+    if (shouldPreload) {
+      onPreloadTab(tab);
+    }
+  }, [onPreloadTab, shouldPreload, tab]);
+
+  return (
+    <button
+      type="button"
+      className={`main-view-tab ${activeTab === tab ? "active animate-breathe neon-glow--blue" : ""}`}
+      onClick={handleClick}
+      onMouseEnter={shouldPreload ? handlePreload : undefined}
+      onFocus={shouldPreload ? handlePreload : undefined}
+    >
+      {label}
+    </button>
+  );
 }
 
 export function MainViewTabBar({
@@ -20,36 +57,37 @@ export function MainViewTabBar({
 }: MainViewTabBarProps): React.ReactElement {
   return (
     <div className="main-view-tabs">
-      <button
-        className={`main-view-tab ${activeTab === 'diagram' ? 'active animate-breathe neon-glow--blue' : ''}`}
-        onClick={() => onTabChange('diagram')}
-        onMouseEnter={() => onPreloadTab('diagram')}
-        onFocus={() => onPreloadTab('diagram')}
-      >
-        {copy.tabDiagram}
-      </button>
-      <button
-        className={`main-view-tab ${activeTab === 'references' ? 'active animate-breathe neon-glow--blue' : ''}`}
-        onClick={() => onTabChange('references')}
-      >
-        {copy.tabReferences}
-      </button>
-      <button
-        className={`main-view-tab ${activeTab === 'graph' ? 'active animate-breathe neon-glow--blue' : ''}`}
-        onClick={() => onTabChange('graph')}
-        onMouseEnter={() => onPreloadTab('graph')}
-        onFocus={() => onPreloadTab('graph')}
-      >
-        {copy.tabGraph}
-      </button>
-      <button
-        className={`main-view-tab ${activeTab === 'content' ? 'active animate-breathe neon-glow--blue' : ''}`}
-        onClick={() => onTabChange('content')}
-        onMouseEnter={() => onPreloadTab('content')}
-        onFocus={() => onPreloadTab('content')}
-      >
-        {copy.tabContent}
-      </button>
+      <MainViewTabButton
+        activeTab={activeTab}
+        tab="diagram"
+        label={copy.tabDiagram}
+        shouldPreload
+        onTabChange={onTabChange}
+        onPreloadTab={onPreloadTab}
+      />
+      <MainViewTabButton
+        activeTab={activeTab}
+        tab="references"
+        label={copy.tabReferences}
+        onTabChange={onTabChange}
+        onPreloadTab={onPreloadTab}
+      />
+      <MainViewTabButton
+        activeTab={activeTab}
+        tab="graph"
+        label={copy.tabGraph}
+        shouldPreload
+        onTabChange={onTabChange}
+        onPreloadTab={onPreloadTab}
+      />
+      <MainViewTabButton
+        activeTab={activeTab}
+        tab="content"
+        label={copy.tabContent}
+        shouldPreload
+        onTabChange={onTabChange}
+        onPreloadTab={onPreloadTab}
+      />
     </div>
   );
 }

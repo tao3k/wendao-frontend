@@ -157,7 +157,10 @@
   font-size: 10px;
   line-height: 1;
   color: #d8ebff;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
 }
 
 .markdown-waterfall__pill:hover,
@@ -215,7 +218,10 @@
   line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
 }
 
 .markdown-waterfall__section-action:hover,

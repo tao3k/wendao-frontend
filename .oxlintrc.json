@@ -1,0 +1,79 @@
+{
+  "plugins": [
+    "oxc",
+    "typescript",
+    "unicorn",
+    "import",
+    "react",
+    "vitest",
+    "jsx-a11y",
+    "react-perf",
+    "promise",
+    "node"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "settings": {
+    "react": {
+      "version": "19.2.3"
+    }
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    ".cache/**",
+    "coverage/**",
+    "src/api/flight/generated/**"
+  ],
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "react/jsx-uses-react": "off",
+    "import/no-unresolved": "off",
+    "import/no-unassigned-import": "off",
+    "react/no-array-index-key": "off",
+    "unicorn/prefer-node-protocol": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/**/__tests__/**/*.ts",
+        "src/**/__tests__/**/*.tsx",
+        "vitest.config.ts"
+      ],
+      "env": {
+        "browser": true,
+        "node": true,
+        "es2022": true
+      },
+      "rules": {
+        "jsx_a11y/no-autofocus": "off",
+        "react_perf/jsx-no-jsx-as-prop": "off",
+        "react_perf/jsx-no-new-array-as-prop": "off",
+        "react_perf/jsx-no-new-function-as-prop": "off",
+        "react_perf/jsx-no-new-object-as-prop": "off",
+        "no-await-in-loop": "off"
+      }
+    },
+    {
+      "files": [
+        "scripts/**/*.mjs",
+        "scripts/**/*.ts",
+        "rspack.config.ts",
+        "vitest.config.ts"
+      ],
+      "env": {
+        "node": true,
+        "es2022": true
+      }
+    }
+  ]
+}

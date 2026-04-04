@@ -1,14 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { SEARCH_BAR_COPY } from '../searchPresentation';
-import { SearchStatusBar } from '../SearchStatusBar';
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { SEARCH_BAR_COPY } from "../searchPresentation";
+import { SearchStatusBar } from "../SearchStatusBar";
 
-describe('SearchStatusBar repo overview facets', () => {
-  it('keeps status details collapsed until expanded', () => {
+describe("SearchStatusBar repo overview facets", () => {
+  it("keeps status details collapsed until expanded", () => {
     const { container } = render(
       <SearchStatusBar
         query="solve"
-        searchMeta={{ query: 'solve', hitCount: 4, selectedMode: 'Code' }}
+        searchMeta={{ query: "solve", hitCount: 4, selectedMode: "Code" }}
         copy={SEARCH_BAR_COPY.en}
         modeLabel="Code"
         confidenceLabel="High"
@@ -18,28 +18,28 @@ describe('SearchStatusBar repo overview facets', () => {
         scope="code"
         sortMode="relevance"
         locale="en"
-      />
+      />,
     );
 
-    expect(container.querySelector('.search-status-grid')).toHaveClass('is-collapsed');
+    expect(container.querySelector(".search-status-grid")).toHaveClass("is-collapsed");
 
-    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Show details/i }));
 
-    expect(container.querySelector('.search-status-grid')).toHaveClass('is-expanded');
+    expect(container.querySelector(".search-status-grid")).toHaveClass("is-expanded");
   });
 
-  it('applies repo facet when count is positive', () => {
+  it("applies repo facet when count is positive", () => {
     const onApplyRepoFacet = vi.fn();
     const { container } = render(
       <SearchStatusBar
         query="solve"
-        searchMeta={{ query: 'solve', hitCount: 4, selectedMode: 'Code' }}
+        searchMeta={{ query: "solve", hitCount: 4, selectedMode: "Code" }}
         copy={SEARCH_BAR_COPY.en}
         modeLabel="Code"
         confidenceLabel="High"
         confidenceTone="high"
         repoOverviewStatus={{
-          repoId: 'gateway-sync',
+          repoId: "gateway-sync",
           moduleCount: 1,
           symbolCount: 2,
           exampleCount: 1,
@@ -50,33 +50,33 @@ describe('SearchStatusBar repo overview facets', () => {
         scope="code"
         sortMode="relevance"
         locale="en"
-      />
+      />,
     );
 
-    expect(container.querySelectorAll('.search-status-row')).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
+    expect(container.querySelectorAll(".search-status-row")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: /Show details/i }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filter by modules' }));
-    expect(onApplyRepoFacet).toHaveBeenCalledWith('module');
-    expect(screen.getByRole('button', { name: 'Filter by modules' })).toHaveAttribute(
-      'title',
-      'Filter by modules: repo:gateway-sync kind:module module'
+    fireEvent.click(screen.getByRole("button", { name: "Filter by modules" }));
+    expect(onApplyRepoFacet).toHaveBeenCalledWith("module");
+    expect(screen.getByRole("button", { name: "Filter by modules" })).toHaveAttribute(
+      "title",
+      "Filter by modules: repo:gateway-sync kind:module module",
     );
   });
 
-  it('disables facet action when count is zero', () => {
+  it("disables facet action when count is zero", () => {
     const onApplyRepoFacet = vi.fn();
 
     render(
       <SearchStatusBar
         query="solve"
-        searchMeta={{ query: 'solve', hitCount: 1, selectedMode: 'Code' }}
+        searchMeta={{ query: "solve", hitCount: 1, selectedMode: "Code" }}
         copy={SEARCH_BAR_COPY.en}
         modeLabel="Code"
         confidenceLabel="High"
         confidenceTone="high"
         repoOverviewStatus={{
-          repoId: 'gateway-sync',
+          repoId: "gateway-sync",
           moduleCount: 0,
           symbolCount: 0,
           exampleCount: 0,
@@ -87,29 +87,29 @@ describe('SearchStatusBar repo overview facets', () => {
         scope="code"
         sortMode="relevance"
         locale="en"
-      />
+      />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
-    const moduleButton = screen.getByRole('button', { name: 'Filter by modules' });
+    fireEvent.click(screen.getByRole("button", { name: /Show details/i }));
+    const moduleButton = screen.getByRole("button", { name: "Filter by modules" });
     expect(moduleButton).toBeDisabled();
     fireEvent.click(moduleButton);
     expect(onApplyRepoFacet).not.toHaveBeenCalled();
   });
 
-  it('renders fallback status when provided', () => {
+  it("renders fallback status when provided", () => {
     const onRestoreFallbackQuery = vi.fn();
 
     render(
       <SearchStatusBar
         query="module"
         searchMeta={{
-          query: 'module',
+          query: "module",
           hitCount: 1,
-          selectedMode: 'Code',
-          repoFallbackFacet: 'module',
-          repoFallbackFromQuery: 'module',
-          repoFallbackToQuery: 'GatewaySyncPkg',
+          selectedMode: "Code",
+          repoFallbackFacet: "module",
+          repoFallbackFromQuery: "module",
+          repoFallbackToQuery: "GatewaySyncPkg",
         }}
         copy={SEARCH_BAR_COPY.en}
         modeLabel="Code"
@@ -122,27 +122,27 @@ describe('SearchStatusBar repo overview facets', () => {
         scope="code"
         sortMode="relevance"
         locale="en"
-      />
+      />,
     );
 
-    expect(screen.getByText('Fallback: module: module -> GatewaySyncPkg')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Show details/i }));
-    const fallbackButton = screen.getByRole('button', { name: 'Restore original query' });
-    expect(fallbackButton).toHaveAttribute('title', 'Restore original query');
+    expect(screen.getByText("Fallback: module: module -> GatewaySyncPkg")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Show details/i }));
+    const fallbackButton = screen.getByRole("button", { name: "Restore original query" });
+    expect(fallbackButton).toHaveAttribute("title", "Restore original query");
     fireEvent.click(fallbackButton);
     expect(onRestoreFallbackQuery).toHaveBeenCalledTimes(1);
   });
 
-  it('renders backend intent signal when available', () => {
+  it("renders backend intent signal when available", () => {
     render(
       <SearchStatusBar
         query="solve"
         searchMeta={{
-          query: 'solve',
+          query: "solve",
           hitCount: 2,
-          selectedMode: 'intent_hybrid',
-          searchMode: 'intent_hybrid',
-          intent: 'debug_lookup',
+          selectedMode: "intent_hybrid",
+          searchMode: "intent_hybrid",
+          intent: "debug_lookup",
           intentConfidence: 0.91,
         }}
         copy={SEARCH_BAR_COPY.en}
@@ -154,9 +154,9 @@ describe('SearchStatusBar repo overview facets', () => {
         scope="knowledge"
         sortMode="relevance"
         locale="en"
-      />
+      />,
     );
 
-    expect(screen.getByText('Intent: debug_lookup (91%)')).toBeInTheDocument();
+    expect(screen.getByText("Intent: debug_lookup (91%)")).toBeInTheDocument();
   });
 });

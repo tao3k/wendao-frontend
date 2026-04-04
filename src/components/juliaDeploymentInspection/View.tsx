@@ -1,14 +1,14 @@
-import React from 'react';
-import { CheckCircle } from 'lucide-react';
+import React from "react";
+import { CheckCircle } from "lucide-react";
 
 interface JuliaDeploymentInspectionViewProps {
-  locale: 'en' | 'zh';
+  locale: "en" | "zh";
   label: string;
   popoverLines: string[];
   canCopyToml: boolean;
   canDownloadJson: boolean;
   actionState: {
-    tone: 'active' | 'error';
+    tone: "active" | "error";
     message: string;
   } | null;
   onCopyToml: () => void;
@@ -25,8 +25,8 @@ export function JuliaDeploymentInspectionView({
   onCopyToml,
   onDownloadJson,
 }: JuliaDeploymentInspectionViewProps): React.ReactElement {
-  const copyJuliaArtifactLabel = locale === 'zh' ? '复制 TOML' : 'Copy TOML';
-  const downloadJuliaArtifactLabel = locale === 'zh' ? '下载 JSON' : 'Download JSON';
+  const copyJuliaArtifactLabel = locale === "zh" ? "复制 TOML" : "Copy TOML";
+  const downloadJuliaArtifactLabel = locale === "zh" ? "下载 JSON" : "Download JSON";
 
   return (
     <span className="status-chip status-chip--active status-chip--interactive">
@@ -35,7 +35,7 @@ export function JuliaDeploymentInspectionView({
       <span className="status-chip__label">{label}</span>
       <span className="status-popover" role="tooltip">
         <span className="status-popover__title">
-          {locale === 'zh' ? 'Julia 部署工件' : 'Julia deployment artifact'}
+          {locale === "zh" ? "Julia 部署工件" : "Julia deployment artifact"}
         </span>
         {popoverLines.map((line) => (
           <span key={line} className="status-popover__line">
@@ -45,20 +45,12 @@ export function JuliaDeploymentInspectionView({
         {(canCopyToml || canDownloadJson) && (
           <span className="status-popover__actions">
             {canCopyToml && (
-              <button
-                type="button"
-                className="status-popover__action"
-                onClick={onCopyToml}
-              >
+              <button type="button" className="status-popover__action" onClick={onCopyToml}>
                 {copyJuliaArtifactLabel}
               </button>
             )}
             {canDownloadJson && (
-              <button
-                type="button"
-                className="status-popover__action"
-                onClick={onDownloadJson}
-              >
+              <button type="button" className="status-popover__action" onClick={onDownloadJson}>
                 {downloadJuliaArtifactLabel}
               </button>
             )}
@@ -67,9 +59,9 @@ export function JuliaDeploymentInspectionView({
         {actionState && (
           <span
             className={`status-popover__line ${
-              actionState.tone === 'error'
-                ? 'status-popover__line--warning'
-                : 'status-popover__line--success'
+              actionState.tone === "error"
+                ? "status-popover__line--warning"
+                : "status-popover__line--success"
             }`}
           >
             {actionState.message}

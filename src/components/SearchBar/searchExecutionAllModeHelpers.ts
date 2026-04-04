@@ -4,7 +4,7 @@ import type {
   ReferenceSearchResponse,
   SearchResponse,
   SymbolSearchResponse,
-} from '../../api';
+} from "../../api";
 import {
   normalizeAstHit,
   normalizeAttachmentHit,
@@ -12,11 +12,11 @@ import {
   normalizeKnowledgeHit,
   normalizeReferenceHit,
   normalizeSymbolHit,
-} from './searchResultNormalization';
-import { formatSearchMode } from './searchPresentation';
-import { dedupeSearchResults } from './searchResultIdentity';
-import type { SearchExecutionOutcome } from './searchExecutionTypes';
-import type { SearchResult } from './types';
+} from "./searchResultNormalization";
+import { formatSearchMode } from "./searchPresentation";
+import { dedupeSearchResults } from "./searchResultIdentity";
+import type { SearchExecutionOutcome } from "./searchExecutionTypes";
+import type { SearchResult } from "./types";
 
 export interface AllModeResolvedResponses {
   queryToSearch: string;
@@ -66,7 +66,7 @@ export function createFallbackAstResponse(query: string): AstSearchResponse {
     query,
     hits: [],
     hitCount: 0,
-    selectedScope: 'definitions',
+    selectedScope: "definitions",
   };
 }
 
@@ -75,7 +75,7 @@ export function createFallbackReferenceResponse(query: string): ReferenceSearchR
     query,
     hits: [],
     hitCount: 0,
-    selectedScope: 'references',
+    selectedScope: "references",
   };
 }
 
@@ -84,7 +84,7 @@ export function createFallbackSymbolResponse(query: string): SymbolSearchRespons
     query,
     hits: [],
     hitCount: 0,
-    selectedScope: 'project',
+    selectedScope: "project",
   };
 }
 
@@ -93,7 +93,7 @@ export function createFallbackAttachmentResponse(query: string): AttachmentSearc
     query,
     hits: [],
     hitCount: 0,
-    selectedScope: 'attachments',
+    selectedScope: "attachments",
   };
 }
 
@@ -111,14 +111,14 @@ export function buildAllModeOutcome({
   const codeResults = resolveCodeResults(codeResponse, codeOutcome);
   const codeRuntimeWarning = codeOutcome?.meta.runtimeWarning;
   const semanticSuffix = [
-    codeResults.length > 0 ? 'Code' : null,
-    astResponse.hitCount > 0 ? 'AST' : null,
-    referenceResponse.hitCount > 0 ? 'References' : null,
-    symbolResponse.hitCount > 0 ? 'Symbols' : null,
-    attachmentResponse.hitCount > 0 ? 'Attachments' : null,
+    codeResults.length > 0 ? "Code" : null,
+    astResponse.hitCount > 0 ? "AST" : null,
+    referenceResponse.hitCount > 0 ? "References" : null,
+    symbolResponse.hitCount > 0 ? "Symbols" : null,
+    attachmentResponse.hitCount > 0 ? "Attachments" : null,
   ]
     .filter(Boolean)
-    .join(' + ');
+    .join(" + ");
 
   const mergedResults = dedupeSearchResults([
     ...knowledgeResponse.hits.map(normalizeKnowledgeHit),
@@ -130,7 +130,7 @@ export function buildAllModeOutcome({
   ]);
   const runtimeWarningSegments = [
     codeRuntimeWarning,
-    failures.length > 0 ? `Partial search results: ${failures.join(' | ')}` : undefined,
+    failures.length > 0 ? `Partial search results: ${failures.join(" | ")}` : undefined,
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -139,8 +139,8 @@ export function buildAllModeOutcome({
       query: queryToSearch,
       hitCount: mergedResults.length,
       selectedMode: semanticSuffix
-        ? `${formatSearchMode(knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode, 'en')} + ${semanticSuffix}`
-        : knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode,
+        ? `${formatSearchMode(knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode, "en")} + ${semanticSuffix}`
+        : (knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode),
       searchMode: knowledgeResponse.searchMode,
       graphConfidenceScore: knowledgeResponse.graphConfidenceScore,
       intent: knowledgeResponse.intent,
@@ -149,7 +149,8 @@ export function buildAllModeOutcome({
       indexingState: codeOutcome?.meta.indexingState ?? codeResponse.indexingState,
       pendingRepos: codeOutcome?.meta.pendingRepos ?? codeResponse.pendingRepos,
       skippedRepos: codeOutcome?.meta.skippedRepos ?? codeResponse.skippedRepos,
-      runtimeWarning: runtimeWarningSegments.length > 0 ? runtimeWarningSegments.join(' | ') : undefined,
+      runtimeWarning:
+        runtimeWarningSegments.length > 0 ? runtimeWarningSegments.join(" | ") : undefined,
       repoFallbackFacet: codeOutcome?.meta.repoFallbackFacet,
       repoFallbackFromQuery: codeOutcome?.meta.repoFallbackFromQuery,
       repoFallbackToQuery: codeOutcome?.meta.repoFallbackToQuery,

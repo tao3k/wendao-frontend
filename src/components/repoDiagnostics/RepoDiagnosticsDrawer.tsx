@@ -1,12 +1,12 @@
-import React from 'react';
-import type { RepoIndexIssue, RepoIndexUnsupportedReason } from '../statusBar/types';
+import React, { useCallback } from "react";
+import type { RepoIndexIssue, RepoIndexUnsupportedReason } from "../statusBar/types";
 import {
   failedReasonKey,
   formatFailedIssueLine,
   type RepoDiagnosticsFilter,
   type RepoIndexFailureReasonSummary,
-} from './state';
-import type { RepoDiagnosticsCopy } from './types';
+} from "./state";
+import type { RepoDiagnosticsCopy } from "./types";
 
 interface RepoDiagnosticsDrawerProps {
   copy: RepoDiagnosticsCopy;
@@ -32,12 +32,148 @@ interface RepoDiagnosticsDrawerProps {
   onRetryIssue: (repoId: string) => void;
   onRetryFilteredFailed: () => void;
   onCopyUnsupportedManifest: () => void;
-  onSelectRepo?: (repoId: string, context: {
-    phase: 'unsupported' | 'failed';
-    reason: string;
-  }) => void;
+  onSelectRepo?: (
+    repoId: string,
+    context: {
+      phase: "unsupported" | "failed";
+      reason: string;
+    },
+  ) => void;
   selectedRepoId?: string | null;
   renderUnsupportedGuidance: (reason: RepoIndexUnsupportedReason) => string;
+}
+
+interface RepoDiagnosticsFilterButtonProps {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+function RepoDiagnosticsFilterButton({
+  label,
+  isActive,
+  onClick,
+}: RepoDiagnosticsFilterButtonProps): JSX.Element {
+  return (
+    <button
+      type="button"
+      className={`file-tree-diagnostics__filter ${isActive ? "is-active" : ""}`}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
+
+interface UnsupportedReasonFilterButtonProps {
+  reason: RepoIndexUnsupportedReason;
+  isActive: boolean;
+  onSetUnsupportedReason: (next: string | null) => void;
+}
+
+function UnsupportedReasonFilterButton({
+  reason,
+  isActive,
+  onSetUnsupportedReason,
+}: UnsupportedReasonFilterButtonProps): JSX.Element {
+  const handleClick = useCallback(() => {
+    onSetUnsupportedReason(reason.reason);
+  }, [onSetUnsupportedReason, reason.reason]);
+
+  return (
+    <RepoDiagnosticsFilterButton
+      label={`${reason.reason} (${reason.count})`}
+      isActive={isActive}
+      onClick={handleClick}
+    />
+  );
+}
+
+interface FailureReasonFilterButtonProps {
+  reason: RepoIndexFailureReasonSummary;
+  isActive: boolean;
+  onSetFailedReason: (next: string | null) => void;
+}
+
+function FailureReasonFilterButton({
+  reason,
+  isActive,
+  onSetFailedReason,
+}: FailureReasonFilterButtonProps): JSX.Element {
+  const handleClick = useCallback(() => {
+    onSetFailedReason(reason.reasonKey);
+  }, [onSetFailedReason, reason.reasonKey]);
+
+  return (
+    <RepoDiagnosticsFilterButton
+      label={`${reason.label} (${reason.count})`}
+      isActive={isActive}
+      onClick={handleClick}
+    />
+  );
+}
+
+interface RepoDiagnosticsRepoLinkProps {
+  repoId: string;
+  reason: string;
+  phase: "unsupported" | "failed";
+  isActive: boolean;
+  className: string;
+  label: string;
+  onSelectRepo?: RepoDiagnosticsDrawerProps["onSelectRepo"];
+}
+
+function RepoDiagnosticsRepoLink({
+  repoId,
+  reason,
+  phase,
+  isActive,
+  className,
+  label,
+  onSelectRepo,
+}: RepoDiagnosticsRepoLinkProps): JSX.Element {
+  const handleClick = useCallback(() => {
+    onSelectRepo?.(repoId, { phase, reason });
+  }, [onSelectRepo, phase, reason, repoId]);
+
+  return (
+    <button
+      type="button"
+      className={`${className} ${isActive ? "is-active" : ""}`}
+      onClick={handleClick}
+    >
+      {label}
+    </button>
+  );
+}
+
+interface RetryIssueButtonProps {
+  repoId: string;
+  disabled: boolean;
+  label: string;
+  onRetryIssue: (repoId: string) => void;
+}
+
+function RetryIssueButton({
+  repoId,
+  disabled,
+  label,
+  onRetryIssue,
+}: RetryIssueButtonProps): JSX.Element {
+  const handleClick = useCallback(() => {
+    onRetryIssue(repoId);
+  }, [onRetryIssue, repoId]);
+
+  return (
+    <button
+      type="button"
+      className="file-tree-diagnostics__action"
+      onClick={handleClick}
+      disabled={disabled}
+    >
+      {label}
+    </button>
+  );
 }
 
 export function RepoDiagnosticsDrawer({
@@ -68,12 +204,24 @@ export function RepoDiagnosticsDrawer({
   selectedRepoId = null,
   renderUnsupportedGuidance,
 }: RepoDiagnosticsDrawerProps): JSX.Element {
+  const handleFilterAll = useCallback(() => {
+    onSetFilter("all");
+  }, [onSetFilter]);
+  const handleFilterUnsupported = useCallback(() => {
+    onSetFilter("unsupported");
+  }, [onSetFilter]);
+  const handleFilterFailed = useCallback(() => {
+    onSetFilter("failed");
+  }, [onSetFilter]);
+  const handleResetUnsupportedReason = useCallback(() => {
+    onSetUnsupportedReason(null);
+  }, [onSetUnsupportedReason]);
+  const handleResetFailedReason = useCallback(() => {
+    onSetFailedReason(null);
+  }, [onSetFailedReason]);
+
   return (
-    <div
-      className="file-tree-diagnostics-drawer"
-      role="dialog"
-      aria-label={copy.drawerTitle}
-    >
+    <div className="file-tree-diagnostics-drawer" role="dialog" aria-label={copy.drawerTitle}>
       <div className="file-tree-diagnostics-drawer__header">
         <strong>{copy.drawerTitle}</strong>
         <span className="file-tree-diagnostics__line file-tree-diagnostics__line--subtle">
@@ -81,91 +229,65 @@ export function RepoDiagnosticsDrawer({
         </span>
       </div>
       <div className="file-tree-diagnostics__filters">
-        <button
-          type="button"
-          className={`file-tree-diagnostics__filter ${filter === 'all' ? 'is-active' : ''}`}
-          onClick={() => {
-            onSetFilter('all');
-          }}
-        >
-          {copy.filterAll}
-        </button>
-        <button
-          type="button"
-          className={`file-tree-diagnostics__filter ${filter === 'unsupported' ? 'is-active' : ''}`}
-          onClick={() => {
-            onSetFilter('unsupported');
-          }}
-        >
-          {copy.filterUnsupported} ({unsupportedReasons.length})
-        </button>
-        <button
-          type="button"
-          className={`file-tree-diagnostics__filter ${filter === 'failed' ? 'is-active' : ''}`}
-          onClick={() => {
-            onSetFilter('failed');
-          }}
-        >
-          {copy.filterFailed} ({totalFailedCount})
-        </button>
+        <RepoDiagnosticsFilterButton
+          label={copy.filterAll}
+          isActive={filter === "all"}
+          onClick={handleFilterAll}
+        />
+        <RepoDiagnosticsFilterButton
+          label={`${copy.filterUnsupported} (${unsupportedReasons.length})`}
+          isActive={filter === "unsupported"}
+          onClick={handleFilterUnsupported}
+        />
+        <RepoDiagnosticsFilterButton
+          label={`${copy.filterFailed} (${totalFailedCount})`}
+          isActive={filter === "failed"}
+          onClick={handleFilterFailed}
+        />
       </div>
       {showReasonFilters ? (
         <div className="file-tree-diagnostics__filters">
-          <button
-            type="button"
-            className={`file-tree-diagnostics__filter ${selectedUnsupportedReason === null ? 'is-active' : ''}`}
-            onClick={() => {
-              onSetUnsupportedReason(null);
-            }}
-          >
-            {copy.filterReasonAll}
-          </button>
-          {unsupportedReasons.map((reason) => (
-            <button
-              key={`drawer:${reason.reason}`}
-              type="button"
-              className={`file-tree-diagnostics__filter ${selectedUnsupportedReason === reason.reason ? 'is-active' : ''}`}
-              onClick={() => {
-                onSetUnsupportedReason(reason.reason);
-              }}
-            >
-              {reason.reason} ({reason.count})
-            </button>
-          ))}
+          <RepoDiagnosticsFilterButton
+            label={copy.filterReasonAll}
+            isActive={selectedUnsupportedReason === null}
+            onClick={handleResetUnsupportedReason}
+          />
+          {unsupportedReasons.map((reason) => {
+            return (
+              <UnsupportedReasonFilterButton
+                key={`drawer:${reason.reason}`}
+                reason={reason}
+                isActive={selectedUnsupportedReason === reason.reason}
+                onSetUnsupportedReason={onSetUnsupportedReason}
+              />
+            );
+          })}
         </div>
       ) : null}
       {showFailureReasonFilters ? (
         <div className="file-tree-diagnostics__filters">
-          <button
-            type="button"
-            className={`file-tree-diagnostics__filter ${selectedFailedReason === null ? 'is-active' : ''}`}
-            onClick={() => {
-              onSetFailedReason(null);
-            }}
-          >
-            {copy.filterFailureAll}
-          </button>
-          {failureReasons.map((reason) => (
-            <button
-              key={`failure:${reason.reasonKey}`}
-              type="button"
-              className={`file-tree-diagnostics__filter ${selectedFailedReason === reason.reasonKey ? 'is-active' : ''}`}
-              onClick={() => {
-                onSetFailedReason(reason.reasonKey);
-              }}
-            >
-              {reason.label} ({reason.count})
-            </button>
-          ))}
+          <RepoDiagnosticsFilterButton
+            label={copy.filterFailureAll}
+            isActive={selectedFailedReason === null}
+            onClick={handleResetFailedReason}
+          />
+          {failureReasons.map((reason) => {
+            return (
+              <FailureReasonFilterButton
+                key={`failure:${reason.reasonKey}`}
+                reason={reason}
+                isActive={selectedFailedReason === reason.reasonKey}
+                onSetFailedReason={onSetFailedReason}
+              />
+            );
+          })}
         </div>
       ) : null}
       <div className="file-tree-diagnostics-drawer__content">
         {filteredUnsupportedReasons.length > 0 ? (
           <div className="file-tree-diagnostics__block">
             <div className="file-tree-diagnostics__row">
-              <span className="file-tree-diagnostics__line">
-                {copy.unsupportedManifestTitle}
-              </span>
+              <span className="file-tree-diagnostics__line">{copy.unsupportedManifestTitle}</span>
               <button
                 type="button"
                 className="file-tree-diagnostics__action"
@@ -187,26 +309,26 @@ export function RepoDiagnosticsDrawer({
         {filteredUnsupportedReasons.map((reason) => {
           const repoIds = reason.repoIds ?? [];
           return (
-            <div key={`drawer:${reason.reason}:${reason.count}`} className="file-tree-diagnostics__block">
+            <div
+              key={`drawer:${reason.reason}:${reason.count}`}
+              className="file-tree-diagnostics__block"
+            >
               <span className="file-tree-diagnostics__line">
                 {copy.unsupported} {reason.count} · {reason.reason}
               </span>
               {repoIds.length > 0 ? (
                 <div className="file-tree-diagnostics__repo-list">
                   {repoIds.map((repoId) => (
-                    <button
+                    <RepoDiagnosticsRepoLink
                       key={`${reason.reason}:${repoId}`}
-                      type="button"
-                      className={`file-tree-diagnostics__repo-link ${selectedRepoId === repoId ? 'is-active' : ''}`}
-                      onClick={() => {
-                        onSelectRepo?.(repoId, {
-                          phase: 'unsupported',
-                          reason: reason.reason,
-                        });
-                      }}
-                    >
-                      {repoId}
-                    </button>
+                      repoId={repoId}
+                      reason={reason.reason}
+                      phase="unsupported"
+                      isActive={selectedRepoId === repoId}
+                      className="file-tree-diagnostics__repo-link"
+                      label={repoId}
+                      onSelectRepo={onSelectRepo}
+                    />
                   ))}
                 </div>
               ) : null}
@@ -227,38 +349,30 @@ export function RepoDiagnosticsDrawer({
               onClick={onRetryFilteredFailed}
               disabled={isRetryingFailedBatch || retryingRepoIds.length > 0}
             >
-              {isRetryingFailedBatch
-                ? copy.retryingFilteredFailed
-                : copy.retryFilteredFailed}
+              {isRetryingFailedBatch ? copy.retryingFilteredFailed : copy.retryFilteredFailed}
             </button>
           </div>
         ) : null}
         {fullFilteredFailedIssues.map((issue) => (
-          <div key={`drawer:${issue.repoId}:${issue.lastError ?? failedReasonKey(issue)}`} className="file-tree-diagnostics__row">
-            <button
-              type="button"
-              className={`file-tree-diagnostics__repo-link file-tree-diagnostics__repo-link--warning ${selectedRepoId === issue.repoId ? 'is-active' : ''}`}
-              onClick={() => {
-                onSelectRepo?.(issue.repoId, {
-                  phase: 'failed',
-                  reason: failedReasonKey(issue),
-                });
-              }}
-            >
-              {formatFailedIssueLine(issue, copy)}
-            </button>
-            <button
-              type="button"
-              className="file-tree-diagnostics__action"
-              onClick={() => {
-                onRetryIssue(issue.repoId);
-              }}
+          <div
+            key={`drawer:${issue.repoId}:${issue.lastError ?? failedReasonKey(issue)}`}
+            className="file-tree-diagnostics__row"
+          >
+            <RepoDiagnosticsRepoLink
+              repoId={issue.repoId}
+              reason={failedReasonKey(issue)}
+              phase="failed"
+              isActive={selectedRepoId === issue.repoId}
+              className="file-tree-diagnostics__repo-link file-tree-diagnostics__repo-link--warning"
+              label={formatFailedIssueLine(issue, copy)}
+              onSelectRepo={onSelectRepo}
+            />
+            <RetryIssueButton
+              repoId={issue.repoId}
               disabled={isRetryingFailedBatch || retryingRepoIds.includes(issue.repoId)}
-            >
-              {retryingRepoIds.includes(issue.repoId)
-                ? copy.retrying
-                : copy.retry}
-            </button>
+              label={retryingRepoIds.includes(issue.repoId) ? copy.retrying : copy.retry}
+              onRetryIssue={onRetryIssue}
+            />
           </div>
         ))}
       </div>

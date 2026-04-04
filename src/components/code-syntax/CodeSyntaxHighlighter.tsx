@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import './CodeSyntaxHighlighter.css';
+import React, { useEffect, useMemo, useState } from "react";
+import "./CodeSyntaxHighlighter.css";
 import {
   isSupportedCodeLanguage,
   loadCodeTokens,
   normalizeCodeTheme,
   type ShikiTokensResult,
   type SupportedCodeLanguage,
-} from './shikiHighlighter';
+} from "./shikiHighlighter";
 
 export interface CodeSyntaxHighlighterProps {
   source: string;
@@ -16,24 +16,24 @@ export interface CodeSyntaxHighlighterProps {
   theme?: string;
 }
 
-type ShikiToken = ShikiTokensResult['tokens'][number][number];
+type ShikiToken = ShikiTokensResult["tokens"][number][number];
 
 const CODE_LANGUAGE_ALIASES: Record<string, string> = {
-  cjs: 'javascript',
-  js: 'javascript',
-  jsx: 'jsx',
-  javascriptreact: 'jsx',
-  jl: 'julia',
-  mjs: 'javascript',
-  plain: 'plaintext',
-  plaintext: 'plaintext',
-  py: 'python',
-  python3: 'python',
-  rs: 'rust',
-  text: 'plaintext',
-  ts: 'typescript',
-  tsx: 'tsx',
-  typescriptreact: 'tsx',
+  cjs: "javascript",
+  js: "javascript",
+  jsx: "jsx",
+  javascriptreact: "jsx",
+  jl: "julia",
+  mjs: "javascript",
+  plain: "plaintext",
+  plaintext: "plaintext",
+  py: "python",
+  python3: "python",
+  rs: "rust",
+  text: "plaintext",
+  ts: "typescript",
+  tsx: "tsx",
+  typescriptreact: "tsx",
 };
 
 function normalizeLanguage(language?: string | null): string | null {
@@ -47,11 +47,11 @@ function normalizeLanguage(language?: string | null): string | null {
   }
 
   if (
-    normalized === 'none' ||
-    normalized === 'plaintext' ||
-    normalized === 'text' ||
-    normalized === 'plain' ||
-    normalized === 'code'
+    normalized === "none" ||
+    normalized === "plaintext" ||
+    normalized === "text" ||
+    normalized === "plain" ||
+    normalized === "code"
   ) {
     return null;
   }
@@ -64,36 +64,36 @@ export function inferCodeLanguageFromPath(path?: string | null): string | null {
     return null;
   }
 
-  const extension = path.split('.').pop()?.toLowerCase();
+  const extension = path.split(".").pop()?.toLowerCase();
   const languageByExtension: Record<string, string | null> = {
-    bash: 'bash',
-    cjs: 'javascript',
-    css: 'css',
-    go: 'go',
-    html: 'html',
-    ini: 'ini',
-    jl: 'julia',
-    js: 'javascript',
-    jsx: 'jsx',
-    json: 'json',
-    markdown: 'markdown',
-    md: 'markdown',
-    mjs: 'javascript',
-    py: 'python',
-    rs: 'rust',
-    scss: 'scss',
-    sh: 'bash',
-    sql: 'sql',
-    toml: 'toml',
-    ts: 'typescript',
-    tsx: 'tsx',
+    bash: "bash",
+    cjs: "javascript",
+    css: "css",
+    go: "go",
+    html: "html",
+    ini: "ini",
+    jl: "julia",
+    js: "javascript",
+    jsx: "jsx",
+    json: "json",
+    markdown: "markdown",
+    md: "markdown",
+    mjs: "javascript",
+    py: "python",
+    rs: "rust",
+    scss: "scss",
+    sh: "bash",
+    sql: "sql",
+    toml: "toml",
+    ts: "typescript",
+    tsx: "tsx",
     txt: null,
-    yaml: 'yaml',
-    yml: 'yaml',
-    zsh: 'bash',
+    yaml: "yaml",
+    yml: "yaml",
+    zsh: "bash",
   };
 
-  return normalizeLanguage(languageByExtension[extension || '']);
+  return normalizeLanguage(languageByExtension[extension || ""]);
 }
 
 function resolveTokenFontStyle(fontStyle?: unknown): React.CSSProperties {
@@ -103,9 +103,9 @@ function resolveTokenFontStyle(fontStyle?: unknown): React.CSSProperties {
 
   const normalized = String(fontStyle).toLowerCase();
   return {
-    fontStyle: normalized.includes('italic') ? 'italic' : undefined,
-    fontWeight: normalized.includes('bold') ? 700 : undefined,
-    textDecoration: normalized.includes('underline') ? 'underline' : undefined,
+    fontStyle: normalized.includes("italic") ? "italic" : undefined,
+    fontWeight: normalized.includes("bold") ? 700 : undefined,
+    textDecoration: normalized.includes("underline") ? "underline" : undefined,
   };
 }
 
@@ -113,10 +113,28 @@ function renderTokenKey(lineIndex: number, tokenIndex: number, token: ShikiToken
   return `${lineIndex}:${tokenIndex}:${token.offset ?? 0}:${token.content}`;
 }
 
+function buildCodeSyntaxThemeStyle(tokens: ShikiTokensResult): React.CSSProperties {
+  return {
+    "--code-syntax-foreground": tokens.fg,
+    "--code-syntax-background": tokens.bg,
+  } as React.CSSProperties;
+}
+
+function buildCodeSyntaxTokenStyle(token: ShikiToken): React.CSSProperties {
+  return {
+    color: token.color,
+    ...resolveTokenFontStyle(token.fontStyle),
+  };
+}
+
 const tokenCache = new Map<string, Promise<ShikiTokensResult>>();
 const MAX_TOKEN_CACHE_ENTRIES = 200;
 
-async function loadTokens(source: string, language: string, theme: string): Promise<ShikiTokensResult> {
+async function loadTokens(
+  source: string,
+  language: string,
+  theme: string,
+): Promise<ShikiTokensResult> {
   const normalizedTheme = normalizeCodeTheme(theme);
   const cacheKey = `${normalizedTheme}::${language}::${source}`;
   const cached = tokenCache.get(cacheKey);
@@ -149,7 +167,7 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   language,
   sourcePath,
   className,
-  theme = 'tokyo-night',
+  theme = "tokyo-night",
 }) => {
   const normalizedLanguage = useMemo(() => normalizeLanguage(language), [language]);
   const inferredLanguage = useMemo(() => inferCodeLanguageFromPath(sourcePath), [sourcePath]);
@@ -162,38 +180,40 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
     return candidate;
   }, [inferredLanguage, normalizedLanguage]);
   const [tokens, setTokens] = useState<ShikiTokensResult | null>(null);
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
     let cancelled = false;
 
     if (!effectiveLanguage) {
       setTokens(null);
-      setLoadState('idle');
+      setLoadState("idle");
       return () => {
         cancelled = true;
       };
     }
 
     setTokens(null);
-    setLoadState('loading');
+    setLoadState("loading");
 
     void loadTokens(source, effectiveLanguage, theme)
       .then((result) => {
         if (cancelled) {
-          return;
+          return undefined;
         }
 
         setTokens(result);
-        setLoadState('ready');
+        setLoadState("ready");
+        return undefined;
       })
       .catch(() => {
         if (cancelled) {
-          return;
+          return undefined;
         }
 
         setTokens(null);
-        setLoadState('error');
+        setLoadState("error");
+        return undefined;
       });
 
     return () => {
@@ -202,13 +222,14 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   }, [effectiveLanguage, source, theme]);
 
   const wrapperClassName = [
-    'code-syntax-highlighter',
-    loadState === 'idle' || loadState === 'error' ? 'code-syntax-highlighter--plain' : 'code-syntax-highlighter--shiki',
+    "code-syntax-highlighter",
+    loadState === "idle" || loadState === "error"
+      ? "code-syntax-highlighter--plain"
+      : "code-syntax-highlighter--shiki",
     className,
   ]
     .filter(Boolean)
-    .join(' ');
-
+    .join(" ");
   if (!effectiveLanguage || !tokens) {
     return (
       <span className={wrapperClassName} data-language={effectiveLanguage ?? undefined}>
@@ -217,17 +238,14 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
     );
   }
 
+  const themeStyle = buildCodeSyntaxThemeStyle(tokens);
+
   return (
     <span
       className={wrapperClassName}
       data-language={effectiveLanguage}
       data-theme={tokens.themeName ?? theme}
-      style={
-        {
-          '--code-syntax-foreground': tokens.fg,
-          '--code-syntax-background': tokens.bg,
-        } as React.CSSProperties
-      }
+      style={themeStyle}
     >
       {tokens.tokens.map((line, lineIndex) => (
         <React.Fragment key={`${lineIndex}-${line.length}`}>
@@ -236,18 +254,15 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
               <span
                 key={renderTokenKey(lineIndex, tokenIndex, token)}
                 className="code-syntax-highlighter__token"
-                style={{
-                  color: token.color,
-                  ...resolveTokenFontStyle(token.fontStyle),
-                }}
+                style={buildCodeSyntaxTokenStyle(token)}
               >
                 {token.content}
               </span>
             ))
           ) : (
-            <span className="code-syntax-highlighter__token">{'\u00A0'}</span>
+            <span className="code-syntax-highlighter__token">{"\u00A0"}</span>
           )}
-          {lineIndex < tokens.tokens.length - 1 ? '\n' : null}
+          {lineIndex < tokens.tokens.length - 1 ? "\n" : null}
         </React.Fragment>
       ))}
     </span>

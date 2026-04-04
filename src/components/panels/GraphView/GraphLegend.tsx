@@ -2,7 +2,7 @@
  * Graph legend component
  */
 
-import { memo } from 'react';
+import { memo } from "react";
 
 export const GraphLegend = memo(function GraphLegend() {
   return (

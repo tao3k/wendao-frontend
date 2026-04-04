@@ -1,6 +1,6 @@
-import React from 'react';
-import type { SearchSelectionAction, UiLocale } from './types';
-import { ZenSearchWindow } from '../ZenSearch';
+import React from "react";
+import type { SearchSelectionAction, UiLocale } from "./types";
+import { ZenSearchWindow } from "../ZenSearch";
 
 interface SearchBarProps {
   isOpen: boolean;
@@ -9,12 +9,14 @@ interface SearchBarProps {
   onResultSelect: SearchSelectionAction;
   onReferencesResultSelect?: SearchSelectionAction;
   onGraphResultSelect?: SearchSelectionAction;
-  onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
+  onRuntimeStatusChange?: (
+    status: { tone: "warning" | "error"; message: string; source: "search" } | null,
+  ) => void;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
   isOpen,
-  locale = 'en',
+  locale = "en",
   onClose,
   onResultSelect,
   onReferencesResultSelect,

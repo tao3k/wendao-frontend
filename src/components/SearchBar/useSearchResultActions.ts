@@ -1,12 +1,12 @@
-import { useCallback } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import { api } from '../../api';
+import { useCallback } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { api } from "../../api";
 import {
   canOpenGraphForSearchResult,
   resolveDefinitionSelection,
   toSearchSelection,
-} from './searchResultNormalization';
-import type { SearchResult, SearchSelectionAction } from './types';
+} from "./searchResultNormalization";
+import type { SearchResult, SearchSelectionAction } from "./types";
 
 interface UseSearchResultActionsParams {
   onClose: () => void;
@@ -19,10 +19,22 @@ interface UseSearchResultActionsParams {
 }
 
 interface UseSearchResultActionsResult {
-  handleResultClick: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  handleGraphResultClick: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
-  handleReferencesResultClick: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
-  handleDefinitionResultClick: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => Promise<void>;
+  handleResultClick: (
+    result: SearchResult,
+    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => void;
+  handleGraphResultClick: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void;
+  handleReferencesResultClick: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void;
+  handleDefinitionResultClick: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => Promise<void>;
   handlePreviewClick: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -37,13 +49,13 @@ export function useSearchResultActions({
 }: UseSearchResultActionsParams): UseSearchResultActionsResult {
   const closeAfterSelection = useCallback(
     (selection: void | Promise<void>) => {
-      if (selection && typeof (selection as Promise<void>).then === 'function') {
+      if (selection && typeof (selection as Promise<void>).then === "function") {
         void (selection as Promise<void>).then(onClose).catch(() => undefined);
         return;
       }
       onClose();
     },
-    [onClose]
+    [onClose],
   );
 
   const handleResultClick = useCallback(
@@ -52,7 +64,7 @@ export function useSearchResultActions({
       event?.stopPropagation();
       closeAfterSelection(onResultSelect(toSearchSelection(result)));
     },
-    [closeAfterSelection, onResultSelect]
+    [closeAfterSelection, onResultSelect],
   );
 
   const handleGraphResultClick = useCallback(
@@ -64,7 +76,7 @@ export function useSearchResultActions({
       }
       onGraphResultSelect?.(toSearchSelection(result));
     },
-    [onGraphResultSelect]
+    [onGraphResultSelect],
   );
 
   const handleReferencesResultClick = useCallback(
@@ -76,7 +88,7 @@ export function useSearchResultActions({
       }
       closeAfterSelection(onReferencesResultSelect(toSearchSelection(result)));
     },
-    [closeAfterSelection, onReferencesResultSelect]
+    [closeAfterSelection, onReferencesResultSelect],
   );
 
   const handleDefinitionResultClick = useCallback(
@@ -89,17 +101,17 @@ export function useSearchResultActions({
       try {
         const response = await api.resolveDefinition(result.stem, {
           path: result.path,
-          ...(typeof result.line === 'number' ? { line: result.line } : {}),
+          ...(typeof result.line === "number" ? { line: result.line } : {}),
         });
         await Promise.resolve(onResultSelect(resolveDefinitionSelection(result, response)));
         onClose();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Definition lookup failed');
+        setError(err instanceof Error ? err.message : "Definition lookup failed");
       } finally {
         setIsLoading(false);
       }
     },
-    [onClose, onResultSelect, setError, setIsLoading]
+    [onClose, onResultSelect, setError, setIsLoading],
   );
 
   const handlePreviewClick = useCallback(
@@ -108,7 +120,7 @@ export function useSearchResultActions({
       event.stopPropagation();
       onPreviewSelect?.(result);
     },
-    [onPreviewSelect]
+    [onPreviewSelect],
   );
 
   return {

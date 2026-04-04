@@ -1,22 +1,22 @@
-import React, { useMemo } from 'react';
-import type { CodeAstAnalysisResponse } from '../../api';
-import type { SearchResult } from '../SearchBar/types';
+import React, { useMemo } from "react";
+import type { CodeAstAnalysisResponse } from "../../api";
+import type { SearchResult } from "../SearchBar/types";
 import {
   buildDisplayedLineRange,
   buildSignatureParameterRows,
   copyForLocale,
-} from './codeAstAnatomyViewModel';
+} from "./codeAstAnatomyViewModel";
 import {
   CodeAstBlocksStage,
   CodeAstDeclarationStage,
   CodeAstSymbolsStage,
   CodeAstWaterfallHeader,
-} from './codeAstAnatomySections';
-import { deriveCodeAstAnatomy } from './StructuredDashboard/codeAstAnatomy';
-import './CodeAstAnatomyView.css';
+} from "./codeAstAnatomySections";
+import { deriveCodeAstAnatomy } from "./StructuredDashboard/codeAstAnatomy";
+import "./CodeAstAnatomyView.css";
 
 interface CodeAstAnatomyViewProps {
-  locale: 'en' | 'zh';
+  locale: "en" | "zh";
   selectedResult: SearchResult;
   analysis: CodeAstAnalysisResponse | null;
   content: string | null;
@@ -37,7 +37,7 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
   const copy = copyForLocale(locale);
   const model = useMemo(
     () => (analysis ? deriveCodeAstAnatomy(analysis, content, selectedResult) : null),
-    [analysis, content, selectedResult]
+    [analysis, content, selectedResult],
   );
 
   if (loading) {
@@ -45,7 +45,9 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
   }
 
   if (error) {
-    return <div className="code-ast-waterfall__status code-ast-waterfall__status--error">{error}</div>;
+    return (
+      <div className="code-ast-waterfall__status code-ast-waterfall__status--error">{error}</div>
+    );
   }
 
   if (!model || !analysis) {
@@ -81,7 +83,11 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
         sourcePath={sourcePath}
         onPivotQuery={onPivotQuery}
       />
-      <CodeAstSymbolsStage copy={copy} symbolGroups={model.symbolGroups} onPivotQuery={onPivotQuery} />
+      <CodeAstSymbolsStage
+        copy={copy}
+        symbolGroups={model.symbolGroups}
+        onPivotQuery={onPivotQuery}
+      />
     </div>
   );
 };

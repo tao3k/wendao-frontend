@@ -21,7 +21,7 @@ export interface AcademicTopology {
  */
 export interface KnowledgePanelState {
   isOpen: boolean;
-  mode: 'entity' | 'relationship';
+  mode: "entity" | "relationship";
   data: AcademicNode | null;
   relationships?: {
     incoming: string[];
@@ -35,4 +35,4 @@ export interface KnowledgePanelState {
 export type PanelState = KnowledgePanelState;
 
 // Re-export IDE types
-export * from './ide';
+export * from "./ide";

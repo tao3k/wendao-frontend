@@ -1,7 +1,7 @@
-import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
-import App from './App';
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, waitFor } from "@testing-library/react";
+import App from "./App";
 
 const mocks = vi.hoisted(() => ({
   get3DTopologyMock: vi.fn(),
@@ -9,9 +9,9 @@ const mocks = vi.hoisted(() => ({
   getGraphNeighborsMock: vi.fn(),
   statusBarSpy: vi.fn(),
   editorStore: {
-    currentXml: '',
+    currentXml: "",
     setCurrentXml: vi.fn(),
-    viewMode: '2d' as const,
+    viewMode: "2d" as const,
     setViewMode: vi.fn(),
     selectedNode: null,
     setSelectedNode: vi.fn(),
@@ -26,8 +26,14 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('./components', () => ({
-  AppLayout: ({ leftPanel, centerPanel, rightPanel, toolbar, statusBar }: Record<string, React.ReactNode>) => (
+vi.mock("./components", () => ({
+  AppLayout: ({
+    leftPanel,
+    centerPanel,
+    rightPanel,
+    toolbar,
+    statusBar,
+  }: Record<string, React.ReactNode>) => (
     <div>
       <div>{toolbar}</div>
       <div>{leftPanel}</div>
@@ -47,11 +53,11 @@ vi.mock('./components', () => ({
   },
 }));
 
-vi.mock('./stores', () => ({
+vi.mock("./stores", () => ({
   useEditorStore: () => mocks.editorStore,
 }));
 
-vi.mock('./hooks', () => ({
+vi.mock("./hooks", () => ({
   useAccessibility: () => ({
     prefersReducedMotion: false,
     prefersHighContrast: false,
@@ -63,7 +69,7 @@ vi.mock('./hooks', () => ({
   useKeyboardShortcuts: vi.fn(),
 }));
 
-vi.mock('./api', () => ({
+vi.mock("./api", () => ({
   api: {
     get3DTopology: mocks.get3DTopologyMock,
     getVfsContent: mocks.getVfsContentMock,
@@ -72,10 +78,10 @@ vi.mock('./api', () => ({
   },
 }));
 
-describe('App gateway seed loading', () => {
+describe("App gateway seed loading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.editorStore.currentXml = '';
+    mocks.editorStore.currentXml = "";
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
@@ -83,7 +89,7 @@ describe('App gateway seed loading', () => {
     });
   });
 
-  it('does not fetch a default BPMN seed during startup', async () => {
+  it("does not fetch a default BPMN seed during startup", async () => {
     render(<App />);
 
     await waitFor(() => {

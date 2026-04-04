@@ -1,11 +1,11 @@
-import React from 'react';
-import { CodeSyntaxHighlighter } from '../code-syntax';
+import React from "react";
+import { CodeSyntaxHighlighter } from "../code-syntax";
 import type {
   CodeAstBlockModel,
   CodeAstDeclarationModel,
   CodeAstSymbolGroup,
   CodeAstSymbolModel,
-} from './StructuredDashboard/codeAstAnatomy';
+} from "./StructuredDashboard/codeAstAnatomy";
 import {
   buildAnchorCopyPayload,
   buildBlockCopyPayload,
@@ -16,7 +16,7 @@ import {
   type CodeAstAnatomyCopy,
   type SignatureParameterRow,
   type SignatureValueRow,
-} from './codeAstAnatomyViewModel';
+} from "./codeAstAnatomyViewModel";
 
 interface CodeAstWaterfallHeaderProps {
   copy: CodeAstAnatomyCopy;
@@ -26,7 +26,7 @@ interface CodeAstWaterfallHeaderProps {
 }
 
 interface CodeAstDeclarationStageProps {
-  locale: 'en' | 'zh';
+  locale: "en" | "zh";
   copy: CodeAstAnatomyCopy;
   declaration: CodeAstDeclarationModel | null;
   signatureRows: {
@@ -37,7 +37,7 @@ interface CodeAstDeclarationStageProps {
 }
 
 interface CodeAstBlocksStageProps {
-  locale: 'en' | 'zh';
+  locale: "en" | "zh";
   copy: CodeAstAnatomyCopy;
   blocks: CodeAstBlockModel[];
   syntaxLanguage: string | null;
@@ -61,6 +61,120 @@ interface CodeAstAtomRowProps {
     tokenEstimate: number;
   };
   testId: string;
+}
+
+interface CodeAstPivotButtonProps {
+  className?: string;
+  label: string;
+  query: string | null | undefined;
+  title?: string;
+  onPivotQuery?: (query: string) => void;
+}
+
+interface CodeAstCopyButtonProps {
+  className?: string;
+  label: string;
+  payload: string;
+}
+
+interface CodeAstSignatureButtonProps {
+  id: string;
+  label: string;
+  value: string;
+  typeValue?: string;
+  query?: string;
+  onPivotQuery?: (query: string) => void;
+}
+
+interface CodeAstAnchorChipProps {
+  anchor: string;
+  chipKey: string;
+  onPivotQuery?: (query: string) => void;
+}
+
+function CodeAstPivotButton({
+  className = "code-ast-waterfall__action",
+  label,
+  query,
+  title,
+  onPivotQuery,
+}: CodeAstPivotButtonProps): React.ReactNode {
+  const handleClick = React.useCallback(() => {
+    if (query) {
+      onPivotQuery?.(query);
+    }
+  }, [onPivotQuery, query]);
+
+  return (
+    <button type="button" className={className} onClick={handleClick} title={title}>
+      {label}
+    </button>
+  );
+}
+
+function CodeAstCopyButton({
+  className = "code-ast-waterfall__action",
+  label,
+  payload,
+}: CodeAstCopyButtonProps): React.ReactNode {
+  const handleClick = React.useCallback(() => {
+    void copyToClipboard(payload);
+  }, [payload]);
+
+  return (
+    <button type="button" className={className} onClick={handleClick}>
+      {label}
+    </button>
+  );
+}
+
+function CodeAstSignatureButton({
+  id,
+  label,
+  value,
+  typeValue,
+  query,
+  onPivotQuery,
+}: CodeAstSignatureButtonProps): React.ReactNode {
+  return (
+    <CodeAstPivotButton
+      className="code-ast-waterfall__signature-pair"
+      label={
+        <>
+          <span className="code-ast-waterfall__signature-pair-label">{label}</span>
+          <span className="code-ast-waterfall__signature-pair-value">{value}</span>
+          {typeValue ? (
+            <span className="code-ast-waterfall__signature-pair-type">{typeValue}</span>
+          ) : null}
+        </>
+      }
+      query={query}
+      title={query || undefined}
+      onPivotQuery={onPivotQuery}
+      key={id}
+    />
+  );
+}
+
+function CodeAstAnchorChip({
+  anchor,
+  chipKey,
+  onPivotQuery,
+}: CodeAstAnchorChipProps): React.ReactNode {
+  return (
+    <CodeAstPivotButton
+      className="structured-chip"
+      label={
+        <>
+          <span className="structured-chip__label">anchor</span>
+          <span className="structured-chip__value">{anchor}</span>
+        </>
+      }
+      query={anchor}
+      onPivotQuery={onPivotQuery}
+      key={chipKey}
+    />
+  );
 }
 
 function CodeAstAtomRow({ copy, atom, testId }: CodeAstAtomRowProps): React.ReactNode {
@@ -107,33 +221,22 @@ function CodeAstAnchorCard({
     >
       <div className="code-ast-waterfall__anchor-card-rank">
         {`#${rank}`}
-        {' · '}
+        {" · "}
         {symbol.kind}
       </div>
       <div className="code-ast-waterfall__anchor-card-name">{symbol.label}</div>
       <div className="code-ast-waterfall__anchor-card-meta">
         {symbol.path}
-        {symbol.line ? ` · L${symbol.line}` : ''}
-        {symbol.references > 0 ? ` · refs:${symbol.references}` : ''}
+        {symbol.line ? ` · L${symbol.line}` : ""}
+        {symbol.references > 0 ? ` · refs:${symbol.references}` : ""}
       </div>
       <CodeAstAtomRow copy={copy} atom={symbol.atom} testId="code-ast-anchor-atom" />
       <div className="code-ast-waterfall__action-row">
-        <button
-          type="button"
-          className="code-ast-waterfall__action"
-          onClick={() => onPivotQuery?.(symbol.query)}
-        >
-          {copy.pivotAnchor}
-        </button>
-        <button
-          type="button"
-          className="code-ast-waterfall__action"
-          onClick={() => {
-            void copyToClipboard(buildAnchorCopyPayload(symbol, rank));
-          }}
-        >
-          {copy.copyForRag}
-        </button>
+        <CodeAstPivotButton label={copy.pivotAnchor} query={symbol.query} onPivotQuery={onPivotQuery} />
+        <CodeAstCopyButton
+          label={copy.copyForRag}
+          payload={buildAnchorCopyPayload(symbol, rank)}
+        />
       </div>
     </div>
   );
@@ -159,27 +262,13 @@ function CodeAstSymbolCard({
       <div className="code-ast-waterfall__symbol-card-name">{symbol.label}</div>
       <div className="code-ast-waterfall__symbol-card-meta">
         {symbol.path}
-        {symbol.line ? ` · L${symbol.line}` : ''}
-        {symbol.references > 0 ? ` · refs:${symbol.references}` : ''}
+        {symbol.line ? ` · L${symbol.line}` : ""}
+        {symbol.references > 0 ? ` · refs:${symbol.references}` : ""}
       </div>
       <CodeAstAtomRow copy={copy} atom={symbol.atom} testId="code-ast-symbol-atom" />
       <div className="code-ast-waterfall__action-row">
-        <button
-          type="button"
-          className="code-ast-waterfall__action"
-          onClick={() => onPivotQuery?.(symbol.query)}
-        >
-          {copy.pivotSymbol}
-        </button>
-        <button
-          type="button"
-          className="code-ast-waterfall__action"
-          onClick={() => {
-            void copyToClipboard(buildSymbolCopyPayload(symbol));
-          }}
-        >
-          {copy.copyForRag}
-        </button>
+        <CodeAstPivotButton label={copy.pivotSymbol} query={symbol.query} onPivotQuery={onPivotQuery} />
+        <CodeAstCopyButton label={copy.copyForRag} payload={buildSymbolCopyPayload(symbol)} />
       </div>
     </div>
   );
@@ -198,7 +287,9 @@ export function CodeAstWaterfallHeader({
         <span className="code-ast-waterfall__header-index">{formatStageIndex(0)}</span>
         <span className="code-ast-waterfall__file-label">{copy.filePath}</span>
         <span className="code-ast-waterfall__file-value">{declarationPath ?? sourcePath}</span>
-        {sourceLineRange && <span className="code-ast-waterfall__file-range">[LINE {sourceLineRange}]</span>}
+        {sourceLineRange && (
+          <span className="code-ast-waterfall__file-range">[LINE {sourceLineRange}]</span>
+        )}
       </div>
     </header>
   );
@@ -211,6 +302,10 @@ export function CodeAstDeclarationStage({
   signatureRows,
   onPivotQuery,
 }: CodeAstDeclarationStageProps): React.ReactNode {
+  const handlePivotDeclaration = React.useCallback(() => {
+    onPivotQuery?.(declaration?.query ?? declaration?.label ?? "");
+  }, [declaration?.label, declaration?.query, onPivotQuery]);
+
   return (
     <section
       className="code-ast-waterfall__stage code-ast-waterfall__stage--declaration"
@@ -222,77 +317,58 @@ export function CodeAstDeclarationStage({
       </div>
       {declaration ? (
         <div
-          role="button"
-          tabIndex={0}
           className="code-ast-waterfall__declaration-card"
           data-chunk-id={declaration.atom.id}
           data-semantic-type={declaration.atom.semanticType}
-          onClick={() => onPivotQuery?.(declaration.query ?? declaration.label)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              onPivotQuery?.(declaration.query ?? declaration.label);
-            }
-          }}
           title={declaration.path}
         >
-          <div className="code-ast-waterfall__declaration-title">{declaration.label}</div>
-          <div className="code-ast-waterfall__declaration-kind">
-            {declaration.kind}
-            {declaration.line ? ` · L${declaration.line}` : ''}
-          </div>
+          <button
+            type="button"
+            className="code-ast-waterfall__declaration-primary"
+            onClick={handlePivotDeclaration}
+          >
+            <div className="code-ast-waterfall__declaration-title">{declaration.label}</div>
+            <div className="code-ast-waterfall__declaration-kind">
+              {declaration.kind}
+              {declaration.line ? ` · L${declaration.line}` : ""}
+            </div>
+          </button>
           <div className="code-ast-waterfall__action-row">
-            <button
-              type="button"
-              className="code-ast-waterfall__action"
-              onClick={(event) => {
-                event.stopPropagation();
-                onPivotQuery?.(declaration.query ?? declaration.label);
-              }}
-            >
-              {copy.pivotDeclaration}
-            </button>
-            <button
-              type="button"
-              className="code-ast-waterfall__action"
-              onClick={(event) => {
-                event.stopPropagation();
-                void copyToClipboard(buildDeclarationCopyPayload(declaration));
-              }}
-            >
-              {copy.copyForRag}
-            </button>
+            <CodeAstPivotButton
+              label={copy.pivotDeclaration}
+              query={declaration.query ?? declaration.label}
+              onPivotQuery={onPivotQuery}
+            />
+            <CodeAstCopyButton
+              label={copy.copyForRag}
+              payload={buildDeclarationCopyPayload(declaration)}
+            />
           </div>
           <CodeAstAtomRow copy={copy} atom={declaration.atom} testId="code-ast-declaration-atom" />
           {(signatureRows.parameters.length > 0 || signatureRows.returnPart) && (
-            <div className="code-ast-waterfall__signature-parts" data-testid="code-ast-signature-parts">
+            <div
+              className="code-ast-waterfall__signature-parts"
+              data-testid="code-ast-signature-parts"
+            >
               {signatureRows.parameters.length > 0 && (
                 <div className="code-ast-waterfall__signature-group">
                   <div className="code-ast-waterfall__signature-group-title">
-                    {locale === 'zh' ? '参数' : 'Parameters'}
+                    {locale === "zh" ? "参数" : "Parameters"}
                   </div>
                   <div className="code-ast-waterfall__signature-grid">
                     {signatureRows.parameters.map((parameter) => {
-                      const pivotQuery = parameter.name?.query ?? parameter.type?.query ?? '';
+                      const pivotQuery = parameter.name?.query ?? parameter.type?.query ?? "";
 
                       return (
-                        <button
+                        <CodeAstSignatureButton
                           key={parameter.id}
-                          type="button"
-                          className="code-ast-waterfall__signature-pair"
-                          onClick={() => pivotQuery && onPivotQuery?.(pivotQuery)}
-                          title={pivotQuery || undefined}
-                        >
-                          <span className="code-ast-waterfall__signature-pair-label">
-                            {parameter.name?.label ?? 'param'}
-                          </span>
-                          <span className="code-ast-waterfall__signature-pair-value">
-                            {parameter.name?.value ?? parameter.type?.value ?? ''}
-                          </span>
-                          {parameter.type && (
-                            <span className="code-ast-waterfall__signature-pair-type">{parameter.type.value}</span>
-                          )}
-                        </button>
+                          id={parameter.id}
+                          label={parameter.name?.label ?? "param"}
+                          value={parameter.name?.value ?? parameter.type?.value ?? ""}
+                          typeValue={parameter.type?.value}
+                          query={pivotQuery}
+                          onPivotQuery={onPivotQuery}
+                        />
                       );
                     })}
                   </div>
@@ -301,22 +377,25 @@ export function CodeAstDeclarationStage({
               {signatureRows.returnPart && (
                 <div className="code-ast-waterfall__signature-group">
                   <div className="code-ast-waterfall__signature-group-title">
-                    {locale === 'zh' ? '返回值' : 'Return Type'}
+                    {locale === "zh" ? "返回值" : "Return Type"}
                   </div>
                   <div className="code-ast-waterfall__signature-grid">
-                    <button
-                      type="button"
+                    <CodeAstPivotButton
                       className="code-ast-waterfall__signature-pair code-ast-waterfall__signature-pair--return"
-                      onClick={() => signatureRows.returnPart?.query && onPivotQuery?.(signatureRows.returnPart.query)}
+                      label={
+                        <>
+                          <span className="code-ast-waterfall__signature-pair-label">
+                            {signatureRows.returnPart.label}
+                          </span>
+                          <span className="code-ast-waterfall__signature-pair-value">
+                            {signatureRows.returnPart.value}
+                          </span>
+                        </>
+                      }
+                      query={signatureRows.returnPart.query}
                       title={signatureRows.returnPart.query}
-                    >
-                      <span className="code-ast-waterfall__signature-pair-label">
-                        {signatureRows.returnPart.label}
-                      </span>
-                      <span className="code-ast-waterfall__signature-pair-value">
-                        {signatureRows.returnPart.value}
-                      </span>
-                    </button>
+                      onPivotQuery={onPivotQuery}
+                    />
                   </div>
                 </div>
               )}
@@ -361,28 +440,18 @@ export function CodeAstBlocksStage({
                 <span className="code-ast-waterfall__block-title">{block.title}</span>
                 <span className="code-ast-waterfall__block-meta">
                   {block.lineRange}
-                  {block.anchors.length > 0 ? ` · ${block.anchors.length} anchors` : ''}
+                  {block.anchors.length > 0 ? ` · ${block.anchors.length} anchors` : ""}
                 </span>
               </summary>
               <div className="code-ast-waterfall__block-body">
                 <div className="code-ast-waterfall__block-actions">
-                  <button
-                    type="button"
-                    className="code-ast-waterfall__action"
-                    onClick={() => block.query && onPivotQuery?.(block.query)}
+                  <CodeAstPivotButton
+                    label={copy.pivotBlock}
+                    query={block.query}
                     title={block.query ?? block.title}
-                  >
-                    {copy.pivotBlock}
-                  </button>
-                  <button
-                    type="button"
-                    className="code-ast-waterfall__action"
-                    onClick={() => {
-                      void copyToClipboard(buildBlockCopyPayload(block));
-                    }}
-                  >
-                    {copy.copyForRag}
-                  </button>
+                    onPivotQuery={onPivotQuery}
+                  />
+                  <CodeAstCopyButton label={copy.copyForRag} payload={buildBlockCopyPayload(block)} />
                 </div>
                 <CodeAstAtomRow copy={copy} atom={block.atom} testId="code-ast-block-atom" />
                 <pre className="code-ast-waterfall__block-excerpt">
@@ -395,15 +464,12 @@ export function CodeAstBlocksStage({
                 {block.anchors.length > 0 && (
                   <div className="structured-chip-row">
                     {block.anchors.map((anchor) => (
-                      <button
+                      <CodeAstAnchorChip
                         key={`${block.id}-${anchor}`}
-                        type="button"
-                        className="structured-chip"
-                        onClick={() => onPivotQuery?.(anchor)}
-                      >
-                        <span className="structured-chip__label">anchor</span>
-                        <span className="structured-chip__value">{anchor}</span>
-                      </button>
+                        chipKey={`${block.id}-${anchor}`}
+                        anchor={anchor}
+                        onPivotQuery={onPivotQuery}
+                      />
                     ))}
                   </div>
                 )}
@@ -412,7 +478,7 @@ export function CodeAstBlocksStage({
           ))
         ) : (
           <div className="code-ast-waterfall__block-empty">
-            {locale === 'zh' ? '暂无逻辑块。' : 'No logic blocks.'}
+            {locale === "zh" ? "暂无逻辑块。" : "No logic blocks."}
           </div>
         )}
       </div>
@@ -444,10 +510,12 @@ export function CodeAstSymbolsStage({
             >
               <div className="code-ast-waterfall__symbol-group-title">
                 <span>{group.title}</span>
-                <span className="code-ast-waterfall__symbol-group-count">{group.symbols.length}</span>
+                <span className="code-ast-waterfall__symbol-group-count">
+                  {group.symbols.length}
+                </span>
               </div>
               {group.symbols.length > 0 ? (
-                group.id === 'anchors' ? (
+                group.id === "anchors" ? (
                   <div className="code-ast-waterfall__anchor-list">
                     {group.symbols.map((symbol, index) => (
                       <CodeAstAnchorCard

@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
-import { buildResultPreviewId } from './searchInteractionUtils';
-import type { SearchResult } from './types';
+import { useCallback, useState } from "react";
+import { buildResultPreviewId } from "./searchInteractionUtils";
+import type { SearchResult } from "./types";
 
 interface UseSearchResultPreviewStateResult {
   toggleCodePreview: (result: SearchResult) => void;
@@ -23,10 +23,13 @@ export function useSearchResultPreviewState(): UseSearchResultPreviewStateResult
     });
   }, []);
 
-  const isResultPreviewExpanded = useCallback((result: SearchResult) => {
-    const key = buildResultPreviewId(result);
-    return expandedPreviewIds.has(key);
-  }, [expandedPreviewIds]);
+  const isResultPreviewExpanded = useCallback(
+    (result: SearchResult) => {
+      const key = buildResultPreviewId(result);
+      return expandedPreviewIds.has(key);
+    },
+    [expandedPreviewIds],
+  );
 
   return {
     toggleCodePreview,

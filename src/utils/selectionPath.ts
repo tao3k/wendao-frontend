@@ -5,20 +5,20 @@ export interface SelectionPathLike {
   rootLabel?: string;
 }
 
-const INTERNAL_WORKSPACE_MARKER = '.data/wendao-frontend/';
+const INTERNAL_WORKSPACE_MARKER = ".data/wendao-frontend/";
 
 function stripInternalWorkspacePrefix(path: string): string {
-  const normalizedPath = path.trim().replace(/\\/g, '/');
+  const normalizedPath = path.trim().replace(/\\/g, "/");
   if (normalizedPath.length === 0) {
     return normalizedPath;
   }
 
   const markerIndex = normalizedPath.indexOf(INTERNAL_WORKSPACE_MARKER);
   if (markerIndex >= 0) {
-    return normalizedPath.slice(markerIndex + INTERNAL_WORKSPACE_MARKER.length).replace(/^\/+/, '');
+    return normalizedPath.slice(markerIndex + INTERNAL_WORKSPACE_MARKER.length).replace(/^\/+/, "");
   }
 
-  return normalizedPath.replace(/^\/+/, '');
+  return normalizedPath.replace(/^\/+/, "");
 }
 
 function isSemanticGraphNodeId(path: string): boolean {
@@ -40,7 +40,7 @@ export function normalizeSelectionPathForVfs(selection: SelectionPathLike): stri
     return normalizedPath;
   }
 
-  return `${projectName}/${normalizedPath.replace(/^\/+/, '')}`;
+  return `${projectName}/${normalizedPath.replace(/^\/+/, "")}`;
 }
 
 export function normalizeSelectionPathForGraph(selection: SelectionPathLike): string {

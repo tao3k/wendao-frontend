@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { api } from '../../api';
-import type { SearchScope } from './types';
+import { useEffect, useState } from "react";
+import { api } from "../../api";
+import type { SearchScope } from "./types";
 
 interface UseRepoSyncStatusParams {
   isOpen: boolean;
@@ -15,16 +15,14 @@ export interface RepoSyncStatusSnapshot {
   driftState: string;
 }
 
-export function useRepoSyncStatus({
-  isOpen,
-  scope,
-  repoFilter,
-}: UseRepoSyncStatusParams): { repoSyncStatus: RepoSyncStatusSnapshot | null } {
+export function useRepoSyncStatus({ isOpen, scope, repoFilter }: UseRepoSyncStatusParams): {
+  repoSyncStatus: RepoSyncStatusSnapshot | null;
+} {
   const [repoSyncStatus, setRepoSyncStatus] = useState<RepoSyncStatusSnapshot | null>(null);
 
   useEffect(() => {
     const normalizedRepo = repoFilter?.trim();
-    if (!isOpen || scope !== 'code' || !normalizedRepo) {
+    if (!isOpen || scope !== "code" || !normalizedRepo) {
       setRepoSyncStatus(null);
       return;
     }
@@ -33,16 +31,16 @@ export function useRepoSyncStatus({
 
     const loadSyncStatus = async () => {
       try {
-        const response = await api.getRepoSync(normalizedRepo, 'status');
+        const response = await api.getRepoSync(normalizedRepo, "status");
         if (cancelled) {
           return;
         }
 
         setRepoSyncStatus({
           repoId: normalizedRepo,
-          healthState: response.healthState ?? 'unknown',
-          stalenessState: response.stalenessState ?? 'unknown',
-          driftState: response.driftState ?? 'unknown',
+          healthState: response.healthState ?? "unknown",
+          stalenessState: response.stalenessState ?? "unknown",
+          driftState: response.driftState ?? "unknown",
         });
       } catch {
         if (cancelled) {
@@ -50,9 +48,9 @@ export function useRepoSyncStatus({
         }
         setRepoSyncStatus({
           repoId: normalizedRepo,
-          healthState: 'unavailable',
-          stalenessState: 'unknown',
-          driftState: 'unknown',
+          healthState: "unavailable",
+          stalenessState: "unknown",
+          driftState: "unknown",
         });
       }
     };

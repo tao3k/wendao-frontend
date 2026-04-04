@@ -1,7 +1,7 @@
-import React, { Suspense } from 'react';
-import { DiagramWindow } from './mainViewLazyPanels';
-import type { MainViewSelectedFile } from './mainViewProps';
-import type { MainViewLocale } from './mainViewTypes';
+import React, { Suspense } from "react";
+import { DiagramWindow } from "./mainViewLazyPanels";
+import type { MainViewSelectedFile } from "./mainViewProps";
+import type { MainViewLocale } from "./mainViewTypes";
 
 interface MainViewDiagramPanelProps {
   selectedFile?: MainViewSelectedFile | null;

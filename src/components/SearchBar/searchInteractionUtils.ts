@@ -1,7 +1,7 @@
-import type { SearchResult } from './types';
+import type { SearchResult } from "./types";
 
 export function appendUniqueQueryToken(current: string, token: string): string {
-  const trimmed = current.replace(/\s+$/, '');
+  const trimmed = current.replace(/\s+$/, "");
   if (!trimmed) {
     return token;
   }
@@ -13,7 +13,7 @@ export function appendUniqueQueryToken(current: string, token: string): string {
     return trimmed;
   }
 
-  const lastToken = tokens[tokens.length - 1]?.toLowerCase() || '';
+  const lastToken = tokens[tokens.length - 1]?.toLowerCase() || "";
   if (lastToken === normalizedToken) {
     return trimmed;
   }
@@ -22,7 +22,7 @@ export function appendUniqueQueryToken(current: string, token: string): string {
 }
 
 export function applyScenarioQueryTokens(current: string, tokens: string[]): string {
-  const trimmed = current.replace(/\s+$/, '');
+  const trimmed = current.replace(/\s+$/, "");
   const currentTokens = trimmed ? trimmed.split(/\s+/) : [];
   const tokenSet = new Set(currentTokens.map((token) => token.toLowerCase()));
   const mergedTokens = [...currentTokens];
@@ -35,9 +35,9 @@ export function applyScenarioQueryTokens(current: string, tokens: string[]): str
     }
   });
 
-  return mergedTokens.join(' ').trim();
+  return mergedTokens.join(" ").trim();
 }
 
 export function buildResultPreviewId(result: SearchResult): string {
-  return `${result.path}-${result.docType}-${result.stem}-${result.line ?? 'na'}-${result.lineEnd ?? 'na'}`;
+  return `${result.path}-${result.docType}-${result.stem}-${result.line ?? "na"}-${result.lineEnd ?? "na"}`;
 }

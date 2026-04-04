@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CodeAstAnalysisResponse,
   GraphNeighborsResponse,
   MarkdownAnalysisResponse,
-} from '../../api';
-import { getSearchResultIdentity } from '../SearchBar/searchResultIdentity';
-import type { SearchResult } from '../SearchBar/types';
+} from "../../api";
+import { getSearchResultIdentity } from "../SearchBar/searchResultIdentity";
+import type { SearchResult } from "../SearchBar/types";
 import {
   buildZenSearchPreviewLoadPlan,
   isMeaningfulSelection,
   loadZenSearchPreviewBaseData,
   loadZenSearchPreviewCodeAstData,
   loadZenSearchPreviewMarkdownData,
-} from './zenSearchPreviewLoaders';
+} from "./zenSearchPreviewLoaders";
 
 export interface ZenSearchPreviewState {
   loading: boolean;
@@ -36,39 +36,41 @@ interface BuildPreviewSnapshotOptions {
 
 function needsCodeAstLoad(
   cachedPreview: ZenSearchPreviewState | undefined,
-  codeAstEligible: boolean
+  codeAstEligible: boolean,
 ): boolean {
   return Boolean(
     codeAstEligible &&
-      (!cachedPreview ||
-        (cachedPreview.codeAstAnalysis == null && cachedPreview.codeAstError == null))
+    (!cachedPreview ||
+      (cachedPreview.codeAstAnalysis == null && cachedPreview.codeAstError == null)),
   );
 }
 
 function needsMarkdownLoad(
   cachedPreview: ZenSearchPreviewState | undefined,
-  markdownEligible: boolean
+  markdownEligible: boolean,
 ): boolean {
   return Boolean(
     markdownEligible &&
-      (!cachedPreview ||
-        (cachedPreview.markdownAnalysis == null && cachedPreview.markdownAnalysisError == null))
+    (!cachedPreview ||
+      (cachedPreview.markdownAnalysis == null && cachedPreview.markdownAnalysisError == null)),
   );
 }
 
 async function buildPreviewSnapshot(
   result: SearchResult,
-  options: BuildPreviewSnapshotOptions = {}
+  options: BuildPreviewSnapshotOptions = {},
 ): Promise<ZenSearchPreviewState> {
   const loadPlan = buildZenSearchPreviewLoadPlan(result);
   const shouldLoadCodeAst = loadPlan.codeAstEligible && options.includeCodeAst !== false;
   const [base, markdown, codeAstBase] = await Promise.all([
     loadZenSearchPreviewBaseData(loadPlan),
     loadZenSearchPreviewMarkdownData(loadPlan),
-    shouldLoadCodeAst ? loadZenSearchPreviewCodeAstData(loadPlan) : Promise.resolve({
-      codeAstAnalysis: null,
-      codeAstError: null,
-    }),
+    shouldLoadCodeAst
+      ? loadZenSearchPreviewCodeAstData(loadPlan)
+      : Promise.resolve({
+          codeAstAnalysis: null,
+          codeAstError: null,
+        }),
   ]);
 
   return {
@@ -108,11 +110,11 @@ function createEmptyPreviewState(): ZenSearchPreviewState {
 
 export function useZenSearchPreview(
   selectedResult: SearchResult | null,
-  prefetchResults: SearchResult[] = []
+  prefetchResults: SearchResult[] = [],
 ): ZenSearchPreviewState {
   const previewIdentity = useMemo(
     () => (selectedResult ? getSearchResultIdentity(selectedResult) : null),
-    [selectedResult]
+    [selectedResult],
   );
   const previewCacheRef = useRef(new Map<string, ZenSearchPreviewState>());
   const previewInflightRef = useRef(new Map<string, Promise<ZenSearchPreviewState>>());

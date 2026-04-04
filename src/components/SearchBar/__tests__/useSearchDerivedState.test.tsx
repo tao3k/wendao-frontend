@@ -1,13 +1,14 @@
-import { renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { recordPerfTraceSnapshot } from '../../../lib/testPerfRegistry';
-import { createPerfTrace } from '../../../lib/testPerfTrace';
-import { useSearchDerivedState } from '../useSearchDerivedState';
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
+import { createPerfTrace } from "../../../lib/testPerfTrace";
+import { useSearchDerivedState } from "../useSearchDerivedState";
 
 const getVisibleSearchViewMock = vi.fn();
 
-vi.mock('../searchResultSections', async () => {
-  const actual = await vi.importActual<typeof import('../searchResultSections')>('../searchResultSections');
+vi.mock("../searchResultSections", async () => {
+  const actual =
+    await vi.importActual<typeof import("../searchResultSections")>("../searchResultSections");
   return {
     ...actual,
     getVisibleSearchView: (...args: Parameters<typeof actual.getVisibleSearchView>) =>
@@ -15,11 +16,11 @@ vi.mock('../searchResultSections', async () => {
   };
 });
 
-describe('useSearchDerivedState', () => {
-  it('does not recompute the visible result view when only the raw query changes', () => {
-    const trace = createPerfTrace('useSearchDerivedState.raw-query-rerender');
+describe("useSearchDerivedState", () => {
+  it("does not recompute the visible result view when only the raw query changes", () => {
+    const trace = createPerfTrace("useSearchDerivedState.raw-query-rerender");
     getVisibleSearchViewMock.mockImplementation(() => {
-      trace.increment('visible-view-computations');
+      trace.increment("visible-view-computations");
       return {
         visibleResults: [],
         visibleSections: [],
@@ -28,7 +29,7 @@ describe('useSearchDerivedState', () => {
 
     const sharedResults: [] = [];
     const sharedFilters = {
-      language: ['julia'],
+      language: ["julia"],
       kind: [],
       repo: [],
       path: [],
@@ -39,12 +40,12 @@ describe('useSearchDerivedState', () => {
         trace.markRender();
         return useSearchDerivedState({
           results: sharedResults,
-          scope: 'all',
-          sortMode: 'relevance',
+          scope: "all",
+          sortMode: "relevance",
           parsedCodeFilters: sharedFilters,
           parsedCodeBaseQuery: query,
-          locale: 'en',
-          attachmentsLabel: 'Attachments',
+          locale: "en",
+          attachmentsLabel: "Attachments",
           showSuggestions: false,
           suggestionsLength: 0,
           debouncedQuery,
@@ -56,36 +57,33 @@ describe('useSearchDerivedState', () => {
         });
       },
       {
-        initialProps: { query: 'sec', debouncedQuery: 'sec' },
-      }
+        initialProps: { query: "sec", debouncedQuery: "sec" },
+      },
     );
 
     getVisibleSearchViewMock.mockClear();
     trace.reset();
 
-    trace.measure('raw-query-rerender', () => {
-      rerender({ query: 'seco', debouncedQuery: 'sec' });
+    trace.measure("raw-query-rerender", () => {
+      rerender({ query: "seco", debouncedQuery: "sec" });
     });
 
     expect(getVisibleSearchViewMock).not.toHaveBeenCalled();
     const snapshot = trace.snapshot();
 
     expect(snapshot).toMatchObject({
-      label: 'useSearchDerivedState.raw-query-rerender',
+      label: "useSearchDerivedState.raw-query-rerender",
       renderCount: 1,
       counters: {
-        'raw-query-rerender': 1,
+        "raw-query-rerender": 1,
       },
       sampleCount: 1,
     });
-    expect(snapshot.counters['visible-view-computations'] ?? 0).toBe(0);
-    recordPerfTraceSnapshot(
-      'SearchBar/useSearchDerivedState raw query rerender',
-      snapshot,
-    );
+    expect(snapshot.counters["visible-view-computations"] ?? 0).toBe(0);
+    recordPerfTraceSnapshot("SearchBar/useSearchDerivedState raw query rerender", snapshot);
   });
 
-  it('keeps rendering against the settled code-filter query while a narrower all-scope query is still loading', () => {
+  it("keeps rendering against the settled code-filter query while a narrower all-scope query is still loading", () => {
     getVisibleSearchViewMock.mockClear();
     getVisibleSearchViewMock.mockReturnValue({
       visibleResults: [],
@@ -95,45 +93,45 @@ describe('useSearchDerivedState', () => {
     const { result } = renderHook(() =>
       useSearchDerivedState({
         results: [],
-        scope: 'all',
-        sortMode: 'relevance',
+        scope: "all",
+        sortMode: "relevance",
         parsedCodeFilters: {
-          language: ['julia'],
-          kind: ['function'],
+          language: ["julia"],
+          kind: ["function"],
           repo: [],
           path: [],
         },
-        parsedCodeBaseQuery: 'sec',
-        locale: 'en',
-        attachmentsLabel: 'Attachments',
+        parsedCodeBaseQuery: "sec",
+        locale: "en",
+        attachmentsLabel: "Attachments",
         showSuggestions: false,
         suggestionsLength: 0,
-        debouncedQuery: 'sec lang:julia kind:function',
-        debouncedCodeBaseQuery: 'sec',
-        query: 'sec lang:julia kind:function',
+        debouncedQuery: "sec lang:julia kind:function",
+        debouncedCodeBaseQuery: "sec",
+        query: "sec lang:julia kind:function",
         activeCodeFilterEntriesLength: 2,
         searchMeta: {
-          query: 'sec lang:julia',
+          query: "sec lang:julia",
           hitCount: 1,
         },
         isLoading: true,
-      })
+      }),
     );
 
-    expect(result.current.resultsQuery).toBe('sec lang:julia');
+    expect(result.current.resultsQuery).toBe("sec lang:julia");
 
     expect(getVisibleSearchViewMock).toHaveBeenCalledWith(
       [],
-      'all',
-      'relevance',
+      "all",
+      "relevance",
       {
-        language: ['julia'],
+        language: ["julia"],
         kind: [],
         repo: [],
         path: [],
       },
-      'en',
-      'Attachments',
+      "en",
+      "Attachments",
     );
   });
 });

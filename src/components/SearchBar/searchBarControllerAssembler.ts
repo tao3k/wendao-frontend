@@ -1,35 +1,35 @@
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from "react";
 import {
   buildCodeFilterHelperProps,
   buildSearchBarControllerResult,
   buildSuggestionsPanelProps,
-} from './searchBarPanelPropsBuilder';
+} from "./searchBarPanelPropsBuilder";
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerResult,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from './searchBarControllerTypes';
-import type { SearchBarCopy, UiLocale } from './types';
+} from "./searchBarControllerTypes";
+import type { SearchBarCopy, UiLocale } from "./types";
 
 interface AssembleSearchBarControllerResultParams {
   locale: UiLocale;
   copy: SearchBarCopy;
-  showSuggestions: SearchBarControllerSuggestionsPanelProps['showSuggestions'];
-  suggestions: SearchBarControllerSuggestionsPanelProps['suggestions'];
-  selectedIndex: SearchBarControllerSuggestionsPanelProps['selectedIndex'];
-  renderSuggestionIcon: SearchBarControllerSuggestionsPanelProps['renderSuggestionIcon'];
-  onSuggestionClick: SearchBarControllerSuggestionsPanelProps['onSuggestionClick'];
-  onSuggestionHover: SearchBarControllerSuggestionsPanelProps['onSuggestionHover'];
-  activeCodeFilterEntries: SearchBarControllerCodeFilterHelperProps['activeEntries'];
-  codeQuickExampleTokens: SearchBarControllerCodeFilterHelperProps['exampleTokens'];
-  codeQuickScenarios: SearchBarControllerCodeFilterHelperProps['scenarios'];
-  onInsertPrefix: SearchBarControllerCodeFilterHelperProps['onInsertPrefix'];
-  onApplyExample: SearchBarControllerCodeFilterHelperProps['onApplyExample'];
-  onApplyScenario: SearchBarControllerCodeFilterHelperProps['onApplyScenario'];
-  onRemoveFilter: SearchBarControllerCodeFilterHelperProps['onRemoveFilter'];
-  onClearFilters: SearchBarControllerCodeFilterHelperProps['onClearFilters'];
+  showSuggestions: SearchBarControllerSuggestionsPanelProps["showSuggestions"];
+  suggestions: SearchBarControllerSuggestionsPanelProps["suggestions"];
+  selectedIndex: SearchBarControllerSuggestionsPanelProps["selectedIndex"];
+  renderSuggestionIcon: SearchBarControllerSuggestionsPanelProps["renderSuggestionIcon"];
+  onSuggestionClick: SearchBarControllerSuggestionsPanelProps["onSuggestionClick"];
+  onSuggestionHover: SearchBarControllerSuggestionsPanelProps["onSuggestionHover"];
+  activeCodeFilterEntries: SearchBarControllerCodeFilterHelperProps["activeEntries"];
+  codeQuickExampleTokens: SearchBarControllerCodeFilterHelperProps["exampleTokens"];
+  codeQuickScenarios: SearchBarControllerCodeFilterHelperProps["scenarios"];
+  onInsertPrefix: SearchBarControllerCodeFilterHelperProps["onInsertPrefix"];
+  onApplyExample: SearchBarControllerCodeFilterHelperProps["onApplyExample"];
+  onApplyScenario: SearchBarControllerCodeFilterHelperProps["onApplyScenario"];
+  onRemoveFilter: SearchBarControllerCodeFilterHelperProps["onRemoveFilter"];
+  onClearFilters: SearchBarControllerCodeFilterHelperProps["onClearFilters"];
   onModalClick: (event: MouseEvent<HTMLDivElement>) => void;
   onModalKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
   showCodeFilterHelper: boolean;

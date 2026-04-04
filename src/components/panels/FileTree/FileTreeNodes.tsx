@@ -1,6 +1,6 @@
-import React from 'react';
-import { TreeNode } from './TreeNode';
-import type { FileNode, FileTreeLocale, OnFileSelect } from './types';
+import React from "react";
+import { TreeNode } from "./TreeNode";
+import type { FileNode, FileTreeLocale, OnFileSelect } from "./types";
 
 interface FileTreeNodesProps {
   nodes: FileNode[];

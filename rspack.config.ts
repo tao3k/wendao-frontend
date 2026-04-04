@@ -1,7 +1,7 @@
-import { defineConfig } from '@rspack/cli';
-import { rspack } from '@rspack/core';
-import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from "@rspack/cli";
+import { rspack } from "@rspack/core";
+import { ReactRefreshRspackPlugin } from "@rspack/plugin-react-refresh";
+import type { Configuration } from "@rspack/core";
 import {
   createRspackDevServer,
   createRspackEntry,
@@ -15,9 +15,9 @@ import {
   createSplitChunkCacheGroups,
   resolveGatewayTargetFromCwd,
   RSPACK_TARGETS,
-} from './scripts/rspack';
+} from "./scripts/rspack";
 
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === "development";
 const targets = [...RSPACK_TARGETS];
 const GATEWAY_TARGET = resolveGatewayTargetFromCwd();
 
@@ -54,7 +54,7 @@ export default defineConfig({
       }),
     ],
     splitChunks: {
-      chunks: 'all',
+      chunks: "all",
       cacheGroups: createSplitChunkCacheGroups(),
     },
   },

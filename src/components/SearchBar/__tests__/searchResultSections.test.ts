@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { getVisibleResults, getVisibleSearchView } from '../searchResultSections';
-import type { SearchResult } from '../types';
+import { describe, expect, it } from "vitest";
+import { getVisibleResults, getVisibleSearchView } from "../searchResultSections";
+import type { SearchResult } from "../types";
 
-function makeResult(overrides: Partial<SearchResult> & Pick<SearchResult, 'path' | 'category'>): SearchResult {
+function makeResult(
+  overrides: Partial<SearchResult> & Pick<SearchResult, "path" | "category">,
+): SearchResult {
   const path = overrides.path;
   return {
     stem: overrides.stem ?? path,
@@ -14,7 +16,7 @@ function makeResult(overrides: Partial<SearchResult> & Pick<SearchResult, 'path'
     category: overrides.category,
     navigationTarget: overrides.navigationTarget ?? {
       path,
-      category: overrides.navigationTarget?.category ?? 'doc',
+      category: overrides.navigationTarget?.category ?? "doc",
       projectName: overrides.projectName,
       rootLabel: overrides.rootLabel,
       line: overrides.line,
@@ -43,24 +45,24 @@ function makeResult(overrides: Partial<SearchResult> & Pick<SearchResult, 'path'
   };
 }
 
-describe('getVisibleResults', () => {
-  it('dedupes by identity and keeps the highest score row', () => {
+describe("getVisibleResults", () => {
+  it("dedupes by identity and keeps the highest score row", () => {
     const results: SearchResult[] = [
       makeResult({
-        path: 'kernel/docs/guide.md',
-        category: 'document',
+        path: "kernel/docs/guide.md",
+        category: "document",
         score: 0.25,
-        title: 'Guide',
+        title: "Guide",
       }),
       makeResult({
-        path: 'kernel/docs/guide.md',
-        category: 'document',
+        path: "kernel/docs/guide.md",
+        category: "document",
         score: 0.91,
-        title: 'Guide',
+        title: "Guide",
       }),
     ];
 
-    const visible = getVisibleResults(results, 'all', 'relevance', {
+    const visible = getVisibleResults(results, "all", "relevance", {
       language: [],
       kind: [],
       repo: [],
@@ -71,101 +73,99 @@ describe('getVisibleResults', () => {
     expect(visible[0]?.score).toBe(0.91);
   });
 
-  it('applies code filters through the Arrow-backed view', () => {
+  it("applies code filters through the Arrow-backed view", () => {
     const results: SearchResult[] = [
       makeResult({
-        path: 'sciml/src/solve.jl',
-        category: 'symbol',
+        path: "sciml/src/solve.jl",
+        category: "symbol",
         score: 0.8,
-        codeLanguage: 'julia',
-        codeKind: 'function',
-        codeRepo: 'sciml',
+        codeLanguage: "julia",
+        codeKind: "function",
+        codeRepo: "sciml",
       }),
       makeResult({
-        path: 'kernel/src/lib.rs',
-        category: 'symbol',
+        path: "kernel/src/lib.rs",
+        category: "symbol",
         score: 0.7,
-        codeLanguage: 'rust',
-        codeKind: 'function',
-        codeRepo: 'kernel',
+        codeLanguage: "rust",
+        codeKind: "function",
+        codeRepo: "kernel",
       }),
       makeResult({
-        path: 'kernel/docs/index.md',
-        category: 'document',
+        path: "kernel/docs/index.md",
+        category: "document",
         score: 0.99,
       }),
     ];
 
-    const visible = getVisibleResults(results, 'code', 'relevance', {
-      language: ['julia'],
-      kind: ['function'],
-      repo: ['sciml'],
-      path: ['src/'],
+    const visible = getVisibleResults(results, "code", "relevance", {
+      language: ["julia"],
+      kind: ["function"],
+      repo: ["sciml"],
+      path: ["src/"],
     });
 
     expect(visible).toHaveLength(1);
-    expect(visible[0]?.path).toBe('sciml/src/solve.jl');
+    expect(visible[0]?.path).toBe("sciml/src/solve.jl");
   });
 
-  it('prefers matching code hits in all mode when active code filters have matches', () => {
+  it("prefers matching code hits in all mode when active code filters have matches", () => {
     const results: SearchResult[] = [
       makeResult({
-        path: 'sciml/src/solve.jl',
-        category: 'symbol',
+        path: "sciml/src/solve.jl",
+        category: "symbol",
         score: 0.8,
-        codeLanguage: 'julia',
-        codeKind: 'function',
-        codeRepo: 'sciml',
+        codeLanguage: "julia",
+        codeKind: "function",
+        codeRepo: "sciml",
       }),
       makeResult({
-        path: 'kernel/src/lib.rs',
-        category: 'symbol',
+        path: "kernel/src/lib.rs",
+        category: "symbol",
         score: 0.7,
-        codeLanguage: 'rust',
-        codeKind: 'function',
-        codeRepo: 'kernel',
+        codeLanguage: "rust",
+        codeKind: "function",
+        codeRepo: "kernel",
       }),
       makeResult({
-        path: 'kernel/docs/index.md',
-        category: 'document',
+        path: "kernel/docs/index.md",
+        category: "document",
         score: 0.99,
       }),
     ];
 
-    const visible = getVisibleResults(results, 'all', 'relevance', {
-      language: ['julia'],
+    const visible = getVisibleResults(results, "all", "relevance", {
+      language: ["julia"],
       kind: [],
       repo: [],
       path: [],
     });
 
-    expect(visible.map((result) => result.path)).toEqual([
-      'sciml/src/solve.jl',
-    ]);
+    expect(visible.map((result) => result.path)).toEqual(["sciml/src/solve.jl"]);
   });
 
-  it('does not leak non-code all-mode results when active code filters have no matching code hits', () => {
+  it("does not leak non-code all-mode results when active code filters have no matching code hits", () => {
     const results: SearchResult[] = [
       makeResult({
-        path: 'main/docs/section-guide.md',
-        category: 'knowledge',
+        path: "main/docs/section-guide.md",
+        category: "knowledge",
         score: 0.99,
-        title: 'section guide',
+        title: "section guide",
       }),
       makeResult({
-        path: 'kernel/src/sectionize.rs',
-        category: 'symbol',
+        path: "kernel/src/sectionize.rs",
+        category: "symbol",
         score: 0.8,
-        title: 'sectionize',
-        codeLanguage: 'rust',
-        codeKind: 'function',
-        codeRepo: 'kernel',
+        title: "sectionize",
+        codeLanguage: "rust",
+        codeKind: "function",
+        codeRepo: "kernel",
       }),
     ];
 
-    const visible = getVisibleResults(results, 'all', 'relevance', {
-      language: ['julia'],
-      kind: ['function'],
+    const visible = getVisibleResults(results, "all", "relevance", {
+      language: ["julia"],
+      kind: ["function"],
       repo: [],
       path: [],
     });
@@ -173,72 +173,69 @@ describe('getVisibleResults', () => {
     expect(visible).toEqual([]);
   });
 
-  it('sorts by path when path sort is selected', () => {
+  it("sorts by path when path sort is selected", () => {
     const results: SearchResult[] = [
-      makeResult({ path: 'zeta/docs.md', category: 'document', score: 0.9 }),
-      makeResult({ path: 'alpha/docs.md', category: 'document', score: 0.1 }),
+      makeResult({ path: "zeta/docs.md", category: "document", score: 0.9 }),
+      makeResult({ path: "alpha/docs.md", category: "document", score: 0.1 }),
     ];
 
-    const visible = getVisibleResults(results, 'all', 'path', {
+    const visible = getVisibleResults(results, "all", "path", {
       language: [],
       kind: [],
       repo: [],
       path: [],
     });
 
-    expect(visible.map((result) => result.path)).toEqual([
-      'alpha/docs.md',
-      'zeta/docs.md',
-    ]);
+    expect(visible.map((result) => result.path)).toEqual(["alpha/docs.md", "zeta/docs.md"]);
   });
 
-  it('builds visible sections from the same filtered code result slice', () => {
+  it("builds visible sections from the same filtered code result slice", () => {
     const results: SearchResult[] = [
       makeResult({
-        path: 'kernel/src/lib.rs',
-        category: 'symbol',
+        path: "kernel/src/lib.rs",
+        category: "symbol",
         score: 0.8,
-        codeLanguage: 'rust',
-        codeKind: 'function',
-        codeRepo: 'kernel',
+        codeLanguage: "rust",
+        codeKind: "function",
+        codeRepo: "kernel",
       }),
       makeResult({
-        path: 'kernel/src/flow.rs',
-        category: 'ast',
+        path: "kernel/src/flow.rs",
+        category: "ast",
         score: 0.7,
-        codeLanguage: 'rust',
-        codeKind: 'module',
-        codeRepo: 'kernel',
+        codeLanguage: "rust",
+        codeKind: "module",
+        codeRepo: "kernel",
       }),
       makeResult({
-        path: 'kernel/src/refs.rs',
-        category: 'reference',
+        path: "kernel/src/refs.rs",
+        category: "reference",
         score: 0.6,
-        codeLanguage: 'rust',
-        codeKind: 'reference',
-        codeRepo: 'kernel',
+        codeLanguage: "rust",
+        codeKind: "reference",
+        codeRepo: "kernel",
       }),
       makeResult({
-        path: 'kernel/docs/index.md',
-        category: 'document',
+        path: "kernel/docs/index.md",
+        category: "document",
         score: 0.99,
       }),
     ];
 
     const view = getVisibleSearchView(
       results,
-      'code',
-      'relevance',
+      "code",
+      "relevance",
       { language: [], kind: [], repo: [], path: [] },
-      'en',
-      'Attachments'
+      "en",
+      "Attachments",
     );
 
     expect(view.visibleResults).toHaveLength(3);
     expect(view.visibleSections.map((section) => section.key)).toEqual([
-      'symbol',
-      'ast',
-      'reference',
+      "symbol",
+      "ast",
+      "reference",
     ]);
   });
 });

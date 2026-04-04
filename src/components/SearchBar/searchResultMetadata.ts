@@ -1,16 +1,16 @@
-import type { SearchResult } from './types';
+import type { SearchResult } from "./types";
 
 export interface SearchResultMetaPill {
   kind:
-    | 'source'
-    | 'language'
-    | 'kind'
-    | 'line'
-    | 'repo'
-    | 'audit'
-    | 'verification'
-    | 'backlinks'
-    | 'projection';
+    | "source"
+    | "language"
+    | "kind"
+    | "line"
+    | "repo"
+    | "audit"
+    | "verification"
+    | "backlinks"
+    | "projection";
   label: string;
 }
 
@@ -24,8 +24,8 @@ function asNonEmptyText(value: string | undefined): string | null {
 
 function appendPill(
   pills: SearchResultMetaPill[],
-  kind: SearchResultMetaPill['kind'],
-  label: string | null
+  kind: SearchResultMetaPill["kind"],
+  label: string | null,
 ): void {
   if (!label) {
     return;
@@ -41,41 +41,46 @@ function resolveBacklinkCount(result: SearchResult): number {
 }
 
 export function resolveHierarchyHint(
-  result: Pick<SearchResult, 'hierarchy' | 'hierarchicalUri'>
+  result: Pick<SearchResult, "hierarchy" | "hierarchicalUri">,
 ): string | null {
-  const segments = result.hierarchy?.map((segment) => segment.trim()).filter((segment) => segment.length > 0) ?? [];
+  const segments =
+    result.hierarchy?.map((segment) => segment.trim()).filter((segment) => segment.length > 0) ??
+    [];
   if (segments.length > 0) {
-    return segments.join(' / ');
+    return segments.join(" / ");
   }
   return asNonEmptyText(result.hierarchicalUri);
 }
 
-export function buildCodeMetaPills(result: SearchResult, lineRange: string | null): SearchResultMetaPill[] {
+export function buildCodeMetaPills(
+  result: SearchResult,
+  lineRange: string | null,
+): SearchResultMetaPill[] {
   const pills: SearchResultMetaPill[] = [];
-  if (result.searchSource === 'repo-intelligence') {
-    appendPill(pills, 'source', 'repo-intel');
+  if (result.searchSource === "repo-intelligence") {
+    appendPill(pills, "source", "repo-intel");
   }
-  appendPill(pills, 'language', asNonEmptyText(result.codeLanguage));
-  appendPill(pills, 'kind', asNonEmptyText(result.codeKind));
-  appendPill(pills, 'line', asNonEmptyText(lineRange ?? undefined));
-  appendPill(pills, 'repo', asNonEmptyText(result.codeRepo));
+  appendPill(pills, "language", asNonEmptyText(result.codeLanguage));
+  appendPill(pills, "kind", asNonEmptyText(result.codeKind));
+  appendPill(pills, "line", asNonEmptyText(lineRange ?? undefined));
+  appendPill(pills, "repo", asNonEmptyText(result.codeRepo));
 
   const auditStatus = asNonEmptyText(result.auditStatus);
   const verificationState = asNonEmptyText(result.verificationState);
-  appendPill(pills, 'audit', auditStatus ? `audit:${auditStatus}` : null);
+  appendPill(pills, "audit", auditStatus ? `audit:${auditStatus}` : null);
   appendPill(
     pills,
-    'verification',
-    verificationState && verificationState !== auditStatus ? `verify:${verificationState}` : null
+    "verification",
+    verificationState && verificationState !== auditStatus ? `verify:${verificationState}` : null,
   );
 
   const backlinkCount = resolveBacklinkCount(result);
   if (backlinkCount > 0) {
-    appendPill(pills, 'backlinks', `backlinks:${backlinkCount}`);
+    appendPill(pills, "backlinks", `backlinks:${backlinkCount}`);
   }
   const projectionCount = result.projectionPageIds?.length ?? 0;
   if (projectionCount > 0) {
-    appendPill(pills, 'projection', `projection:${projectionCount}`);
+    appendPill(pills, "projection", `projection:${projectionCount}`);
   }
 
   return pills;

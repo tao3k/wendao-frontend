@@ -1,12 +1,12 @@
-import React, { Suspense, lazy } from 'react';
-import type { Components } from 'react-markdown';
-import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from '../../../api';
-import { buildArrowRetrievalLookup } from '../../../utils/arrowRetrievalLookup';
+import React, { Suspense, lazy } from "react";
+import type { Components } from "react-markdown";
+import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from "../../../api";
+import { buildArrowRetrievalLookup } from "../../../utils/arrowRetrievalLookup";
 import {
   decodeBiLinkHref,
   directReaderUrlTransform,
   hasInternalUriPrefix,
-} from './markdownWaterfallBiLinks';
+} from "./markdownWaterfallBiLinks";
 import {
   buildMarkdownRichSlotChunk,
   buildMarkdownRichSlotCopyPayload,
@@ -15,13 +15,13 @@ import {
   findMarkdownRichSlotAtom,
   sliceMarkdownContentLines,
   toDisplayMarkdownChunk,
-} from './markdownWaterfallModel';
-import { copyToClipboard } from './markdownWaterfallShared';
+} from "./markdownWaterfallModel";
+import { copyToClipboard } from "./markdownWaterfallShared";
 import type {
   MarkdownRetrievalChunk,
   MarkdownSection,
   MarkdownWaterfallCopy,
-} from './markdownWaterfallShared';
+} from "./markdownWaterfallShared";
 
 interface BuildMarkdownComponentsArgs {
   copy: MarkdownWaterfallCopy;
@@ -35,17 +35,52 @@ interface BuildMarkdownComponentsArgs {
 }
 
 const MarkdownWaterfallCodeSlot = lazy(async () => {
-  const module = await import('./MarkdownWaterfallCodeSlot');
+  const module = await import("./MarkdownWaterfallCodeSlot");
   return { default: module.MarkdownWaterfallCodeSlot };
 });
 
 const MarkdownWaterfallMermaidSlot = lazy(async () => {
-  const module = await import('./MarkdownWaterfallMermaidSlot');
+  const module = await import("./MarkdownWaterfallMermaidSlot");
   return { default: module.MarkdownWaterfallMermaidSlot };
+});
+const MARKDOWN_WATERFALL_MERMAID_LOADING = (label: string) => (
+  <div
+    className="markdown-waterfall__section-loading markdown-waterfall__section-loading--slot"
+    data-testid="markdown-waterfall-slot-loading"
+  >
+    {label}
+  </div>
+);
+
+interface MarkdownWaterfallBiLinkButtonProps {
+  target: string;
+  children: React.ReactNode;
+  onBiLinkClick: (link: string) => void;
+}
+
+const MarkdownWaterfallBiLinkButton = React.memo(function MarkdownWaterfallBiLinkButton({
+  target,
+  children,
+  onBiLinkClick,
+}: MarkdownWaterfallBiLinkButtonProps): React.ReactElement {
+  const handleClick = React.useCallback(() => {
+    onBiLinkClick(target);
+  }, [onBiLinkClick, target]);
+
+  return (
+    <button
+      type="button"
+      className="direct-reader__bilink"
+      data-link={target}
+      onClick={handleClick}
+    >
+      {children}
+    </button>
+  );
 });
 
 function isBlockCode(codeClassName: string | undefined, rawValue: string): boolean {
-  if (typeof codeClassName === 'string' && /language-([\w-]+)/.test(codeClassName)) {
+  if (typeof codeClassName === "string" && /language-([\w-]+)/.test(codeClassName)) {
     return true;
   }
 
@@ -56,7 +91,7 @@ function renderRichSlotHeader(
   copy: MarkdownWaterfallCopy,
   label: string,
   chunk?: MarkdownRetrievalChunk,
-  onCopy?: () => void
+  onCopy?: () => void,
 ): React.ReactElement {
   return (
     <div className="markdown-waterfall__rich-slot-header">
@@ -76,7 +111,9 @@ function renderRichSlotHeader(
               <span className="markdown-waterfall__section-chunk-value">{chunk.semanticType}</span>
             </span>
             <span className="markdown-waterfall__section-chunk-pill" title={chunk.fingerprint}>
-              <span className="markdown-waterfall__section-chunk-label">{copy.fingerprintLabel}</span>
+              <span className="markdown-waterfall__section-chunk-label">
+                {copy.fingerprintLabel}
+              </span>
               <span className="markdown-waterfall__section-chunk-value">{chunk.fingerprint}</span>
             </span>
             <span
@@ -84,7 +121,9 @@ function renderRichSlotHeader(
               title={`~${chunk.tokenEstimate} ${copy.tokensLabel.toLowerCase()}`}
             >
               <span className="markdown-waterfall__section-chunk-label">{copy.tokensLabel}</span>
-              <span className="markdown-waterfall__section-chunk-value">~{chunk.tokenEstimate}</span>
+              <span className="markdown-waterfall__section-chunk-value">
+                ~{chunk.tokenEstimate}
+              </span>
             </span>
           </div>
         )}
@@ -109,17 +148,17 @@ export function buildMarkdownComponents({
   onBiLinkClick,
   sourcePath,
   analysisAtoms = [],
-  documentTitle = '',
-  documentPathLabel = '',
-  documentContent = '',
+  documentTitle = "",
+  documentPathLabel = "",
+  documentContent = "",
   activeSection,
 }: BuildMarkdownComponentsArgs): Components {
   const atomLookup = buildArrowRetrievalLookup(analysisAtoms);
-  const tableAtoms = collectSectionAtoms(atomLookup, activeSection, 'table');
+  const tableAtoms = collectSectionAtoms(atomLookup, activeSection, "table");
   let tableAtomCursor = 0;
-  const mathAtoms = collectSectionAtoms(atomLookup, activeSection, 'math:block');
+  const mathAtoms = collectSectionAtoms(atomLookup, activeSection, "math:block");
   let mathAtomCursor = 0;
-  const observationAtoms = collectSectionAtoms(atomLookup, activeSection, 'observation');
+  const observationAtoms = collectSectionAtoms(atomLookup, activeSection, "observation");
   let observationAtomCursor = 0;
 
   return {
@@ -150,16 +189,19 @@ export function buildMarkdownComponents({
         observationAtomCursor += 1;
       }
       const chunk = backendAtom
-        ? toDisplayMarkdownChunk(backendAtom, buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart))
+        ? toDisplayMarkdownChunk(
+            backendAtom,
+            buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+          )
         : undefined;
       const observationBody = backendAtom
         ? sliceMarkdownContentLines(documentContent, backendAtom.lineStart, backendAtom.lineEnd)
-        : '';
+        : "";
 
       return (
         <div
           className="markdown-waterfall__rich-slot markdown-waterfall__rich-slot--observation"
-          data-testid={chunk ? 'markdown-waterfall-rich-slot' : undefined}
+          data-testid={chunk ? "markdown-waterfall-rich-slot" : undefined}
           data-chunk-id={chunk?.id}
           data-semantic-type={chunk?.semanticType}
           data-chunk-fingerprint={chunk?.fingerprint}
@@ -177,10 +219,10 @@ export function buildMarkdownComponents({
                       slotLabel: copy.observationLabel,
                       chunk,
                       body: observationBody,
-                    })
+                    }),
                   );
                 }
-              : undefined
+              : undefined,
           )}
           <blockquote className="direct-reader__blockquote">{children}</blockquote>
         </div>
@@ -192,16 +234,19 @@ export function buildMarkdownComponents({
         tableAtomCursor += 1;
       }
       const chunk = backendAtom
-        ? toDisplayMarkdownChunk(backendAtom, buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart))
+        ? toDisplayMarkdownChunk(
+            backendAtom,
+            buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+          )
         : undefined;
       const tableBody = backendAtom
         ? sliceMarkdownContentLines(documentContent, backendAtom.lineStart, backendAtom.lineEnd)
-        : '';
+        : "";
 
       return (
         <div
           className="markdown-waterfall__rich-slot markdown-waterfall__rich-slot--table"
-          data-testid={chunk ? 'markdown-waterfall-rich-slot' : undefined}
+          data-testid={chunk ? "markdown-waterfall-rich-slot" : undefined}
           data-chunk-id={chunk?.id}
           data-semantic-type={chunk?.semanticType}
           data-chunk-fingerprint={chunk?.fingerprint}
@@ -219,10 +264,10 @@ export function buildMarkdownComponents({
                       slotLabel: copy.tableLabel,
                       chunk,
                       body: tableBody,
-                    })
+                    }),
                   );
                 }
-              : undefined
+              : undefined,
           )}
           <div className="direct-reader__table-wrap">
             <table className="direct-reader__table">{children}</table>
@@ -231,23 +276,31 @@ export function buildMarkdownComponents({
       );
     },
     span({ className, children, ...props }: any) {
-      const normalizedClassName = Array.isArray(className) ? className.join(' ') : className ?? '';
-      if (typeof normalizedClassName === 'string' && normalizedClassName.includes('katex-display')) {
+      const normalizedClassName = Array.isArray(className)
+        ? className.join(" ")
+        : (className ?? "");
+      if (
+        typeof normalizedClassName === "string" &&
+        normalizedClassName.includes("katex-display")
+      ) {
         const backendAtom = mathAtoms[mathAtomCursor];
         if (backendAtom) {
           mathAtomCursor += 1;
         }
         const chunk = backendAtom
-          ? toDisplayMarkdownChunk(backendAtom, buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart))
+          ? toDisplayMarkdownChunk(
+              backendAtom,
+              buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+            )
           : undefined;
         const mathBody = backendAtom
           ? sliceMarkdownContentLines(documentContent, backendAtom.lineStart, backendAtom.lineEnd)
-          : '';
+          : "";
 
         return (
           <div
             className="markdown-waterfall__rich-slot markdown-waterfall__rich-slot--math"
-            data-testid={chunk ? 'markdown-waterfall-rich-slot' : undefined}
+            data-testid={chunk ? "markdown-waterfall-rich-slot" : undefined}
             data-chunk-id={chunk?.id}
             data-semantic-type={chunk?.semanticType}
             data-chunk-fingerprint={chunk?.fingerprint}
@@ -265,10 +318,10 @@ export function buildMarkdownComponents({
                         slotLabel: copy.mathLabel,
                         chunk,
                         body: mathBody,
-                      })
+                      }),
                     );
                   }
-                : undefined
+                : undefined,
             )}
             <span className={normalizedClassName} {...props}>
               {children}
@@ -299,38 +352,28 @@ export function buildMarkdownComponents({
       return <td className="direct-reader__td">{children}</td>;
     },
     a({ href, children }) {
-      if (typeof href === 'string' && href.startsWith('bilink:')) {
+      if (typeof href === "string" && href.startsWith("bilink:")) {
         const link = decodeBiLinkHref(href);
         if (!onBiLinkClick) {
           return <span className="direct-reader__link">{children}</span>;
         }
         return (
-          <button
-            type="button"
-            className="direct-reader__bilink"
-            data-link={link}
-            onClick={() => onBiLinkClick(link)}
-          >
+          <MarkdownWaterfallBiLinkButton target={link} onBiLinkClick={onBiLinkClick}>
             {children}
-          </button>
+          </MarkdownWaterfallBiLinkButton>
         );
       }
 
-      if (typeof href === 'string' && hasInternalUriPrefix(href) && onBiLinkClick) {
-        const target = href.startsWith('$') ? href.slice(1) : href;
+      if (typeof href === "string" && hasInternalUriPrefix(href) && onBiLinkClick) {
+        const target = href.startsWith("$") ? href.slice(1) : href;
         return (
-          <button
-            type="button"
-            className="direct-reader__bilink"
-            data-link={target}
-            onClick={() => onBiLinkClick(target)}
-          >
+          <MarkdownWaterfallBiLinkButton target={target} onBiLinkClick={onBiLinkClick}>
             {children}
-          </button>
+          </MarkdownWaterfallBiLinkButton>
         );
       }
 
-      if (typeof href === 'string' && hasInternalUriPrefix(href)) {
+      if (typeof href === "string" && hasInternalUriPrefix(href)) {
         return <span className="direct-reader__link">{children}</span>;
       }
 
@@ -341,16 +384,17 @@ export function buildMarkdownComponents({
       );
     },
     code({ className, children, node }: any) {
-      const languageMatch = /language-([\w-]+)/.exec(className || '');
-      const language = (languageMatch?.[1] || 'plaintext').toLowerCase();
-      const rawValue = String(children ?? '');
-      const value = rawValue.replace(/\n$/, '');
+      const languageMatch = /language-([\w-]+)/.exec(className || "");
+      const language = (languageMatch?.[1] || "plaintext").toLowerCase();
+      const rawValue = String(children ?? "");
+      const value = rawValue.replace(/\n$/, "");
       const isBlock = isBlockCode(className, rawValue);
       const lineStart = Number(node?.position?.start?.line) || 1;
-      const semanticType = language === 'mermaid' ? 'mermaid' : language === 'plaintext' ? 'code' : `code:${language}`;
+      const semanticType =
+        language === "mermaid" ? "mermaid" : language === "plaintext" ? "code" : `code:${language}`;
 
       if (isBlock) {
-        if (language === 'mermaid') {
+        if (language === "mermaid") {
           const backendAtom = findMarkdownRichSlotAtom({
             atomLookup,
             content: documentContent,
@@ -359,25 +403,21 @@ export function buildMarkdownComponents({
             body: value,
           });
           const chunk = backendAtom
-            ? toDisplayMarkdownChunk(backendAtom, buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart))
+            ? toDisplayMarkdownChunk(
+                backendAtom,
+                buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+              )
             : buildMarkdownRichSlotChunk(
                 sourcePath,
                 `${activeSection.nodeId ?? activeSection.id}:code:${lineStart}`,
                 semanticType,
                 value,
-                activeSection.lineStart ?? lineStart
+                activeSection.lineStart ?? lineStart,
               );
 
           return (
             <Suspense
-              fallback={
-                <div
-                  className="markdown-waterfall__section-loading markdown-waterfall__section-loading--slot"
-                  data-testid="markdown-waterfall-slot-loading"
-                >
-                  {copy.mermaidLabel}
-                </div>
-              }
+              fallback={MARKDOWN_WATERFALL_MERMAID_LOADING(copy.mermaidLabel)}
             >
               <MarkdownWaterfallMermaidSlot
                 chunk={chunk}
@@ -398,26 +438,22 @@ export function buildMarkdownComponents({
           body: value,
         });
         const chunk = backendAtom
-          ? toDisplayMarkdownChunk(backendAtom, buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart))
+          ? toDisplayMarkdownChunk(
+              backendAtom,
+              buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+            )
           : buildMarkdownRichSlotChunk(
               sourcePath,
               `${activeSection.nodeId ?? activeSection.id}:code:${lineStart}`,
               semanticType,
               value,
-              activeSection.lineStart ?? lineStart
+              activeSection.lineStart ?? lineStart,
             );
-        const slotLabel = `${copy.codeLabel}${language !== 'plaintext' ? ` · ${language}` : ''}`;
+        const slotLabel = `${copy.codeLabel}${language !== "plaintext" ? ` · ${language}` : ""}`;
 
         return (
           <Suspense
-            fallback={
-              <div
-                className="markdown-waterfall__section-loading markdown-waterfall__section-loading--slot"
-                data-testid="markdown-waterfall-slot-loading"
-              >
-                {slotLabel}
-              </div>
-            }
+            fallback={MARKDOWN_WATERFALL_MERMAID_LOADING(slotLabel)}
           >
             <MarkdownWaterfallCodeSlot
               chunk={chunk}
@@ -434,7 +470,11 @@ export function buildMarkdownComponents({
         );
       }
 
-      return <code className={['direct-reader__inline-code', className].filter(Boolean).join(' ')}>{children}</code>;
+      return (
+        <code className={["direct-reader__inline-code", className].filter(Boolean).join(" ")}>
+          {children}
+        </code>
+      );
     },
   };
 }

@@ -4,18 +4,18 @@
  * Tests verify the correct ordering of config push before VFS scan.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
-import { FileTree } from '../FileTree';
-import { api } from '../../../../api';
-import { resetConfig } from '../../../../config/loader';
-import { resetRepoIndexPriorityForTest } from '../../../repoIndexPriority';
-import * as flightSearchTransport from '../../../../api/flightSearchTransport';
-import * as flightWorkspaceTransport from '../../../../api/flightWorkspaceTransport';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
+import { FileTree } from "../FileTree";
+import { api } from "../../../../api";
+import { resetConfig } from "../../../../config/loader";
+import { resetRepoIndexPriorityForTest } from "../../../repoIndexPriority";
+import * as flightSearchTransport from "../../../../api/flightSearchTransport";
+import * as flightWorkspaceTransport from "../../../../api/flightWorkspaceTransport";
 
 const originalFetch = global.fetch;
 
-describe('FileTree', () => {
+describe("FileTree", () => {
   const mockOnFileSelect = vi.fn();
   let callOrder: string[] = [];
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -31,15 +31,15 @@ describe('FileTree', () => {
     resetRepoIndexPriorityForTest();
     window.localStorage.clear();
     callOrder = [];
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     resolveSearchFlightSchemaVersionSpy = vi
-      .spyOn(flightSearchTransport, 'resolveSearchFlightSchemaVersion')
-      .mockReturnValue('v2');
+      .spyOn(flightSearchTransport, "resolveSearchFlightSchemaVersion")
+      .mockReturnValue("v2");
     loadVfsScanFlightSpy = vi
-      .spyOn(flightWorkspaceTransport, 'loadVfsScanFlight')
+      .spyOn(flightWorkspaceTransport, "loadVfsScanFlight")
       .mockImplementation(async () => {
-        const response = await global.fetch('/api/vfs/scan');
+        const response = await global.fetch("/api/vfs/scan");
         return (await (response as Response).json()) as Awaited<
           ReturnType<typeof flightWorkspaceTransport.loadVfsScanFlight>
         >;
@@ -63,9 +63,9 @@ describe('FileTree', () => {
 
   const createMockFetch = (config: { dirs?: string[]; setUiConfigFails?: boolean } = {}) => {
     return vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
-        callOrder.push('getConfig');
-        const dirsStr = config.dirs?.map((dir) => `"${dir}"`).join(', ') || '';
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
+        callOrder.push("getConfig");
+        const dirsStr = config.dirs?.map((dir) => `"${dir}"`).join(", ") || "";
         return {
           ok: true,
           text: async () =>
@@ -73,18 +73,18 @@ describe('FileTree', () => {
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         if (config.setUiConfigFails) {
-          callOrder.push('setUiConfig-failed');
-          throw new Error('Backend not available');
+          callOrder.push("setUiConfig-failed");
+          throw new Error("Backend not available");
         }
-        callOrder.push('setUiConfig');
+        callOrder.push("setUiConfig");
         const body = JSON.parse(options?.body as string);
         return { ok: true, json: async () => body } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
-        callOrder.push('scanVfs');
+      if (url === "/api/vfs/scan") {
+        callOrder.push("scanVfs");
         return {
           ok: true,
           json: async () => ({ entries: [], file_count: 0, dir_count: 0, scan_duration_ms: 0 }),
@@ -95,30 +95,30 @@ describe('FileTree', () => {
     }) as typeof fetch;
   };
 
-  it('should call setUiConfig before scanVfs', async () => {
-    global.fetch = createMockFetch({ dirs: ['docs', 'skills'] });
+  it("should call setUiConfig before scanVfs", async () => {
+    global.fetch = createMockFetch({ dirs: ["docs", "skills"] });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(callOrder).toContain('setUiConfig');
-    expect(callOrder).toContain('scanVfs');
+    expect(callOrder).toContain("setUiConfig");
+    expect(callOrder).toContain("scanVfs");
   });
 
-  it('should push loaded config to backend before scanning VFS', async () => {
-    global.fetch = createMockFetch({ dirs: ['test-path'] });
+  it("should push loaded config to backend before scanning VFS", async () => {
+    global.fetch = createMockFetch({ dirs: ["test-path"] });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
     // Verify ordering: config is loaded first, then pushed before scanVfs
@@ -131,27 +131,27 @@ describe('FileTree', () => {
     `);
   });
 
-  it('should still scan VFS even if setUiConfig fails', async () => {
-    global.fetch = createMockFetch({ dirs: ['test'], setUiConfigFails: true });
+  it("should still scan VFS even if setUiConfig fails", async () => {
+    global.fetch = createMockFetch({ dirs: ["test"], setUiConfigFails: true });
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
     // setUiConfig was attempted (even though it failed)
-    expect(callOrder).toContain('setUiConfig-failed');
+    expect(callOrder).toContain("setUiConfig-failed");
     // scanVfs should still happen
-    expect(callOrder).toContain('scanVfs');
+    expect(callOrder).toContain("scanVfs");
     // Verify scanVfs happened after the setUiConfig attempt
-    expect(callOrder.indexOf('scanVfs')).toBeGreaterThan(callOrder.indexOf('setUiConfig-failed'));
+    expect(callOrder.indexOf("scanVfs")).toBeGreaterThan(callOrder.indexOf("setUiConfig-failed"));
   });
 
-  it('prioritizes repo indexing when opening a repo-project group', async () => {
-    enqueueRepoIndexSpy = vi.spyOn(api, 'enqueueRepoIndex').mockResolvedValue({
+  it("prioritizes repo indexing when opening a repo-project group", async () => {
+    enqueueRepoIndexSpy = vi.spyOn(api, "enqueueRepoIndex").mockResolvedValue({
       total: 1,
       queued: 1,
       checking: 0,
@@ -166,7 +166,7 @@ describe('FileTree', () => {
       repos: [],
     });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () => `[gateway]
@@ -183,11 +183,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -207,20 +207,20 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.getByText('sciml')).toBeInTheDocument();
+      expect(screen.getByText("sciml")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('sciml'));
+    fireEvent.click(screen.getByText("sciml"));
 
     await waitFor(() => {
-      expect(enqueueRepoIndexSpy).toHaveBeenCalledWith({ repo: 'sciml' });
+      expect(enqueueRepoIndexSpy).toHaveBeenCalledWith({ repo: "sciml" });
     });
     expect(mockOnFileSelect).not.toHaveBeenCalled();
   });
 
-  it('does not rescan the VFS when expanding or collapsing folders', async () => {
+  it("does not rescan the VFS when expanding or collapsing folders", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -228,27 +228,27 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
-        callOrder.push('scanVfs');
+      if (url === "/api/vfs/scan") {
+        callOrder.push("scanVfs");
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'docs',
-                name: 'docs',
+                path: "docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
               {
-                path: 'docs/guide.md',
-                name: 'guide.md',
+                path: "docs/guide.md",
+                name: "guide.md",
                 isDir: false,
-                category: 'doc',
+                category: "doc",
               },
             ],
             file_count: 1,
@@ -266,21 +266,21 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(callOrder.filter((entry) => entry === 'scanVfs')).toHaveLength(1);
+    expect(callOrder.filter((entry) => entry === "scanVfs")).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole('treeitem', { name: 'docs' }));
-    fireEvent.click(screen.getByRole('treeitem', { name: 'docs' }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "docs" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "docs" }));
 
-    expect(callOrder.filter((entry) => entry === 'scanVfs')).toHaveLength(1);
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    expect(callOrder.filter((entry) => entry === "scanVfs")).toHaveLength(1);
+    expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
   });
 
-  it('derives unsupported layout summaries from repo index status payloads', async () => {
+  it("derives unsupported layout summaries from repo index status payloads", async () => {
     let statusCallCount = 0;
-    getRepoIndexStatusSpy = vi.spyOn(api, 'getRepoIndexStatus').mockImplementation(async () => {
+    getRepoIndexStatusSpy = vi.spyOn(api, "getRepoIndexStatus").mockImplementation(async () => {
       statusCallCount += 1;
       return {
         total: 3,
@@ -293,14 +293,14 @@ plugins = ["julia"]
         failed: 0,
         repos: [
           {
-            repoId: 'StokesDiffEq.jl',
-            phase: 'unsupported',
+            repoId: "StokesDiffEq.jl",
+            phase: "unsupported",
             lastError: "repo 'StokesDiffEq.jl' has unsupported layout: missing Project.toml",
             attemptCount: 1,
           },
           {
-            repoId: 'TensorFlowDiffEq.jl',
-            phase: 'unsupported',
+            repoId: "TensorFlowDiffEq.jl",
+            phase: "unsupported",
             lastError: "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
             attemptCount: 1,
           },
@@ -308,7 +308,7 @@ plugins = ["julia"]
       };
     });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () => `[gateway]
@@ -326,11 +326,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -360,9 +360,9 @@ plugins = ["julia"]
           unsupported: 2,
           unsupportedReasons: [
             {
-              reason: 'missing Project.toml',
+              reason: "missing Project.toml",
               count: 2,
-              repoIds: ['StokesDiffEq.jl', 'TensorFlowDiffEq.jl'],
+              repoIds: ["StokesDiffEq.jl", "TensorFlowDiffEq.jl"],
             },
           ],
         }),
@@ -370,9 +370,9 @@ plugins = ["julia"]
     });
   });
 
-  it('does not render repo index diagnostics inside the sidebar anymore', async () => {
+  it("does not render repo index diagnostics inside the sidebar anymore", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () => `[gateway]
@@ -389,11 +389,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/repo/index/status') {
+      if (url === "/api/repo/index/status") {
         return {
           ok: true,
           json: async () => ({
@@ -407,20 +407,21 @@ plugins = ["julia"]
             failed: 1,
             repos: [
               {
-                repo_id: 'StokesDiffEq.jl',
-                phase: 'unsupported',
+                repo_id: "StokesDiffEq.jl",
+                phase: "unsupported",
                 last_error: "repo 'StokesDiffEq.jl' has unsupported layout: missing Project.toml",
                 attempt_count: 1,
               },
               {
-                repo_id: 'TensorFlowDiffEq.jl',
-                phase: 'unsupported',
-                last_error: "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
+                repo_id: "TensorFlowDiffEq.jl",
+                phase: "unsupported",
+                last_error:
+                  "repo 'TensorFlowDiffEq.jl' has unsupported layout: missing Project.toml",
                 attempt_count: 1,
               },
               {
-                repo_id: 'mcl',
-                phase: 'failed',
+                repo_id: "mcl",
+                phase: "failed",
                 last_error: "repo intelligence plugin `modelica` is not registered",
                 attempt_count: 2,
               },
@@ -429,7 +430,7 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -449,15 +450,15 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.queryByText('Repo index diagnostics')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Open diagnostics' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Open full diagnostics' })).not.toBeInTheDocument();
+    expect(screen.queryByText("Repo index diagnostics")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open diagnostics" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open full diagnostics" })).not.toBeInTheDocument();
   });
 
-  it('should block the explorer when a project has empty dirs', async () => {
+  it("should block the explorer when a project has empty dirs", async () => {
     global.fetch = createMockFetch({ dirs: [] });
 
     await act(async () => {
@@ -465,7 +466,7 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
     expect(callOrder).toMatchInlineSnapshot(`
@@ -473,13 +474,13 @@ plugins = ["julia"]
         "getConfig",
       ]
     `);
-    expect(screen.getByText('Gateway sync blocked.')).toBeInTheDocument();
+    expect(screen.getByText("Gateway sync blocked.")).toBeInTheDocument();
     expect(screen.getByText('project "kernel" must define at least one dir')).toBeInTheDocument();
   });
 
-  it('renders configured project groups even when a project has no indexed entries', async () => {
+  it("renders configured project groups even when a project has no indexed entries", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -487,11 +488,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -511,17 +512,19 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('kernel')).toBeInTheDocument();
-    expect(screen.getByText('main')).toBeInTheDocument();
-    expect(screen.getAllByText('No indexed roots (check project root/dirs)').length).toBeGreaterThan(0);
+    expect(screen.getByText("kernel")).toBeInTheDocument();
+    expect(screen.getByText("main")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("No indexed roots (check project root/dirs)").length,
+    ).toBeGreaterThan(0);
   });
 
-  it('renders configured repo project groups even when a repo project has no indexed entries', async () => {
+  it("renders configured repo project groups even when a repo project has no indexed entries", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -529,11 +532,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -553,17 +556,19 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('kernel')).toBeInTheDocument();
-    expect(screen.getByText('sciml')).toBeInTheDocument();
-    expect(screen.getAllByText('No indexed roots (check project root/dirs)').length).toBeGreaterThan(0);
+    expect(screen.getByText("kernel")).toBeInTheDocument();
+    expect(screen.getByText("sciml")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("No indexed roots (check project root/dirs)").length,
+    ).toBeGreaterThan(0);
   });
 
-  it('reports repo index status separately from VFS status', async () => {
+  it("reports repo index status separately from VFS status", async () => {
     const onStatusChange = vi.fn();
-    getRepoIndexStatusSpy = vi.spyOn(api, 'getRepoIndexStatus').mockResolvedValue({
+    getRepoIndexStatusSpy = vi.spyOn(api, "getRepoIndexStatus").mockResolvedValue({
       total: 1,
       queued: 0,
       checking: 0,
@@ -575,11 +580,11 @@ plugins = ["julia"]
       targetConcurrency: 3,
       maxConcurrency: 15,
       syncConcurrencyLimit: 2,
-      currentRepoId: 'sciml',
+      currentRepoId: "sciml",
       repos: [],
     });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -587,11 +592,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -611,7 +616,7 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -629,18 +634,18 @@ plugins = ["julia"]
           targetConcurrency: 3,
           maxConcurrency: 15,
           syncConcurrencyLimit: 2,
-          currentRepoId: 'sciml',
+          currentRepoId: "sciml",
           linkGraphOnlyProjectCount: 1,
-          linkGraphOnlyProjectIds: ['kernel'],
+          linkGraphOnlyProjectIds: ["kernel"],
         },
       });
     });
   });
 
-  it('does not poll repo index when config only contains link-graph-only projects', async () => {
+  it("does not poll repo index when config only contains link-graph-only projects", async () => {
     const onStatusChange = vi.fn();
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -648,11 +653,11 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
@@ -672,13 +677,13 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
     expect(
       (global.fetch as unknown as { mock: { calls: Array<[string]> } }).mock.calls.some(
-        ([url]) => url === '/api/repo/index/status'
-      )
+        ([url]) => url === "/api/repo/index/status",
+      ),
     ).toBe(false);
     expect(onStatusChange).toHaveBeenLastCalledWith({
       vfsStatus: { isLoading: false, error: null },
@@ -686,18 +691,18 @@ plugins = ["julia"]
     });
   });
 
-  it('should block the explorer and show the real gateway error when loading fails', async () => {
+  it("should block the explorer and show the real gateway error when loading fails", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return { ok: false, status: 500 } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
-        throw new Error('Backend not available');
+      if (url === "/api/ui/config" && options?.method === "POST") {
+        throw new Error("Backend not available");
       }
 
-      if (url === '/api/vfs/scan') {
-        throw new Error('Backend not available');
+      if (url === "/api/vfs/scan") {
+        throw new Error("Backend not available");
       }
 
       return { ok: false, status: 404 } as Response;
@@ -708,20 +713,22 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('Gateway sync blocked.')).toBeInTheDocument();
-    expect(screen.getByText('Studio requires a healthy gateway before the project tree can be shown.')).toBeInTheDocument();
-    expect(screen.getByText('wendao.toml could not be loaded: HTTP 500')).toBeInTheDocument();
-    expect(screen.queryByText('skills')).not.toBeInTheDocument();
+    expect(screen.getByText("Gateway sync blocked.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Studio requires a healthy gateway before the project tree can be shown."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("wendao.toml could not be loaded: HTTP 500")).toBeInTheDocument();
+    expect(screen.queryByText("skills")).not.toBeInTheDocument();
   });
 
-  it('recovers from fallback when retry gateway sync is clicked', async () => {
+  it("recovers from fallback when retry gateway sync is clicked", async () => {
     let scanAttempts = 0;
 
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -729,24 +736,24 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         scanAttempts += 1;
         if (scanAttempts === 1) {
-          throw new Error('Gateway unavailable');
+          throw new Error("Gateway unavailable");
         }
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'docs',
-                name: 'docs',
+                path: "docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
             ],
             file_count: 0,
@@ -764,24 +771,24 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Gateway sync blocked.')).toBeInTheDocument();
+      expect(screen.getByText("Gateway sync blocked.")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry gateway sync' }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry gateway sync" }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Gateway sync blocked.')).not.toBeInTheDocument();
-      expect(screen.getByText('docs')).toBeInTheDocument();
+      expect(screen.queryByText("Gateway sync blocked.")).not.toBeInTheDocument();
+      expect(screen.getByText("docs")).toBeInTheDocument();
     });
 
     expect(scanAttempts).toBe(2);
   });
 
-  it('recovers from fallback when the window regains focus', async () => {
+  it("recovers from fallback when the window regains focus", async () => {
     let scanAttempts = 0;
 
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -789,24 +796,24 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         scanAttempts += 1;
         if (scanAttempts === 1) {
-          throw new Error('Gateway unavailable');
+          throw new Error("Gateway unavailable");
         }
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'docs',
-                name: 'docs',
+                path: "docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
             ],
             file_count: 0,
@@ -824,22 +831,22 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Gateway sync blocked.')).toBeInTheDocument();
+      expect(screen.getByText("Gateway sync blocked.")).toBeInTheDocument();
     });
 
-    fireEvent(window, new Event('focus'));
+    fireEvent(window, new Event("focus"));
 
     await waitFor(() => {
-      expect(screen.queryByText('Gateway sync blocked.')).not.toBeInTheDocument();
-      expect(screen.getByText('docs')).toBeInTheDocument();
+      expect(screen.queryByText("Gateway sync blocked.")).not.toBeInTheDocument();
+      expect(screen.getByText("docs")).toBeInTheDocument();
     });
 
     expect(scanAttempts).toBe(2);
   });
 
-  it('should group monorepo roots under project names for the left tree', async () => {
+  it("should group monorepo roots under project names for the left tree", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -847,46 +854,46 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'alpha-docs',
-                name: 'alpha / docs',
+                path: "alpha-docs",
+                name: "alpha / docs",
                 isDir: true,
-                category: 'folder',
-                projectName: 'alpha',
-                rootLabel: 'docs',
+                category: "folder",
+                projectName: "alpha",
+                rootLabel: "docs",
               },
               {
-                path: 'alpha-docs/guide.md',
-                name: 'guide.md',
+                path: "alpha-docs/guide.md",
+                name: "guide.md",
                 isDir: false,
-                category: 'doc',
-                projectName: 'alpha',
-                rootLabel: 'docs',
+                category: "doc",
+                projectName: "alpha",
+                rootLabel: "docs",
               },
               {
-                path: 'beta-docs',
-                name: 'beta / docs',
+                path: "beta-docs",
+                name: "beta / docs",
                 isDir: true,
-                category: 'folder',
-                projectName: 'beta',
-                rootLabel: 'docs',
+                category: "folder",
+                projectName: "beta",
+                rootLabel: "docs",
               },
               {
-                path: 'beta-docs/readme.md',
-                name: 'readme.md',
+                path: "beta-docs/readme.md",
+                name: "readme.md",
                 isDir: false,
-                category: 'doc',
-                projectName: 'beta',
-                rootLabel: 'docs',
+                category: "doc",
+                projectName: "beta",
+                rootLabel: "docs",
               },
             ],
             file_count: 2,
@@ -904,19 +911,19 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('alpha')).toBeInTheDocument();
-    expect(screen.getByText('beta')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('treeitem', { name: 'Project alpha' }));
-    fireEvent.click(screen.getByText('beta'));
-    expect(screen.getAllByText('docs')).toHaveLength(2);
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Project alpha" }));
+    fireEvent.click(screen.getByText("beta"));
+    expect(screen.getAllByText("docs")).toHaveLength(2);
   });
 
-  it('should still render configured project groups when scan entries miss project metadata', async () => {
+  it("should still render configured project groups when scan entries miss project metadata", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -924,38 +931,38 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'alpha-docs',
-                name: 'docs',
+                path: "alpha-docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
               {
-                path: 'alpha-docs/guide.md',
-                name: 'guide.md',
+                path: "alpha-docs/guide.md",
+                name: "guide.md",
                 isDir: false,
-                category: 'doc',
+                category: "doc",
               },
               {
-                path: 'beta-docs',
-                name: 'docs',
+                path: "beta-docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
               {
-                path: 'beta-docs/readme.md',
-                name: 'readme.md',
+                path: "beta-docs/readme.md",
+                name: "readme.md",
                 isDir: false,
-                category: 'doc',
+                category: "doc",
               },
             ],
             file_count: 2,
@@ -973,17 +980,17 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('alpha')).toBeInTheDocument();
-    expect(screen.getByText('beta')).toBeInTheDocument();
-    expect(screen.getByTitle('beta-docs')).toBeInTheDocument();
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+    expect(screen.getByTitle("beta-docs")).toBeInTheDocument();
   });
 
-  it('should forward project metadata when selecting a grouped file', async () => {
+  it("should forward project metadata when selecting a grouped file", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -991,30 +998,30 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'alpha-docs',
-                name: 'alpha / docs',
+                path: "alpha-docs",
+                name: "alpha / docs",
                 isDir: true,
-                category: 'folder',
-                projectName: 'alpha',
-                rootLabel: 'docs',
+                category: "folder",
+                projectName: "alpha",
+                rootLabel: "docs",
               },
               {
-                path: 'alpha-docs/guide.md',
-                name: 'guide.md',
+                path: "alpha-docs/guide.md",
+                name: "guide.md",
                 isDir: false,
-                category: 'doc',
-                projectName: 'alpha',
-                rootLabel: 'docs',
+                category: "doc",
+                projectName: "alpha",
+                rootLabel: "docs",
               },
             ],
             file_count: 1,
@@ -1032,35 +1039,35 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    if (!screen.queryByText('docs')) {
-      fireEvent.click(screen.getByText('alpha'));
+    if (!screen.queryByText("docs")) {
+      fireEvent.click(screen.getByText("alpha"));
     }
 
     await waitFor(() => {
-      expect(screen.getByText('docs')).toBeInTheDocument();
+      expect(screen.getByText("docs")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('docs'));
+    fireEvent.click(screen.getByText("docs"));
 
     await waitFor(() => {
-      expect(screen.getByText('guide.md')).toBeInTheDocument();
+      expect(screen.getByText("guide.md")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('guide.md'));
+    fireEvent.click(screen.getByText("guide.md"));
 
-    expect(mockOnFileSelect).toHaveBeenCalledWith('alpha-docs/guide.md', 'doc', {
-      projectName: 'alpha',
-      rootLabel: 'docs',
-      graphPath: 'alpha-docs/guide.md',
+    expect(mockOnFileSelect).toHaveBeenCalledWith("alpha-docs/guide.md", "doc", {
+      projectName: "alpha",
+      rootLabel: "docs",
+      graphPath: "alpha-docs/guide.md",
     });
   });
 
-  it('should render resiliently when scan entries miss project metadata', async () => {
+  it("should render resiliently when scan entries miss project metadata", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -1068,32 +1075,32 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'alpha-docs',
-                name: 'docs',
+                path: "alpha-docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
               {
-                path: 'alpha-docs/guide.md',
-                name: 'guide.md',
+                path: "alpha-docs/guide.md",
+                name: "guide.md",
                 isDir: false,
-                category: 'doc',
+                category: "doc",
               },
               {
-                path: 'beta-docs',
-                name: 'docs',
+                path: "beta-docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
+                category: "folder",
               },
             ],
             file_count: 1,
@@ -1111,16 +1118,16 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('alpha')).toBeInTheDocument();
-    expect(screen.getAllByText('docs').length).toBeGreaterThan(0);
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getAllByText("docs").length).toBeGreaterThan(0);
   });
 
-  it('should render project provenance from VFS metadata instead of local config inference', async () => {
+  it("should render project provenance from VFS metadata instead of local config inference", async () => {
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
-      if (url === '/wendao.toml' || url.endsWith('/wendao.toml')) {
+      if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
           ok: true,
           text: async () =>
@@ -1128,24 +1135,24 @@ plugins = ["julia"]
         } as Response;
       }
 
-      if (url === '/api/ui/config' && options?.method === 'POST') {
+      if (url === "/api/ui/config" && options?.method === "POST") {
         return { ok: true, json: async () => ({}) } as Response;
       }
 
-      if (url === '/api/vfs/scan') {
+      if (url === "/api/vfs/scan") {
         return {
           ok: true,
           json: async () => ({
             entries: [
               {
-                path: 'alpha/docs',
-                name: 'docs',
+                path: "alpha/docs",
+                name: "docs",
                 isDir: true,
-                category: 'folder',
-                projectName: 'alpha',
-                rootLabel: 'docs',
-                projectRoot: 'packages/actual-alpha',
-                projectDirs: ['docs', 'notes'],
+                category: "folder",
+                projectName: "alpha",
+                rootLabel: "docs",
+                projectRoot: "packages/actual-alpha",
+                projectDirs: ["docs", "notes"],
               },
             ],
             file_count: 0,
@@ -1163,13 +1170,15 @@ plugins = ["julia"]
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.getByText("alpha")).toBeInTheDocument();
     expect(
-      screen.getByTitle('source: root: packages/actual-alpha · dirs: [docs, notes]')
+      screen.getByTitle("source: root: packages/actual-alpha · dirs: [docs, notes]"),
     ).toBeInTheDocument();
-    expect(screen.queryByTitle('source: root: /workspace/ignored-root · dirs: [ignored]')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTitle("source: root: /workspace/ignored-root · dirs: [ignored]"),
+    ).not.toBeInTheDocument();
   });
 });

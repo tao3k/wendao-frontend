@@ -1,35 +1,102 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import type { UiLocale } from '../../SearchBar/types';
-import { isCodeSearchResult } from '../../SearchBar/searchResultNormalization';
-import { ZenSearchPreviewContent } from '../ZenSearchPreviewContent';
-import { ZenSearchPreviewGraphSummary } from '../ZenSearchPreviewGraphSummary';
-import { ZenSearchPreviewHeader } from '../ZenSearchPreviewHeader';
-import type { ZenSearchPreviewState } from '../useZenSearchPreview';
-import { StructuredSlot } from './StructuredSlot';
-import { StructuredCodeInspector } from './StructuredCodeInspector';
-import { StructuredTopologyMap } from './StructuredTopologyMap';
-import { deriveStructuredEntity } from './structuredIntelligence';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import type { UiLocale } from "../../SearchBar/types";
+import { isCodeSearchResult } from "../../SearchBar/searchResultNormalization";
+import { ZenSearchPreviewContent } from "../ZenSearchPreviewContent";
+import { ZenSearchPreviewGraphSummary } from "../ZenSearchPreviewGraphSummary";
+import { ZenSearchPreviewHeader } from "../ZenSearchPreviewHeader";
+import type { ZenSearchPreviewState } from "../useZenSearchPreview";
+import { StructuredSlot } from "./StructuredSlot";
+import { StructuredCodeInspector } from "./StructuredCodeInspector";
+import { StructuredTopologyMap } from "./StructuredTopologyMap";
+import { deriveStructuredEntity } from "./structuredIntelligence";
 import {
   renderChipList,
   renderFragmentCards,
   renderMetadataGrid,
   renderNeighborList,
   renderOutline,
-} from './structuredDashboardRenderers';
+} from "./structuredDashboardRenderers";
 import {
   formatStructuredPath,
   formatStructuredSideBadge,
   resolveFocusedAnchor,
   resolveFocusedAnchorSide,
   STRUCTURED_LAYER_NAV,
-} from './structuredDashboardShared';
-import './StructuredIntelligenceDashboard.css';
+} from "./structuredDashboardShared";
+import "./StructuredIntelligenceDashboard.css";
+
+const STRUCTURED_OUTLINE_TITLE_STYLE = { marginBottom: 10 } as const;
+
+const handleLayerNav = (layerId: string) => {
+  const target = document.getElementById(layerId);
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 interface StructuredIntelligenceDashboardProps {
   locale: UiLocale;
   preview: ZenSearchPreviewState;
   onPivotQuery?: (query: string) => void;
 }
+
+interface StructuredLayerNavButtonProps {
+  id: string;
+  label: string;
+}
+
+const StructuredLayerNavButton = React.memo(function StructuredLayerNavButton({
+  id,
+  label,
+}: StructuredLayerNavButtonProps): React.ReactElement {
+  const handleClick = useCallback(() => {
+    handleLayerNav(id);
+  }, [id]);
+
+  return (
+    <button
+      type="button"
+      className="structured-dashboard__layer-nav-item"
+      data-testid={`structured-layer-nav-${id}`}
+      aria-controls={id}
+      onClick={handleClick}
+    >
+      {label}
+    </button>
+  );
+});
+
+interface StructuredPathTrailButtonProps {
+  item: { label: string; value: string; query: string };
+  focusedAnchorId: string | null;
+  focusedAnchorSide: "incoming" | "outgoing" | null;
+  onFocusAndPivot: (value: string, query: string) => void;
+}
+
+const StructuredPathTrailButton = React.memo(function StructuredPathTrailButton({
+  item,
+  focusedAnchorId,
+  focusedAnchorSide,
+  onFocusAndPivot,
+}: StructuredPathTrailButtonProps): React.ReactElement {
+  const handleClick = useCallback(() => {
+    onFocusAndPivot(item.value, item.query);
+  }, [item.query, item.value, onFocusAndPivot]);
+
+  return (
+    <button
+      type="button"
+      data-testid={`structured-path-trail-${item.value}`}
+      className={`structured-chip${focusedAnchorId === item.value ? " structured-chip--active" : ""}${
+        focusedAnchorId === item.value && focusedAnchorSide
+          ? ` structured-chip--${focusedAnchorSide}`
+          : ""
+      }`}
+      onClick={handleClick}
+    >
+      <span className="structured-chip__label">{item.label}</span>
+      <span className="structured-chip__value">{item.value}</span>
+    </button>
+  );
+});
 
 export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDashboardProps> = ({
   locale,
@@ -40,29 +107,38 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
   const [topologyFocusedAnchorId, setTopologyFocusedAnchorId] = useState<string | null>(null);
   const selected = preview.selectedResult;
   const isCodeResult = Boolean(selected && isCodeSearchResult(selected));
-  const centerAnchor = model.graphSummary
-    ? {
-        label: model.graphSummary.centerLabel,
-        value: model.graphSummary.centerPath,
-        query: model.graphSummary.centerPath,
-      }
-    : null;
+  const centerAnchor = useMemo(
+    () =>
+      model.graphSummary
+        ? {
+            label: model.graphSummary.centerLabel,
+            value: model.graphSummary.centerPath,
+            query: model.graphSummary.centerPath,
+          }
+        : null,
+    [model.graphSummary],
+  );
   const focusedAnchor = useMemo(
     () =>
-      resolveFocusedAnchor(
-        topologyFocusedAnchorId,
-        centerAnchor,
-        model.pathTrail,
-        [...model.incoming, ...model.outgoing]
-      ),
-    [centerAnchor, model.incoming, model.outgoing, model.pathTrail, topologyFocusedAnchorId]
+      resolveFocusedAnchor(topologyFocusedAnchorId, centerAnchor, model.pathTrail, [
+        ...model.incoming,
+        ...model.outgoing,
+      ]),
+    [centerAnchor, model.incoming, model.outgoing, model.pathTrail, topologyFocusedAnchorId],
   );
   const focusedAnchorSide = useMemo(
-    () => resolveFocusedAnchorSide(topologyFocusedAnchorId, centerAnchor, model.incoming, model.outgoing),
-    [centerAnchor, model.incoming, model.outgoing, topologyFocusedAnchorId]
+    () =>
+      resolveFocusedAnchorSide(
+        topologyFocusedAnchorId,
+        centerAnchor,
+        model.incoming,
+        model.outgoing,
+      ),
+    [centerAnchor, model.incoming, model.outgoing, topologyFocusedAnchorId],
   );
   const syntaxLanguage = selected?.codeLanguage ?? preview.codeAstAnalysis?.language ?? null;
-  const syntaxSourcePath = preview.contentPath ?? selected?.navigationTarget?.path ?? selected?.path ?? null;
+  const syntaxSourcePath =
+    preview.contentPath ?? selected?.navigationTarget?.path ?? selected?.path ?? null;
 
   useEffect(() => {
     setTopologyFocusedAnchorId(null);
@@ -86,10 +162,24 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
     );
   }
 
-  const handleLayerNav = (layerId: string) => {
-    const target = document.getElementById(layerId);
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const handlePivot = useCallback((query?: string) => {
+    if (query) {
+      onPivotQuery?.(query);
+    }
+  }, [onPivotQuery]);
+  const handleFocusClear = useCallback(() => {
+    setTopologyFocusedAnchorId(null);
+  }, []);
+  const handleFocusedAnchorPivot = useCallback(() => {
+    handlePivot(focusedAnchor?.query);
+  }, [focusedAnchor?.query, handlePivot]);
+  const handleFocusAndPivot = useCallback(
+    (value: string, query: string) => {
+      setTopologyFocusedAnchorId(value);
+      handlePivot(query);
+    },
+    [handlePivot],
+  );
 
   return (
     <div className="structured-dashboard" data-testid="structured-dashboard">
@@ -97,22 +187,25 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
         <div className="structured-dashboard__header-row">
           <div className="structured-dashboard__header-copy">
             <div className="structured-dashboard__eyebrow">
-              {locale === 'zh' ? '结构化情报面板' : 'Structured Intelligence Dashboard'}
+              {locale === "zh" ? "结构化情报面板" : "Structured Intelligence Dashboard"}
             </div>
             <div className="structured-dashboard__title">
-              {locale === 'zh' ? '结构化投影' : 'Structured Projection'}
+              {locale === "zh" ? "结构化投影" : "Structured Projection"}
             </div>
           </div>
           {focusedAnchor && (
-            <div className="structured-dashboard__focus" data-testid="structured-dashboard-active-anchor">
+            <div
+              className="structured-dashboard__focus"
+              data-testid="structured-dashboard-active-anchor"
+            >
               <span className="structured-dashboard__focus-label">
-                {locale === 'zh' ? '锚点' : 'Anchor'}
+                {locale === "zh" ? "锚点" : "Anchor"}
               </span>
               {focusedAnchorSide && (
                 <span
                   className={`structured-dashboard__focus-side structured-dashboard__focus-side--${focusedAnchorSide}`}
                   data-testid="structured-dashboard-active-anchor-side"
-                  title={focusedAnchorSide === 'incoming' ? 'Incoming' : 'Outgoing'}
+                  title={focusedAnchorSide === "incoming" ? "Incoming" : "Outgoing"}
                 >
                   {formatStructuredSideBadge(locale, focusedAnchorSide)}
                 </span>
@@ -120,46 +213,46 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
               <button
                 type="button"
                 className="structured-chip structured-chip--active structured-dashboard__focus-chip"
-                onClick={() => focusedAnchor.query && onPivotQuery?.(focusedAnchor.query)}
+                onClick={handleFocusedAnchorPivot}
                 title={focusedAnchor.value}
               >
                 <span className="structured-chip__label">{focusedAnchor.label}</span>
-                <span className="structured-chip__value">{formatStructuredPath(focusedAnchor.value)}</span>
+                <span className="structured-chip__value">
+                  {formatStructuredPath(focusedAnchor.value)}
+                </span>
               </button>
               <button
                 type="button"
                 className="structured-dashboard__focus-clear"
-                onClick={() => setTopologyFocusedAnchorId(null)}
+                onClick={handleFocusClear}
               >
-                {locale === 'zh' ? '清除' : 'Clear'}
+                {locale === "zh" ? "清除" : "Clear"}
               </button>
             </div>
           )}
         </div>
         <div className="structured-dashboard__subtitle">
-          {locale === 'zh'
-            ? '将选中的结果投影为拓扑、实体、片段与关联层。'
-            : 'Project the selected result into topology, anatomy, fragments, and relations.'}
+          {locale === "zh"
+            ? "将选中的结果投影为拓扑、实体、片段与关联层。"
+            : "Project the selected result into topology, anatomy, fragments, and relations."}
         </div>
-        <nav className="structured-dashboard__layer-nav" aria-label={locale === 'zh' ? '仪表盘层级' : 'Dashboard layers'}>
+        <nav
+          className="structured-dashboard__layer-nav"
+          aria-label={locale === "zh" ? "仪表盘层级" : "Dashboard layers"}
+        >
           {STRUCTURED_LAYER_NAV.map((layer) => (
-            <button
+            <StructuredLayerNavButton
               key={layer.id}
-              type="button"
-              className="structured-dashboard__layer-nav-item"
-              data-testid={`structured-layer-nav-${layer.id}`}
-              aria-controls={layer.id}
-              onClick={() => handleLayerNav(layer.id)}
-            >
-              {layer.label}
-            </button>
+              id={layer.id}
+              label={layer.label}
+            />
           ))}
         </nav>
       </header>
       <StructuredSlot
         id="structured-slot-topology"
-        title={locale === 'zh' ? 'I. 拓扑位标' : 'I. Topological Identity'}
-        subtitle={locale === 'zh' ? '位置与连通性' : 'Where it lives and how it connects'}
+        title={locale === "zh" ? "I. 拓扑位标" : "I. Topological Identity"}
+        subtitle={locale === "zh" ? "位置与连通性" : "Where it lives and how it connects"}
       >
         <ZenSearchPreviewHeader locale={locale} preview={preview} />
         <StructuredTopologyMap
@@ -171,34 +264,27 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
           onPivotQuery={onPivotQuery}
           onFocusChange={setTopologyFocusedAnchorId}
         />
-        <div className="structured-chip-row structured-path-trail" data-testid="structured-path-trail">
+        <div
+          className="structured-chip-row structured-path-trail"
+          data-testid="structured-path-trail"
+        >
           {focusedAnchorSide && (
             <span
               className={`structured-path-trail__focus-side structured-path-trail__focus-side--${focusedAnchorSide}`}
               data-testid="structured-path-trail-side"
-              title={focusedAnchorSide === 'incoming' ? 'Incoming' : 'Outgoing'}
+              title={focusedAnchorSide === "incoming" ? "Incoming" : "Outgoing"}
             >
               {formatStructuredSideBadge(locale, focusedAnchorSide)}
             </span>
           )}
           {model.pathTrail.map((item) => (
-            <button
+            <StructuredPathTrailButton
               key={`${item.label}-${item.value}`}
-              type="button"
-              data-testid={`structured-path-trail-${item.value}`}
-              className={`structured-chip${topologyFocusedAnchorId === item.value ? ' structured-chip--active' : ''}${
-                topologyFocusedAnchorId === item.value && focusedAnchorSide
-                  ? ` structured-chip--${focusedAnchorSide}`
-                  : ''
-              }`}
-              onClick={() => {
-                setTopologyFocusedAnchorId(item.value);
-                item.query && onPivotQuery?.(item.query);
-              }}
-            >
-              <span className="structured-chip__label">{item.label}</span>
-              <span className="structured-chip__value">{item.value}</span>
-            </button>
+              item={item}
+              focusedAnchorId={topologyFocusedAnchorId}
+              focusedAnchorSide={focusedAnchorSide}
+              onFocusAndPivot={handleFocusAndPivot}
+            />
           ))}
         </div>
         <ZenSearchPreviewGraphSummary locale={locale} graphNeighbors={preview.graphNeighbors} />
@@ -210,28 +296,38 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
         <div className="structured-neighbor-grid">
           <div className="structured-neighbor-column">
             <div className="structured-neighbor-column__title">
-              {locale === 'zh' ? '前驱' : 'Predecessors'}
+              {locale === "zh" ? "前驱" : "Predecessors"}
             </div>
-            {renderNeighborList(model.incoming, topologyFocusedAnchorId, setTopologyFocusedAnchorId, onPivotQuery)}
+            {renderNeighborList(
+              model.incoming,
+              topologyFocusedAnchorId,
+              setTopologyFocusedAnchorId,
+              onPivotQuery,
+            )}
           </div>
           <div className="structured-neighbor-column">
             <div className="structured-neighbor-column__title">
-              {locale === 'zh' ? '后继' : 'Successors'}
+              {locale === "zh" ? "后继" : "Successors"}
             </div>
-            {renderNeighborList(model.outgoing, topologyFocusedAnchorId, setTopologyFocusedAnchorId, onPivotQuery)}
+            {renderNeighborList(
+              model.outgoing,
+              topologyFocusedAnchorId,
+              setTopologyFocusedAnchorId,
+              onPivotQuery,
+            )}
           </div>
         </div>
       </StructuredSlot>
 
       <StructuredSlot
         id="structured-slot-anatomy"
-        title={locale === 'zh' ? 'II. 实体解剖' : 'II. Entity Anatomy'}
-        subtitle={locale === 'zh' ? '属性与结构大纲' : 'Attributes and outline'}
+        title={locale === "zh" ? "II. 实体解剖" : "II. Entity Anatomy"}
+        subtitle={locale === "zh" ? "属性与结构大纲" : "Attributes and outline"}
       >
         {renderMetadataGrid(model.metadata, onPivotQuery)}
         <div>
-          <div className="structured-slot__title" style={{ marginBottom: 10 }}>
-            {locale === 'zh' ? '结构大纲' : 'Logical Outline'}
+          <div className="structured-slot__title" style={STRUCTURED_OUTLINE_TITLE_STYLE}>
+            {locale === "zh" ? "结构大纲" : "Logical Outline"}
           </div>
           {renderOutline(model.outline, onPivotQuery)}
         </div>
@@ -239,13 +335,13 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
 
       <StructuredSlot
         id="structured-slot-fragments"
-        title={locale === 'zh' ? 'III. 多维片段' : 'III. Multi-slot Fragments'}
-        subtitle={locale === 'zh' ? '核心内容与显著性视区' : 'Core content and saliency'}
+        title={locale === "zh" ? "III. 多维片段" : "III. Multi-slot Fragments"}
+        subtitle={locale === "zh" ? "核心内容与显著性视区" : "Core content and saliency"}
       >
         {model.saliencyExcerpt && (
           <div className="structured-saliency-card">
             <div className="structured-saliency-card__title">
-              {locale === 'zh' ? '显著性视区' : 'Saliency View'}
+              {locale === "zh" ? "显著性视区" : "Saliency View"}
             </div>
             <div className="structured-saliency-card__body">{model.saliencyExcerpt}</div>
           </div>
@@ -263,18 +359,18 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
 
       <StructuredSlot
         id="structured-slot-relations"
-        title={locale === 'zh' ? 'IV. 关联透视' : 'IV. Relational Projection'}
-        subtitle={locale === 'zh' ? '入站 / 出站 / 跨投影' : 'Backlinks and projection anchors'}
+        title={locale === "zh" ? "IV. 关联透视" : "IV. Relational Projection"}
+        subtitle={locale === "zh" ? "入站 / 出站 / 跨投影" : "Backlinks and projection anchors"}
       >
         <div className="structured-neighbor-column">
           <div className="structured-neighbor-column__title">
-            {locale === 'zh' ? '入站引用' : 'Backlinks'}
+            {locale === "zh" ? "入站引用" : "Backlinks"}
           </div>
           {renderChipList(model.backlinks, onPivotQuery)}
         </div>
         <div className="structured-neighbor-column">
           <div className="structured-neighbor-column__title">
-            {locale === 'zh' ? '跨投影锚点' : 'Projection anchors'}
+            {locale === "zh" ? "跨投影锚点" : "Projection anchors"}
           </div>
           {renderChipList(model.projections, onPivotQuery)}
         </div>

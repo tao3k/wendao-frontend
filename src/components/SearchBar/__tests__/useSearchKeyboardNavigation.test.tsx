@@ -1,12 +1,12 @@
-import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import type { AutocompleteSuggestion } from '../../../api';
-import type { KeyboardEvent } from 'react';
-import { useSearchKeyboardNavigation } from '../useSearchKeyboardNavigation';
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { AutocompleteSuggestion } from "../../../api";
+import type { KeyboardEvent } from "react";
+import { useSearchKeyboardNavigation } from "../useSearchKeyboardNavigation";
 
 function buildTabEvent() {
   return {
-    key: 'Tab',
+    key: "Tab",
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
     nativeEvent: { isComposing: false },
@@ -15,7 +15,7 @@ function buildTabEvent() {
 
 function buildEnterEvent() {
   return {
-    key: 'Enter',
+    key: "Enter",
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
     nativeEvent: { isComposing: false },
@@ -24,7 +24,7 @@ function buildEnterEvent() {
 
 function buildArrowDownEvent() {
   return {
-    key: 'ArrowDown',
+    key: "ArrowDown",
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
     nativeEvent: { isComposing: false },
@@ -34,12 +34,12 @@ function buildArrowDownEvent() {
 function buildSuggestion(text: string): AutocompleteSuggestion {
   return {
     text,
-    suggestionType: 'stem',
+    suggestionType: "stem",
   };
 }
 
-describe('useSearchKeyboardNavigation tab behavior', () => {
-  it('keeps suggestions enabled when tab completes a suggestion', () => {
+describe("useSearchKeyboardNavigation tab behavior", () => {
+  it("keeps suggestions enabled when tab completes a suggestion", () => {
     const setQuery = vi.fn();
     const setShowSuggestions = vi.fn();
     const setResultSelectedIndex = vi.fn();
@@ -49,8 +49,8 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     const { result } = renderHook(() =>
       useSearchKeyboardNavigation({
         isComposing: false,
-        query: 'sol',
-        suggestions: [buildSuggestion('solve')],
+        query: "sol",
+        suggestions: [buildSuggestion("solve")],
         suggestionCount: 1,
         activeSuggestionIndex: 0,
         resultCount: 0,
@@ -64,7 +64,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         setResultSelectedIndex,
         setActiveSuggestionIndex: vi.fn(),
         selectSuggestion,
-      })
+      }),
     );
 
     act(() => {
@@ -73,13 +73,13 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(event.stopPropagation).toHaveBeenCalledTimes(1);
-    expect(selectSuggestion).toHaveBeenCalledWith(buildSuggestion('solve'));
-    expect(setQuery).toHaveBeenCalledWith('solve');
+    expect(selectSuggestion).toHaveBeenCalledWith(buildSuggestion("solve"));
+    expect(setQuery).toHaveBeenCalledWith("solve");
     expect(setShowSuggestions).toHaveBeenCalledWith(true);
     expect(setResultSelectedIndex).toHaveBeenCalledWith(0);
   });
 
-  it('does not block tab when suggestion completion is unavailable', () => {
+  it("does not block tab when suggestion completion is unavailable", () => {
     const setQuery = vi.fn();
     const setShowSuggestions = vi.fn();
     const setResultSelectedIndex = vi.fn();
@@ -88,7 +88,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     const { result } = renderHook(() =>
       useSearchKeyboardNavigation({
         isComposing: false,
-        query: 'sol',
+        query: "sol",
         suggestions: [],
         suggestionCount: 0,
         activeSuggestionIndex: 0,
@@ -103,7 +103,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         setResultSelectedIndex,
         setActiveSuggestionIndex: vi.fn(),
         selectSuggestion: vi.fn(),
-      })
+      }),
     );
 
     act(() => {
@@ -117,21 +117,21 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     expect(setResultSelectedIndex).not.toHaveBeenCalled();
   });
 
-  it('defers closing until an async result selection resolves', async () => {
+  it("defers closing until an async result selection resolves", async () => {
     const onClose = vi.fn();
     let resolveSelection: (() => void) | null = null;
     const onResultSelect = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveSelection = resolve;
-        })
+        }),
     );
     const event = buildEnterEvent();
 
     const { result } = renderHook(() =>
       useSearchKeyboardNavigation({
         isComposing: false,
-        query: 'repo',
+        query: "repo",
         suggestions: [],
         suggestionCount: 0,
         activeSuggestionIndex: 0,
@@ -139,14 +139,14 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         resultSelectedIndex: 0,
         visibleResults: [
           {
-            stem: 'repo',
-            title: 'repo.rs',
-            path: 'src/repo.rs',
+            stem: "repo",
+            title: "repo.rs",
+            path: "src/repo.rs",
             score: 0.91,
-            category: 'document',
+            category: "document",
             navigationTarget: {
-              path: 'src/repo.rs',
-              category: 'doc',
+              path: "src/repo.rs",
+              category: "doc",
             },
           } as any,
         ],
@@ -158,7 +158,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         setResultSelectedIndex: vi.fn(),
         setActiveSuggestionIndex: vi.fn(),
         selectSuggestion: vi.fn(),
-      })
+      }),
     );
 
     act(() => {
@@ -167,9 +167,9 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(onResultSelect).toHaveBeenCalledWith({
-      path: 'src/repo.rs',
-      category: 'doc',
-      graphPath: 'src/repo.rs',
+      path: "src/repo.rs",
+      category: "doc",
+      graphPath: "src/repo.rs",
     });
     expect(onClose).not.toHaveBeenCalled();
 
@@ -181,29 +181,29 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps arrow navigation inside the suggestion slice while suggestions are visible', () => {
+  it("keeps arrow navigation inside the suggestion slice while suggestions are visible", () => {
     const setActiveSuggestionIndex = vi.fn();
     const event = buildArrowDownEvent();
 
     const { result } = renderHook(() =>
       useSearchKeyboardNavigation({
         isComposing: false,
-        query: 'sec',
-        suggestions: [buildSuggestion('section'), buildSuggestion('sector')],
+        query: "sec",
+        suggestions: [buildSuggestion("section"), buildSuggestion("sector")],
         suggestionCount: 2,
         activeSuggestionIndex: 1,
         resultCount: 3,
         resultSelectedIndex: 1,
         visibleResults: [
           {
-            stem: 'solve',
-            title: 'solve',
-            path: 'src/solve.jl',
+            stem: "solve",
+            title: "solve",
+            path: "src/solve.jl",
             score: 0.91,
-            category: 'symbol',
+            category: "symbol",
             navigationTarget: {
-              path: 'src/solve.jl',
-              category: 'repo_code',
+              path: "src/solve.jl",
+              category: "repo_code",
             },
           } as any,
         ],
@@ -215,7 +215,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         setResultSelectedIndex: vi.fn(),
         setActiveSuggestionIndex,
         selectSuggestion: vi.fn(),
-      })
+      }),
     );
 
     act(() => {
@@ -226,7 +226,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     expect(setActiveSuggestionIndex).toHaveBeenCalledWith(1);
   });
 
-  it('applies the highlighted suggestion instead of opening a result when suggestions are visible', () => {
+  it("applies the highlighted suggestion instead of opening a result when suggestions are visible", () => {
     const onResultSelect = vi.fn();
     const setQuery = vi.fn();
     const setShowSuggestions = vi.fn();
@@ -236,22 +236,22 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     const { result } = renderHook(() =>
       useSearchKeyboardNavigation({
         isComposing: false,
-        query: 'sec',
-        suggestions: [buildSuggestion('section'), buildSuggestion('sector')],
+        query: "sec",
+        suggestions: [buildSuggestion("section"), buildSuggestion("sector")],
         suggestionCount: 2,
         activeSuggestionIndex: 1,
         resultCount: 2,
         resultSelectedIndex: 4,
         visibleResults: [
           {
-            stem: 'solve',
-            title: 'solve',
-            path: 'src/solve.jl',
+            stem: "solve",
+            title: "solve",
+            path: "src/solve.jl",
             score: 0.91,
-            category: 'symbol',
+            category: "symbol",
             navigationTarget: {
-              path: 'src/solve.jl',
-              category: 'repo_code',
+              path: "src/solve.jl",
+              category: "repo_code",
             },
           } as any,
         ],
@@ -263,7 +263,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         setResultSelectedIndex: vi.fn(),
         setActiveSuggestionIndex: vi.fn(),
         selectSuggestion,
-      })
+      }),
     );
 
     act(() => {
@@ -271,20 +271,20 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
     });
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(selectSuggestion).toHaveBeenCalledWith(buildSuggestion('sector'));
-    expect(setQuery).toHaveBeenCalledWith('sector');
+    expect(selectSuggestion).toHaveBeenCalledWith(buildSuggestion("sector"));
+    expect(setQuery).toHaveBeenCalledWith("sector");
     expect(setShowSuggestions).toHaveBeenCalledWith(false);
     expect(onResultSelect).not.toHaveBeenCalled();
   });
 
-  it('clamps enter to the visible result slice when suggestions are hidden', () => {
+  it("clamps enter to the visible result slice when suggestions are hidden", () => {
     const onResultSelect = vi.fn();
     const event = buildEnterEvent();
 
     const { result } = renderHook(() =>
       useSearchKeyboardNavigation({
         isComposing: false,
-        query: 'sec lang:julia kind:function',
+        query: "sec lang:julia kind:function",
         suggestions: [],
         suggestionCount: 0,
         activeSuggestionIndex: 0,
@@ -292,16 +292,16 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         resultSelectedIndex: 7,
         visibleResults: [
           {
-            stem: 'solve',
-            title: 'solve',
-            path: 'sciml/src/solve.jl',
+            stem: "solve",
+            title: "solve",
+            path: "sciml/src/solve.jl",
             score: 0.97,
-            category: 'symbol',
+            category: "symbol",
             navigationTarget: {
-              path: 'sciml/src/solve.jl',
-              category: 'repo_code',
-              projectName: 'sciml',
-              rootLabel: 'src',
+              path: "sciml/src/solve.jl",
+              category: "repo_code",
+              projectName: "sciml",
+              rootLabel: "src",
               line: 12,
             },
           } as any,
@@ -314,7 +314,7 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
         setResultSelectedIndex: vi.fn(),
         setActiveSuggestionIndex: vi.fn(),
         selectSuggestion: vi.fn(),
-      })
+      }),
     );
 
     act(() => {
@@ -323,11 +323,11 @@ describe('useSearchKeyboardNavigation tab behavior', () => {
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(onResultSelect).toHaveBeenCalledWith({
-      path: 'sciml/src/solve.jl',
-      category: 'repo_code',
-      graphPath: 'sciml/src/solve.jl',
-      projectName: 'sciml',
-      rootLabel: 'src',
+      path: "sciml/src/solve.jl",
+      category: "repo_code",
+      graphPath: "sciml/src/solve.jl",
+      projectName: "sciml",
+      rootLabel: "src",
       line: 12,
     });
   });

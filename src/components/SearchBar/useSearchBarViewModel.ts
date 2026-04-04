@@ -1,9 +1,9 @@
-import { useSearchBarInteractions } from './useSearchBarInteractions';
-import { useSearchViewProps } from './useSearchViewProps';
+import { useSearchBarInteractions } from "./useSearchBarInteractions";
+import { useSearchViewProps } from "./useSearchViewProps";
 import type {
   UseSearchBarViewModelParams,
   UseSearchBarViewModelResult,
-} from './searchBarViewModelTypes';
+} from "./searchBarViewModelTypes";
 
 export function useSearchBarViewModel({
   interactions,

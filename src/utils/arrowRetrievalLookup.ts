@@ -1,4 +1,4 @@
-import { tableFromArrays, type Table } from 'apache-arrow';
+import { tableFromArrays, type Table } from "apache-arrow";
 
 export interface ArrowRetrievalChunkLike {
   ownerId: string;
@@ -23,7 +23,7 @@ export interface ArrowRetrievalLookup<T extends ArrowRetrievalChunkLike> {
 }
 
 export function buildArrowRetrievalLookup<T extends ArrowRetrievalChunkLike>(
-  atoms: readonly T[]
+  atoms: readonly T[],
 ): ArrowRetrievalLookup<T> {
   const table = tableFromArrays({
     ownerId: atoms.map((atom) => atom.ownerId),
@@ -31,39 +31,43 @@ export function buildArrowRetrievalLookup<T extends ArrowRetrievalChunkLike>(
     semanticType: atoms.map((atom) => atom.semanticType),
     fingerprint: atoms.map((atom) => atom.fingerprint),
     tokenEstimate: Int32Array.from(atoms.map((atom) => atom.tokenEstimate)),
-    displayLabel: atoms.map((atom) => atom.displayLabel ?? ''),
-    excerpt: atoms.map((atom) => atom.excerpt ?? ''),
+    displayLabel: atoms.map((atom) => atom.displayLabel ?? ""),
+    excerpt: atoms.map((atom) => atom.excerpt ?? ""),
     lineStart: Int32Array.from(atoms.map((atom) => atom.lineStart ?? -1)),
     lineEnd: Int32Array.from(atoms.map((atom) => atom.lineEnd ?? -1)),
-    surface: atoms.map((atom) => atom.surface ?? ''),
+    surface: atoms.map((atom) => atom.surface ?? ""),
   });
 
-  const ownerIdVector = table.getChild('ownerId');
-  const surfaceVector = table.getChild('surface');
-  const semanticTypeVector = table.getChild('semanticType');
-  const lineStartVector = table.getChild('lineStart');
-  const lineEndVector = table.getChild('lineEnd');
+  const ownerIdVector = table.getChild("ownerId");
+  const surfaceVector = table.getChild("surface");
+  const semanticTypeVector = table.getChild("semanticType");
+  const lineStartVector = table.getChild("lineStart");
+  const lineEndVector = table.getChild("lineEnd");
   const ownerIndex = new Map<string, number>();
   const ownerSurfaceIndex = new Map<string, number>();
   const surfaceRangeIndex = new Map<string, number[]>();
   const semanticTypeRangeIndex = new Map<string, number[]>();
 
-  const readString = (index: number, field: 'ownerId' | 'surface' | 'semanticType'): string => {
+  const readString = (index: number, field: "ownerId" | "surface" | "semanticType"): string => {
     const vector =
-      field === 'ownerId' ? ownerIdVector : field === 'surface' ? surfaceVector : semanticTypeVector;
-    return String(vector?.get(index) ?? '');
+      field === "ownerId"
+        ? ownerIdVector
+        : field === "surface"
+          ? surfaceVector
+          : semanticTypeVector;
+    return String(vector?.get(index) ?? "");
   };
 
-  const readLine = (index: number, field: 'lineStart' | 'lineEnd'): number => {
-    const vector = field === 'lineStart' ? lineStartVector : lineEndVector;
+  const readLine = (index: number, field: "lineStart" | "lineEnd"): number => {
+    const vector = field === "lineStart" ? lineStartVector : lineEndVector;
     const value = Number(vector?.get(index) ?? -1);
     return Number.isFinite(value) ? value : -1;
   };
 
   for (let index = 0; index < table.numRows; index += 1) {
-    const ownerId = readString(index, 'ownerId');
-    const surface = readString(index, 'surface');
-    const semanticType = readString(index, 'semanticType');
+    const ownerId = readString(index, "ownerId");
+    const surface = readString(index, "surface");
+    const semanticType = readString(index, "semanticType");
 
     if (ownerId && !ownerIndex.has(ownerId)) {
       ownerIndex.set(ownerId, index);
@@ -97,13 +101,13 @@ export function buildArrowRetrievalLookup<T extends ArrowRetrievalChunkLike>(
 
   const sortIndices = (indices: number[]) => {
     indices.sort((left, right) => {
-      const leftStart = readLine(left, 'lineStart');
-      const rightStart = readLine(right, 'lineStart');
+      const leftStart = readLine(left, "lineStart");
+      const rightStart = readLine(right, "lineStart");
       if (leftStart !== rightStart) {
         return leftStart - rightStart;
       }
 
-      return readLine(left, 'lineEnd') - readLine(right, 'lineEnd');
+      return readLine(left, "lineEnd") - readLine(right, "lineEnd");
     });
   };
 
@@ -116,7 +120,7 @@ export function buildArrowRetrievalLookup<T extends ArrowRetrievalChunkLike>(
   }
 
   const readAtom = (index: number | undefined): T | undefined =>
-    typeof index === 'number' && index >= 0 ? atoms[index] : undefined;
+    typeof index === "number" && index >= 0 ? atoms[index] : undefined;
 
   return {
     table,
@@ -131,8 +135,8 @@ export function buildArrowRetrievalLookup<T extends ArrowRetrievalChunkLike>(
       const indices = surfaceRangeIndex.get(surface) ?? [];
       return indices
         .filter((index) => {
-          const start = readLine(index, 'lineStart');
-          const end = readLine(index, 'lineEnd');
+          const start = readLine(index, "lineStart");
+          const end = readLine(index, "lineEnd");
           return start >= lineStart && end <= lineEnd;
         })
         .map((index) => atoms[index] as T);
@@ -141,8 +145,8 @@ export function buildArrowRetrievalLookup<T extends ArrowRetrievalChunkLike>(
       const indices = semanticTypeRangeIndex.get(semanticType) ?? [];
       return indices
         .filter((index) => {
-          const start = readLine(index, 'lineStart');
-          const end = readLine(index, 'lineEnd');
+          const start = readLine(index, "lineStart");
+          const end = readLine(index, "lineEnd");
           return start >= lineStart && end <= lineEnd;
         })
         .map((index) => atoms[index] as T);

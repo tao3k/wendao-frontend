@@ -2,9 +2,9 @@
  * Types for TopologyController
  */
 
-import type { AcademicNode, AcademicLink } from '../types';
+import type { AcademicNode, AcademicLink } from "../types";
 
-export type NodeState = 'idle' | 'active' | 'processing' | 'success' | 'wait';
+export type NodeState = "idle" | "active" | "processing" | "success" | "wait";
 
 export interface TopologyState {
   nodes: Map<string, AcademicNode>;

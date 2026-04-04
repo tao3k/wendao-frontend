@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export interface RuntimeSearchStatus {
-  tone: 'warning' | 'error';
+  tone: "warning" | "error";
   message: string;
-  source: 'search';
+  source: "search";
 }
 
 interface UseRuntimeSearchStatusParams {
@@ -37,31 +37,39 @@ export function useRuntimeSearchStatus({
 
     if (error) {
       onRuntimeStatusChange({
-        tone: 'error',
+        tone: "error",
         message: error,
-        source: 'search',
+        source: "search",
       });
       return;
     }
 
     if (warningMessage) {
       onRuntimeStatusChange({
-        tone: 'warning',
+        tone: "warning",
         message: warningMessage,
-        source: 'search',
+        source: "search",
       });
       return;
     }
 
     if (isLoading && queryToSearch.trim()) {
       onRuntimeStatusChange({
-        tone: 'warning',
+        tone: "warning",
         message: runtimeSearchingMessage,
-        source: 'search',
+        source: "search",
       });
       return;
     }
 
     onRuntimeStatusChange(null);
-  }, [error, isLoading, isOpen, onRuntimeStatusChange, queryToSearch, runtimeSearchingMessage, warningMessage]);
+  }, [
+    error,
+    isLoading,
+    isOpen,
+    onRuntimeStatusChange,
+    queryToSearch,
+    runtimeSearchingMessage,
+    warningMessage,
+  ]);
 }

@@ -1,8 +1,8 @@
-import React from 'react';
-import type { SearchResult } from '../SearchBar/types';
-import type { UiLocale } from '../SearchBar/types';
-import { ZenSearchPreviewPaneView } from './ZenSearchPreviewPaneView';
-import { useZenSearchPreview } from './useZenSearchPreview';
+import React from "react";
+import type { SearchResult } from "../SearchBar/types";
+import type { UiLocale } from "../SearchBar/types";
+import { ZenSearchPreviewPaneView } from "./ZenSearchPreviewPaneView";
+import { useZenSearchPreview } from "./useZenSearchPreview";
 
 interface ZenSearchPreviewPaneProps {
   locale: UiLocale;
@@ -22,4 +22,4 @@ export const ZenSearchPreviewPane = React.memo(function ZenSearchPreviewPane({
   return <ZenSearchPreviewPaneView locale={locale} preview={preview} onPivotQuery={onPivotQuery} />;
 });
 
-ZenSearchPreviewPane.displayName = 'ZenSearchPreviewPane';
+ZenSearchPreviewPane.displayName = "ZenSearchPreviewPane";

@@ -1,20 +1,20 @@
-import type { ReactNode } from 'react';
-import type { MainViewCopy } from './mainViewCopy';
+import type { ReactNode } from "react";
+import type { MainViewCopy } from "./mainViewCopy";
 import type {
   MainViewGraphOptions,
   MainViewGraphSelection,
   MainViewRelationship,
   MainViewSelectedFile,
-} from './mainViewProps';
-import type { MainViewLocale } from './mainViewTypes';
-import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../statusBar/types';
+} from "./mainViewProps";
+import type { MainViewLocale } from "./mainViewTypes";
+import type { GraphSidebarSummary } from "../GraphView/types";
+import type { RuntimeStatus } from "../../statusBar/types";
 
 export function buildMainViewDiagramPanelProps(params: {
   selectedFile?: MainViewSelectedFile | null;
   locale: MainViewLocale;
   focusEpoch: number;
-  copy: Pick<MainViewCopy, 'noDiagramFile'>;
+  copy: Pick<MainViewCopy, "noDiagramFile">;
   panelLoadingFallback: ReactNode;
   onNodeClick: (name: string, type: string, id: string) => void;
 }): {
@@ -88,7 +88,7 @@ export function buildMainViewGraphPanelProps(params: {
 export function buildMainViewContentPanelProps(params: {
   selectedFile?: MainViewSelectedFile | null;
   locale: MainViewLocale;
-  copy: Pick<MainViewCopy, 'noContentFile'>;
+  copy: Pick<MainViewCopy, "noContentFile">;
   panelLoadingFallback: ReactNode;
   onBiLinkClick?: (link: string) => void;
 }): {

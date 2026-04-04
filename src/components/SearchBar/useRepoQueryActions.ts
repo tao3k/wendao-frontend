@@ -1,11 +1,8 @@
-import { useCallback } from 'react';
-import type { RefObject } from 'react';
-import {
-  buildApplyRepoFacetQuery,
-  buildRestoreRepoFallbackQuery,
-} from './repoQueryActions';
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import type { SearchScope } from './types';
+import { useCallback } from "react";
+import type { RefObject } from "react";
+import { buildApplyRepoFacetQuery, buildRestoreRepoFallbackQuery } from "./repoQueryActions";
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import type { SearchScope } from "./types";
 
 interface UseRepoQueryActionsParams {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -41,21 +38,24 @@ export function useRepoQueryActions({
     });
   }, [inputRef]);
 
-  const handleApplyRepoFacet = useCallback((facet: RepoOverviewFacet) => {
-    const nextQuery = buildApplyRepoFacetQuery({
-      facet,
-      primaryRepoFilter,
-      repoOverviewRepoId,
-    });
-    if (!nextQuery) {
-      return;
-    }
+  const handleApplyRepoFacet = useCallback(
+    (facet: RepoOverviewFacet) => {
+      const nextQuery = buildApplyRepoFacetQuery({
+        facet,
+        primaryRepoFilter,
+        repoOverviewRepoId,
+      });
+      if (!nextQuery) {
+        return;
+      }
 
-    setScope('code');
-    setQuery(nextQuery);
-    setShowSuggestions(true);
-    focusInput();
-  }, [focusInput, primaryRepoFilter, repoOverviewRepoId, setQuery, setScope, setShowSuggestions]);
+      setScope("code");
+      setQuery(nextQuery);
+      setShowSuggestions(true);
+      focusInput();
+    },
+    [focusInput, primaryRepoFilter, repoOverviewRepoId, setQuery, setScope, setShowSuggestions],
+  );
 
   const handleRestoreFallbackQuery = useCallback(() => {
     const restoredQuery = buildRestoreRepoFallbackQuery({
@@ -69,7 +69,7 @@ export function useRepoQueryActions({
       return;
     }
 
-    setScope('code');
+    setScope("code");
     setQuery(restoredQuery);
     setShowSuggestions(true);
     focusInput();

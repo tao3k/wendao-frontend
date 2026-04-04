@@ -1,4 +1,4 @@
-import { BUILD_SIZE_BUDGETS } from '../rspack/build-size-budgets.mjs';
+import { BUILD_SIZE_BUDGETS } from "../rspack/build-size-budgets.mjs";
 
 export const DEFAULT_MAX_ASSET_SIZE = BUILD_SIZE_BUDGETS.maxAssetSize;
 export const DEFAULT_MAX_ENTRYPOINT_SIZE = BUILD_SIZE_BUDGETS.maxEntrypointSize;
@@ -8,11 +8,14 @@ const STYLESHEET_HREF_PATTERN =
   /<link\b[^>]*\brel="stylesheet"[^>]*\bhref="([^"]+)"|<link\b[^>]*\bhref="([^"]+)"[^>]*\brel="stylesheet"/gi;
 
 function normalizeAssetRef(assetRef) {
-  if (!assetRef || /^(?:https?:)?\/\//i.test(assetRef) || assetRef.startsWith('data:')) {
+  if (!assetRef || /^(?:https?:)?\/\//i.test(assetRef) || assetRef.startsWith("data:")) {
     return null;
   }
 
-  const sanitized = assetRef.split('#', 1)[0].split('?', 1)[0].replace(/^\.?\//, '');
+  const sanitized = assetRef
+    .split("#", 1)[0]
+    .split("?", 1)[0]
+    .replace(/^\.?\//, "");
   return sanitized.length > 0 ? sanitized : null;
 }
 
@@ -22,7 +25,7 @@ export function extractInitialAssets(indexHtml) {
 
   for (const pattern of [SCRIPT_SRC_PATTERN, STYLESHEET_HREF_PATTERN]) {
     for (const match of indexHtml.matchAll(pattern)) {
-      const asset = normalizeAssetRef(match[1] ?? match[2] ?? '');
+      const asset = normalizeAssetRef(match[1] ?? match[2] ?? "");
       if (!asset || seen.has(asset)) {
         continue;
       }
@@ -44,7 +47,7 @@ export function evaluateBuildSizeBudgets({
   const missingAssets = initialAssets.filter((asset) => !(asset in fileSizes));
   const oversizedAssets = Object.entries(fileSizes)
     .filter(([, size]) => size > maxAssetSize)
-    .sort((left, right) => right[1] - left[1])
+    .toSorted((left, right) => right[1] - left[1])
     .map(([asset, size]) => ({ asset, size }));
   const entrypointSize = initialAssets.reduce((total, asset) => total + (fileSizes[asset] ?? 0), 0);
 

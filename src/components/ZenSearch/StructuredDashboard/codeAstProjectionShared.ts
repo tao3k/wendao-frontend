@@ -1,4 +1,4 @@
-import type { CodeAstAnalysisResponse, CodeAstNode } from '../../../api';
+import type { CodeAstAnalysisResponse, CodeAstNode } from "../../../api";
 
 export function normalizeText(value: string | null | undefined): string | null {
   if (!value) {
@@ -10,7 +10,9 @@ export function normalizeText(value: string | null | undefined): string | null {
 }
 
 export function normalizeKind(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 export function splitContentLines(content: string | null): string[] {
@@ -27,7 +29,7 @@ export function pickPrimaryNode(analysis: CodeAstAnalysisResponse): CodeAstNode 
     return focusNode;
   }
 
-  const prioritizedKinds = ['function', 'type', 'module', 'constant', 'externalsymbol'];
+  const prioritizedKinds = ["function", "type", "module", "constant", "externalsymbol"];
   for (const kind of prioritizedKinds) {
     const node = analysis.nodes.find((candidate) => normalizeKind(candidate.kind) === kind);
     if (node) {

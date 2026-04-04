@@ -11,16 +11,12 @@ import {
   decodeSearchHitsFromArrowIpc,
 } from "./arrowSearchIpc";
 import { loadRepoIndexStatusFlight } from "./flightRepoIndexStatusTransport";
-import {
-  searchKnowledgeFlight,
-  type FlightSearchProfile,
-} from "./flightSearchTransport";
+import { searchKnowledgeFlight, type FlightSearchProfile } from "./flightSearchTransport";
 import type { PerfTraceArtifact } from "../lib/testPerfRegistry";
 import { resolveHotspotPerfArtifactPath } from "../lib/testPerfRegistry";
 
 const runLiveGateway =
-  process.env.RUN_LIVE_GATEWAY_TEST === "1" ||
-  Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
+  process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
 
 const DEFAULT_QUERIES = ["diffeq", "solver", "optimization"];
@@ -167,12 +163,7 @@ function resolvePerfArtifactStem(): string {
       `live Flight perf harness requires PRJ_CACHE_HOME to be absolute, got "${cacheHome}"`,
     );
   }
-  return resolve(
-    cacheHome,
-    "agent",
-    "tmp",
-    "wendao_frontend_live_flight_search_perf",
-  );
+  return resolve(cacheHome, "agent", "tmp", "wendao_frontend_live_flight_search_perf");
 }
 
 function sleep(ms: number): Promise<void> {
@@ -217,11 +208,8 @@ function average(values: number[]): number {
 }
 
 function percentile(values: number[], ratio: number): number {
-  const sorted = [...values].sort((left, right) => left - right);
-  const index = Math.min(
-    sorted.length - 1,
-    Math.max(0, Math.ceil(sorted.length * ratio) - 1),
-  );
+  const sorted = values.toSorted((left, right) => left - right);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
   return sorted[index] ?? 0;
 }
 
@@ -234,25 +222,20 @@ function summarizePhase(values: number[]): PhaseSummary {
   };
 }
 
-function summarizeProfilePhases(
-  profiles: FlightSearchProfile[],
-): Record<string, PhaseSummary> {
+function summarizeProfilePhases(profiles: FlightSearchProfile[]): Record<string, PhaseSummary> {
   return {
     getFlightInfoMs: summarizePhase(profiles.map((profile) => profile.getFlightInfoMs)),
     readTicketMs: summarizePhase(profiles.map((profile) => profile.readTicketMs)),
     doGetMs: summarizePhase(profiles.map((profile) => profile.doGetMs)),
     reassembleMs: summarizePhase(profiles.map((profile) => profile.reassembleMs)),
     decodeHitsMs: summarizePhase(profiles.map((profile) => profile.decodeHitsMs)),
-    decodeMetadataMs: summarizePhase(
-      profiles.map((profile) => profile.decodeMetadataMs),
-    ),
+    decodeMetadataMs: summarizePhase(profiles.map((profile) => profile.decodeMetadataMs)),
   };
 }
 
 function isSearchIndexStable(status: SearchIndexStatusEnvelope): boolean {
   const repoCorpora = (status.corpora ?? []).filter(
-    (corpus) =>
-      corpus.corpus === "repo_entity" || corpus.corpus === "repo_content_chunk",
+    (corpus) => corpus.corpus === "repo_entity" || corpus.corpus === "repo_content_chunk",
   );
   const hasReadableRepoCorpora =
     repoCorpora.length === 2 &&
@@ -264,32 +247,26 @@ function isSearchIndexStable(status: SearchIndexStatusEnvelope): boolean {
     );
 
   return (
-    status.indexing === 0 && status.statusReason?.action !== "wait"
-  ) || (
-    (status.statusReason?.blockingCorpusCount ?? 0) === 0 &&
-    hasReadableRepoCorpora
+    (status.indexing === 0 && status.statusReason?.action !== "wait") ||
+    ((status.statusReason?.blockingCorpusCount ?? 0) === 0 && hasReadableRepoCorpora)
   );
 }
 
 function isRepoIndexStable(status: RepoIndexStatusEnvelope): boolean {
   return (
-    status.active === 0 &&
-    status.queued === 0 &&
-    status.checking === 0 &&
-    status.syncing === 0 &&
-    status.indexing === 0
-  ) || (
-    status.total > 0 &&
-    status.ready + status.failed + status.unsupported > 0
+    (status.active === 0 &&
+      status.queued === 0 &&
+      status.checking === 0 &&
+      status.syncing === 0 &&
+      status.indexing === 0) ||
+    (status.total > 0 && status.ready + status.failed + status.unsupported > 0)
   );
 }
 
-function deriveOptimizationCandidates(
-  phases: Record<string, PhaseSummary>,
-): string[] {
+function deriveOptimizationCandidates(phases: Record<string, PhaseSummary>): string[] {
   return Object.entries(phases)
     .filter(([, stats]) => stats.avgMs >= 1)
-    .sort((left, right) => right[1].avgMs - left[1].avgMs)
+    .toSorted((left, right) => right[1].avgMs - left[1].avgMs)
     .map(([phase, stats]) => `${phase}: avg=${stats.avgMs}ms p95=${stats.p95Ms}ms`);
 }
 
@@ -341,9 +318,7 @@ async function readHotspotPerfArtifact(): Promise<PerfTraceArtifact | null> {
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${gatewayOrigin}/api${path}`, init);
   if (!response.ok) {
-    throw new Error(
-      `Live gateway request failed for ${path}: HTTP ${response.status}`,
-    );
+    throw new Error(`Live gateway request failed for ${path}: HTTP ${response.status}`);
   }
   return response.json() as Promise<T>;
 }
@@ -354,11 +329,7 @@ async function fetchJsonWithRetry<T>(
   retries: number,
   retryDelayMs: number,
 ): Promise<T> {
-  return fetchWithRetry(
-    () => fetchJson<T>(path, init),
-    retries,
-    retryDelayMs,
-  );
+  return fetchWithRetry(() => fetchJson<T>(path, init), retries, retryDelayMs);
 }
 
 async function fetchWithRetry<T>(
@@ -417,10 +388,7 @@ async function waitForStableGatewayState(): Promise<void> {
         GATEWAY_REQUEST_RETRY_COUNT,
         GATEWAY_REQUEST_RETRY_DELAY_MS,
       );
-      if (
-        isSearchIndexStable(lastSearchStatus) &&
-        isRepoIndexStable(lastRepoStatus)
-      ) {
+      if (isSearchIndexStable(lastSearchStatus) && isRepoIndexStable(lastRepoStatus)) {
         return;
       }
       lastError = null;
@@ -534,176 +502,172 @@ liveDescribe("live Flight knowledge search performance", () => {
       GATEWAY_BOOT_RETRY_DELAY_MS,
     );
     if (!jsonEquivalent(currentUiConfig, uiConfig)) {
-      await fetchJsonWithRetry("/ui/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      await fetchJsonWithRetry(
+        "/ui/config",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(uiConfig),
         },
-        body: JSON.stringify(uiConfig),
-      }, GATEWAY_BOOT_RETRY_COUNT, GATEWAY_BOOT_RETRY_DELAY_MS);
+        GATEWAY_BOOT_RETRY_COUNT,
+        GATEWAY_BOOT_RETRY_DELAY_MS,
+      );
     }
     await waitForStableGatewayState();
   }, LIVE_PERF_HOOK_TIMEOUT_MS);
 
-  it("reports latency across the configured multi-repo Flight search surface", async () => {
-    const queries = parseQueries(process.env.STUDIO_LIVE_FLIGHT_PERF_QUERIES);
-    const limit = parsePositiveInt(
-      process.env.STUDIO_LIVE_FLIGHT_PERF_LIMIT,
-      DEFAULT_LIMIT,
-    );
-    const warmupRuns = parsePositiveInt(
-      process.env.STUDIO_LIVE_FLIGHT_PERF_WARMUP_RUNS,
-      DEFAULT_WARMUP_RUNS,
-    );
-    const measuredRuns = parsePositiveInt(
-      process.env.STUDIO_LIVE_FLIGHT_PERF_MEASURED_RUNS,
-      DEFAULT_MEASURED_RUNS,
-    );
-
-    const measurements: PerfMeasurement[] = [];
-    for (const query of queries) {
-      for (let iteration = 1; iteration <= warmupRuns; iteration += 1) {
-        const start = performance.now();
-        const response = await searchKnowledgeFlight(
-          {
-            baseUrl: gatewayOrigin,
-            schemaVersion: flightSchemaVersion,
-            query,
-            limit,
-          },
-          {
-            decodeSearchHits: decodeSearchHitsFromArrowIpc,
-            onProfile: (profile) => {
-              measurements.push({
-                query,
-                runKind: "warmup",
-                iteration,
-                durationMs: profile.totalMs,
-                hitCount: profile.hitCount,
-                profile,
-              });
-            },
-          },
-        );
-        const durationMs = performance.now() - start;
-        const latestMeasurement = measurements.at(-1);
-        if (!latestMeasurement || latestMeasurement.query !== query) {
-          throw new Error(`missing Flight profile for query "${query}" iteration ${iteration}`);
-        }
-        latestMeasurement.durationMs = durationMs;
-        expect(
-          response.hits.length,
-          `expected live Flight hits for query "${query}"`,
-        ).toBeGreaterThan(0);
-      }
-      await waitForStableGatewayState();
-      for (
-        let iteration = warmupRuns + 1;
-        iteration <= warmupRuns + measuredRuns;
-        iteration += 1
-      ) {
-        const start = performance.now();
-        const response = await searchKnowledgeFlight(
-          {
-            baseUrl: gatewayOrigin,
-            schemaVersion: flightSchemaVersion,
-            query,
-            limit,
-          },
-          {
-            decodeSearchHits: decodeSearchHitsFromArrowIpc,
-            onProfile: (profile) => {
-              measurements.push({
-                query,
-                runKind: "measured",
-                iteration,
-                durationMs: profile.totalMs,
-                hitCount: profile.hitCount,
-                profile,
-              });
-            },
-          },
-        );
-        const durationMs = performance.now() - start;
-        const latestMeasurement = measurements.at(-1);
-        if (!latestMeasurement || latestMeasurement.query !== query) {
-          throw new Error(`missing Flight profile for query "${query}" iteration ${iteration}`);
-        }
-        latestMeasurement.durationMs = durationMs;
-        expect(
-          response.hits.length,
-          `expected live Flight hits for query "${query}"`,
-        ).toBeGreaterThan(0);
-      }
-    }
-
-    const measured = measurements.filter(
-      (entry) => entry.runKind === "measured",
-    );
-    const perQuery = Object.fromEntries(
-      queries.map((query) => {
-        const queryMeasurements = measured.filter(
-          (entry) => entry.query === query,
-        );
-        const latencies = queryMeasurements.map((entry) => entry.durationMs);
-        const profiles = queryMeasurements.map((entry) => entry.profile);
-        return [
-          query,
-          {
-            runs: queryMeasurements.length,
-            avgMs: Number(average(latencies).toFixed(2)),
-            p50Ms: Number(percentile(latencies, 0.5).toFixed(2)),
-            p95Ms: Number(percentile(latencies, 0.95).toFixed(2)),
-            maxMs: Number(Math.max(...latencies).toFixed(2)),
-            avgHits: Number(
-              average(queryMeasurements.map((entry) => entry.hitCount)).toFixed(
-                2,
-              ),
-            ),
-            phases: summarizeProfilePhases(profiles),
-          },
-        ];
-      }),
-    );
-    const allLatencies = measured.map((entry) => entry.durationMs);
-    const allProfiles = measured.map((entry) => entry.profile);
-    const phases = summarizeProfilePhases(allProfiles);
-    const hotspotArtifact = await readHotspotPerfArtifact();
-    const summary: PerfSummary = {
-      gatewayOrigin,
-      configuredRepoCount,
-      uiProjectCount,
-      queries,
-      limit,
-      warmupRuns,
-      measuredRuns,
-      overall: {
-        runs: measured.length,
-        avgMs: Number(average(allLatencies).toFixed(2)),
-        p50Ms: Number(percentile(allLatencies, 0.5).toFixed(2)),
-        p95Ms: Number(percentile(allLatencies, 0.95).toFixed(2)),
-        maxMs: Number(Math.max(...allLatencies).toFixed(2)),
-      },
-      perQuery,
-      phases,
-      optimizationCandidates: deriveOptimizationCandidates(phases),
-      hotspotTraceArtifactPath: hotspotArtifact
-        ? resolveHotspotPerfArtifactPath()
-        : undefined,
-      hotspotTraceRecordCount: hotspotArtifact?.records.length,
-    };
-    const artifacts = await writePerfArtifacts(summary, measurements, hotspotArtifact);
-
-    console.info(`\n[flight-search-perf] ${JSON.stringify(summary, null, 2)}`);
-    console.info(
-      `[flight-search-perf-artifacts] json=${artifacts.jsonPath} csv=${artifacts.csvPath}`,
-    );
-    if (hotspotArtifact) {
-      console.info(
-        `[flight-search-perf-hotspots] json=${resolveHotspotPerfArtifactPath()} records=${hotspotArtifact.records.length}`,
+  it(
+    "reports latency across the configured multi-repo Flight search surface",
+    async () => {
+      const queries = parseQueries(process.env.STUDIO_LIVE_FLIGHT_PERF_QUERIES);
+      const limit = parsePositiveInt(process.env.STUDIO_LIVE_FLIGHT_PERF_LIMIT, DEFAULT_LIMIT);
+      const warmupRuns = parsePositiveInt(
+        process.env.STUDIO_LIVE_FLIGHT_PERF_WARMUP_RUNS,
+        DEFAULT_WARMUP_RUNS,
       );
-    }
+      const measuredRuns = parsePositiveInt(
+        process.env.STUDIO_LIVE_FLIGHT_PERF_MEASURED_RUNS,
+        DEFAULT_MEASURED_RUNS,
+      );
 
-    expect(summary.overall.runs).toBe(queries.length * measuredRuns);
-  }, LIVE_PERF_TEST_TIMEOUT_MS);
+      const measurements: PerfMeasurement[] = [];
+      for (const query of queries) {
+        for (let iteration = 1; iteration <= warmupRuns; iteration += 1) {
+          const start = performance.now();
+          const response = await searchKnowledgeFlight(
+            {
+              baseUrl: gatewayOrigin,
+              schemaVersion: flightSchemaVersion,
+              query,
+              limit,
+            },
+            {
+              decodeSearchHits: decodeSearchHitsFromArrowIpc,
+              onProfile: (profile) => {
+                measurements.push({
+                  query,
+                  runKind: "warmup",
+                  iteration,
+                  durationMs: profile.totalMs,
+                  hitCount: profile.hitCount,
+                  profile,
+                });
+              },
+            },
+          );
+          const durationMs = performance.now() - start;
+          const latestMeasurement = measurements.at(-1);
+          if (!latestMeasurement || latestMeasurement.query !== query) {
+            throw new Error(`missing Flight profile for query "${query}" iteration ${iteration}`);
+          }
+          latestMeasurement.durationMs = durationMs;
+          expect(
+            response.hits.length,
+            `expected live Flight hits for query "${query}"`,
+          ).toBeGreaterThan(0);
+        }
+        await waitForStableGatewayState();
+        for (
+          let iteration = warmupRuns + 1;
+          iteration <= warmupRuns + measuredRuns;
+          iteration += 1
+        ) {
+          const start = performance.now();
+          const response = await searchKnowledgeFlight(
+            {
+              baseUrl: gatewayOrigin,
+              schemaVersion: flightSchemaVersion,
+              query,
+              limit,
+            },
+            {
+              decodeSearchHits: decodeSearchHitsFromArrowIpc,
+              onProfile: (profile) => {
+                measurements.push({
+                  query,
+                  runKind: "measured",
+                  iteration,
+                  durationMs: profile.totalMs,
+                  hitCount: profile.hitCount,
+                  profile,
+                });
+              },
+            },
+          );
+          const durationMs = performance.now() - start;
+          const latestMeasurement = measurements.at(-1);
+          if (!latestMeasurement || latestMeasurement.query !== query) {
+            throw new Error(`missing Flight profile for query "${query}" iteration ${iteration}`);
+          }
+          latestMeasurement.durationMs = durationMs;
+          expect(
+            response.hits.length,
+            `expected live Flight hits for query "${query}"`,
+          ).toBeGreaterThan(0);
+        }
+      }
+
+      const measured = measurements.filter((entry) => entry.runKind === "measured");
+      const perQuery = Object.fromEntries(
+        queries.map((query) => {
+          const queryMeasurements = measured.filter((entry) => entry.query === query);
+          const latencies = queryMeasurements.map((entry) => entry.durationMs);
+          const profiles = queryMeasurements.map((entry) => entry.profile);
+          return [
+            query,
+            {
+              runs: queryMeasurements.length,
+              avgMs: Number(average(latencies).toFixed(2)),
+              p50Ms: Number(percentile(latencies, 0.5).toFixed(2)),
+              p95Ms: Number(percentile(latencies, 0.95).toFixed(2)),
+              maxMs: Number(Math.max(...latencies).toFixed(2)),
+              avgHits: Number(average(queryMeasurements.map((entry) => entry.hitCount)).toFixed(2)),
+              phases: summarizeProfilePhases(profiles),
+            },
+          ];
+        }),
+      );
+      const allLatencies = measured.map((entry) => entry.durationMs);
+      const allProfiles = measured.map((entry) => entry.profile);
+      const phases = summarizeProfilePhases(allProfiles);
+      const hotspotArtifact = await readHotspotPerfArtifact();
+      const summary: PerfSummary = {
+        gatewayOrigin,
+        configuredRepoCount,
+        uiProjectCount,
+        queries,
+        limit,
+        warmupRuns,
+        measuredRuns,
+        overall: {
+          runs: measured.length,
+          avgMs: Number(average(allLatencies).toFixed(2)),
+          p50Ms: Number(percentile(allLatencies, 0.5).toFixed(2)),
+          p95Ms: Number(percentile(allLatencies, 0.95).toFixed(2)),
+          maxMs: Number(Math.max(...allLatencies).toFixed(2)),
+        },
+        perQuery,
+        phases,
+        optimizationCandidates: deriveOptimizationCandidates(phases),
+        hotspotTraceArtifactPath: hotspotArtifact ? resolveHotspotPerfArtifactPath() : undefined,
+        hotspotTraceRecordCount: hotspotArtifact?.records.length,
+      };
+      const artifacts = await writePerfArtifacts(summary, measurements, hotspotArtifact);
+
+      console.info(`\n[flight-search-perf] ${JSON.stringify(summary, null, 2)}`);
+      console.info(
+        `[flight-search-perf-artifacts] json=${artifacts.jsonPath} csv=${artifacts.csvPath}`,
+      );
+      if (hotspotArtifact) {
+        console.info(
+          `[flight-search-perf-hotspots] json=${resolveHotspotPerfArtifactPath()} records=${hotspotArtifact.records.length}`,
+        );
+      }
+
+      expect(summary.overall.runs).toBe(queries.length * measuredRuns);
+    },
+    LIVE_PERF_TEST_TIMEOUT_MS,
+  );
 });

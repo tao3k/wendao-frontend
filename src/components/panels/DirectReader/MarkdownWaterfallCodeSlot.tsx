@@ -1,8 +1,8 @@
-import React from 'react';
-import { CodeSyntaxHighlighter } from '../../code-syntax';
-import { copyToClipboard } from './markdownWaterfallShared';
-import { buildMarkdownRichSlotCopyPayload } from './markdownWaterfallModel';
-import type { MarkdownRetrievalChunk, MarkdownWaterfallCopy } from './markdownWaterfallShared';
+import React from "react";
+import { CodeSyntaxHighlighter } from "../../code-syntax";
+import { copyToClipboard } from "./markdownWaterfallShared";
+import { buildMarkdownRichSlotCopyPayload } from "./markdownWaterfallModel";
+import type { MarkdownRetrievalChunk, MarkdownWaterfallCopy } from "./markdownWaterfallShared";
 
 interface MarkdownWaterfallCodeSlotProps {
   chunk: MarkdownRetrievalChunk;
@@ -20,7 +20,7 @@ function renderRichSlotHeader(
   copy: MarkdownWaterfallCopy,
   label: string,
   chunk: MarkdownRetrievalChunk,
-  onCopy: () => void
+  onCopy: () => void,
 ): React.ReactElement {
   return (
     <div className="markdown-waterfall__rich-slot-header">
@@ -91,7 +91,7 @@ export const MarkdownWaterfallCodeSlot: React.FC<MarkdownWaterfallCodeSlotProps>
             slotLabel,
             chunk,
             body: value,
-          })
+          }),
         );
       })}
       <pre className="direct-reader__code" data-lang={language}>

@@ -1,4 +1,4 @@
-import type { AutocompleteSuggestion } from '../../api';
+import type { AutocompleteSuggestion } from "../../api";
 
 export const SEARCH_SUGGESTION_RENDER_LIMIT = 12;
 

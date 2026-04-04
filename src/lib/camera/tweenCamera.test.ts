@@ -2,7 +2,7 @@
  * Tests for camera tween utilities
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   Easing,
   tweenCamera,
@@ -13,7 +13,7 @@ import {
   cancelAllTweens,
   prefersReducedMotion,
   getDefaultDuration,
-} from './tweenCamera';
+} from "./tweenCamera";
 
 // Mock requestAnimationFrame
 const mockRAF = vi.fn((cb: FrameRequestCallback) => {
@@ -21,18 +21,18 @@ const mockRAF = vi.fn((cb: FrameRequestCallback) => {
 });
 const mockCancelRAF = vi.fn((id: number) => clearTimeout(id));
 
-vi.stubGlobal('requestAnimationFrame', mockRAF);
-vi.stubGlobal('cancelAnimationFrame', mockCancelRAF);
+vi.stubGlobal("requestAnimationFrame", mockRAF);
+vi.stubGlobal("cancelAnimationFrame", mockCancelRAF);
 
 // Mock performance.now
 let mockTime = 0;
-vi.stubGlobal('performance', {
+vi.stubGlobal("performance", {
   now: () => mockTime,
 });
 
 // Mock matchMedia
 const mockMatchMedia = vi.fn();
-vi.stubGlobal('matchMedia', mockMatchMedia);
+vi.stubGlobal("matchMedia", mockMatchMedia);
 
 type MockPosition = {
   x: number;
@@ -52,11 +52,16 @@ type MockCamera = Parameters<typeof tweenCamera>[0] & {
 // Create a mock camera
 function createMockCamera(): MockCamera {
   const camera = {
-    position: { x: 0, y: 0, z: 0, set: vi.fn((x, y, z) => {
-      camera.position.x = x;
-      camera.position.y = y;
-      camera.position.z = z;
-    }) },
+    position: {
+      x: 0,
+      y: 0,
+      z: 0,
+      set: vi.fn((x, y, z) => {
+        camera.position.x = x;
+        camera.position.y = y;
+        camera.position.z = z;
+      }),
+    },
     lookAt: vi.fn(),
     updateProjectionMatrix: vi.fn(),
     zoom: 1,
@@ -93,33 +98,33 @@ function simulateAnimation(duration: number, frameStep: number = 16) {
   }
 }
 
-describe('Easing functions', () => {
-  describe('linear', () => {
-    it('should return input unchanged', () => {
+describe("Easing functions", () => {
+  describe("linear", () => {
+    it("should return input unchanged", () => {
       expect(Easing.linear(0)).toBe(0);
       expect(Easing.linear(0.5)).toBe(0.5);
       expect(Easing.linear(1)).toBe(1);
     });
   });
 
-  describe('easeIn', () => {
-    it('should accelerate from 0', () => {
+  describe("easeIn", () => {
+    it("should accelerate from 0", () => {
       expect(Easing.easeIn(0)).toBe(0);
       expect(Easing.easeIn(0.5)).toBe(0.25);
       expect(Easing.easeIn(1)).toBe(1);
     });
   });
 
-  describe('easeOut', () => {
-    it('should decelerate to 1', () => {
+  describe("easeOut", () => {
+    it("should decelerate to 1", () => {
       expect(Easing.easeOut(0)).toBe(0);
       expect(Easing.easeOut(0.5)).toBe(0.75);
       expect(Easing.easeOut(1)).toBe(1);
     });
   });
 
-  describe('easeInOut', () => {
-    it('should be symmetric around 0.5', () => {
+  describe("easeInOut", () => {
+    it("should be symmetric around 0.5", () => {
       expect(Easing.easeInOut(0)).toBe(0);
       expect(Easing.easeInOut(0.25)).toBeCloseTo(0.125);
       expect(Easing.easeInOut(0.5)).toBe(0.5);
@@ -128,16 +133,16 @@ describe('Easing functions', () => {
     });
   });
 
-  describe('easeOutCubic', () => {
-    it('should start fast and slow down', () => {
+  describe("easeOutCubic", () => {
+    it("should start fast and slow down", () => {
       expect(Easing.easeOutCubic(0)).toBe(0);
       expect(Easing.easeOutCubic(0.5)).toBeCloseTo(0.875);
       expect(Easing.easeOutCubic(1)).toBe(1);
     });
   });
 
-  describe('easeOutElastic', () => {
-    it('should overshoot slightly', () => {
+  describe("easeOutElastic", () => {
+    it("should overshoot slightly", () => {
       expect(Easing.easeOutElastic(0)).toBe(0);
       expect(Easing.easeOutElastic(1)).toBe(1);
       // Should overshoot slightly in the middle
@@ -146,18 +151,18 @@ describe('Easing functions', () => {
   });
 });
 
-describe('prefersReducedMotion', () => {
-  it('should return false when matchMedia returns false', () => {
+describe("prefersReducedMotion", () => {
+  it("should return false when matchMedia returns false", () => {
     mockMatchMedia.mockReturnValue({ matches: false });
     expect(prefersReducedMotion()).toBe(false);
   });
 
-  it('should return true when matchMedia returns true', () => {
+  it("should return true when matchMedia returns true", () => {
     mockMatchMedia.mockReturnValue({ matches: true });
     expect(prefersReducedMotion()).toBe(true);
   });
 
-  it('should return false when window is undefined', () => {
+  it("should return false when window is undefined", () => {
     const originalWindow = globalThis.window;
     // @ts-expect-error Testing undefined window
     delete globalThis.window;
@@ -166,19 +171,19 @@ describe('prefersReducedMotion', () => {
   });
 });
 
-describe('getDefaultDuration', () => {
-  it('should return 500 when motion is not reduced', () => {
+describe("getDefaultDuration", () => {
+  it("should return 500 when motion is not reduced", () => {
     mockMatchMedia.mockReturnValue({ matches: false });
     expect(getDefaultDuration()).toBe(500);
   });
 
-  it('should return 0 when motion is reduced', () => {
+  it("should return 0 when motion is reduced", () => {
     mockMatchMedia.mockReturnValue({ matches: true });
     expect(getDefaultDuration()).toBe(0);
   });
 });
 
-describe('tweenCamera', () => {
+describe("tweenCamera", () => {
   let camera: ReturnType<typeof createMockCamera>;
 
   beforeEach(() => {
@@ -193,40 +198,28 @@ describe('tweenCamera', () => {
     cancelAllTweens();
   });
 
-  it('should immediately set position when duration is 0', () => {
+  it("should immediately set position when duration is 0", () => {
     const onComplete = vi.fn();
     mockMatchMedia.mockReturnValue({ matches: true }); // reduced motion
 
-    tweenCamera(
-      camera,
-      { position: [10, 20, 30] },
-      { duration: 500, onComplete }
-    );
+    tweenCamera(camera, { position: [10, 20, 30] }, { duration: 500, onComplete });
 
     expect(camera.position.set).toHaveBeenCalledWith(10, 20, 30);
     expect(onComplete).toHaveBeenCalled();
     expect(mockRAF).not.toHaveBeenCalled();
   });
 
-  it('should start animation when duration > 0', () => {
-    tweenCamera(
-      camera,
-      { position: [10, 20, 30] },
-      { duration: 500 }
-    );
+  it("should start animation when duration > 0", () => {
+    tweenCamera(camera, { position: [10, 20, 30] }, { duration: 500 });
 
     expect(mockRAF).toHaveBeenCalled();
   });
 
-  it('should call onUpdate with progress', async () => {
+  it("should call onUpdate with progress", async () => {
     const onUpdate = vi.fn();
     const onComplete = vi.fn();
 
-    tweenCamera(
-      camera,
-      { position: [100, 0, 0] },
-      { duration: 100, onUpdate, onComplete }
-    );
+    tweenCamera(camera, { position: [100, 0, 0] }, { duration: 100, onUpdate, onComplete });
 
     // Simulate time passing
     mockTime = 50;
@@ -238,14 +231,10 @@ describe('tweenCamera', () => {
     expect(progress).toBeLessThan(1);
   });
 
-  it('should call onComplete when finished', async () => {
+  it("should call onComplete when finished", async () => {
     const onComplete = vi.fn();
 
-    tweenCamera(
-      camera,
-      { position: [100, 0, 0] },
-      { duration: 100, onComplete }
-    );
+    tweenCamera(camera, { position: [100, 0, 0] }, { duration: 100, onComplete });
 
     // Simulate completion
     mockTime = 200;
@@ -254,44 +243,28 @@ describe('tweenCamera', () => {
     expect(onComplete).toHaveBeenCalled();
   });
 
-  it('should return cancel function', () => {
-    const cancel = tweenCamera(
-      camera,
-      { position: [10, 20, 30] },
-      { duration: 500 }
-    );
+  it("should return cancel function", () => {
+    const cancel = tweenCamera(camera, { position: [10, 20, 30] }, { duration: 500 });
 
-    expect(typeof cancel).toBe('function');
+    expect(typeof cancel).toBe("function");
     cancel();
     expect(mockCancelRAF).toHaveBeenCalled();
   });
 
-  it('should cancel previous tween on new tween', () => {
+  it("should cancel previous tween on new tween", () => {
     const onStop = vi.fn();
 
-    tweenCamera(
-      camera,
-      { position: [10, 0, 0] },
-      { duration: 500, onStop }
-    );
+    tweenCamera(camera, { position: [10, 0, 0] }, { duration: 500, onStop });
 
-    tweenCamera(
-      camera,
-      { position: [20, 0, 0] },
-      { duration: 500 }
-    );
+    tweenCamera(camera, { position: [20, 0, 0] }, { duration: 500 });
 
     expect(onStop).toHaveBeenCalled();
   });
 
-  it('should use custom easing function', () => {
+  it("should use custom easing function", () => {
     const customEasing = vi.fn((t) => t);
 
-    tweenCamera(
-      camera,
-      { position: [10, 20, 30] },
-      { duration: 100, easing: customEasing }
-    );
+    tweenCamera(camera, { position: [10, 20, 30] }, { duration: 100, easing: customEasing });
 
     mockTime = 50;
     mockRAF.mock.calls[0][0](mockTime);
@@ -299,12 +272,8 @@ describe('tweenCamera', () => {
     expect(customEasing).toHaveBeenCalled();
   });
 
-  it('should use named easing function', () => {
-    tweenCamera(
-      camera,
-      { position: [10, 20, 30] },
-      { duration: 100, easing: 'easeOutCubic' }
-    );
+  it("should use named easing function", () => {
+    tweenCamera(camera, { position: [10, 20, 30] }, { duration: 100, easing: "easeOutCubic" });
 
     mockTime = 50;
     // Should not throw
@@ -312,7 +281,7 @@ describe('tweenCamera', () => {
   });
 });
 
-describe('focusOnNode', () => {
+describe("focusOnNode", () => {
   let camera: ReturnType<typeof createMockCamera>;
 
   beforeEach(() => {
@@ -326,7 +295,7 @@ describe('focusOnNode', () => {
     cancelAllTweens();
   });
 
-  it('should focus camera on node position', () => {
+  it("should focus camera on node position", () => {
     const onComplete = vi.fn();
 
     focusOnNode(camera, [10, 5, 10], { onComplete });
@@ -345,7 +314,7 @@ describe('focusOnNode', () => {
   });
 });
 
-describe('focusOnCluster', () => {
+describe("focusOnCluster", () => {
   let camera: ReturnType<typeof createMockCamera>;
 
   beforeEach(() => {
@@ -359,7 +328,7 @@ describe('focusOnCluster', () => {
     cancelAllTweens();
   });
 
-  it('should focus camera on cluster centroid', () => {
+  it("should focus camera on cluster centroid", () => {
     const onComplete = vi.fn();
 
     focusOnCluster(camera, [0, 0, 0], 10, { onComplete });
@@ -372,7 +341,7 @@ describe('focusOnCluster', () => {
     expect(onComplete).toHaveBeenCalled();
   });
 
-  it('should adjust distance based on cluster size', () => {
+  it("should adjust distance based on cluster size", () => {
     // Test with large cluster
     focusOnCluster(camera, [0, 0, 0], 100);
 
@@ -400,7 +369,7 @@ describe('focusOnCluster', () => {
   });
 });
 
-describe('resetCamera', () => {
+describe("resetCamera", () => {
   let camera: ReturnType<typeof createMockCamera>;
 
   beforeEach(() => {
@@ -414,7 +383,7 @@ describe('resetCamera', () => {
     cancelAllTweens();
   });
 
-  it('should reset camera to default position', () => {
+  it("should reset camera to default position", () => {
     const onComplete = vi.fn();
 
     resetCamera(camera, { onComplete });
@@ -428,7 +397,7 @@ describe('resetCamera', () => {
   });
 });
 
-describe('isTweening', () => {
+describe("isTweening", () => {
   let camera: ReturnType<typeof createMockCamera>;
 
   beforeEach(() => {
@@ -440,16 +409,16 @@ describe('isTweening', () => {
     cancelAllTweens();
   });
 
-  it('should return false when no tween is active', () => {
+  it("should return false when no tween is active", () => {
     expect(isTweening(camera)).toBe(false);
   });
 
-  it('should return true when tween is active', () => {
+  it("should return true when tween is active", () => {
     tweenCamera(camera, { position: [10, 20, 30] }, { duration: 500 });
     expect(isTweening(camera)).toBe(true);
   });
 
-  it('should return false after tween completes', () => {
+  it("should return false after tween completes", () => {
     tweenCamera(camera, { position: [10, 20, 30] }, { duration: 100 });
 
     // Simulate animation to completion
@@ -459,7 +428,7 @@ describe('isTweening', () => {
   });
 });
 
-describe('cancelAllTweens', () => {
+describe("cancelAllTweens", () => {
   let camera1: ReturnType<typeof createMockCamera>;
   let camera2: ReturnType<typeof createMockCamera>;
 
@@ -469,7 +438,7 @@ describe('cancelAllTweens', () => {
     mockMatchMedia.mockReturnValue({ matches: false });
   });
 
-  it('should cancel all active tweens', () => {
+  it("should cancel all active tweens", () => {
     const onStop1 = vi.fn();
     const onStop2 = vi.fn();
 

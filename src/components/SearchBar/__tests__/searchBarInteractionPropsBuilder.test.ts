@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from "vitest";
 import {
   buildSearchBarInteractionProps,
   createSearchBarModalClickHandler,
-} from '../searchBarInteractionPropsBuilder';
+} from "../searchBarInteractionPropsBuilder";
 
-describe('searchBarInteractionPropsBuilder', () => {
-  it('creates modal click handler that stops event bubbling', () => {
+describe("searchBarInteractionPropsBuilder", () => {
+  it("creates modal click handler that stops event bubbling", () => {
     const stopPropagation = vi.fn();
     const handler = createSearchBarModalClickHandler();
 
@@ -14,7 +14,7 @@ describe('searchBarInteractionPropsBuilder', () => {
     expect(stopPropagation).toHaveBeenCalledTimes(1);
   });
 
-  it('builds interaction props envelope for controller assembly', () => {
+  it("builds interaction props envelope for controller assembly", () => {
     const onModalKeyDownCapture = vi.fn();
 
     const result = buildSearchBarInteractionProps({

@@ -6,16 +6,16 @@ interface RepoFallbackRestoreQueryOptions {
 
 function resolveRepoFacetFilterToken(facet: string | null | undefined): string {
   switch (facet) {
-    case 'module':
-      return 'kind:module';
-    case 'symbol':
-      return 'kind:function';
-    case 'example':
-      return 'kind:example';
-    case 'doc':
-      return 'kind:doc';
+    case "module":
+      return "kind:module";
+    case "symbol":
+      return "kind:function";
+    case "example":
+      return "kind:example";
+    case "doc":
+      return "kind:doc";
     default:
-      return '';
+      return "";
   }
 }
 
@@ -24,14 +24,14 @@ export function buildRepoFallbackRestoreQuery({
   facet,
   originalQuery,
 }: RepoFallbackRestoreQueryOptions): string {
-  const normalizedRepoId = (repoId || '').trim();
-  const normalizedOriginalQuery = (originalQuery || '').trim();
+  const normalizedRepoId = (repoId || "").trim();
+  const normalizedOriginalQuery = (originalQuery || "").trim();
   if (!normalizedRepoId || !normalizedOriginalQuery) {
-    return '';
+    return "";
   }
 
   const facetToken = resolveRepoFacetFilterToken(facet);
   return [`repo:${normalizedRepoId}`, facetToken, normalizedOriginalQuery]
     .filter((token) => token.length > 0)
-    .join(' ');
+    .join(" ");
 }

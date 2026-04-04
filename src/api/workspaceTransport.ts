@@ -1,7 +1,7 @@
 import {
   fetchControlPlaneHealthResponse,
   type ControlPlaneJsonTransportDeps,
-} from './controlPlane/transport';
+} from "./controlPlane/transport";
 
 export type WorkspaceTransportDeps = ControlPlaneJsonTransportDeps;
 

@@ -59,11 +59,11 @@ direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm 
 
 ### Per-Query Summary
 
-| Query | Avg | P95 | Avg Hits | GetFlightInfo Avg | DoGet Avg |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `diffeq` | `2.07ms` | `2.63ms` | `4` | `0.82ms` | `0.71ms` |
-| `solver` | `1.89ms` | `2.39ms` | `20` | `0.69ms` | `0.56ms` |
-| `optimization` | `3.52ms` | `5.17ms` | `19` | `1.20ms` | `1.08ms` |
+| Query          |      Avg |      P95 | Avg Hits | GetFlightInfo Avg | DoGet Avg |
+| -------------- | -------: | -------: | -------: | ----------------: | --------: |
+| `diffeq`       | `2.07ms` | `2.63ms` |      `4` |          `0.82ms` |  `0.71ms` |
+| `solver`       | `1.89ms` | `2.39ms` |     `20` |          `0.69ms` |  `0.56ms` |
+| `optimization` | `3.52ms` | `5.17ms` |     `19` |          `1.20ms` |  `1.08ms` |
 
 ## Comparison to Earlier Same-Port Checkpoints
 
@@ -124,7 +124,7 @@ single-digit milliseconds for the sampled search queries.
    the gateway, pure filter-only queries stay local and only expose filter
    suggestions, and the visible-result layer now distinguishes between
    `matching code hits exist` and `no code hit matches so fall back to non-code
-   results`.
+results`.
 8. The left result pane now has an explicit virtualization budget. The static
    list threshold, initial virtual window, and overscan are locked in
    `VirtualizedSearchResultsList`, and the hotspot trace suite now includes a
@@ -136,112 +136,112 @@ single-digit milliseconds for the sampled search queries.
    selection-shift paint drift so keyboard browsing regressions are visible in
    the shared JSON artifact.
 10. Suggestion hover now has its own controller-level stability contract. The
-   SearchBar controller keeps suggestion highlight separate from result
-   selection, reuses a stable toggle callback, and the hotspot suite records a
-   trace proving suggestion-hover rerenders reuse both shell and results-panel
-   props.
+    SearchBar controller keeps suggestion highlight separate from result
+    selection, reuses a stable toggle callback, and the hotspot suite records a
+    trace proving suggestion-hover rerenders reuse both shell and results-panel
+    props.
 11. Keyboard navigation no longer falls back to a legacy linear
-   `suggestionCount + resultCount` selection model. Suggestions and results now
-   navigate their own slices independently, and result `Enter` behavior clamps
-   only within the visible result slice.
+    `suggestionCount + resultCount` selection model. Suggestions and results now
+    navigate their own slices independently, and result `Enter` behavior clamps
+    only within the visible result slice.
 12. Autocomplete projection is now idempotent. Repeated identical
-   `autocomplete-core` collections no longer trigger redundant suggestion-state
-   writes, and the hotspot suite records a mocked `same projection is a no-op`
-   trace so duplicate dropdown-state pushes cannot silently add render churn.
+    `autocomplete-core` collections no longer trigger redundant suggestion-state
+    writes, and the hotspot suite records a mocked `same projection is a no-op`
+    trace so duplicate dropdown-state pushes cannot silently add render churn.
 13. Autocomplete refresh is now keyed by semantic query/filter/catalog state.
-   Rebuilt filter objects with the same effective values no longer trigger
-   another `autocomplete.refresh()`, and the hotspot suite records this as a
-   separate `semantic refresh key suppresses duplicate refresh` trace.
+    Rebuilt filter objects with the same effective values no longer trigger
+    another `autocomplete.refresh()`, and the hotspot suite records this as a
+    separate `semantic refresh key suppresses duplicate refresh` trace.
 14. The typing path now has a combined input-plus-autocomplete contract. A real
-   one-character input change must trigger exactly one semantic autocomplete
-   refresh, and the hotspot suite records that joint `SearchInputHeader ->
-   autocomplete refresh` trace explicitly.
+    one-character input change must trigger exactly one semantic autocomplete
+    refresh, and the hotspot suite records that joint `SearchInputHeader ->
+autocomplete refresh` trace explicitly.
 15. The end-to-end one-character refinement path is now locked as a SearchBar
-   scenario. After one more typed character, autocomplete may refresh once,
-   Flight search may issue the expected hybrid-plus-code pair, and the visible
-   results must settle on the refined result set without old hits flashing back
-   in.
+    scenario. After one more typed character, autocomplete may refresh once,
+    Flight search may issue the expected hybrid-plus-code pair, and the visible
+    results must settle on the refined result set without old hits flashing back
+    in.
 16. Keyboard browsing inside the suggestion dropdown is now locked as its own
-   SearchBar scenario. Moving from a typed query into a highlighted suggestion
-   must update the query, keep stale result opens at zero, and settle the
-   visible result set onto the selected suggestion target without flashing the
-   old result back in. Accepting that highlighted suggestion now also closes
-   the dropdown immediately, so the same scenario proves the autocomplete call
-   budget stays at one refresh instead of keeping post-accept suggestion churn
-   alive. The current hotspot artifact now contains `19` scenario records.
+    SearchBar scenario. Moving from a typed query into a highlighted suggestion
+    must update the query, keep stale result opens at zero, and settle the
+    visible result set onto the selected suggestion target without flashing the
+    old result back in. Accepting that highlighted suggestion now also closes
+    the dropdown immediately, so the same scenario proves the autocomplete call
+    budget stays at one refresh instead of keeping post-accept suggestion churn
+    alive. The current hotspot artifact now contains `19` scenario records.
 17. The repo-aware code lane is now partially Flight-first too. Repo-content
-   search in `all` and `code` mode now goes through the same-origin Flight
-   repo-search route, and that route no longer depends on one synthetic
-   gateway-mounted repo id. This does not yet make the whole repo-facing UI
-   Flight-only: repo-intelligence `doc` still rides its existing JSON
-   endpoint.
+    search in `all` and `code` mode now goes through the same-origin Flight
+    repo-search route, and that route no longer depends on one synthetic
+    gateway-mounted repo id. This does not yet make the whole repo-facing UI
+    Flight-only: repo-intelligence `doc` still rides its existing JSON
+    endpoint.
 18. The default repo-aware interface is now narrower and more Flight-first as
-   well. When there is no explicit repo facet, the frontend no longer fans out
-   to repo-intelligence `module`, `symbol`, or `example` JSON endpoints; the
-   default repo-aware `all` / `code` path now stays on repo-content Flight plus
-   Flight-backed references. Explicit `doc` still marks the remaining JSON
-   retirement boundary.
+    well. When there is no explicit repo facet, the frontend no longer fans out
+    to repo-intelligence `module`, `symbol`, or `example` JSON endpoints; the
+    default repo-aware `all` / `code` path now stays on repo-content Flight plus
+    Flight-backed references. Explicit `doc` still marks the remaining JSON
+    retirement boundary.
 19. The explicit `symbol` facet is now on that same Flight surface too.
-   Parsed `kind:` filters are projected into repo-search `tagFilters`, so
-   repo-aware symbol queries no longer depend on the repo-intelligence symbol
-   endpoint.
+    Parsed `kind:` filters are projected into repo-search `tagFilters`, so
+    repo-aware symbol queries no longer depend on the repo-intelligence symbol
+    endpoint.
 20. The explicit `module` facet now also stays on repo-search Flight.
-   Repo-aware module queries project `kind:module` into repo-search
-   `tagFilters`, and the repo-overview display-name fallback now retries the
-   same Flight route instead of calling `/api/repo/module-search`. The
-   remaining repo-facing JSON retirement debt is now reduced to `doc`.
+    Repo-aware module queries project `kind:module` into repo-search
+    `tagFilters`, and the repo-overview display-name fallback now retries the
+    same Flight route instead of calling `/api/repo/module-search`. The
+    remaining repo-facing JSON retirement debt is now reduced to `doc`.
 21. The explicit `example` facet now also stays on repo-search Flight.
-   Repo-aware example queries project `kind:example` into repo-search
-   `tagFilters`, and the repo-overview display-name fallback now retries the
-   same Flight route instead of calling `/api/repo/example-search`.
+    Repo-aware example queries project `kind:example` into repo-search
+    `tagFilters`, and the repo-overview display-name fallback now retries the
+    same Flight route instead of calling `/api/repo/example-search`.
 22. The explicit `doc` facet is now Flight-backed too, but on its own
-   repo-doc-coverage contract rather than repo-search hits. The frontend now
-   calls `/analysis/repo-doc-coverage`, which returns coverage rows plus
-   summary metadata and the optional `module` filter without falling back to
-   `/api/repo/doc-coverage`.
+    repo-doc-coverage contract rather than repo-search hits. The frontend now
+    calls `/analysis/repo-doc-coverage`, which returns coverage rows plus
+    summary metadata and the optional `module` filter without falling back to
+    `/api/repo/doc-coverage`.
 23. Zen preview and file-open raw content now also consume same-origin Flight.
-   The frontend `api.getVfsContent(...)` path now uses `/vfs/content`, the
-   old `/api/vfs/cat` helper is retired from the active client runtime, and
-   the shared workspace route snapshot now locks canonical `project/path`
-   inputs for both `/vfs/resolve` and `/vfs/content`.
+    The frontend `api.getVfsContent(...)` path now uses `/vfs/content`, the
+    old `/api/vfs/cat` helper is retired from the active client runtime, and
+    the shared workspace route snapshot now locks canonical `project/path`
+    inputs for both `/vfs/resolve` and `/vfs/content`.
 24. The refine-doc command surface now also consumes same-origin Flight.
-   The frontend `api.refineEntityDoc(...)` path now uses `/analysis/refine-doc`
-   with explicit repo/entity metadata plus Base64-encoded user hints, and the
-   old `/api/repo/refine-entity-doc` helper is retired from the active client
-   runtime. After this slice, the remaining `/api/` debt is primarily
-   control-plane and non-hot-path utility surfaces rather than the active
-   search/preview/refine lane.
+    The frontend `api.refineEntityDoc(...)` path now uses `/analysis/refine-doc`
+    with explicit repo/entity metadata plus Base64-encoded user hints, and the
+    old `/api/repo/refine-entity-doc` helper is retired from the active client
+    runtime. After this slice, the remaining `/api/` debt is primarily
+    control-plane and non-hot-path utility surfaces rather than the active
+    search/preview/refine lane.
 25. The remaining non-Flight control-plane surface is now centralized in the
-   API layer. `VfsSidebar` no longer bypasses the transport facade with a
-   direct `fetch('/api/vfs/scan')`; it now consumes `api.scanVfs()`, so
-   production components no longer own raw `/api/` calls on the active
-   frontend surface.
+    API layer. `VfsSidebar` no longer bypasses the transport facade with a
+    direct `fetch('/api/vfs/scan')`; it now consumes `api.scanVfs()`, so
+    production components no longer own raw `/api/` calls on the active
+    frontend surface.
 26. Repo overview is now Flight-backed too. The frontend
-   `api.getRepoOverview(...)` path now uses `/analysis/repo-overview` instead
-   of `/api/repo/overview`, which removes the last active repo-aware JSON
-   status/fallback seam from the SearchBar lane.
+    `api.getRepoOverview(...)` path now uses `/analysis/repo-overview` instead
+    of `/api/repo/overview`, which removes the last active repo-aware JSON
+    status/fallback seam from the SearchBar lane.
 27. Repo index status is now Flight-backed too. The frontend
-   `api.getRepoIndexStatus(...)` path now uses `/analysis/repo-index-status`
-   instead of `/api/repo/index/status`, so the active repo-aware query/status
-   lane no longer depends on the JSON repo-index status surface.
+    `api.getRepoIndexStatus(...)` path now uses `/analysis/repo-index-status`
+    instead of `/api/repo/index/status`, so the active repo-aware query/status
+    lane no longer depends on the JSON repo-index status surface.
 28. Repo sync is now Flight-backed too. The frontend `api.getRepoSync(...)`
-   path now uses `/analysis/repo-sync` instead of `/api/repo/sync`, so the
-   active repo-aware query/status lane no longer depends on the JSON sync
-   surface either.
+    path now uses `/analysis/repo-sync` instead of `/api/repo/sync`, so the
+    active repo-aware query/status lane no longer depends on the JSON sync
+    surface either.
 29. Workspace scan and topology are now Flight-backed too. The frontend
-   `api.scanVfs()` path now uses `/vfs/scan`, `api.get3DTopology()` now uses
-   `/topology/3d`, and the FileTree/VfsSidebar tests now pin repo-index status
-   expectations against the decoded `api.getRepoIndexStatus()` contract rather
-   than the retired `/api/repo/index/status` fetch assumption.
+    `api.scanVfs()` path now uses `/vfs/scan`, `api.get3DTopology()` now uses
+    `/topology/3d`, and the FileTree/VfsSidebar tests now pin repo-index status
+    expectations against the decoded `api.getRepoIndexStatus()` contract rather
+    than the retired `/api/repo/index/status` fetch assumption.
 30. Repo index mutation is now Flight-backed too. The frontend
-   `api.enqueueRepoIndex(...)` path now uses `/analysis/repo-index` instead of
-   `POST /api/repo/index`, and the command contract now carries an explicit
-   request id so repeated repo-index actions do not reuse cached route payloads.
+    `api.enqueueRepoIndex(...)` path now uses `/analysis/repo-index` instead of
+    `POST /api/repo/index`, and the command contract now carries an explicit
+    request id so repeated repo-index actions do not reuse cached route payloads.
 31. After the repo-index cut, the remaining non-Flight `/api/` surface is
-   intentionally limited to control-plane routes such as health, UI
-   config/capabilities, and Julia deployment artifact inspection. Those routes
-   are now grouped under `src/api/controlPlane/*` instead of being tracked as
-   active Flight migration debt.
+    intentionally limited to control-plane routes such as health, UI
+    config/capabilities, and Julia deployment artifact inspection. Those routes
+    are now grouped under `src/api/controlPlane/*` instead of being tracked as
+    active Flight migration debt.
 
 ## Post-Restart Production-Line Proof
 

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { SearchMeta } from './searchExecution';
-import type { SearchScope, SearchSort } from './types';
+import { useState } from "react";
+import type { SearchMeta } from "./searchExecution";
+import type { SearchScope, SearchSort } from "./types";
 
 export function useSearchBarState(): {
   query: string;
@@ -24,15 +24,15 @@ export function useSearchBarState(): {
   isComposing: boolean;
   setIsComposing: React.Dispatch<React.SetStateAction<boolean>>;
 } {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchMeta, setSearchMeta] = useState<SearchMeta | null>(null);
   const [resultSelectedIndex, setResultSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
-  const [scope, setScope] = useState<SearchScope>('all');
-  const [sortMode, setSortMode] = useState<SearchSort>('relevance');
+  const [scope, setScope] = useState<SearchScope>("all");
+  const [sortMode, setSortMode] = useState<SearchSort>("relevance");
   const [isComposing, setIsComposing] = useState(false);
   return {
     query,

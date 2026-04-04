@@ -1,8 +1,8 @@
-import type { CodeAstSignaturePart } from './codeAstAnatomy';
+import type { CodeAstSignaturePart } from "./codeAstAnatomy";
 
 export function buildSignatureSnippet(contentLines: string[], line: number | undefined): string {
   if (!line || line <= 0 || contentLines.length === 0) {
-    return '';
+    return "";
   }
 
   const startIndex = Math.max(0, Math.min(contentLines.length - 1, line - 1));
@@ -16,13 +16,13 @@ export function buildSignatureSnippet(contentLines: string[], line: number | und
 
     collected.push(current);
 
-    const joined = collected.join('\n');
-    if (collected.length >= 2 && (/[{;]\s*$/.test(current) || joined.includes('=>'))) {
+    const joined = collected.join("\n");
+    if (collected.length >= 2 && (/[{;]\s*$/.test(current) || joined.includes("=>"))) {
       break;
     }
   }
 
-  return collected.join('\n').trim();
+  return collected.join("\n").trim();
 }
 
 function findTopLevelIndex(source: string, target: string): number {
@@ -36,14 +36,14 @@ function findTopLevelIndex(source: string, target: string): number {
 
   for (let index = 0; index < source.length; index += 1) {
     const current = source[index];
-    const next = source[index + 1] ?? '';
-    const previous = source[index - 1] ?? '';
+    const next = source[index + 1] ?? "";
+    const previous = source[index - 1] ?? "";
 
-    if (!doubleQuote && !templateQuote && current === '\'' && previous !== '\\') {
+    if (!doubleQuote && !templateQuote && current === "'" && previous !== "\\") {
       singleQuote = !singleQuote;
-    } else if (!singleQuote && !templateQuote && current === '"' && previous !== '\\') {
+    } else if (!singleQuote && !templateQuote && current === '"' && previous !== "\\") {
       doubleQuote = !doubleQuote;
-    } else if (!singleQuote && !doubleQuote && current === '`' && previous !== '\\') {
+    } else if (!singleQuote && !doubleQuote && current === "`" && previous !== "\\") {
       templateQuote = !templateQuote;
     }
 
@@ -51,7 +51,7 @@ function findTopLevelIndex(source: string, target: string): number {
       continue;
     }
 
-    if (target === '=>' && current === '=' && next === '>') {
+    if (target === "=>" && current === "=" && next === ">") {
       if (parenDepth === 0 && angleDepth === 0 && squareDepth === 0 && curlyDepth === 0) {
         return index;
       }
@@ -65,28 +65,28 @@ function findTopLevelIndex(source: string, target: string): number {
     }
 
     switch (current) {
-      case '(':
+      case "(":
         parenDepth += 1;
         break;
-      case ')':
+      case ")":
         parenDepth = Math.max(0, parenDepth - 1);
         break;
-      case '<':
+      case "<":
         angleDepth += 1;
         break;
-      case '>':
+      case ">":
         angleDepth = Math.max(0, angleDepth - 1);
         break;
-      case '[':
+      case "[":
         squareDepth += 1;
         break;
-      case ']':
+      case "]":
         squareDepth = Math.max(0, squareDepth - 1);
         break;
-      case '{':
+      case "{":
         curlyDepth += 1;
         break;
-      case '}':
+      case "}":
         curlyDepth = Math.max(0, curlyDepth - 1);
         break;
       default:
@@ -110,40 +110,40 @@ function splitTopLevel(source: string, delimiter: string): string[] {
 
   for (let index = 0; index < source.length; index += 1) {
     const current = source[index];
-    const previous = source[index - 1] ?? '';
+    const previous = source[index - 1] ?? "";
 
-    if (!doubleQuote && !templateQuote && current === '\'' && previous !== '\\') {
+    if (!doubleQuote && !templateQuote && current === "'" && previous !== "\\") {
       singleQuote = !singleQuote;
-    } else if (!singleQuote && !templateQuote && current === '"' && previous !== '\\') {
+    } else if (!singleQuote && !templateQuote && current === '"' && previous !== "\\") {
       doubleQuote = !doubleQuote;
-    } else if (!singleQuote && !doubleQuote && current === '`' && previous !== '\\') {
+    } else if (!singleQuote && !doubleQuote && current === "`" && previous !== "\\") {
       templateQuote = !templateQuote;
     }
 
     if (!singleQuote && !doubleQuote && !templateQuote) {
       switch (current) {
-        case '(':
+        case "(":
           parenDepth += 1;
           break;
-        case ')':
+        case ")":
           parenDepth = Math.max(0, parenDepth - 1);
           break;
-        case '<':
+        case "<":
           angleDepth += 1;
           break;
-        case '>':
+        case ">":
           angleDepth = Math.max(0, angleDepth - 1);
           break;
-        case '[':
+        case "[":
           squareDepth += 1;
           break;
-        case ']':
+        case "]":
           squareDepth = Math.max(0, squareDepth - 1);
           break;
-        case '{':
+        case "{":
           curlyDepth += 1;
           break;
-        case '}':
+        case "}":
           curlyDepth = Math.max(0, curlyDepth - 1);
           break;
         default:
@@ -179,7 +179,7 @@ function extractBalancedSegment(
   source: string,
   openIndex: number,
   openChar: string,
-  closeChar: string
+  closeChar: string,
 ): { segment: string; closeIndex: number } | null {
   let depth = 0;
   let singleQuote = false;
@@ -188,13 +188,13 @@ function extractBalancedSegment(
 
   for (let index = openIndex; index < source.length; index += 1) {
     const current = source[index];
-    const previous = source[index - 1] ?? '';
+    const previous = source[index - 1] ?? "";
 
-    if (!doubleQuote && !templateQuote && current === '\'' && previous !== '\\') {
+    if (!doubleQuote && !templateQuote && current === "'" && previous !== "\\") {
       singleQuote = !singleQuote;
-    } else if (!singleQuote && !templateQuote && current === '"' && previous !== '\\') {
+    } else if (!singleQuote && !templateQuote && current === '"' && previous !== "\\") {
       doubleQuote = !doubleQuote;
-    } else if (!singleQuote && !doubleQuote && current === '`' && previous !== '\\') {
+    } else if (!singleQuote && !doubleQuote && current === "`" && previous !== "\\") {
       templateQuote = !templateQuote;
     }
 
@@ -224,13 +224,17 @@ function extractSignatureReturnType(signature: string, closeParenIndex: number):
     return null;
   }
 
-  const arrowIndex = findTopLevelIndex(tail, '=>');
-  const braceIndex = findTopLevelIndex(tail, '{');
-  const semicolonIndex = findTopLevelIndex(tail, ';');
+  const arrowIndex = findTopLevelIndex(tail, "=>");
+  const braceIndex = findTopLevelIndex(tail, "{");
+  const semicolonIndex = findTopLevelIndex(tail, ";");
   const endCandidates = [arrowIndex, braceIndex, semicolonIndex].filter((value) => value >= 0);
   const endIndex = endCandidates.length > 0 ? Math.min(...endCandidates) : tail.length;
 
-  const candidate = tail.slice(0, endIndex).trim().replace(/^(?:->|:)\s*/, '').trim();
+  const candidate = tail
+    .slice(0, endIndex)
+    .trim()
+    .replace(/^(?:->|:)\s*/, "")
+    .trim();
   return candidate.length > 0 ? candidate : null;
 }
 
@@ -240,18 +244,18 @@ export function buildSignatureParts(signature: string): CodeAstSignaturePart[] {
     return [];
   }
 
-  const openIndex = normalized.indexOf('(');
+  const openIndex = normalized.indexOf("(");
   if (openIndex < 0) {
     return [];
   }
 
-  const balanced = extractBalancedSegment(normalized, openIndex, '(', ')');
+  const balanced = extractBalancedSegment(normalized, openIndex, "(", ")");
   if (!balanced) {
     return [];
   }
 
   const parts: CodeAstSignaturePart[] = [];
-  const parameters = splitTopLevel(balanced.segment, ',');
+  const parameters = splitTopLevel(balanced.segment, ",");
 
   parameters.forEach((parameter, index) => {
     const trimmed = parameter.trim();
@@ -259,16 +263,16 @@ export function buildSignatureParts(signature: string): CodeAstSignaturePart[] {
       return;
     }
 
-    const raw = trimmed.replace(/\s*=\s*.+$/, '').trim();
-    const colonIndex = findTopLevelIndex(raw, ':');
+    const raw = trimmed.replace(/\s*=\s*.+$/, "").trim();
+    const colonIndex = findTopLevelIndex(raw, ":");
     const hasTypedParameter = colonIndex >= 0;
     const name = hasTypedParameter ? raw.slice(0, colonIndex).trim() : raw;
-    const type = hasTypedParameter ? raw.slice(colonIndex + 1).trim() : '';
+    const type = hasTypedParameter ? raw.slice(colonIndex + 1).trim() : "";
 
     if (name) {
       parts.push({
         id: `param-name-${index}-${name}`,
-        label: 'param',
+        label: "param",
         value: name,
         query: name,
       });
@@ -277,14 +281,14 @@ export function buildSignatureParts(signature: string): CodeAstSignaturePart[] {
     if (type) {
       parts.push({
         id: `param-type-${index}-${type}`,
-        label: 'type',
+        label: "type",
         value: type,
         query: type,
       });
     } else if (!hasTypedParameter) {
       parts.push({
         id: `param-raw-${index}-${raw}`,
-        label: 'param',
+        label: "param",
         value: raw,
         query: raw,
       });
@@ -295,7 +299,7 @@ export function buildSignatureParts(signature: string): CodeAstSignaturePart[] {
   if (returnType) {
     parts.push({
       id: `return-${returnType}`,
-      label: 'return',
+      label: "return",
       value: returnType,
       query: returnType,
     });

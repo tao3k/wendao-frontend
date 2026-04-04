@@ -5,44 +5,51 @@
  * Supports 2D SVG rendering and 3D spatial rendering via NebulaRenderer.
  */
 
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Boxes, SplitSquareHorizontal, Move3d } from 'lucide-react';
-import { api } from '../../../api';
-import type { GraphNeighborsResponse, StudioNavigationTarget } from '../../../api/bindings';
-import type { GraphSidebarSummary, GraphViewProps, SimulatedNode, SimulatedLink } from './types';
-import { useContainerDimensions } from './useContainerDimensions';
-import { useForceSimulation } from './useForceSimulation';
-import { useDrag } from './useDrag';
-import { GraphSVG } from './GraphSVG';
-import { useDebouncedValue } from '../../../hooks';
-import './GraphView.css';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Boxes, SplitSquareHorizontal, Move3d } from "lucide-react";
+import { api } from "../../../api";
+import type { GraphNeighborsResponse, StudioNavigationTarget } from "../../../api/bindings";
+import type { GraphSidebarSummary, GraphViewProps, SimulatedNode, SimulatedLink } from "./types";
+import { useContainerDimensions } from "./useContainerDimensions";
+import { useForceSimulation } from "./useForceSimulation";
+import { useDrag } from "./useDrag";
+import { GraphSVG } from "./GraphSVG";
+import { useDebouncedValue } from "../../../hooks";
+import "./GraphView.css";
 
 // Default options
 const DEFAULT_OPTIONS = {
-  direction: 'both' as const,
+  direction: "both" as const,
   hops: 2,
   limit: 50,
 };
 
-const loadGraphView3DStage = () => import('./GraphView3DStage');
+const loadGraphView3DStage = () => import("./GraphView3DStage");
 const GraphView3DStage = lazy(async () => {
   const module = await loadGraphView3DStage();
   return { default: module.GraphView3DStage };
 });
+const GRAPH_VIEW_3D_FALLBACK = (message: string) => (
+  <div className="graph-view-3d-canvas">
+    <div className="graph-view-corner-hint" role="status" aria-live="polite">
+      {message}
+    </div>
+  </div>
+);
 
 function fallbackGraphCategory(nodeType: string): string {
   switch (nodeType) {
-    case 'knowledge':
-      return 'knowledge';
-    case 'skill':
-      return 'skill';
+    case "knowledge":
+      return "knowledge";
+    case "skill":
+      return "skill";
     default:
-      return 'doc';
+      return "doc";
   }
 }
 
 function resolveNodeSelection(
-  node: Pick<SimulatedNode, 'id' | 'path' | 'nodeType' | 'navigationTarget'>
+  node: Pick<SimulatedNode, "id" | "path" | "nodeType" | "navigationTarget">,
 ): StudioNavigationTarget & { graphPath: string } {
   const navigationTarget = node.navigationTarget ?? {
     path: node.path,
@@ -57,8 +64,8 @@ function resolveNodeSelection(
 
 const NEBULA_WORLD_SCALE = 0.0048;
 
-type GraphViewLayoutMode = '2d' | '3d' | 'split';
-type UiLocale = 'en' | 'zh';
+type GraphViewLayoutMode = "2d" | "3d" | "split";
+type UiLocale = "en" | "zh";
 
 interface NebulaSceneNode {
   id: string;
@@ -97,54 +104,97 @@ interface GraphViewCopy {
   emptyCornerHint: string;
 }
 
+interface GraphViewModeButtonProps {
+  isActive: boolean;
+  label: string;
+  iconName: "2d" | "3d" | "split";
+  disabled?: boolean;
+  onClick: () => void;
+  onPointerWarm?: () => void;
+}
+
+const GraphViewModeButton = React.memo(function GraphViewModeButton({
+  isActive,
+  label,
+  iconName,
+  disabled = false,
+  onClick,
+  onPointerWarm,
+}: GraphViewModeButtonProps): React.ReactElement {
+  const icon =
+    iconName === "2d" ? (
+      <Boxes size={11} aria-hidden="true" />
+    ) : iconName === "3d" ? (
+      <Move3d size={11} aria-hidden="true" />
+    ) : (
+      <SplitSquareHorizontal size={11} aria-hidden="true" />
+    );
+
+  return (
+    <button
+      type="button"
+      className={`graph-view-mode-button ${isActive ? "graph-view-mode-button--active" : ""}`}
+      role="tab"
+      aria-selected={isActive}
+      disabled={disabled}
+      onClick={onClick}
+      onMouseEnter={onPointerWarm}
+      onFocus={onPointerWarm}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+});
+
 const GRAPH_VIEW_COPY: Record<UiLocale, GraphViewCopy> = {
   en: {
-    runtimeLoading: 'Loading relationship graph...',
-    runtimePreparing: 'Preparing graph viewport...',
-    runtimeEmpty: 'No graph nodes returned for this file.',
-    standby: 'Link graph standby',
-    standbyHint: 'Select a file to inspect linked dependency stages.',
-    dependencyStageMode: 'Dependency stage mode',
-    tab2d: '2D Map',
-    tab3d: '3D Stage',
-    tabHybrid: 'Hybrid Stage',
-    aria2dMap: '2D dependency map',
-    aria3dMap: '3D stage map',
-    emptyCornerHint: 'No graph data returned for this file.',
+    runtimeLoading: "Loading relationship graph...",
+    runtimePreparing: "Preparing graph viewport...",
+    runtimeEmpty: "No graph nodes returned for this file.",
+    standby: "Link graph standby",
+    standbyHint: "Select a file to inspect linked dependency stages.",
+    dependencyStageMode: "Dependency stage mode",
+    tab2d: "2D Map",
+    tab3d: "3D Stage",
+    tabHybrid: "Hybrid Stage",
+    aria2dMap: "2D dependency map",
+    aria3dMap: "3D stage map",
+    emptyCornerHint: "No graph data returned for this file.",
   },
   zh: {
-    runtimeLoading: '正在加载关系图谱...',
-    runtimePreparing: '正在准备图谱视口...',
-    runtimeEmpty: '当前文件未返回图谱节点。',
-    standby: '图谱待命',
-    standbyHint: '请选择文件以查看关联依赖层级。',
-    dependencyStageMode: '依赖阶段模式',
-    tab2d: '2D 视图',
-    tab3d: '3D 舞台',
-    tabHybrid: '混合舞台',
-    aria2dMap: '2D 依赖图',
-    aria3dMap: '3D 阶段图',
-    emptyCornerHint: '当前文件没有返回图谱数据。',
+    runtimeLoading: "正在加载关系图谱...",
+    runtimePreparing: "正在准备图谱视口...",
+    runtimeEmpty: "当前文件未返回图谱节点。",
+    standby: "图谱待命",
+    standbyHint: "请选择文件以查看关联依赖层级。",
+    dependencyStageMode: "依赖阶段模式",
+    tab2d: "2D 视图",
+    tab3d: "3D 舞台",
+    tabHybrid: "混合舞台",
+    aria2dMap: "2D 依赖图",
+    aria3dMap: "3D 阶段图",
+    emptyCornerHint: "当前文件没有返回图谱数据。",
   },
 };
 
 const NEBULA_NODE_PALETTE: Record<string, string> = {
-  skill: '#22c55e',
-  doc: '#3b82f6',
-  knowledge: '#a855f7',
-  folder: '#f59e0b',
-  other: '#6b7280',
-  'attachment-Image': '#ec4899',
-  'attachment-Pdf': '#ef4444',
-  'attachment-Document': '#f59e0b',
-  'attachment-Archive': '#6366f1',
-  'attachment-Audio': '#84cc16',
-  'attachment-Video': '#06b6d4',
-  'attachment-Other': '#64748b',
-  default: '#6b7280',
+  skill: "#22c55e",
+  doc: "#3b82f6",
+  knowledge: "#a855f7",
+  folder: "#f59e0b",
+  other: "#6b7280",
+  "attachment-Image": "#ec4899",
+  "attachment-Pdf": "#ef4444",
+  "attachment-Document": "#f59e0b",
+  "attachment-Archive": "#6366f1",
+  "attachment-Audio": "#84cc16",
+  "attachment-Video": "#06b6d4",
+  "attachment-Other": "#64748b",
+  default: "#6b7280",
 };
 
-const DEFAULT_LAYOUT_MODE: GraphViewLayoutMode = '2d';
+const DEFAULT_LAYOUT_MODE: GraphViewLayoutMode = "2d";
 const GRAPH_FETCH_DEBOUNCE_MS = 240;
 const getNebulaNodeColor = (nodeType: string): string => {
   return NEBULA_NODE_PALETTE[nodeType] || NEBULA_NODE_PALETTE.default;
@@ -154,28 +204,27 @@ function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
   }
-  return 'Failed to load graph data';
+  return "Failed to load graph data";
 }
 
 function isMissingGraphNodeError(error: unknown): boolean {
-  const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
   const normalized = message.trim().toLowerCase();
-  return normalized.includes('graph node') && normalized.includes('was not found');
+  return normalized.includes("graph node") && normalized.includes("was not found");
 }
 
 function buildEmptyGraphResponse(centerNodeId: string): GraphNeighborsResponse {
   return {
     center: {
       id: centerNodeId,
-      label: centerNodeId.split('/').pop() || centerNodeId,
+      label: centerNodeId.split("/").pop() || centerNodeId,
       path: centerNodeId,
-      nodeType: 'doc',
+      nodeType: "doc",
       isCenter: true,
       distance: 0,
       navigationTarget: {
         path: centerNodeId,
-        category: 'doc',
+        category: "doc",
       },
     },
     nodes: [],
@@ -206,7 +255,7 @@ function normalizeGraphNeighborsResponse(payload: GraphNeighborsResponse): Graph
 
 export const GraphView: React.FC<GraphViewProps> = ({
   centerNodeId,
-  locale = 'en',
+  locale = "en",
   onNodeClick,
   onSidebarSummaryChange,
   onRuntimeStatusChange,
@@ -227,35 +276,43 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
   // Get container dimensions
   const { dimensions, dimensionsReady } = useContainerDimensions(containerRef);
-  const debouncedCenterNodeId = useDebouncedValue(enabled ? centerNodeId : null, GRAPH_FETCH_DEBOUNCE_MS, {
-    enabled,
-  });
-  const debouncedOptions = useDebouncedValue(enabled ? options : DEFAULT_OPTIONS, GRAPH_FETCH_DEBOUNCE_MS, {
-    enabled,
-  });
+  const debouncedCenterNodeId = useDebouncedValue(
+    enabled ? centerNodeId : null,
+    GRAPH_FETCH_DEBOUNCE_MS,
+    {
+      enabled,
+    },
+  );
+  const debouncedOptions = useDebouncedValue(
+    enabled ? options : DEFAULT_OPTIONS,
+    GRAPH_FETCH_DEBOUNCE_MS,
+    {
+      enabled,
+    },
+  );
 
   // Fetch graph data when centerNodeId changes
   useEffect(() => {
     let cancelled = false;
 
     const loadGraphData = async () => {
-    if (!enabled || !debouncedCenterNodeId) {
-      setLoading(false);
-      onSidebarSummaryChange?.(null);
-      onRuntimeStatusChange?.(null);
-      return;
-    }
+      if (!enabled || !debouncedCenterNodeId) {
+        setLoading(false);
+        onSidebarSummaryChange?.(null);
+        onRuntimeStatusChange?.(null);
+        return;
+      }
 
-    if (!centerNodeId) {
-      setGraphData(null);
-      setHoveredNode(null);
-      onSidebarSummaryChange?.(null);
-      onRuntimeStatusChange?.(null);
-      return;
-    }
+      if (!centerNodeId) {
+        setGraphData(null);
+        setHoveredNode(null);
+        onSidebarSummaryChange?.(null);
+        onRuntimeStatusChange?.(null);
+        return;
+      }
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
       try {
         const data = await api.getGraphNeighbors(debouncedCenterNodeId, debouncedOptions);
@@ -357,7 +414,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
     (nodeId: string, x: number, y: number) => {
       updateNodePosition(nodeId, x, y);
     },
-    [updateNodePosition]
+    [updateNodePosition],
   );
 
   const nebulaNodeIndexById = useMemo(() => {
@@ -384,7 +441,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
         onNodeClick(node.id, resolveNodeSelection(node));
       }
     },
-    [onNodeClick]
+    [onNodeClick],
   );
 
   const handleNebulaNodeClick = useCallback(
@@ -396,7 +453,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
       onNodeClick(resolvedNode.id, resolveNodeSelection(resolvedNode));
     },
-    [onNodeClick, simulatedNodeById]
+    [onNodeClick, simulatedNodeById],
   );
 
   // Drag start wrapper
@@ -404,7 +461,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
     (nodeId: string, event: React.MouseEvent | React.TouchEvent) => {
       handleDragStart(nodeId, event, simulatedNodes);
     },
-    [handleDragStart, simulatedNodes]
+    [handleDragStart, simulatedNodes],
   );
 
   const handle2DNodeHover = useCallback((node: SimulatedNode | null) => {
@@ -426,11 +483,10 @@ export const GraphView: React.FC<GraphViewProps> = ({
     });
   }, []);
 
-  const hasRenderPayload = useMemo(() => dimensionsReady && graphData !== null && simulatedNodes.length > 0, [
-    dimensionsReady,
-    graphData,
-    simulatedNodes.length,
-  ]);
+  const hasRenderPayload = useMemo(
+    () => dimensionsReady && graphData !== null && simulatedNodes.length > 0,
+    [dimensionsReady, graphData, simulatedNodes.length],
+  );
 
   const nebulaLayerMap = useMemo(() => {
     const countByDistance = new Map<number, number>();
@@ -466,19 +522,22 @@ export const GraphView: React.FC<GraphViewProps> = ({
       const localIndex = nebulaLayerMap.layerIndexByNode.get(node.id) || 0;
       const layerRadius = 8 + layer * 7;
       const layerAngle =
-        (localIndex / layerCount) * Math.PI * 2 +
-        (index % 7) * 0.42 +
-        layer * 0.18;
+        (localIndex / layerCount) * Math.PI * 2 + (index % 7) * 0.42 + layer * 0.18;
       const yBias = layer % 2 === 0 ? 0.7 : -0.7;
-      const x = Math.cos(layerAngle) * layerRadius + (node.x - dimensions.width / 2) * NEBULA_WORLD_SCALE;
-      const y = Math.sin(layerAngle) * layerRadius * 0.56 + yBias + Math.sin(index * 0.4) * 0.4 + (node.y - dimensions.height / 2) * NEBULA_WORLD_SCALE;
+      const x =
+        Math.cos(layerAngle) * layerRadius + (node.x - dimensions.width / 2) * NEBULA_WORLD_SCALE;
+      const y =
+        Math.sin(layerAngle) * layerRadius * 0.56 +
+        yBias +
+        Math.sin(index * 0.4) * 0.4 +
+        (node.y - dimensions.height / 2) * NEBULA_WORLD_SCALE;
 
       return {
         x,
         y,
       };
     },
-    [dimensions.height, dimensions.width, nebulaLayerMap]
+    [dimensions.height, dimensions.width, nebulaLayerMap],
   );
 
   const mapNebulaDragToSimCoordinates = useCallback(
@@ -505,7 +564,14 @@ export const GraphView: React.FC<GraphViewProps> = ({
         y: centerY + (worldY - baseY) / NEBULA_WORLD_SCALE,
       };
     },
-    [dimensions.height, dimensions.width, nebulaNodeIndexById, resolveNebulaBaseOffset, simulatedNodeById, simulatedNodes]
+    [
+      dimensions.height,
+      dimensions.width,
+      nebulaNodeIndexById,
+      resolveNebulaBaseOffset,
+      simulatedNodeById,
+      simulatedNodes,
+    ],
   );
 
   const handleNebulaNodeDrag = useCallback(
@@ -519,7 +585,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
       const clampedY = Math.max(40, Math.min(dimensions.height - 40, mapped.y));
       updateNodePosition(nodeId, clampedX, clampedY);
     },
-    [dimensions.height, dimensions.width, mapNebulaDragToSimCoordinates, updateNodePosition]
+    [dimensions.height, dimensions.width, mapNebulaDragToSimCoordinates, updateNodePosition],
   );
 
   const nebulaNodes = useMemo<NebulaSceneNode[]>(() => {
@@ -539,7 +605,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
           x: 0,
           y: 0,
           z: 0,
-          color: '#ffb347',
+          color: "#ffb347",
           size: 0.16,
           label: node.label,
           type: node.nodeType,
@@ -552,16 +618,18 @@ export const GraphView: React.FC<GraphViewProps> = ({
       const localIndex = nebulaLayerMap.layerIndexByNode.get(node.id) || 0;
       const layerRadius = 8 + layer * 7;
       const layerAngle =
-        (localIndex / layerCount) * Math.PI * 2 +
-        (index % 7) * 0.42 +
-        layer * 0.18;
+        (localIndex / layerCount) * Math.PI * 2 + (index % 7) * 0.42 + layer * 0.18;
       const yBias = layer % 2 === 0 ? 0.7 : -0.7;
       const zOffset = (layer % 3) * 0.35;
 
       return {
         id: node.id,
         x: Math.cos(layerAngle) * layerRadius + (node.x - centerX) * coordinateScale * 0.08,
-        y: Math.sin(layerAngle) * layerRadius * 0.56 + yBias + Math.sin(index * 0.4) * 0.4 + (node.y - centerY) * coordinateScale * 0.08,
+        y:
+          Math.sin(layerAngle) * layerRadius * 0.56 +
+          yBias +
+          Math.sin(index * 0.4) * 0.4 +
+          (node.y - centerY) * coordinateScale * 0.08,
         z: (node.distance / maxDistance) * 18 + zOffset + Math.cos(index * 0.7) * 0.4,
         color: getNebulaNodeColor(node.nodeType),
         size: 0.66,
@@ -589,36 +657,54 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
   useEffect(() => {
     if (!has2DView && !has3DView) {
-      setLayoutMode('2d');
+      setLayoutMode("2d");
       return;
     }
 
     if (!has2DView && has3DView) {
-      setLayoutMode('3d');
+      setLayoutMode("3d");
       return;
     }
 
-    if (!has3DView && layoutMode === '3d') {
-      setLayoutMode('2d');
+    if (!has3DView && layoutMode === "3d") {
+      setLayoutMode("2d");
       return;
     }
 
-    if (layoutMode === 'split' && !canSplitView) {
-      setLayoutMode('2d');
+    if (layoutMode === "split" && !canSplitView) {
+      setLayoutMode("2d");
       return;
     }
   }, [canSplitView, has2DView, has3DView, layoutMode]);
 
-  const show2DGraph = (layoutMode === '2d' || layoutMode === 'split') && has2DView;
-  const show3DGraph = (layoutMode === '3d' || layoutMode === 'split') && has3DView;
-  const split2DWidth = dimensions.width / (layoutMode === 'split' ? 2 : 1);
+  const show2DGraph = (layoutMode === "2d" || layoutMode === "split") && has2DView;
+  const show3DGraph = (layoutMode === "3d" || layoutMode === "split") && has3DView;
+  const split2DWidth = dimensions.width / (layoutMode === "split" ? 2 : 1);
   const preload3DStage = useCallback(() => {
     void loadGraphView3DStage();
   }, []);
+  const handleSet2DMode = useCallback(() => {
+    setLayoutMode("2d");
+  }, []);
+  const handleSet3DMode = useCallback(() => {
+    setLayoutMode("3d");
+  }, []);
+  const handleSetSplitMode = useCallback(() => {
+    if (canSplitView) {
+      preload3DStage();
+      setLayoutMode("split");
+    }
+  }, [canSplitView, preload3DStage]);
+  const handleNebulaStageDrag = useCallback(
+    (nodeId: string, worldPos: { x: number; y: number; z: number }) => {
+      handleNebulaNodeDrag(nodeId, worldPos.x, worldPos.y);
+    },
+    [handleNebulaNodeDrag],
+  );
 
   const showOverlay = Boolean(error);
   const showEmptyCornerHint = Boolean(
-    !error && dimensionsReady && !loading && (!graphData || simulatedNodes.length === 0)
+    !error && dimensionsReady && !loading && (!graphData || simulatedNodes.length === 0),
   );
 
   const displayLayerStats = useMemo<StageSummary[]>(() => {
@@ -633,7 +719,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
     });
 
     return [...layerBuckets.entries()]
-      .sort((a, b) => a[0] - b[0])
+      .toSorted((a, b) => a[0] - b[0])
       .map(([layer, count]) => ({ layer, count }));
   }, [graphData]);
 
@@ -667,8 +753,8 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
     if (loading) {
       onRuntimeStatusChange?.({
-        tone: 'warning',
-        source: 'graph',
+        tone: "warning",
+        source: "graph",
         message: copy.runtimeLoading,
       });
       return;
@@ -676,8 +762,8 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
     if (!dimensionsReady) {
       onRuntimeStatusChange?.({
-        tone: 'warning',
-        source: 'graph',
+        tone: "warning",
+        source: "graph",
         message: copy.runtimePreparing,
       });
       return;
@@ -685,8 +771,8 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
     if (error) {
       onRuntimeStatusChange?.({
-        tone: 'error',
-        source: 'graph',
+        tone: "error",
+        source: "graph",
         message: error,
       });
       return;
@@ -694,8 +780,8 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
     if (graphData && simulatedNodes.length === 0) {
       onRuntimeStatusChange?.({
-        tone: 'warning',
-        source: 'graph',
+        tone: "warning",
+        source: "graph",
         message: copy.runtimeEmpty,
       });
       return;
@@ -724,68 +810,57 @@ export const GraphView: React.FC<GraphViewProps> = ({
   if (!centerNodeId) {
     return (
       <div className="graph-view-empty">
-      <div className="graph-view-placeholder">
-        <span className="graph-icon">◎</span>
+        <div className="graph-view-placeholder">
+          <span className="graph-icon">◎</span>
           <span className="graph-placeholder-kicker">{copy.standby}</span>
           <p>{copy.standbyHint}</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
-    <div className={`graph-view ${show3DGraph ? 'graph-view--3d-active' : 'graph-view--2d-active'}`} ref={containerRef}>
+    <div
+      className={`graph-view ${show3DGraph ? "graph-view--3d-active" : "graph-view--2d-active"}`}
+      ref={containerRef}
+    >
       <div
         className="graph-view-mode-switch"
         role="tablist"
         aria-label={copy.dependencyStageMode}
         data-mode-label={copy.dependencyStageMode}
       >
-        <button
-          type="button"
-          className={`graph-view-mode-button ${layoutMode === '2d' ? 'graph-view-mode-button--active' : ''}`}
-          role="tab"
-          aria-selected={layoutMode === '2d'}
-          onClick={() => setLayoutMode('2d')}
-        >
-          <Boxes size={11} aria-hidden="true" />
-          <span>{copy.tab2d}</span>
-        </button>
-        <button
-          type="button"
-          className={`graph-view-mode-button ${layoutMode === '3d' ? 'graph-view-mode-button--active' : ''}`}
-          role="tab"
-          aria-selected={layoutMode === '3d'}
-          onClick={() => setLayoutMode('3d')}
-          onMouseEnter={preload3DStage}
-          onFocus={preload3DStage}
-        >
-          <Move3d size={11} aria-hidden="true" />
-          <span>{copy.tab3d}</span>
-        </button>
-        <button
-          type="button"
-          className={`graph-view-mode-button ${layoutMode === 'split' ? 'graph-view-mode-button--active' : ''}`}
-          role="tab"
-          aria-selected={layoutMode === 'split'}
+        <GraphViewModeButton
+          isActive={layoutMode === "2d"}
+          label={copy.tab2d}
+          iconName="2d"
+          onClick={handleSet2DMode}
+        />
+        <GraphViewModeButton
+          isActive={layoutMode === "3d"}
+          label={copy.tab3d}
+          iconName="3d"
+          onClick={handleSet3DMode}
+          onPointerWarm={preload3DStage}
+        />
+        <GraphViewModeButton
+          isActive={layoutMode === "split"}
+          label={copy.tabHybrid}
+          iconName="split"
           disabled={!canSplitView}
-          onClick={() => {
-            if (canSplitView) {
-              preload3DStage();
-              setLayoutMode('split');
-            }
-          }}
-          onMouseEnter={preload3DStage}
-          onFocus={preload3DStage}
-        >
-          <SplitSquareHorizontal size={11} aria-hidden="true" />
-          <span>{copy.tabHybrid}</span>
-        </button>
+          onClick={handleSetSplitMode}
+          onPointerWarm={preload3DStage}
+        />
       </div>
 
-      <div className={`graph-view-stage ${layoutMode === 'split' ? 'graph-view-stage--split' : 'graph-view-stage--single'}`}>
+      <div
+        className={`graph-view-stage ${layoutMode === "split" ? "graph-view-stage--split" : "graph-view-stage--single"}`}
+      >
         {show2DGraph && (
-          <section className="graph-view-stage-panel graph-view-stage-panel--2d" aria-label={copy.aria2dMap}>
+          <section
+            className="graph-view-stage-panel graph-view-stage-panel--2d"
+            aria-label={copy.aria2dMap}
+          >
             <div className="graph-view-2d-stage-shell">
               <GraphSVG
                 width={Math.max(1, split2DWidth)}
@@ -801,24 +876,19 @@ export const GraphView: React.FC<GraphViewProps> = ({
         )}
 
         {show3DGraph && (
-          <section className="graph-view-stage-panel graph-view-stage-panel--3d" aria-label={copy.aria3dMap}>
+          <section
+            className="graph-view-stage-panel graph-view-stage-panel--3d"
+            aria-label={copy.aria3dMap}
+          >
             <Suspense
-              fallback={
-                <div className="graph-view-3d-canvas">
-                  <div className="graph-view-corner-hint" role="status" aria-live="polite">
-                    {copy.runtimePreparing}
-                  </div>
-                </div>
-              }
+              fallback={GRAPH_VIEW_3D_FALLBACK(copy.runtimePreparing)}
             >
               <GraphView3DStage
                 nodes={nebulaNodes}
                 links={nebulaLinks}
                 onNodeClick={handleNebulaNodeClick}
                 onNodeHover={handleNebulaNodeHover}
-                onNodeDrag={(nodeId, worldPos) =>
-                  handleNebulaNodeDrag(nodeId, worldPos.x, worldPos.y)
-                }
+                onNodeDrag={handleNebulaStageDrag}
               />
             </Suspense>
           </section>
@@ -844,7 +914,6 @@ export const GraphView: React.FC<GraphViewProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };

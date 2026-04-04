@@ -1,7 +1,7 @@
-import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { ZenSearchWindow } from '../ZenSearchWindow';
+import React from "react";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { ZenSearchWindow } from "../ZenSearchWindow";
 
 const controllerState = vi.hoisted(() => ({
   modalProps: {
@@ -10,7 +10,7 @@ const controllerState = vi.hoisted(() => ({
   },
   shellProps: {
     copy: {} as never,
-    locale: 'en',
+    locale: "en",
   },
   resultsPanelProps: {} as never,
   suggestionsPanelProps: {} as never,
@@ -20,66 +20,49 @@ const controllerState = vi.hoisted(() => ({
 
 const useZenSearchModeSpy = vi.hoisted(() => vi.fn(() => controllerState));
 
-vi.mock('../useZenSearchMode', () => ({
+vi.mock("../useZenSearchMode", () => ({
   useZenSearchMode: useZenSearchModeSpy,
 }));
 
-vi.mock('../ZenSearchLayout', () => ({
+vi.mock("../ZenSearchLayout", () => ({
   ZenSearchLayout: () => <div data-testid="mock-zen-layout" />,
 }));
 
-describe('ZenSearchWindow', () => {
+describe("ZenSearchWindow", () => {
   beforeEach(() => {
     useZenSearchModeSpy.mockClear();
   });
 
-  it('renders the dialog shell and delegates to the zen controller', () => {
-    render(
-      <ZenSearchWindow
-        locale="en"
-        onClose={vi.fn()}
-        onResultSelect={vi.fn()}
-      />
-    );
+  it("renders the dialog shell and delegates to the zen controller", () => {
+    render(<ZenSearchWindow locale="en" onClose={vi.fn()} onResultSelect={vi.fn()} />);
 
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('role', 'dialog');
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('aria-modal', 'true');
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'true');
-    expect(screen.getByTestId('mock-zen-layout')).toBeInTheDocument();
-    expect(screen.getByTestId('zen-search-window')).toBeInTheDocument();
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("role", "dialog");
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("mock-zen-layout")).toBeInTheDocument();
+    expect(screen.getByTestId("zen-search-window")).toBeInTheDocument();
     expect(useZenSearchModeSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ isOpen: true, locale: 'en' })
+      expect.objectContaining({ isOpen: true, locale: "en" }),
     );
   });
 
-  it('forwards modal interactions from the controller to the root shell', () => {
-    render(
-      <ZenSearchWindow
-        locale="en"
-        onClose={vi.fn()}
-        onResultSelect={vi.fn()}
-      />
-    );
+  it("forwards modal interactions from the controller to the root shell", () => {
+    render(<ZenSearchWindow locale="en" onClose={vi.fn()} onResultSelect={vi.fn()} />);
 
-    fireEvent.click(screen.getByTestId('zen-search-window'));
+    fireEvent.click(screen.getByTestId("zen-search-window"));
     expect(controllerState.modalProps.onClick).toHaveBeenCalled();
   });
 
-  it('can stay mounted while hidden', () => {
+  it("can stay mounted while hidden", () => {
     render(
-      <ZenSearchWindow
-        isOpen={false}
-        locale="en"
-        onClose={vi.fn()}
-        onResultSelect={vi.fn()}
-      />
+      <ZenSearchWindow isOpen={false} locale="en" onClose={vi.fn()} onResultSelect={vi.fn()} />,
     );
 
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'false');
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('hidden');
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("data-open", "false");
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("hidden");
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("aria-hidden", "true");
     expect(useZenSearchModeSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ isOpen: false, locale: 'en' })
+      expect.objectContaining({ isOpen: false, locale: "en" }),
     );
   });
 });

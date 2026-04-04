@@ -12,6 +12,7 @@
 Enable structured code AST visualization in the existing Diagram tab so Julia/Modelica repository files can show navigable structure graphs, not only BPMN or Mermaid code blocks.
 
 This blueprint follows a strict contract-first rule:
+
 1. Backend provides AST semantics and projection payloads.
 2. Frontend renders only backend-provided semantics.
 3. No frontend heuristic synthesis of missing graph semantics.
@@ -78,6 +79,7 @@ This blueprint follows a strict contract-first rule:
 8. `diagnostics: string[]`
 
 `AstNode` minimum fields:
+
 1. `id`
 2. `kind` (`module|function|method|type|call|import|if|loop|assignment|...`)
 3. `label`
@@ -86,6 +88,7 @@ This blueprint follows a strict contract-first rule:
 6. `parentId?`
 
 `AstEdge` minimum fields:
+
 1. `id`
 2. `kind` (`contains|calls|references|control_flow|data_flow`)
 3. `sourceId`
@@ -93,6 +96,7 @@ This blueprint follows a strict contract-first rule:
 5. `label?`
 
 `AstProjection` minimum fields:
+
 1. `kind` (`structure|calls|flow`)
 2. `source` (Mermaid source for phase 1)
 3. `nodeCount`
@@ -110,10 +114,12 @@ This blueprint follows a strict contract-first rule:
 ## 5.1 Type and API Layer
 
 Files:
+
 1. `src/api/bindings.ts`
 2. `src/api/client.ts`
 
 Changes:
+
 1. Add `CodeAstAnalysisResponse` types.
 2. Add `api.getCodeAstAnalysis(path, options)`.
 3. Normalize snake_case and camelCase fields consistently.
@@ -121,11 +127,13 @@ Changes:
 ## 5.2 Diagram Signature and ViewModel
 
 Files:
+
 1. `src/components/panels/DiagramWindow/diagramSignature.ts`
 2. `src/components/panels/DiagramWindow/useDiagramWindowViewModel.ts`
 3. `src/components/panels/DiagramWindow/diagramWindowState.ts`
 
 Changes:
+
 1. Detect AST-eligible code files.
 2. Extend display mode with `ast`.
 3. Resolve rendering priority:
@@ -138,6 +146,7 @@ Changes:
 ## 5.3 Diagram UI Components
 
 Files:
+
 1. `src/components/panels/DiagramWindow/DiagramWindowToolbar.tsx`
 2. `src/components/panels/DiagramWindow/DiagramWindowWorkspace.tsx`
 3. `src/components/panels/DiagramWindow/DiagramWindow.css`
@@ -145,6 +154,7 @@ Files:
 5. `src/components/panels/DiagramWindow/diagramWindowTypes.ts`
 
 Changes:
+
 1. Add AST mode button and labels.
 2. Add AST panel section in workspace.
 3. Add AST-specific loading and empty-state copy.
@@ -153,9 +163,11 @@ Changes:
 ## 5.4 Hook for AST Projection
 
 New file:
+
 1. `src/components/panels/DiagramWindow/useCodeAstProjection.ts`
 
 Responsibilities:
+
 1. Trigger `/api/analysis/code-ast`.
 2. Map projection kind to current AST view (`structure|calls|flow`).
 3. Expose:

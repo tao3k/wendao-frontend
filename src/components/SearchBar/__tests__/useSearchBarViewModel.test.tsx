@@ -1,20 +1,20 @@
-import { renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { useSearchBarViewModel } from '../useSearchBarViewModel';
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { useSearchBarViewModel } from "../useSearchBarViewModel";
 
 const useSearchBarInteractionsMock = vi.fn();
 const useSearchViewPropsMock = vi.fn();
 
-vi.mock('../useSearchBarInteractions', () => ({
+vi.mock("../useSearchBarInteractions", () => ({
   useSearchBarInteractions: (args: unknown) => useSearchBarInteractionsMock(args),
 }));
 
-vi.mock('../useSearchViewProps', () => ({
+vi.mock("../useSearchViewProps", () => ({
   useSearchViewProps: (args: unknown) => useSearchViewPropsMock(args),
 }));
 
-describe('useSearchBarViewModel', () => {
-  it('bridges interaction handlers into view props', () => {
+describe("useSearchBarViewModel", () => {
+  it("bridges interaction handlers into view props", () => {
     const interactionApi = {
       handleRestoreFallbackQuery: vi.fn(),
       handleApplyRepoFacet: vi.fn(),
@@ -39,7 +39,7 @@ describe('useSearchBarViewModel', () => {
       interactions: {
         state: {
           isComposing: false,
-          query: 'solve',
+          query: "solve",
           suggestions: [],
           suggestionCount: 0,
           resultCount: 0,
@@ -65,16 +65,16 @@ describe('useSearchBarViewModel', () => {
       viewState: {
         inputRef: { current: null },
         copy: {} as any,
-        locale: 'en',
-        query: 'solve',
+        locale: "en",
+        query: "solve",
         isLoading: false,
         showSuggestions: true,
-        scope: 'code',
-        sortMode: 'relevance',
+        scope: "code",
+        sortMode: "relevance",
         searchMeta: null,
-        modeLabel: 'Code',
-        confidenceLabel: 'n/a',
-        confidenceTone: 'unknown',
+        modeLabel: "Code",
+        confidenceLabel: "n/a",
+        confidenceTone: "unknown",
         fallbackLabel: null,
         repoOverviewStatus: null,
         repoSyncStatus: null,

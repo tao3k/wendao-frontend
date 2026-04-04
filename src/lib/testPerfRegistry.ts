@@ -1,6 +1,6 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, resolve } from 'node:path';
-import type { PerfTraceSnapshot } from './testPerfTrace';
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, resolve } from "node:path";
+import type { PerfTraceSnapshot } from "./testPerfTrace";
 
 export interface PerfTraceRecord extends PerfTraceSnapshot {
   testName: string;
@@ -28,10 +28,7 @@ export interface PerfTraceArtifact {
   records: PerfTraceRecord[];
 }
 
-export function recordPerfTraceSnapshot(
-  testName: string,
-  snapshot: PerfTraceSnapshot,
-): void {
+export function recordPerfTraceSnapshot(testName: string, snapshot: PerfTraceSnapshot): void {
   getRegistryState().records.push({
     testName,
     ...snapshot,
@@ -50,7 +47,7 @@ export function resolveHotspotPerfArtifactPath(): string {
   const cacheHome = process.env.PRJ_CACHE_HOME?.trim();
   if (!cacheHome) {
     throw new Error(
-      'frontend hotspot perf traces require PRJ_CACHE_HOME from the project environment',
+      "frontend hotspot perf traces require PRJ_CACHE_HOME from the project environment",
     );
   }
   if (!isAbsolute(cacheHome)) {
@@ -59,19 +56,14 @@ export function resolveHotspotPerfArtifactPath(): string {
     );
   }
 
-  return resolve(
-    cacheHome,
-    'agent',
-    'tmp',
-    'wendao_frontend_hotspot_perf_traces.json',
-  );
+  return resolve(cacheHome, "agent", "tmp", "wendao_frontend_hotspot_perf_traces.json");
 }
 
 export async function writePerfTraceArtifact(): Promise<string> {
   const artifactPath = resolveHotspotPerfArtifactPath();
   let existingRecords: PerfTraceRecord[] = [];
   try {
-    const existingContent = await readFile(artifactPath, 'utf8');
+    const existingContent = await readFile(artifactPath, "utf8");
     const existingArtifact = JSON.parse(existingContent) as PerfTraceArtifact;
     existingRecords = existingArtifact.records ?? [];
   } catch {
@@ -88,6 +80,6 @@ export async function writePerfTraceArtifact(): Promise<string> {
     records: [...mergedRecords.values()],
   };
   await mkdir(dirname(artifactPath), { recursive: true });
-  await writeFile(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
+  await writeFile(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
   return artifactPath;
 }

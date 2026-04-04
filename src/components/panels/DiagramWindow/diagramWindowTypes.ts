@@ -1,4 +1,4 @@
-export type DiagramWindowLocale = 'en' | 'zh';
+export type DiagramWindowLocale = "en" | "zh";
 
 export interface DiagramWindowCopy {
   emptyPreview: string;
@@ -30,51 +30,51 @@ export interface DiagramWindowCopy {
 
 export type DiagramWindowToolbarCopy = Pick<
   DiagramWindowCopy,
-  | 'modeTabLabel'
-  | 'modeBpmnLabel'
-  | 'modeCombinedLabel'
-  | 'modeMermaidLabel'
-  | 'modeBpmnAria'
-  | 'modeCombinedAria'
-  | 'modeMermaidAria'
-  | 'panelBpmn'
-  | 'panelMermaid'
-  | 'resetViewLabel'
+  | "modeTabLabel"
+  | "modeBpmnLabel"
+  | "modeCombinedLabel"
+  | "modeMermaidLabel"
+  | "modeBpmnAria"
+  | "modeCombinedAria"
+  | "modeMermaidAria"
+  | "panelBpmn"
+  | "panelMermaid"
+  | "resetViewLabel"
 >;
 
 export type DiagramWindowWorkspaceCopy = Pick<
   DiagramWindowCopy,
-  | 'panelBpmn'
-  | 'panelMermaid'
-  | 'diagramIndexPrefix'
-  | 'modeMermaidAria'
-  | 'mermaidRenderFailedPrefix'
-  | 'mermaidUnsupported'
-  | 'noMermaidBody'
-  | 'bpmnLoading'
+  | "panelBpmn"
+  | "panelMermaid"
+  | "diagramIndexPrefix"
+  | "modeMermaidAria"
+  | "mermaidRenderFailedPrefix"
+  | "mermaidUnsupported"
+  | "noMermaidBody"
+  | "bpmnLoading"
 >;
 
 export type DiagramWindowViewModelCopy = Pick<
   DiagramWindowCopy,
-  | 'markdownAnalysisLoading'
-  | 'codeAnalysisLoading'
-  | 'noDiagramHint'
-  | 'modeTabLabel'
-  | 'modeBpmnLabel'
-  | 'modeCombinedLabel'
-  | 'modeMermaidLabel'
-  | 'modeBpmnAria'
-  | 'modeCombinedAria'
-  | 'modeMermaidAria'
-  | 'headingBoth'
-  | 'headingBpmn'
-  | 'headingMermaid'
-  | 'panelBpmn'
-  | 'panelMermaid'
-  | 'diagramIndexPrefix'
-  | 'mermaidRenderFailedPrefix'
-  | 'mermaidUnsupported'
-  | 'noMermaidBody'
-  | 'resetViewLabel'
-  | 'bpmnLoading'
+  | "markdownAnalysisLoading"
+  | "codeAnalysisLoading"
+  | "noDiagramHint"
+  | "modeTabLabel"
+  | "modeBpmnLabel"
+  | "modeCombinedLabel"
+  | "modeMermaidLabel"
+  | "modeBpmnAria"
+  | "modeCombinedAria"
+  | "modeMermaidAria"
+  | "headingBoth"
+  | "headingBpmn"
+  | "headingMermaid"
+  | "panelBpmn"
+  | "panelMermaid"
+  | "diagramIndexPrefix"
+  | "mermaidRenderFailedPrefix"
+  | "mermaidUnsupported"
+  | "noMermaidBody"
+  | "resetViewLabel"
+  | "bpmnLoading"
 >;

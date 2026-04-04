@@ -1,9 +1,9 @@
-import type { SearchResult, SearchScope, UiLocale } from './types';
-import { getUiCapabilitiesSync } from '../../api';
-import { useCodeFilterCatalog } from './useCodeFilterCatalog';
-import { useCodeFilterPresentation } from './useCodeFilterPresentation';
-import { useRepoSearchState } from './useRepoSearchState';
-import { useSearchSuggestions } from './useSearchSuggestions';
+import type { SearchResult, SearchScope, UiLocale } from "./types";
+import { getUiCapabilitiesSync } from "../../api";
+import { useCodeFilterCatalog } from "./useCodeFilterCatalog";
+import { useCodeFilterPresentation } from "./useCodeFilterPresentation";
+import { useRepoSearchState } from "./useRepoSearchState";
+import { useSearchSuggestions } from "./useSearchSuggestions";
 
 interface UseSearchBarRepoSliceParams {
   query: string;
@@ -41,7 +41,7 @@ export function useSearchBarRepoSlice({
     results,
     supportedCodeLanguages,
     supportedCodeRepositories,
-    supportedCodeKinds
+    supportedCodeKinds,
   );
   const codeFilterPresentation = useCodeFilterPresentation({
     parsedCodeFilters: repoState.parsedCodeInput.filters,

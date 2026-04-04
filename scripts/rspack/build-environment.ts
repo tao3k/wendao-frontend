@@ -1,8 +1,8 @@
-import type { Configuration } from '@rspack/core';
-import { Agent } from 'node:http';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import * as TOML from 'smol-toml';
+import type { Configuration } from "@rspack/core";
+import { Agent } from "node:http";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import * as TOML from "smol-toml";
 
 interface GatewaySection {
   bind?: string;
@@ -49,7 +49,7 @@ export function parseGatewayTargetFromToml(tomlContent: string): string {
   const target = normalizeGatewayBind(parsed?.gateway?.bind);
 
   if (!target) {
-    throw new Error('Rspack requires [gateway].bind in wendao.toml');
+    throw new Error("Rspack requires [gateway].bind in wendao.toml");
   }
 
   return target;
@@ -63,11 +63,13 @@ export function resolveGatewayTargetFromCwd({
   readTextFile?: ReadTextFile;
 } = {}): string {
   try {
-    const tomlContent = readTextFile(resolve(cwd, 'wendao.toml'), 'utf8');
+    const tomlContent = readTextFile(resolve(cwd, "wendao.toml"), "utf8");
     return parseGatewayTargetFromToml(tomlContent);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown error';
-    throw new Error(`Rspack could not resolve gateway target from wendao.toml: ${message}`);
+    const message = error instanceof Error ? error.message : "unknown error";
+    throw new Error(`Rspack could not resolve gateway target from wendao.toml: ${message}`, {
+      cause: error,
+    });
   }
 }
 
@@ -80,10 +82,10 @@ export function createRspackPlugins({
 }): unknown[] {
   const plugins = [
     new constructors.HtmlRspackPlugin({
-      template: './index.html',
+      template: "./index.html",
     }),
     new constructors.CopyRspackPlugin({
-      patterns: [{ from: 'wendao.toml', to: 'wendao.toml' }],
+      patterns: [{ from: "wendao.toml", to: "wendao.toml" }],
     }),
   ];
 
@@ -100,7 +102,7 @@ export function createGatewayProxyAgent(): Agent {
     keepAliveMsecs: GATEWAY_PROXY_KEEPALIVE_MSECS,
     maxSockets: GATEWAY_PROXY_MAX_SOCKETS,
     maxFreeSockets: GATEWAY_PROXY_MAX_FREE_SOCKETS,
-    scheduling: 'lifo',
+    scheduling: "lifo",
   });
 }
 
@@ -110,7 +112,7 @@ export function createRspackDevServer({
 }: {
   isDev: boolean;
   gatewayTarget: string;
-}): Configuration['devServer'] {
+}): Configuration["devServer"] {
   if (!isDev) {
     return undefined;
   }
@@ -120,7 +122,7 @@ export function createRspackDevServer({
   return {
     proxy: [
       {
-        context: ['/api'],
+        context: ["/api"],
         target: gatewayTarget,
         changeOrigin: true,
         agent: gatewayProxyAgent,
@@ -128,7 +130,7 @@ export function createRspackDevServer({
         timeout: GATEWAY_PROXY_TIMEOUT_MSECS,
       },
       {
-        context: ['/arrow.flight.protocol.FlightService'],
+        context: ["/arrow.flight.protocol.FlightService"],
         target: gatewayTarget,
         changeOrigin: true,
         agent: gatewayProxyAgent,
@@ -139,8 +141,8 @@ export function createRspackDevServer({
     hot: true,
     historyApiFallback: true,
     static: {
-      directory: '.',
-      publicPath: '/',
+      directory: ".",
+      publicPath: "/",
       watch: false,
     },
   };

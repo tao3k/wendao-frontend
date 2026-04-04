@@ -4,6 +4,11 @@ Frontend cockpit for the Wendao Studio gateway.
 
 Qianji Studio is not a separate backend product. It is the interactive frontend layer that hydrates VFS, topology, graph, and semantic search data from the Wendao Studio runtime.
 
+The current frontend lint lane is now a strict closure project instead of a
+config-relaxation exercise. `.oxlintrc.json` stays unchanged as the acceptance
+gate, and the active goal is to drive the current `377` warning baseline down
+to `0` through code fixes and component-boundary refactors only.
+
 ## Local Development
 
 Run commands from `.data/qianji-studio` and prefer the project environment:

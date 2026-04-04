@@ -5,13 +5,9 @@
  * Uses postMessage for communication.
  */
 
-import type { AcademicNode, AcademicLink } from '../types';
-import type {
-  LayoutWorkerInput,
-  LayoutWorkerOutput,
-  LayoutConfig,
-} from '../lib/spatial/types';
-import { deterministicNodePosition } from '../utils/topologyContinuity';
+import type { AcademicNode, AcademicLink } from "../types";
+import type { LayoutWorkerInput, LayoutWorkerOutput, LayoutConfig } from "../lib/spatial/types";
+import { deterministicNodePosition } from "../utils/topologyContinuity";
 
 // Inline VP-FDC implementation (can't import modules in workers easily)
 // This is a simplified version - full version in VPForceLayout.ts
@@ -27,17 +23,18 @@ interface LayoutNodeInternal extends AcademicNode {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  task: '#00D2FF',
-  event: '#4ADE80',
-  gateway: '#FFD700',
-  skill: '#FF6B6B',
-  knowledge: '#A78BFA',
-  default: '#6B7280',
+  task: "#00D2FF",
+  event: "#4ADE80",
+  gateway: "#FFD700",
+  skill: "#FF6B6B",
+  knowledge: "#A78BFA",
+  default: "#6B7280",
 };
 
 let nodes: Map<string, LayoutNodeInternal> = new Map();
 let links: Array<{ source: string; target: string; strength: number }> = [];
 let alpha = 1.0;
+const LAYOUT_WORKER_TARGET_ORIGIN = "*";
 let config: LayoutConfig = {
   iterations: 300,
   linkStrength: 0.1,
@@ -55,7 +52,7 @@ function resolveInitialPosition(
   totalCount: number,
   clusterX: number,
   clusterZ: number,
-  nodeRadius: number
+  nodeRadius: number,
 ): [number, number, number] {
   if (node.position) {
     return node.position;
@@ -65,7 +62,7 @@ function resolveInitialPosition(
     node.id,
     index,
     totalCount,
-    Math.max(18, nodeRadius)
+    Math.max(18, nodeRadius),
   );
   return [clusterX + localX * 0.35, localY, clusterZ + localZ * 0.35];
 }
@@ -73,7 +70,7 @@ function resolveInitialPosition(
 function populateNodes(
   inputNodes: AcademicNode[],
   inputLinks: AcademicLink[],
-  preserveExisting: boolean
+  preserveExisting: boolean,
 ): void {
   const previousNodes = preserveExisting ? nodes : new Map<string, LayoutNodeInternal>();
   const nextNodes: Map<string, LayoutNodeInternal> = new Map();
@@ -81,7 +78,7 @@ function populateNodes(
 
   const typeGroups = new Map<string, AcademicNode[]>();
   inputNodes.forEach((node) => {
-    const type = node.type || 'default';
+    const type = node.type || "default";
     if (!typeGroups.has(type)) typeGroups.set(type, []);
     typeGroups.get(type)!.push(node);
   });
@@ -102,7 +99,7 @@ function populateNodes(
         inputNodes.length,
         clusterX,
         clusterZ,
-        nodeRadius
+        nodeRadius,
       );
 
       nextNodes.set(node.id, {
@@ -216,7 +213,7 @@ function getClusters(): Array<{
 }> {
   const typeGroups = new Map<string, LayoutNodeInternal[]>();
   nodes.forEach((node) => {
-    const type = node.type || 'default';
+    const type = node.type || "default";
     if (!typeGroups.has(type)) typeGroups.set(type, []);
     typeGroups.get(type)!.push(node);
   });
@@ -244,60 +241,60 @@ function getClusters(): Array<{
 }
 
 // Message handler
-self.onmessage = (e: MessageEvent<LayoutWorkerInput>) => {
+function handleSpatialLayoutWorkerMessage(e: MessageEvent<LayoutWorkerInput>): void {
   const msg = e.data;
 
   try {
     switch (msg.type) {
-      case 'init':
+      case "init":
         if (msg.config) {
           config = { ...config, ...msg.config };
         }
         initialize(msg.nodes, msg.links);
         postMessage({
-          type: 'nodes',
+          type: "nodes",
           nodes: Array.from(nodes.values()),
           alpha,
-        } as LayoutWorkerOutput);
+        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
         break;
 
-      case 'tick':
+      case "tick":
         const resultNodes = tick(msg.count || 1);
         postMessage({
-          type: 'tick',
+          type: "tick",
           nodes: resultNodes,
           alpha,
-        } as LayoutWorkerOutput);
+        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
         break;
 
-      case 'sync':
+      case "sync":
         if (msg.config) {
           config = { ...config, ...msg.config };
         }
         synchronize(msg.nodes, msg.links);
         postMessage({
-          type: 'nodes',
+          type: "nodes",
           nodes: Array.from(nodes.values()),
           alpha,
-        } as LayoutWorkerOutput);
+        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
         break;
 
-      case 'getNodes':
+      case "getNodes":
         postMessage({
-          type: 'nodes',
+          type: "nodes",
           nodes: Array.from(nodes.values()),
           alpha,
-        } as LayoutWorkerOutput);
+        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
         break;
 
-      case 'getClusters':
+      case "getClusters":
         postMessage({
-          type: 'clusters',
+          type: "clusters",
           clusters: getClusters(),
-        } as LayoutWorkerOutput);
+        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
         break;
 
-      case 'update':
+      case "update":
         const node = nodes.get(msg.nodeId);
         if (node) {
           node.x = msg.position[0];
@@ -309,10 +306,12 @@ self.onmessage = (e: MessageEvent<LayoutWorkerInput>) => {
     }
   } catch (error) {
     postMessage({
-      type: 'error',
+      type: "error",
       error: String(error),
-    } as LayoutWorkerOutput);
+    } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
   }
-};
+}
 
-export {};
+self.addEventListener("message", handleSpatialLayoutWorkerMessage);
+
+export const spatialLayoutWorkerModule = LAYOUT_WORKER_TARGET_ORIGIN;

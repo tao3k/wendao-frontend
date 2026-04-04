@@ -1,9 +1,26 @@
-import type { SearchHit, StudioNavigationTarget } from '../../api';
+import type { SearchHit, StudioNavigationTarget } from "../../api";
 
-export type SearchScope = 'all' | 'document' | 'knowledge' | 'tag' | 'symbol' | 'ast' | 'reference' | 'attachment' | 'code';
-export type SearchSort = 'relevance' | 'path';
-export type ResultCategory = 'knowledge' | 'skill' | 'tag' | 'document' | 'symbol' | 'ast' | 'reference' | 'attachment';
-export type UiLocale = 'en' | 'zh';
+export type SearchScope =
+  | "all"
+  | "document"
+  | "knowledge"
+  | "tag"
+  | "symbol"
+  | "ast"
+  | "reference"
+  | "attachment"
+  | "code";
+export type SearchSort = "relevance" | "path";
+export type ResultCategory =
+  | "knowledge"
+  | "skill"
+  | "tag"
+  | "document"
+  | "symbol"
+  | "ast"
+  | "reference"
+  | "attachment";
+export type UiLocale = "en" | "zh";
 
 export type SearchSelection = StudioNavigationTarget & {
   graphPath?: string;
@@ -23,8 +40,8 @@ export interface SearchResult extends SearchHit {
   codeLanguage?: string;
   codeKind?: string;
   codeRepo?: string;
-  searchSource?: 'search-index' | 'repo-intelligence';
-  verification_state?: 'verified' | 'unverified' | 'unknown';
+  searchSource?: "search-index" | "repo-intelligence";
+  verification_state?: "verified" | "unverified" | "unknown";
 }
 
 export interface SearchBarCopy {

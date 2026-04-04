@@ -1,6 +1,6 @@
-import { MERMAID_RENDER_THEME } from '../mermaidRuntime';
-import { describeUnsupportedMermaidDialect } from '../mermaidRuntime';
-import type { MermaidRenderFunction } from '../mermaidRuntime';
+import { MERMAID_RENDER_THEME } from "../mermaidRuntime";
+import { describeUnsupportedMermaidDialect } from "../mermaidRuntime";
+import type { MermaidRenderFunction } from "../mermaidRuntime";
 
 export interface MermaidRenderResult {
   source: string;

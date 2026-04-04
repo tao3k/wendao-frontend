@@ -4,10 +4,13 @@ import {
   type GraphNeighborsResponse,
   type MarkdownAnalysisResponse,
   type VfsContentResponse,
-} from '../../api';
-import { normalizeSelectionPathForGraph, normalizeSelectionPathForVfs } from '../../utils/selectionPath';
-import { isCodeSearchResult } from '../SearchBar/searchResultNormalization';
-import type { SearchResult } from '../SearchBar/types';
+} from "../../api";
+import {
+  normalizeSelectionPathForGraph,
+  normalizeSelectionPathForVfs,
+} from "../../utils/selectionPath";
+import { isCodeSearchResult } from "../SearchBar/searchResultNormalization";
+import type { SearchResult } from "../SearchBar/types";
 
 export interface ZenSearchPreviewLoadPlan {
   contentPath: string;
@@ -80,7 +83,7 @@ export function buildZenSearchPreviewLoadPlan(result: SearchResult): ZenSearchPr
     codeAstEligible,
     markdownEligible,
     ...(codeAstRepo ? { codeAstRepo } : {}),
-    ...(typeof codeAstLine === 'number' ? { codeAstLine } : {}),
+    ...(typeof codeAstLine === "number" ? { codeAstLine } : {}),
   };
 }
 
@@ -89,33 +92,36 @@ export function isMeaningfulSelection(result: SearchResult | null): result is Se
 }
 
 export async function loadZenSearchPreviewBaseData(
-  plan: ZenSearchPreviewLoadPlan
+  plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewBaseLoadResult> {
   const [contentResult, graphResult] = await Promise.allSettled([
     api.getVfsContent(plan.contentPath),
     plan.graphable
-      ? api.getGraphNeighbors(plan.graphPath, { direction: 'both', hops: 1, limit: 20 })
+      ? api.getGraphNeighbors(plan.graphPath, { direction: "both", hops: 1, limit: 20 })
       : Promise.resolve(null as GraphNeighborsResponse | null),
   ]);
 
   const resolvedContent =
-    contentResult.status === 'fulfilled' ? (contentResult.value as VfsContentResponse) : null;
-  const graphNeighbors = plan.graphable && graphResult.status === 'fulfilled' ? graphResult.value : null;
+    contentResult.status === "fulfilled" ? (contentResult.value as VfsContentResponse) : null;
+  const graphNeighbors =
+    plan.graphable && graphResult.status === "fulfilled" ? graphResult.value : null;
   const errors = [contentResult, graphResult]
     .filter((result) => plan.graphable || result !== graphResult)
-    .filter((result) => result.status === 'rejected')
-    .map((result) => (result.reason instanceof Error ? result.reason.message : 'Preview load failed'));
+    .filter((result) => result.status === "rejected")
+    .map((result) =>
+      result.reason instanceof Error ? result.reason.message : "Preview load failed",
+    );
 
   return {
     content: resolvedContent?.content ?? null,
     contentType: resolvedContent?.contentType ?? null,
     graphNeighbors,
-    error: errors.length > 0 ? errors.join(' · ') : null,
+    error: errors.length > 0 ? errors.join(" · ") : null,
   };
 }
 
 export async function loadZenSearchPreviewCodeAstData(
-  plan: ZenSearchPreviewLoadPlan
+  plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewCodeAstLoadResult> {
   if (!plan.codeAstEligible) {
     return {
@@ -127,7 +133,7 @@ export async function loadZenSearchPreviewCodeAstData(
   try {
     const codeAstAnalysis = await api.getCodeAstAnalysis(plan.contentPath, {
       ...(plan.codeAstRepo ? { repo: plan.codeAstRepo } : {}),
-      ...(typeof plan.codeAstLine === 'number' ? { line: plan.codeAstLine } : {}),
+      ...(typeof plan.codeAstLine === "number" ? { line: plan.codeAstLine } : {}),
     });
     return {
       codeAstAnalysis,
@@ -136,13 +142,13 @@ export async function loadZenSearchPreviewCodeAstData(
   } catch (error) {
     return {
       codeAstAnalysis: null,
-      codeAstError: error instanceof Error ? error.message : 'Code AST analysis failed',
+      codeAstError: error instanceof Error ? error.message : "Code AST analysis failed",
     };
   }
 }
 
 export async function loadZenSearchPreviewMarkdownData(
-  plan: ZenSearchPreviewLoadPlan
+  plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewMarkdownLoadResult> {
   if (!plan.markdownEligible) {
     return {
@@ -152,12 +158,12 @@ export async function loadZenSearchPreviewMarkdownData(
   }
 
   const [markdownResult] = await Promise.allSettled([api.getMarkdownAnalysis(plan.contentPath)]);
-  const markdownAnalysis = markdownResult.status === 'fulfilled' ? markdownResult.value : null;
+  const markdownAnalysis = markdownResult.status === "fulfilled" ? markdownResult.value : null;
   const markdownAnalysisError =
-    markdownResult.status === 'rejected'
+    markdownResult.status === "rejected"
       ? markdownResult.reason instanceof Error
         ? markdownResult.reason.message
-        : 'Markdown analysis failed'
+        : "Markdown analysis failed"
       : null;
 
   return {
@@ -167,7 +173,7 @@ export async function loadZenSearchPreviewMarkdownData(
 }
 
 export async function loadZenSearchPreviewData(
-  plan: ZenSearchPreviewLoadPlan
+  plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewLoadResult> {
   const [base, codeAst, markdown] = await Promise.all([
     loadZenSearchPreviewBaseData(plan),

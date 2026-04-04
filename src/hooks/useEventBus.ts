@@ -2,9 +2,9 @@
  * React hook for subscribing to EventBus events
  */
 
-import { useEffect, useCallback } from 'react';
-import { eventBus } from '../lib/EventBus';
-import type { EventName, EventPayload } from '../lib/types/events';
+import { useEffect, useCallback } from "react";
+import { eventBus } from "../lib/EventBus";
+import type { EventName, EventPayload } from "../lib/types/events";
 
 /**
  * Subscribe to an event, automatically unsubscribing on unmount
@@ -12,7 +12,7 @@ import type { EventName, EventPayload } from '../lib/types/events';
 export function useEventBus<E extends EventName>(
   event: E,
   callback: (payload: EventPayload<E>) => void,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ): void {
   useEffect(() => {
     const unsubscribe = eventBus.on(event, callback);
@@ -26,7 +26,7 @@ export function useEventBus<E extends EventName>(
  */
 export function useEventEmitter(): <E extends EventName>(
   event: E,
-  payload: EventPayload<E>
+  payload: EventPayload<E>,
 ) => void {
   return useCallback(<E extends EventName>(event: E, payload: EventPayload<E>) => {
     eventBus.emit(event, payload);

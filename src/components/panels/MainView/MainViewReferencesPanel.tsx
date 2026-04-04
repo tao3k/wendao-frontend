@@ -1,21 +1,21 @@
-import React from 'react';
-import type { MainViewCopy } from './mainViewCopy';
-import type { MainViewRelationship, MainViewSelectedFile } from './mainViewProps';
+import React from "react";
+import type { MainViewCopy } from "./mainViewCopy";
+import type { MainViewRelationship, MainViewSelectedFile } from "./mainViewProps";
 
 interface MainViewReferencesPanelProps {
   selectedFile?: MainViewSelectedFile | null;
   relationships: MainViewRelationship[];
   copy: Pick<
     MainViewCopy,
-    | 'navigator'
-    | 'referencesTitle'
-    | 'referencesHintWithFile'
-    | 'referencesHintWithoutFile'
-    | 'focusedFile'
-    | 'project'
-    | 'root'
-    | 'noReferences'
-    | 'noReferencesFile'
+    | "navigator"
+    | "referencesTitle"
+    | "referencesHintWithFile"
+    | "referencesHintWithoutFile"
+    | "focusedFile"
+    | "project"
+    | "root"
+    | "noReferences"
+    | "noReferencesFile"
   >;
 }
 
@@ -29,11 +29,7 @@ export function MainViewReferencesPanel({
       <div className="main-view-panel-intro">
         <span className="main-view-panel-kicker">{copy.navigator}</span>
         <h4>{copy.referencesTitle}</h4>
-        <p>
-          {selectedFile
-            ? copy.referencesHintWithFile
-            : copy.referencesHintWithoutFile}
-        </p>
+        <p>{selectedFile ? copy.referencesHintWithFile : copy.referencesHintWithoutFile}</p>
       </div>
       {selectedFile ? (
         <div className="references-list">
@@ -42,10 +38,14 @@ export function MainViewReferencesPanel({
             {(selectedFile.projectName || selectedFile.rootLabel) && (
               <div className="references-meta">
                 {selectedFile.projectName && (
-                  <span className="references-meta-badge project">{copy.project}: {selectedFile.projectName}</span>
+                  <span className="references-meta-badge project">
+                    {copy.project}: {selectedFile.projectName}
+                  </span>
                 )}
                 {selectedFile.rootLabel && (
-                  <span className="references-meta-badge root">{copy.root}: {selectedFile.rootLabel}</span>
+                  <span className="references-meta-badge root">
+                    {copy.root}: {selectedFile.rootLabel}
+                  </span>
                 )}
               </div>
             )}
@@ -60,7 +60,7 @@ export function MainViewReferencesPanel({
                 return (
                   <div
                     className="reference-row"
-                    key={`${relationship.from ?? 'unknown'}-${relationship.to ?? 'unknown'}-${index}`}
+                    key={`${relationship.from ?? "unknown"}-${relationship.to ?? "unknown"}-${index}`}
                   >
                     <span className={`reference-direction reference-${relationship.type}`}>
                       {relationship.type}

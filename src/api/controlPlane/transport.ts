@@ -1,4 +1,4 @@
-import { buildControlPlaneUrl, type ControlPlaneRouteKey } from './routes';
+import { buildControlPlaneUrl, type ControlPlaneRouteKey } from "./routes";
 
 export interface ControlPlaneJsonTransportDeps {
   apiBase: string;
@@ -24,31 +24,29 @@ async function fetchControlPlaneJson<T>(
 ): Promise<T> {
   const fetchImpl = getFetchImpl(deps.fetchImpl);
   const url = buildControlPlaneUrl(deps.apiBase, route, query);
-  const response = init
-    ? await fetchImpl(url, init)
-    : await fetchImpl(url);
+  const response = init ? await fetchImpl(url, init) : await fetchImpl(url);
   return deps.handleResponse<T>(response);
 }
 
 export async function fetchControlPlaneHealthResponse(
   deps: ControlPlaneJsonTransportDeps,
 ): Promise<string> {
-  return fetchControlPlaneJson<string>(deps, 'health');
+  return fetchControlPlaneJson<string>(deps, "health");
 }
 
 export async function fetchControlPlaneUiConfig<T>(
   deps: ControlPlaneJsonTransportDeps,
 ): Promise<T> {
-  return fetchControlPlaneJson<T>(deps, 'uiConfig');
+  return fetchControlPlaneJson<T>(deps, "uiConfig");
 }
 
 export async function postControlPlaneUiConfig(
   deps: ControlPlaneJsonTransportDeps,
   config: unknown,
 ): Promise<void> {
-  await fetchControlPlaneJson<void>(deps, 'uiConfig', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  await fetchControlPlaneJson<void>(deps, "uiConfig", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
   });
 }
@@ -56,20 +54,20 @@ export async function postControlPlaneUiConfig(
 export async function fetchControlPlaneUiCapabilities<T>(
   deps: ControlPlaneJsonTransportDeps,
 ): Promise<T> {
-  return fetchControlPlaneJson<T>(deps, 'uiCapabilities');
+  return fetchControlPlaneJson<T>(deps, "uiCapabilities");
 }
 
 export async function fetchControlPlaneJuliaDeploymentArtifact<T>(
   deps: ControlPlaneJsonTransportDeps,
 ): Promise<T> {
-  return fetchControlPlaneJson<T>(deps, 'juliaDeploymentArtifact');
+  return fetchControlPlaneJson<T>(deps, "juliaDeploymentArtifact");
 }
 
 export async function fetchControlPlaneJuliaDeploymentArtifactToml(
   deps: ControlPlaneTextTransportDeps,
 ): Promise<string> {
   const response = await getFetchImpl(deps.fetchImpl)(
-    buildControlPlaneUrl(deps.apiBase, 'juliaDeploymentArtifact', { format: 'toml' }),
+    buildControlPlaneUrl(deps.apiBase, "juliaDeploymentArtifact", { format: "toml" }),
   );
   return deps.handleTextResponse(response);
 }

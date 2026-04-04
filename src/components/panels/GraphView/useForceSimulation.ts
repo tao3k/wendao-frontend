@@ -4,8 +4,8 @@
  * Runs continuously to allow nodes to return to equilibrium after dragging.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { SimulatedNode, SimulatedLink } from './types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { SimulatedNode, SimulatedLink } from "./types";
 
 interface UseForceSimulationOptions {
   nodes: SimulatedNode[];
@@ -49,7 +49,7 @@ export function useForceSimulation({
           return { ...node, x, y, vx: 0, vy: 0 };
         }
         return node;
-      })
+      }),
     );
   }, []);
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface TopoBreadcrumbsProps {
   uri: string;
@@ -6,15 +6,15 @@ interface TopoBreadcrumbsProps {
 
 export const TopoBreadcrumbs: React.FC<TopoBreadcrumbsProps> = ({ uri }) => {
   // Protocol: wendao://repo/<ecosystem>/<repo_id>/<scope>/<module_path>/<entity_id>
-  const parts = uri.replace('wendao://repo/', '').split('/');
-  
+  const parts = uri.replace("wendao://repo/", "").split("/");
+
   if (parts.length < 2) {
     return <span className="topo-uri-fallback">{uri}</span>;
   }
 
   const [ecosystem, repoId, scope, ...rest] = parts;
   const entityId = rest.pop();
-  const modulePath = rest.join(' > ').replace(/:/g, ' > ');
+  const modulePath = rest.join(" > ").replace(/:/g, " > ");
 
   return (
     <div className="topo-breadcrumbs" title={uri}>

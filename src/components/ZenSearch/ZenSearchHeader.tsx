@@ -1,6 +1,6 @@
-import React from 'react';
-import { SearchInputHeader } from '../SearchBar/SearchInputHeader';
-import type { SearchBarControllerShellProps } from '../SearchBar/searchBarControllerTypes';
+import React from "react";
+import { SearchInputHeader } from "../SearchBar/SearchInputHeader";
+import type { SearchBarControllerShellProps } from "../SearchBar/searchBarControllerTypes";
 
 interface ZenSearchHeaderProps {
   shellProps: SearchBarControllerShellProps;

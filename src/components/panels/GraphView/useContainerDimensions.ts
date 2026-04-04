@@ -2,7 +2,7 @@
  * Container dimensions hook using ResizeObserver
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from "react";
 
 interface Dimensions {
   width: number;

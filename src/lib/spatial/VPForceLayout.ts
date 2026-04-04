@@ -7,20 +7,20 @@
  * 3. Clustering: Group by type/category for coloring and separation
  */
 
-import type { AcademicNode, AcademicLink } from '../../types';
-import type { LayoutNode, LayoutLink, LayoutCluster, LayoutConfig } from './types';
-import { DEFAULT_LAYOUT_CONFIG } from './types';
+import type { AcademicNode, AcademicLink } from "../../types";
+import type { LayoutNode, LayoutLink, LayoutCluster, LayoutConfig } from "./types";
+import { DEFAULT_LAYOUT_CONFIG } from "./types";
 
 /**
  * Color palette for node types
  */
 const TYPE_COLORS: Record<string, string> = {
-  task: '#00D2FF',
-  event: '#4ADE80',
-  gateway: '#FFD700',
-  skill: '#FF6B6B',
-  knowledge: '#A78BFA',
-  default: '#6B7280',
+  task: "#00D2FF",
+  event: "#4ADE80",
+  gateway: "#FFD700",
+  skill: "#FF6B6B",
+  knowledge: "#A78BFA",
+  default: "#6B7280",
 };
 
 /**
@@ -52,7 +52,7 @@ export class VPForceLayout {
     // Group by type for initial clustering
     const typeGroups = new Map<string, AcademicNode[]>();
     nodes.forEach((node) => {
-      const type = node.type || 'default';
+      const type = node.type || "default";
       if (!typeGroups.has(type)) {
         typeGroups.set(type, []);
       }
@@ -129,7 +129,8 @@ export class VPForceLayout {
           const dy = other.y - node.y;
           const dz = other.z - node.z;
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-          const force = (dist - this.config.idealEdgeLength) * this.config.linkStrength * (link.strength || 1);
+          const force =
+            (dist - this.config.idealEdgeLength) * this.config.linkStrength * (link.strength || 1);
           fx += (dx / dist) * force;
           fy += (dy / dist) * force;
           fz += (dz / dist) * force;
@@ -225,7 +226,7 @@ export class VPForceLayout {
     const typeGroups = new Map<string, LayoutNode[]>();
 
     this.nodes.forEach((node) => {
-      const type = node.type || 'default';
+      const type = node.type || "default";
       if (!typeGroups.has(type)) {
         typeGroups.set(type, []);
       }
@@ -264,4 +265,4 @@ export class VPForceLayout {
 }
 
 // Re-export types
-export { DEFAULT_LAYOUT_CONFIG } from './types';
+export { DEFAULT_LAYOUT_CONFIG } from "./types";

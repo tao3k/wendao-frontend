@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
-import type { RepoIndexStatus } from '../../statusBar/types';
-import type { FileTreeProps } from './types';
+import { useEffect } from "react";
+import type { RepoIndexStatus } from "../../statusBar/types";
+import type { FileTreeProps } from "./types";
 
 interface UseFileTreeStatusOptions {
   error: string | null;
   isLoading: boolean;
-  onStatusChange?: FileTreeProps['onStatusChange'];
+  onStatusChange?: FileTreeProps["onStatusChange"];
   repoIndexStatus: RepoIndexStatus | null;
 }
 

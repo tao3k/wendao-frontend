@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   buildActiveCodeFilterEntries,
   buildCodeQuickExampleTokens,
   buildCodeQuickScenarios,
   type SearchFilters,
-} from './codeSearchUtils';
-import type { UiLocale } from './types';
+} from "./codeSearchUtils";
+import type { UiLocale } from "./types";
 
 interface UseCodeFilterPresentationParams {
   parsedCodeFilters: SearchFilters;

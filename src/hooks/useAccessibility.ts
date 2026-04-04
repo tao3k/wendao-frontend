@@ -7,7 +7,7 @@
  * - Color scheme preference
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface AccessibilityPreferences {
   /** User prefers reduced motion */
@@ -35,12 +35,12 @@ export function useAccessibility(): AccessibilityPreferences {
 
   useEffect(() => {
     // Check if window is available (SSR safety)
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const contrastQuery = window.matchMedia('(prefers-contrast: high)');
-    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const lightQuery = window.matchMedia('(prefers-color-scheme: light)');
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const contrastQuery = window.matchMedia("(prefers-contrast: high)");
+    const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const lightQuery = window.matchMedia("(prefers-color-scheme: light)");
 
     // Set initial values
     setPrefersReducedMotion(motionQuery.matches);
@@ -54,16 +54,16 @@ export function useAccessibility(): AccessibilityPreferences {
     const handleDarkChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
     const handleLightChange = (e: MediaQueryListEvent) => setPrefersLight(e.matches);
 
-    motionQuery.addEventListener('change', handleMotionChange);
-    contrastQuery.addEventListener('change', handleContrastChange);
-    darkQuery.addEventListener('change', handleDarkChange);
-    lightQuery.addEventListener('change', handleLightChange);
+    motionQuery.addEventListener("change", handleMotionChange);
+    contrastQuery.addEventListener("change", handleContrastChange);
+    darkQuery.addEventListener("change", handleDarkChange);
+    lightQuery.addEventListener("change", handleLightChange);
 
     return () => {
-      motionQuery.removeEventListener('change', handleMotionChange);
-      contrastQuery.removeEventListener('change', handleContrastChange);
-      darkQuery.removeEventListener('change', handleDarkChange);
-      lightQuery.removeEventListener('change', handleLightChange);
+      motionQuery.removeEventListener("change", handleMotionChange);
+      contrastQuery.removeEventListener("change", handleContrastChange);
+      darkQuery.removeEventListener("change", handleDarkChange);
+      lightQuery.removeEventListener("change", handleLightChange);
     };
   }, []);
 
@@ -72,7 +72,7 @@ export function useAccessibility(): AccessibilityPreferences {
   };
 
   const getTransition = (transition: string): string => {
-    return prefersReducedMotion ? 'none' : transition;
+    return prefersReducedMotion ? "none" : transition;
   };
 
   return {

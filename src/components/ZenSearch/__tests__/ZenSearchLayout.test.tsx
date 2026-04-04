@@ -1,27 +1,27 @@
-import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { ZenSearchLayout } from '../ZenSearchLayout';
-vi.mock('../ZenSearchWorkspace', () => ({
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { ZenSearchLayout } from "../ZenSearchLayout";
+vi.mock("../ZenSearchWorkspace", () => ({
   ZenSearchWorkspace: () => <div data-testid="mock-zen-workspace" />,
 }));
 
-vi.mock('../ZenSearchShortcutsBar', () => ({
+vi.mock("../ZenSearchShortcutsBar", () => ({
   ZenSearchShortcutsBar: () => <div data-testid="mock-zen-shortcuts" />,
 }));
 
-describe('ZenSearchLayout', () => {
+describe("ZenSearchLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the dedicated full-screen regions', () => {
+  it("renders the dedicated full-screen regions", () => {
     render(
       <ZenSearchLayout
         shellProps={
           {
             copy: {} as never,
-            locale: 'en',
+            locale: "en",
             renderDrawer: undefined,
           } as never
         }
@@ -34,11 +34,11 @@ describe('ZenSearchLayout', () => {
         suggestionsPanelProps={{} as never}
         codeFilterHelperProps={{} as never}
         showCodeFilterHelper={false}
-      />
+      />,
     );
 
-    expect(screen.getByTestId('zen-search-layout')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-zen-workspace')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-zen-shortcuts')).toBeInTheDocument();
+    expect(screen.getByTestId("zen-search-layout")).toBeInTheDocument();
+    expect(screen.getByTestId("mock-zen-workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("mock-zen-shortcuts")).toBeInTheDocument();
   });
 });

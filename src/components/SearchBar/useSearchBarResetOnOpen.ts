@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
-import type { SearchMeta } from './searchExecution';
-import type { SearchResult, SearchScope, SearchSort } from './types';
+import { useEffect } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { SearchMeta } from "./searchExecution";
+import type { SearchResult, SearchScope, SearchSort } from "./types";
 
 interface UseSearchBarResetOnOpenParams {
   isOpen: boolean;
@@ -36,15 +36,15 @@ export function useSearchBarResetOnOpen({
     }
 
     inputRef.current.focus();
-    setQuery('');
+    setQuery("");
     setResults([]);
     setError(null);
     setSearchMeta(null);
     setResultSelectedIndex(0);
     clearSuggestions();
     setShowSuggestions(true);
-    setScope('all');
-    setSortMode('relevance');
+    setScope("all");
+    setSortMode("relevance");
   }, [
     inputRef,
     isOpen,

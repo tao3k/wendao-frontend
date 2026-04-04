@@ -1,17 +1,14 @@
-import { useState, useCallback } from 'react';
-import { api } from '../../api';
-import type { SearchResult } from './types';
+import { useState, useCallback } from "react";
+import { api } from "../../api";
+import type { SearchResult } from "./types";
 
 export function useRefineAction() {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementError, setRefinementError] = useState<string | null>(null);
 
-  const refineEntity = useCallback(async (
-    result: SearchResult, 
-    userHints?: string
-  ) => {
+  const refineEntity = useCallback(async (result: SearchResult, userHints?: string) => {
     if (!result.codeRepo) {
-      setRefinementError('No repository associated with this entity');
+      setRefinementError("No repository associated with this entity");
       return null;
     }
 
@@ -26,7 +23,7 @@ export function useRefineAction() {
       });
       return response;
     } catch (err) {
-      setRefinementError(err instanceof Error ? err.message : 'Refinement failed');
+      setRefinementError(err instanceof Error ? err.message : "Refinement failed");
       return null;
     } finally {
       setIsRefining(false);

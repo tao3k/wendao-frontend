@@ -4,35 +4,48 @@
  * Simplified version without physics worker to avoid recursion issues.
  */
 
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Stars, OrbitControls } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
-import * as THREE from 'three';
-import { AcademicTopology } from '../types';
-import { useSpatialLayout } from '../hooks';
-import { NebulaRenderer } from './NebulaRenderer';
-import { topologyShapeSignature } from '../utils/topologyContinuity';
-import {
-  ChromaticAberrationShader,
-  HyperspaceTransitionProvider,
-  useHyperspace,
-} from '../effects';
-import type { ChromaticAberrationShaderRef } from '../effects';
+import React, { useEffect, useMemo, useRef, useCallback } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Stars, OrbitControls } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+import * as THREE from "three";
+import { AcademicTopology } from "../types";
+import { useSpatialLayout } from "../hooks";
+import { NebulaRenderer } from "./NebulaRenderer";
+import { topologyShapeSignature } from "../utils/topologyContinuity";
+import { ChromaticAberrationShader, HyperspaceTransitionProvider, useHyperspace } from "../effects";
+import type { ChromaticAberrationShaderRef } from "../effects";
 
 const DEFAULT_CAMERA_POSITION: [number, number, number] = [0, 0, 50];
 const DEFAULT_TRANSITION_DURATION = 900;
+const COSMIC_BACKGROUND_WRAPPER_STYLE = {
+  width: "100%",
+  height: "100%",
+  background: "linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)",
+} as const;
+const COSMIC_CANVAS_CAMERA = { position: DEFAULT_CAMERA_POSITION, fov: 60 } as const;
+const COSMIC_CANVAS_GL = { antialias: false, alpha: false } as const;
+const COSMIC_CANVAS_DPR = [1, 1.5] as const;
+const COSMIC_BACKGROUND_COLOR_ARGS = ["#0d1117"] as const;
+const COSMIC_FOG_ARGS = ["#0d1117", 50, 150] as const;
+const COSMIC_CORE_GEOMETRY_ARGS = [2, 1] as const;
+const COSMIC_LIGHT_PRIMARY_POSITION = [10, 10, 10] as const;
+const COSMIC_LIGHT_SECONDARY_POSITION = [-10, -10, -10] as const;
 
 const TYPE_COLORS: Record<string, string> = {
-  task: '#00D2FF',
-  event: '#4ADE80',
-  gateway: '#FFD700',
-  skill: '#FF6B6B',
-  knowledge: '#A78BFA',
-  default: '#6B7280',
+  task: "#00D2FF",
+  event: "#4ADE80",
+  gateway: "#FFD700",
+  skill: "#FF6B6B",
+  knowledge: "#A78BFA",
+  default: "#6B7280",
 };
 
 const DEFAULT_NODE_SIZE = 0.9;
+const EMPTY_TOPOLOGY: AcademicTopology = {
+  nodes: [],
+  links: [],
+};
 
 interface CosmicBackgroundProps {
   topology?: AcademicTopology;
@@ -84,7 +97,7 @@ function CentralCore() {
 
   return (
     <mesh ref={coreRef}>
-      <icosahedronGeometry args={[2, 1]} />
+      <icosahedronGeometry args={COSMIC_CORE_GEOMETRY_ARGS} />
       <meshStandardMaterial
         color="#7dcfff"
         emissive="#7dcfff"
@@ -103,8 +116,8 @@ function Scene({ active, nodes, links, onNodeClick }: SceneProps) {
     <>
       {/* Ambient lighting */}
       <ambientLight intensity={0.2} />
-      <pointLight position={[10, 10, 10]} intensity={0.5} color="#7dcfff" />
-      <pointLight position={[-10, -10, -10]} intensity={0.3} color="#f7768e" />
+      <pointLight position={COSMIC_LIGHT_PRIMARY_POSITION} intensity={0.5} color="#7dcfff" />
+      <pointLight position={COSMIC_LIGHT_SECONDARY_POSITION} intensity={0.3} color="#f7768e" />
 
       {/* Background stars */}
       <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
@@ -114,12 +127,7 @@ function Scene({ active, nodes, links, onNodeClick }: SceneProps) {
 
       {/* Topology layer */}
       {nodes.length > 0 && (
-        <NebulaRenderer
-          nodes={nodes}
-          links={links}
-          onNodeClick={onNodeClick}
-          layoutMode="static"
-        />
+        <NebulaRenderer nodes={nodes} links={links} onNodeClick={onNodeClick} layoutMode="static" />
       )}
 
       {/* Controls */}
@@ -160,7 +168,7 @@ function HyperspaceTrigger({ triggerKey, target, active = true }: HyperspaceTrig
 
     startTransition(targetPosition, {
       duration: DEFAULT_TRANSITION_DURATION,
-      easing: 'easeInOutQuart',
+      easing: "easeInOutQuart",
       warpEffect: true,
     });
   }, [active, triggerKey, target, camera, startTransition]);
@@ -170,15 +178,21 @@ function HyperspaceTrigger({ triggerKey, target, active = true }: HyperspaceTrig
 
 export const CosmicBackground: React.FC<CosmicBackgroundProps> = (props) => {
   const { topology, active = true, transitionKey, transitionTarget, onNodeClick } = props;
-  const topologyNodes = topology?.nodes ?? [];
-  const topologyLinks = topology?.links ?? [];
+  const topologyNodes = topology?.nodes ?? EMPTY_TOPOLOGY.nodes;
+  const topologyLinks = topology?.links ?? EMPTY_TOPOLOGY.links;
   const topologyShapeKey = useMemo(
     () => topologyShapeSignature(topologyNodes, topologyLinks),
-    [topologyLinks, topologyNodes]
+    [topologyLinks, topologyNodes],
   );
   const lastTopologyShapeKeyRef = useRef<string | null>(null);
 
-  const { nodes: layoutNodes, initialize, synchronize, tick, stop } = useSpatialLayout({
+  const {
+    nodes: layoutNodes,
+    initialize,
+    synchronize,
+    tick,
+    stop,
+  } = useSpatialLayout({
     autoTick: false,
     config: {
       minDistance: 24,
@@ -224,7 +238,7 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = (props) => {
 
   const layoutPositionMap = useMemo(() => {
     return new Map(
-      layoutNodes.map((node) => [node.id, [node.x, node.y, node.z] as [number, number, number]])
+      layoutNodes.map((node) => [node.id, [node.x, node.y, node.z] as [number, number, number]]),
     );
   }, [layoutNodes]);
 
@@ -235,18 +249,17 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = (props) => {
     return topologyNodes.map((node, index) => {
       if (node.position) return node.position;
       const angle = (index / count) * Math.PI * 2;
-      return [
-        Math.cos(angle) * radius,
-        Math.sin(angle * 2) * 6,
-        Math.sin(angle) * radius,
-      ] as [number, number, number];
+      return [Math.cos(angle) * radius, Math.sin(angle * 2) * 6, Math.sin(angle) * radius] as [
+        number,
+        number,
+        number,
+      ];
     });
   }, [topologyNodes]);
 
   const nebulaNodes = useMemo(() => {
     return topologyNodes.map((node, index) => {
-      const position =
-        layoutPositionMap.get(node.id) ?? fallbackPositions[index] ?? [0, 0, 0];
+      const position = layoutPositionMap.get(node.id) ?? fallbackPositions[index] ?? [0, 0, 0];
       return {
         id: node.id,
         x: position[0],
@@ -266,29 +279,23 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = (props) => {
 
   const handleNebulaClick = useCallback(
     (node: NebulaSceneNode) => {
-      onNodeClick?.(node.label ?? node.id, node.type ?? 'node', node.id);
+      onNodeClick?.(node.label ?? node.id, node.type ?? "node", node.id);
     },
-    [onNodeClick]
+    [onNodeClick],
   );
 
   const chromaticRef = useRef<ChromaticAberrationShaderRef | null>(null);
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        background: 'linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)',
-      }}
-    >
+    <div style={COSMIC_BACKGROUND_WRAPPER_STYLE}>
       <Canvas
-        camera={{ position: DEFAULT_CAMERA_POSITION, fov: 60 }}
-        gl={{ antialias: false, alpha: false }}
-        dpr={[1, 1.5]}
+        camera={COSMIC_CANVAS_CAMERA}
+        gl={COSMIC_CANVAS_GL}
+        dpr={COSMIC_CANVAS_DPR}
       >
         <HyperspaceTransitionProvider chromaticAberrationRef={chromaticRef}>
-          <color attach="background" args={['#0d1117']} />
-          <fog attach="fog" args={['#0d1117', 50, 150]} />
+          <color attach="background" args={COSMIC_BACKGROUND_COLOR_ARGS} />
+          <fog attach="fog" args={COSMIC_FOG_ARGS} />
           <Scene
             active={active}
             nodes={nebulaNodes}
@@ -296,11 +303,7 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = (props) => {
             onNodeClick={handleNebulaClick}
           />
           <PostProcessing chromaticRef={chromaticRef} />
-          <HyperspaceTrigger
-            active={active}
-            triggerKey={transitionKey}
-            target={transitionTarget}
-          />
+          <HyperspaceTrigger active={active} triggerKey={transitionKey} target={transitionTarget} />
         </HyperspaceTransitionProvider>
       </Canvas>
     </div>

@@ -1,9 +1,9 @@
-import { create } from '@bufbuild/protobuf';
-import { createClient, ConnectError } from '@connectrpc/connect';
-import { createGrpcWebTransport } from '@connectrpc/connect-web';
+import { create } from "@bufbuild/protobuf";
+import { createClient, ConnectError } from "@connectrpc/connect";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-import type { RepoIndexStatusResponse } from './apiContracts';
-import { ApiClientError } from './responseTransport';
+import type { RepoIndexStatusResponse } from "./apiContracts";
+import { ApiClientError } from "./responseTransport";
 import {
   FlightData,
   FlightDescriptor,
@@ -13,12 +13,12 @@ import {
   FlightService,
   Ticket,
   TicketSchema,
-} from './flight/generated/Flight_pb';
-import { reassembleArrowIpcStreamFromFlight } from './flightSearchTransport';
+} from "./flight/generated/Flight_pb";
+import { reassembleArrowIpcStreamFromFlight } from "./flightSearchTransport";
 
-const WENDAO_SCHEMA_VERSION_HEADER = 'x-wendao-schema-version';
-const WENDAO_REPO_INDEX_STATUS_REPO_HEADER = 'x-wendao-repo-index-status-repo';
-const ANALYSIS_REPO_INDEX_STATUS_ROUTE = '/analysis/repo-index-status';
+const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
+const WENDAO_REPO_INDEX_STATUS_REPO_HEADER = "x-wendao-repo-index-status-repo";
+const ANALYSIS_REPO_INDEX_STATUS_ROUTE = "/analysis/repo-index-status";
 
 export interface RepoIndexStatusFlightRequest {
   baseUrl: string;
@@ -31,29 +31,22 @@ interface FlightServiceClientLike {
     descriptor: FlightDescriptor,
     options?: { headers?: HeadersInit },
   ): Promise<FlightInfo>;
-  doGet(
-    ticket: Ticket,
-    options?: { headers?: HeadersInit },
-  ): AsyncIterable<FlightData>;
+  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
 }
 
 export interface FlightRepoIndexStatusTransportDeps {
   createClient?: (baseUrl: string) => FlightServiceClientLike;
-  decodeRepoIndexStatusResponse?: (
-    payload: ArrayBuffer,
-  ) => RepoIndexStatusResponse;
+  decodeRepoIndexStatusResponse?: (payload: ArrayBuffer) => RepoIndexStatusResponse;
 }
 
 export function buildRepoIndexStatusFlightDescriptor(): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
-    path: ANALYSIS_REPO_INDEX_STATUS_ROUTE.slice(1).split('/'),
+    path: ANALYSIS_REPO_INDEX_STATUS_ROUTE.slice(1).split("/"),
   });
 }
 
-export function buildRepoIndexStatusFlightHeaders(
-  request: RepoIndexStatusFlightRequest,
-): Headers {
+export function buildRepoIndexStatusFlightHeaders(request: RepoIndexStatusFlightRequest): Headers {
   const headers = new Headers();
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
   const repoId = request.repo?.trim();
@@ -87,7 +80,7 @@ export async function loadRepoIndexStatusFlight(
 
 function createFlightServiceClient(baseUrl: string): FlightServiceClientLike {
   const transport = createGrpcWebTransport({
-    baseUrl: baseUrl.trim().replace(/\/+$/, ''),
+    baseUrl: baseUrl.trim().replace(/\/+$/, ""),
   });
   return createClient(FlightService, transport);
 }
@@ -95,14 +88,14 @@ function createFlightServiceClient(baseUrl: string): FlightServiceClientLike {
 function readFlightTicket(flightInfo: FlightInfo): Ticket {
   const ticketBytes = flightInfo.endpoint[0]?.ticket?.ticket;
   if (!ticketBytes || ticketBytes.byteLength === 0) {
-    throw new Error('Flight repo index status route returned no readable ticket');
+    throw new Error("Flight repo index status route returned no readable ticket");
   }
   return create(TicketSchema, { ticket: ticketBytes });
 }
 
 function missingRepoIndexStatusDecoder(): never {
   throw new Error(
-    'loadRepoIndexStatusFlight requires a decodeRepoIndexStatusResponse implementation',
+    "loadRepoIndexStatusFlight requires a decodeRepoIndexStatusResponse implementation",
   );
 }
 
@@ -111,32 +104,26 @@ function mapFlightRepoIndexStatusError(error: unknown): ApiClientError {
     return error;
   }
   if (error instanceof ConnectError) {
-    return new ApiClientError(
-      inferFlightRepoIndexStatusErrorCode(error.message),
-      error.message,
-    );
+    return new ApiClientError(inferFlightRepoIndexStatusErrorCode(error.message), error.message);
   }
   if (error instanceof Error) {
-    return new ApiClientError(
-      inferFlightRepoIndexStatusErrorCode(error.message),
-      error.message,
-    );
+    return new ApiClientError(inferFlightRepoIndexStatusErrorCode(error.message), error.message);
   }
   return new ApiClientError(
-    'FLIGHT_REPO_INDEX_STATUS_ERROR',
-    'Unknown Flight repo index status failure',
+    "FLIGHT_REPO_INDEX_STATUS_ERROR",
+    "Unknown Flight repo index status failure",
   );
 }
 
 function inferFlightRepoIndexStatusErrorCode(message: string): string {
-  if (message.includes('UNKNOWN_REPOSITORY')) {
-    return 'UNKNOWN_REPOSITORY';
+  if (message.includes("UNKNOWN_REPOSITORY")) {
+    return "UNKNOWN_REPOSITORY";
   }
-  if (message.includes('UI_CONFIG_REQUIRED')) {
-    return 'UI_CONFIG_REQUIRED';
+  if (message.includes("UI_CONFIG_REQUIRED")) {
+    return "UI_CONFIG_REQUIRED";
   }
-  if (message.includes('FLIGHT_CONFIG_REQUIRED')) {
-    return 'FLIGHT_CONFIG_REQUIRED';
+  if (message.includes("FLIGHT_CONFIG_REQUIRED")) {
+    return "FLIGHT_CONFIG_REQUIRED";
   }
-  return 'FLIGHT_REPO_INDEX_STATUS_ERROR';
+  return "FLIGHT_REPO_INDEX_STATUS_ERROR";
 }

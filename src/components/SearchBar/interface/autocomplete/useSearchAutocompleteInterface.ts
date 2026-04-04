@@ -1,10 +1,10 @@
-import { createAutocomplete, type AutocompleteApi } from '@algolia/autocomplete-core';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AutocompleteSuggestion } from '../../../../api';
-import type { SearchFilters } from '../../codeSearchUtils';
-import { buildVisibleSearchSuggestions } from '../../searchSuggestionBudget';
-import type { SearchScope } from '../../types';
-import { buildSearchAutocompleteSources } from './buildSearchAutocompleteSources';
+import { createAutocomplete, type AutocompleteApi } from "@algolia/autocomplete-core";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { AutocompleteSuggestion } from "../../../../api";
+import type { SearchFilters } from "../../codeSearchUtils";
+import { buildVisibleSearchSuggestions } from "../../searchSuggestionBudget";
+import type { SearchScope } from "../../types";
+import { buildSearchAutocompleteSources } from "./buildSearchAutocompleteSources";
 
 interface UseSearchAutocompleteInterfaceParams {
   isOpen: boolean;
@@ -24,23 +24,25 @@ interface AutocompleteParamsRef {
 
 function serializeSearchFilters(filters: SearchFilters): string {
   return [
-    filters.language.join(','),
-    filters.kind.join(','),
-    filters.repo.join(','),
-    filters.path.join(','),
-  ].join('|');
+    filters.language.join(","),
+    filters.kind.join(","),
+    filters.repo.join(","),
+    filters.path.join(","),
+  ].join("|");
 }
 
 function flattenCollections(
   collections: Array<{ items: AutocompleteSuggestion[] }>,
 ): AutocompleteSuggestion[] {
   const merged = new Map<string, AutocompleteSuggestion>();
-  collections.flatMap((collection) => collection.items).forEach((suggestion) => {
-    const key = `${suggestion.docType ?? ''}::${suggestion.suggestionType}::${suggestion.text}`;
-    if (!merged.has(key)) {
-      merged.set(key, suggestion);
-    }
-  });
+  collections
+    .flatMap((collection) => collection.items)
+    .forEach((suggestion) => {
+      const key = `${suggestion.docType ?? ""}::${suggestion.suggestionType}::${suggestion.text}`;
+      if (!merged.has(key)) {
+        merged.set(key, suggestion);
+      }
+    });
   return Array.from(merged.values());
 }
 
@@ -55,9 +57,9 @@ function areAutocompleteSuggestionsEqual(
   return previous.every((suggestion, index) => {
     const candidate = next[index];
     return (
-      suggestion.text === candidate?.text
-      && suggestion.suggestionType === candidate?.suggestionType
-      && suggestion.docType === candidate?.docType
+      suggestion.text === candidate?.text &&
+      suggestion.suggestionType === candidate?.suggestionType &&
+      suggestion.docType === candidate?.docType
     );
   });
 }
@@ -98,34 +100,38 @@ export function useSearchAutocompleteInterface({
   };
 
   const autocompleteRef = useRef<AutocompleteApi<AutocompleteSuggestion> | null>(null);
-  const syncSuggestionProjection = useCallback((
-    nextSuggestions: AutocompleteSuggestion[],
-    nextActiveItemId?: number | null,
-    isSuggestionsOpen?: boolean,
-  ) => {
-    const visibleSuggestions = buildVisibleSearchSuggestions(nextSuggestions);
-    const nextIsOpen = Boolean(isSuggestionsOpen && visibleSuggestions.length > 0);
-    if (!areAutocompleteSuggestionsEqual(suggestionsRef.current, visibleSuggestions)) {
-      suggestionsRef.current = visibleSuggestions;
-      setSuggestions(visibleSuggestions);
-    }
-
-    if (!nextIsOpen) {
-      if (activeSuggestionIndexRef.current !== 0) {
-        activeSuggestionIndexRef.current = 0;
-        setActiveSuggestionIndexState(0);
+  const syncSuggestionProjection = useCallback(
+    (
+      nextSuggestions: AutocompleteSuggestion[],
+      nextActiveItemId?: number | null,
+      isSuggestionsOpen?: boolean,
+    ) => {
+      const visibleSuggestions = buildVisibleSearchSuggestions(nextSuggestions);
+      const nextIsOpen = Boolean(isSuggestionsOpen && visibleSuggestions.length > 0);
+      if (!areAutocompleteSuggestionsEqual(suggestionsRef.current, visibleSuggestions)) {
+        suggestionsRef.current = visibleSuggestions;
+        setSuggestions(visibleSuggestions);
       }
-      return;
-    }
 
-    const nextActiveSuggestionIndex = typeof nextActiveItemId === 'number'
-      ? Math.min(Math.max(nextActiveItemId, 0), visibleSuggestions.length - 1)
-      : 0;
-    if (activeSuggestionIndexRef.current !== nextActiveSuggestionIndex) {
-      activeSuggestionIndexRef.current = nextActiveSuggestionIndex;
-      setActiveSuggestionIndexState(nextActiveSuggestionIndex);
-    }
-  }, []);
+      if (!nextIsOpen) {
+        if (activeSuggestionIndexRef.current !== 0) {
+          activeSuggestionIndexRef.current = 0;
+          setActiveSuggestionIndexState(0);
+        }
+        return;
+      }
+
+      const nextActiveSuggestionIndex =
+        typeof nextActiveItemId === "number"
+          ? Math.min(Math.max(nextActiveItemId, 0), visibleSuggestions.length - 1)
+          : 0;
+      if (activeSuggestionIndexRef.current !== nextActiveSuggestionIndex) {
+        activeSuggestionIndexRef.current = nextActiveSuggestionIndex;
+        setActiveSuggestionIndexState(nextActiveSuggestionIndex);
+      }
+    },
+    [],
+  );
 
   const clearSuggestions = useCallback(() => {
     const autocomplete = autocompleteRef.current;
@@ -152,20 +158,23 @@ export function useSearchAutocompleteInterface({
     }
   }, []);
 
-  const selectSuggestion = useCallback((suggestion?: AutocompleteSuggestion) => {
-    if (!suggestion) {
-      return false;
-    }
+  const selectSuggestion = useCallback(
+    (suggestion?: AutocompleteSuggestion) => {
+      if (!suggestion) {
+        return false;
+      }
 
-    const autocomplete = autocompleteRef.current;
-    autocomplete?.setQuery(suggestion.text);
-    clearSuggestions();
-    return true;
-  }, [clearSuggestions]);
+      const autocomplete = autocompleteRef.current;
+      autocomplete?.setQuery(suggestion.text);
+      clearSuggestions();
+      return true;
+    },
+    [clearSuggestions],
+  );
 
   useEffect(() => {
     autocompleteRef.current = createAutocomplete<AutocompleteSuggestion>({
-      id: 'searchbar-interface-autocomplete',
+      id: "searchbar-interface-autocomplete",
       defaultActiveItemId: 0,
       openOnFocus: true,
       onStateChange({ state }) {
@@ -202,11 +211,7 @@ export function useSearchAutocompleteInterface({
       return;
     }
 
-    const refreshKey = [
-      scope,
-      debouncedAutocomplete,
-      parsedCodeFiltersKey,
-    ].join('::');
+    const refreshKey = [scope, debouncedAutocomplete, parsedCodeFiltersKey].join("::");
     if (lastRefreshKeyRef.current === refreshKey) {
       return;
     }

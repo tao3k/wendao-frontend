@@ -2,23 +2,28 @@
  * Tests for CameraController component
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, act } from "@testing-library/react";
 
 // Mock @react-three/fiber FIRST
 const mockCamera = {
-  position: { x: 0, y: 0, z: 0, set: vi.fn((x, y, z) => {
-    mockCamera.position.x = x;
-    mockCamera.position.y = y;
-    mockCamera.position.z = z;
-  }) },
+  position: {
+    x: 0,
+    y: 0,
+    z: 0,
+    set: vi.fn((x, y, z) => {
+      mockCamera.position.x = x;
+      mockCamera.position.y = y;
+      mockCamera.position.z = z;
+    }),
+  },
   lookAt: vi.fn(),
   updateProjectionMatrix: vi.fn(),
   zoom: 1,
   quaternion: { x: 0, y: 0, z: 0, w: 1 },
 };
 
-vi.mock('@react-three/fiber', () => ({
+vi.mock("@react-three/fiber", () => ({
   useThree: () => ({ camera: mockCamera }),
   useFrame: vi.fn(),
 }));
@@ -30,7 +35,7 @@ const mockResetCamera = vi.fn(() => () => {});
 const mockIsTweening = vi.fn(() => false);
 const mockGetDefaultDuration = vi.fn(() => 500);
 
-vi.mock('../lib/camera/tweenCamera', () => ({
+vi.mock("../lib/camera/tweenCamera", () => ({
   focusOnNode: () => mockFocusOnNode(),
   focusOnCluster: () => mockFocusOnCluster(),
   resetCamera: () => mockResetCamera(),
@@ -46,16 +51,16 @@ const onMock = vi.fn((event: string, handler: (payload: unknown) => void) => {
   return unsubscribeMock;
 });
 
-vi.mock('../lib/EventBus', () => ({
+vi.mock("../lib/EventBus", () => ({
   eventBus: {
     on: (event: string, handler: (payload: unknown) => void) => onMock(event, handler),
   },
 }));
 
 // NOW import the component
-import { CameraController } from './CameraController';
+import { CameraController } from "./CameraController";
 
-describe('CameraController', () => {
+describe("CameraController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     eventHandlers.length = 0;
@@ -68,49 +73,49 @@ describe('CameraController', () => {
     eventHandlers.length = 0;
   });
 
-  describe('rendering', () => {
-    it('should render nothing', () => {
+  describe("rendering", () => {
+    it("should render nothing", () => {
       const { container } = render(<CameraController />);
       expect(container.firstChild).toBeNull();
     });
   });
 
-  describe('event subscriptions', () => {
-    it('should subscribe to node:selected event when autoFocus is true', () => {
+  describe("event subscriptions", () => {
+    it("should subscribe to node:selected event when autoFocus is true", () => {
       render(<CameraController autoFocus={true} />);
 
-      const nodeSelectedSub = eventHandlers.find(([eventName]) => eventName === 'node:selected');
+      const nodeSelectedSub = eventHandlers.find(([eventName]) => eventName === "node:selected");
       expect(nodeSelectedSub).toBeDefined();
     });
 
-    it('should not subscribe to node:selected when autoFocus is false', () => {
+    it("should not subscribe to node:selected when autoFocus is false", () => {
       render(<CameraController autoFocus={false} />);
 
-      const nodeSelectedSub = eventHandlers.find(([eventName]) => eventName === 'node:selected');
+      const nodeSelectedSub = eventHandlers.find(([eventName]) => eventName === "node:selected");
       expect(nodeSelectedSub).toBeUndefined();
     });
 
-    it('should subscribe to camera:focus event', () => {
+    it("should subscribe to camera:focus event", () => {
       render(<CameraController />);
 
-      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === "camera:focus");
       expect(cameraFocusSub).toBeDefined();
     });
   });
 
-  describe('camera:focus event handling', () => {
-    it('should call focusOnNode when target is node', () => {
+  describe("camera:focus event handling", () => {
+    it("should call focusOnNode when target is node", () => {
       render(<CameraController />);
 
-      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === "camera:focus");
       if (!cameraFocusSub) {
-        throw new Error('camera:focus handler not registered');
+        throw new Error("camera:focus handler not registered");
       }
       const handler = cameraFocusSub[1];
 
       act(() => {
         handler({
-          target: 'node',
+          target: "node",
           position: [10, 5, 10],
         });
       });
@@ -118,18 +123,18 @@ describe('CameraController', () => {
       expect(mockFocusOnNode).toHaveBeenCalled();
     });
 
-    it('should call focusOnCluster when target is cluster', () => {
+    it("should call focusOnCluster when target is cluster", () => {
       render(<CameraController />);
 
-      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === "camera:focus");
       if (!cameraFocusSub) {
-        throw new Error('camera:focus handler not registered');
+        throw new Error("camera:focus handler not registered");
       }
       const handler = cameraFocusSub[1];
 
       act(() => {
         handler({
-          target: 'cluster',
+          target: "cluster",
           centroid: [0, 0, 0],
           nodeCount: 10,
         });
@@ -138,18 +143,18 @@ describe('CameraController', () => {
       expect(mockFocusOnCluster).toHaveBeenCalled();
     });
 
-    it('should call resetCamera when target is reset', () => {
+    it("should call resetCamera when target is reset", () => {
       render(<CameraController />);
 
-      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === 'camera:focus');
+      const cameraFocusSub = eventHandlers.find(([eventName]) => eventName === "camera:focus");
       if (!cameraFocusSub) {
-        throw new Error('camera:focus handler not registered');
+        throw new Error("camera:focus handler not registered");
       }
       const handler = cameraFocusSub[1];
 
       act(() => {
         handler({
-          target: 'reset',
+          target: "reset",
         });
       });
 
@@ -157,30 +162,30 @@ describe('CameraController', () => {
     });
   });
 
-  describe('keyboard shortcuts', () => {
-    it('should reset camera on Escape key', () => {
+  describe("keyboard shortcuts", () => {
+    it("should reset camera on Escape key", () => {
       render(<CameraController enableKeyboardShortcuts={true} />);
 
       act(() => {
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
       });
 
       expect(mockResetCamera).toHaveBeenCalled();
     });
 
-    it('should not respond to keyboard when disabled', () => {
+    it("should not respond to keyboard when disabled", () => {
       render(<CameraController enableKeyboardShortcuts={false} />);
 
       act(() => {
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
       });
 
       expect(mockResetCamera).not.toHaveBeenCalled();
     });
   });
 
-  describe('cleanup', () => {
-    it('should unsubscribe from events on unmount', () => {
+  describe("cleanup", () => {
+    it("should unsubscribe from events on unmount", () => {
       const { unmount } = render(<CameraController />);
       unmount();
 

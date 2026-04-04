@@ -1,18 +1,18 @@
-import React, { useEffect } from 'react';
-import { isCodeDiagramPath, isMarkdownPath } from './diagramSignature';
-import { getDiagramWindowCopy } from './diagramWindowCopy';
-import type { DiagramWindowLocale } from './diagramWindowTypes';
+import React, { useEffect } from "react";
+import { isCodeDiagramPath, isMarkdownPath } from "./diagramSignature";
+import { getDiagramWindowCopy } from "./diagramWindowCopy";
+import type { DiagramWindowLocale } from "./diagramWindowTypes";
 import {
   buildDiagramWindowToolbarCopy,
   buildDiagramWindowWorkspaceCopy,
   resolveDiagramHeading,
   resolveNoDiagramMessage,
-} from './diagramWindowViewModel';
-import { useDiagramWindowViewModel } from './useDiagramWindowViewModel';
-import { DiagramWindowToolbar } from './DiagramWindowToolbar';
-import { DiagramWindowWorkspace, preloadDiagramWindowTopology } from './DiagramWindowWorkspace';
-import { MarkdownWaterfall } from '../DirectReader/MarkdownWaterfall';
-import './DiagramWindow.css';
+} from "./diagramWindowViewModel";
+import { useDiagramWindowViewModel } from "./useDiagramWindowViewModel";
+import { DiagramWindowToolbar } from "./DiagramWindowToolbar";
+import { DiagramWindowWorkspace, preloadDiagramWindowTopology } from "./DiagramWindowWorkspace";
+import { MarkdownWaterfall } from "../DirectReader/MarkdownWaterfall";
+import "./DiagramWindow.css";
 
 interface DiagramWindowProps {
   path: string;
@@ -25,7 +25,7 @@ interface DiagramWindowProps {
 export function DiagramWindow({
   path,
   content,
-  locale = 'en',
+  locale = "en",
   focusEpoch = 0,
   onNodeClick,
 }: DiagramWindowProps): React.ReactElement {
@@ -67,7 +67,7 @@ export function DiagramWindow({
     );
   }
 
-  if (kind === 'none') {
+  if (kind === "none") {
     if (isMarkdownPath(path)) {
       return (
         <div className="diagram-window diagram-window--markdown">
@@ -82,15 +82,13 @@ export function DiagramWindow({
       copy,
       isMarkdownPath(path),
       isCodeDiagramPath(path),
-      analysisLoading
+      analysisLoading,
     );
 
     return (
       <div className="diagram-window diagram-window--empty">
         <h3 className="diagram-window__heading">{copy.noDiagramDetected}</h3>
-        <p className="diagram-window__message">
-          {noDiagramMessage}
-        </p>
+        <p className="diagram-window__message">{noDiagramMessage}</p>
         <p className="diagram-window__path">{path}</p>
       </div>
     );

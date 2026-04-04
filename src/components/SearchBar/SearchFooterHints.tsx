@@ -1,5 +1,5 @@
-import React from 'react';
-import type { SearchBarCopy } from './types';
+import React from "react";
+import type { SearchBarCopy } from "./types";
 
 interface SearchFooterHintsProps {
   copy: SearchBarCopy;

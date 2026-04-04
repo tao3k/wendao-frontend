@@ -4,12 +4,21 @@
  * Tests easing functions, tween state management, and camera updates.
  */
 
-import { describe, it, expect } from 'vitest';
-import { easingFunctions, type EasingFunction } from '../CameraTween';
+import { describe, it, expect } from "vitest";
+import { easingFunctions, type EasingFunction } from "../CameraTween";
 
-describe('CameraTween Easing Functions', () => {
-  describe('linear', () => {
-    it('should return input unchanged', () => {
+function getWarpIntensity(progress: number): number {
+  const peak = 0.5;
+  if (progress < peak) {
+    return progress / peak;
+  }
+
+  return 1 - (progress - peak) / peak;
+}
+
+describe("CameraTween Easing Functions", () => {
+  describe("linear", () => {
+    it("should return input unchanged", () => {
       const linear = easingFunctions.linear;
       expect(linear(0)).toBe(0);
       expect(linear(0.5)).toBe(0.5);
@@ -17,8 +26,8 @@ describe('CameraTween Easing Functions', () => {
     });
   });
 
-  describe('easeOutExpo', () => {
-    it('should start slow and end fast', () => {
+  describe("easeOutExpo", () => {
+    it("should start slow and end fast", () => {
       const ease = easingFunctions.easeOutExpo;
       expect(ease(0)).toBe(0);
       expect(ease(1)).toBe(1);
@@ -29,13 +38,13 @@ describe('CameraTween Easing Functions', () => {
       expect(ease(0.5)).toBeGreaterThan(0.9);
     });
 
-    it('should handle edge case at t=1', () => {
+    it("should handle edge case at t=1", () => {
       expect(easingFunctions.easeOutExpo(1)).toBe(1);
     });
   });
 
-  describe('easeInOutCubic', () => {
-    it('should be symmetric around 0.5', () => {
+  describe("easeInOutCubic", () => {
+    it("should be symmetric around 0.5", () => {
       const ease = easingFunctions.easeInOutCubic;
       expect(ease(0)).toBe(0);
       expect(ease(1)).toBe(1);
@@ -48,7 +57,7 @@ describe('CameraTween Easing Functions', () => {
       expect(ease(0.75)).toBeGreaterThan(0.75);
     });
 
-    it('should match cubic formula', () => {
+    it("should match cubic formula", () => {
       const ease = easingFunctions.easeInOutCubic;
 
       // First half: 4t³
@@ -61,8 +70,8 @@ describe('CameraTween Easing Functions', () => {
     });
   });
 
-  describe('easeOutBack', () => {
-    it('should overshoot slightly at the end', () => {
+  describe("easeOutBack", () => {
+    it("should overshoot slightly at the end", () => {
       const ease = easingFunctions.easeOutBack;
       expect(ease(0)).toBeCloseTo(0, 10);
       expect(ease(1)).toBe(1);
@@ -72,7 +81,7 @@ describe('CameraTween Easing Functions', () => {
       expect(ease(0.8)).toBeGreaterThan(1);
     });
 
-    it('should use correct constants', () => {
+    it("should use correct constants", () => {
       const c1 = 1.70158;
       const c3 = c1 + 1;
 
@@ -83,15 +92,15 @@ describe('CameraTween Easing Functions', () => {
     });
   });
 
-  describe('easeInOutQuart', () => {
-    it('should be symmetric around 0.5', () => {
+  describe("easeInOutQuart", () => {
+    it("should be symmetric around 0.5", () => {
       const ease = easingFunctions.easeInOutQuart;
       expect(ease(0)).toBe(0);
       expect(ease(1)).toBe(1);
       expect(ease(0.5)).toBe(0.5);
     });
 
-    it('should use quartic formula', () => {
+    it("should use quartic formula", () => {
       const ease = easingFunctions.easeInOutQuart;
 
       // First half: 8t⁴
@@ -104,22 +113,27 @@ describe('CameraTween Easing Functions', () => {
     });
   });
 
-  describe('all easing functions', () => {
-    it('should all return 0 at start', () => {
+  describe("all easing functions", () => {
+    it("should all return 0 at start", () => {
       Object.entries(easingFunctions).forEach(([name, fn]) => {
         expect(fn(0), `${name}(0) should be 0`).toBeCloseTo(0, 10);
       });
     });
 
-    it('should all return 1 at end', () => {
+    it("should all return 1 at end", () => {
       Object.entries(easingFunctions).forEach(([name, fn]) => {
         expect(fn(1), `${name}(1) should be 1`).toBeCloseTo(1, 10);
       });
     });
 
-    it('should all be monotonically increasing (except overshooting easings)', () => {
+    it("should all be monotonically increasing (except overshooting easings)", () => {
       const steps = 100;
-      const monotonicEasings: EasingFunction[] = ['linear', 'easeOutExpo', 'easeInOutCubic', 'easeInOutQuart'];
+      const monotonicEasings: EasingFunction[] = [
+        "linear",
+        "easeOutExpo",
+        "easeInOutCubic",
+        "easeInOutQuart",
+      ];
 
       monotonicEasings.forEach((name) => {
         const fn = easingFunctions[name];
@@ -133,7 +147,7 @@ describe('CameraTween Easing Functions', () => {
       });
     });
 
-    it('easeOutBack should overshoot then return', () => {
+    it("easeOutBack should overshoot then return", () => {
       const ease = easingFunctions.easeOutBack;
       // Find the peak overshoot
       let maxValue = 0;
@@ -151,7 +165,7 @@ describe('CameraTween Easing Functions', () => {
   });
 });
 
-describe('CameraTween State Management', () => {
+describe("CameraTween State Management", () => {
   // Mock THREE.js Vector3 for testing
   class MockVector3 {
     x: number;
@@ -176,8 +190,8 @@ describe('CameraTween State Management', () => {
     }
   }
 
-  describe('Vector interpolation', () => {
-    it('should interpolate between two vectors', () => {
+  describe("Vector interpolation", () => {
+    it("should interpolate between two vectors", () => {
       const from = new MockVector3(0, 0, 0);
       const to = new MockVector3(10, 20, 30);
       const result = new MockVector3();
@@ -188,7 +202,7 @@ describe('CameraTween State Management', () => {
       expect(result.z).toBe(15);
     });
 
-    it('should handle zero progress', () => {
+    it("should handle zero progress", () => {
       const from = new MockVector3(5, 10, 15);
       const to = new MockVector3(20, 30, 40);
       const result = new MockVector3();
@@ -199,7 +213,7 @@ describe('CameraTween State Management', () => {
       expect(result.z).toBe(15);
     });
 
-    it('should handle complete progress', () => {
+    it("should handle complete progress", () => {
       const from = new MockVector3(5, 10, 15);
       const to = new MockVector3(20, 30, 40);
       const result = new MockVector3();
@@ -211,8 +225,8 @@ describe('CameraTween State Management', () => {
     });
   });
 
-  describe('FOV interpolation', () => {
-    it('should interpolate FOV linearly', () => {
+  describe("FOV interpolation", () => {
+    it("should interpolate FOV linearly", () => {
       const fromFov = 60;
       const toFov = 90;
       const progress = 0.5;
@@ -221,7 +235,7 @@ describe('CameraTween State Management', () => {
       expect(fov).toBe(75);
     });
 
-    it('should handle warp effect FOV change', () => {
+    it("should handle warp effect FOV change", () => {
       const fromFov = 60;
       const warpFov = 90;
       const returnFov = 60;
@@ -247,39 +261,21 @@ describe('CameraTween State Management', () => {
   });
 });
 
-describe('CameraTween Warp Intensity', () => {
-  it('should peak at middle of transition', () => {
-    const getWarpIntensity = (progress: number): number => {
-      const peak = 0.5;
-      if (progress < peak) {
-        return progress / peak;
-      } else {
-        return 1 - (progress - peak) / peak;
-      }
-    };
-
+describe("CameraTween Warp Intensity", () => {
+  it("should peak at middle of transition", () => {
     expect(getWarpIntensity(0)).toBe(0);
     expect(getWarpIntensity(0.5)).toBe(1);
     expect(getWarpIntensity(1)).toBe(0);
   });
 
-  it('should be symmetric around peak', () => {
-    const getWarpIntensity = (progress: number): number => {
-      const peak = 0.5;
-      if (progress < peak) {
-        return progress / peak;
-      } else {
-        return 1 - (progress - peak) / peak;
-      }
-    };
-
+  it("should be symmetric around peak", () => {
     expect(getWarpIntensity(0.25)).toBeCloseTo(getWarpIntensity(0.75), 10);
     expect(getWarpIntensity(0.1)).toBeCloseTo(getWarpIntensity(0.9), 10);
   });
 });
 
-describe('CameraTween Timing', () => {
-  it('should calculate progress from timestamp', () => {
+describe("CameraTween Timing", () => {
+  it("should calculate progress from timestamp", () => {
     const startTime = 1000;
     const duration = 800;
 
@@ -294,7 +290,7 @@ describe('CameraTween Timing', () => {
     expect(getProgress(2000)).toBe(1); // Capped at 1
   });
 
-  it('should apply easing to progress before interpolation', () => {
+  it("should apply easing to progress before interpolation", () => {
     const startTime = 0;
     const duration = 1000;
     const timestamp = 500;

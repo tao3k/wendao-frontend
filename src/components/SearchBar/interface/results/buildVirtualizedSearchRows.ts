@@ -1,16 +1,16 @@
-import type { SearchResult } from '../../types';
-import type { SearchResultSection } from '../../searchResultSections';
-import { getSearchResultIdentity } from '../../searchResultIdentity';
+import type { SearchResult } from "../../types";
+import type { SearchResultSection } from "../../searchResultSections";
+import { getSearchResultIdentity } from "../../searchResultIdentity";
 
 export interface SearchResultsSectionRow {
-  type: 'section';
+  type: "section";
   key: string;
   title: string;
   hitCount: number;
 }
 
 export interface SearchResultsHitRow {
-  type: 'result';
+  type: "result";
   key: string;
   displayIndex: number;
   result: SearchResult;
@@ -26,7 +26,7 @@ export function buildVirtualizedSearchRows(
 
   visibleSections.forEach((section) => {
     rows.push({
-      type: 'section',
+      type: "section",
       key: `section:${section.key}`,
       title: section.title,
       hitCount: section.hits.length,
@@ -34,7 +34,7 @@ export function buildVirtualizedSearchRows(
 
     section.hits.forEach((result) => {
       rows.push({
-        type: 'result',
+        type: "result",
         key: `result:${getSearchResultIdentity(result)}`,
         displayIndex,
         result,

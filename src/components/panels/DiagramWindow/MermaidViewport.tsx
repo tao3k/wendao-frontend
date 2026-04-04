@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface MermaidViewportState {
   scale: number;
@@ -24,7 +24,9 @@ function clampMermaidScale(value: number): number {
   return Math.min(MERMAID_MAX_SCALE, Math.max(MERMAID_MIN_SCALE, value));
 }
 
-function resolveSvgBounds(svg: SVGSVGElement): { minX: number; minY: number; width: number; height: number } | null {
+function resolveSvgBounds(
+  svg: SVGSVGElement,
+): { minX: number; minY: number; width: number; height: number } | null {
   const viewBox = svg.viewBox?.baseVal;
   if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
     return {
@@ -72,7 +74,7 @@ export function MermaidViewport({
   const computeCenteredView = useCallback((): MermaidViewportState => {
     const viewportEl = viewportRef.current;
     const canvasEl = canvasRef.current;
-    const svgEl = canvasEl?.querySelector('svg');
+    const svgEl = canvasEl?.querySelector("svg");
     if (!viewportEl || !svgEl) {
       return DEFAULT_MERMAID_VIEW;
     }
@@ -86,8 +88,8 @@ export function MermaidViewport({
     const fitScale = clampMermaidScale(
       Math.min(
         (viewportRect.width * MERMAID_FIT_PADDING) / bounds.width,
-        (viewportRect.height * MERMAID_FIT_PADDING) / bounds.height
-      )
+        (viewportRect.height * MERMAID_FIT_PADDING) / bounds.height,
+      ),
     );
 
     return {
@@ -107,7 +109,7 @@ export function MermaidViewport({
 
   useEffect(() => {
     const viewportEl = viewportRef.current;
-    if (!viewportEl || typeof ResizeObserver === 'undefined') {
+    if (!viewportEl || typeof ResizeObserver === "undefined") {
       return;
     }
 
@@ -127,7 +129,7 @@ export function MermaidViewport({
     };
   }, [recenterView]);
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
       return;
     }
@@ -141,9 +143,9 @@ export function MermaidViewport({
     };
     setIsDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
-  };
+  }, [view.x, view.y]);
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const dragState = dragRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) {
       return;
@@ -156,16 +158,16 @@ export function MermaidViewport({
       x: dragState.originX + dx,
       y: dragState.originY + dy,
     }));
-  };
+  }, []);
 
-  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+  const endDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (dragRef.current && dragRef.current.pointerId === event.pointerId) {
       dragRef.current = null;
       setIsDragging(false);
     }
-  };
+  }, []);
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
 
     const zoomGesture = event.ctrlKey || event.metaKey;
@@ -197,12 +199,19 @@ export function MermaidViewport({
         y: centerY - (centerY - current.y) * ratio,
       };
     });
-  };
+  }, []);
+  const canvasStyle = useMemo(
+    () => ({
+      transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+    }),
+    [view.scale, view.x, view.y],
+  );
+  const innerHtml = useMemo(() => ({ __html: svg }), [svg]);
 
   return (
     <div
       ref={viewportRef}
-      className={`diagram-window__mermaid-viewport ${isDragging ? 'is-dragging' : ''}`}
+      className={`diagram-window__mermaid-viewport ${isDragging ? "is-dragging" : ""}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
@@ -216,10 +225,8 @@ export function MermaidViewport({
       <div
         ref={canvasRef}
         className="diagram-window__mermaid-canvas"
-        style={{
-          transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
-        }}
-        dangerouslySetInnerHTML={{ __html: svg }}
+        style={canvasStyle}
+        dangerouslySetInnerHTML={innerHtml}
       />
     </div>
   );

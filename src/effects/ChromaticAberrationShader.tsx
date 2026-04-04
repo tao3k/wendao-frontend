@@ -5,9 +5,9 @@
  * Provides an imperative ref for intensity and time updates.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
-import { Effect } from 'postprocessing';
-import { Uniform } from 'three';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { Effect } from "postprocessing";
+import { Uniform } from "three";
 
 const fragmentShader = `
 uniform float uIntensity;
@@ -48,43 +48,43 @@ export interface ChromaticAberrationShaderRef {
 
 export class ChromaticAberrationEffect extends Effect {
   constructor({ intensity = 0, offset = 0.003, time = 0 }: ChromaticAberrationShaderProps = {}) {
-    super('ChromaticAberrationEffect', fragmentShader, {
+    super("ChromaticAberrationEffect", fragmentShader, {
       uniforms: new Map([
-        ['uIntensity', new Uniform(intensity)],
-        ['uOffset', new Uniform(offset)],
-        ['uTime', new Uniform(time)],
+        ["uIntensity", new Uniform(intensity)],
+        ["uOffset", new Uniform(offset)],
+        ["uTime", new Uniform(time)],
       ]),
     });
   }
 
   get intensity() {
-    return this.uniforms.get('uIntensity')?.value ?? 0;
+    return this.uniforms.get("uIntensity")?.value ?? 0;
   }
 
   set intensity(value: number) {
-    const uniform = this.uniforms.get('uIntensity');
+    const uniform = this.uniforms.get("uIntensity");
     if (uniform) {
       uniform.value = value;
     }
   }
 
   get offset() {
-    return this.uniforms.get('uOffset')?.value ?? 0;
+    return this.uniforms.get("uOffset")?.value ?? 0;
   }
 
   set offset(value: number) {
-    const uniform = this.uniforms.get('uOffset');
+    const uniform = this.uniforms.get("uOffset");
     if (uniform) {
       uniform.value = value;
     }
   }
 
   get time() {
-    return this.uniforms.get('uTime')?.value ?? 0;
+    return this.uniforms.get("uTime")?.value ?? 0;
   }
 
   set time(value: number) {
-    const uniform = this.uniforms.get('uTime');
+    const uniform = this.uniforms.get("uTime");
     if (uniform) {
       uniform.value = value;
     }
@@ -98,7 +98,7 @@ export const ChromaticAberrationShader = forwardRef<
   const effectRef = useRef<ChromaticAberrationEffect | null>(null);
   const effect = useMemo(
     () => new ChromaticAberrationEffect({ intensity, offset, time }),
-    [intensity, offset, time]
+    [intensity, offset, time],
   );
 
   useEffect(() => {
@@ -138,12 +138,12 @@ export const ChromaticAberrationShader = forwardRef<
           }
         },
       }) as ChromaticAberrationShaderRef,
-    []
+    [],
   );
 
   return <primitive object={effect} ref={effectRef} />;
 });
 
-ChromaticAberrationShader.displayName = 'ChromaticAberrationShader';
+ChromaticAberrationShader.displayName = "ChromaticAberrationShader";
 
 export default ChromaticAberrationShader;

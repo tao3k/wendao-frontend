@@ -1,19 +1,19 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
-import * as TOML from 'smol-toml';
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import * as TOML from "smol-toml";
 
-import type { WendaoConfig } from '../config/loader';
-import { resolveSearchFlightSchemaVersion } from '../config/loader';
+import type { WendaoConfig } from "../config/loader";
+import { resolveSearchFlightSchemaVersion } from "../config/loader";
 import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeRepoSearchHitsFromArrowIpc,
-} from './arrowSearchIpc';
-import { loadRepoIndexStatusFlight } from './flightRepoIndexStatusTransport';
-import { searchRepoContentFlight } from './flightRepoSearchTransport';
+} from "./arrowSearchIpc";
+import { loadRepoIndexStatusFlight } from "./flightRepoIndexStatusTransport";
+import { searchRepoContentFlight } from "./flightRepoSearchTransport";
 
 const runLiveGateway =
-  process.env.RUN_LIVE_GATEWAY_TEST === '1' || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
+  process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
 
 type LiveRepoIndexStatus = {
@@ -40,18 +40,18 @@ type LiveRepoProjectedPagesResponse = {
   pages?: LiveProjectedPage[];
 };
 
-let gatewayOrigin = '';
-let flightSchemaVersion = '';
+let gatewayOrigin = "";
+let flightSchemaVersion = "";
 let readyRepoIds: string[] = [];
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
   if (process.env.STUDIO_LIVE_GATEWAY_URL) {
-    return process.env.STUDIO_LIVE_GATEWAY_URL.replace(/\/+$/, '');
+    return process.env.STUDIO_LIVE_GATEWAY_URL.replace(/\/+$/, "");
   }
 
-  const bind = config.gateway?.bind?.trim() || '127.0.0.1:9517';
-  if (bind.startsWith('http://') || bind.startsWith('https://')) {
-    return bind.replace(/\/+$/, '');
+  const bind = config.gateway?.bind?.trim() || "127.0.0.1:9517";
+  if (bind.startsWith("http://") || bind.startsWith("https://")) {
+    return bind.replace(/\/+$/, "");
   }
   return `http://${bind}`;
 }
@@ -69,32 +69,45 @@ function buildCandidateQueries(repoId: string): string[] {
   if (!trimmed) {
     return [];
   }
-  const withoutJl = trimmed.replace(/\.jl$/i, '');
+  const withoutJl = trimmed.replace(/\.jl$/i, "");
   return [...new Set([trimmed, withoutJl].filter(Boolean))];
 }
 
 function buildProjectedPageSearchQueries(repoId: string, page: LiveProjectedPage): string[] {
   const repoQueries = buildCandidateQueries(repoId);
-  const pathQueries = [page.path, ...(page.paths ?? [])]
-    .flatMap((value) => (value ? [value, ...value.split(/[\/#:.-]/)] : []))
-    .filter(Boolean);
-  return [...new Set([
-    page.title,
-    ...(page.keywords ?? []).slice(0, 5),
-    ...repoQueries,
-    ...pathQueries,
-  ])];
+  const pathValues = page.path ? [page.path, ...(page.paths ?? [])] : [...(page.paths ?? [])];
+  const pathQueries = pathValues.flatMap((value) => {
+    if (!value) {
+      return [];
+    }
+    const queries = [value];
+    for (const segment of value.split(/[/:#.-]/)) {
+      if (segment) {
+        queries.push(segment);
+      }
+    }
+    return queries;
+  });
+
+  const queries = new Set<string>();
+  const keywordCandidates = (page.keywords ?? []).slice(0, 5);
+  for (const candidate of [page.title, ...keywordCandidates, ...repoQueries, ...pathQueries]) {
+    if (candidate) {
+      queries.add(candidate);
+    }
+  }
+  return Array.from(queries);
 }
 
-liveDescribe('live gateway repo search contract', () => {
+liveDescribe("live gateway repo search contract", () => {
   beforeAll(async () => {
-    const tomlPath = resolve(process.cwd(), 'wendao.toml');
-    const tomlContent = await readFile(tomlPath, 'utf8');
+    const tomlPath = resolve(process.cwd(), "wendao.toml");
+    const tomlContent = await readFile(tomlPath, "utf8");
     const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
     gatewayOrigin = resolveGatewayOrigin(config);
     flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
 
-    const status = await loadRepoIndexStatusFlight(
+    const status = (await loadRepoIndexStatusFlight(
       {
         baseUrl: gatewayOrigin,
         schemaVersion: flightSchemaVersion,
@@ -102,15 +115,15 @@ liveDescribe('live gateway repo search contract', () => {
       {
         decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
       },
-    ) as LiveRepoIndexStatus;
+    )) as LiveRepoIndexStatus;
     readyRepoIds = status.repos
-      .filter((repo) => repo.phase === 'ready')
+      .filter((repo) => repo.phase === "ready")
       .map((repo) => repo.repoId)
       .slice(0, 20);
     expect(readyRepoIds.length).toBeGreaterThan(0);
   });
 
-  it('returns repo-backed hits from the live repo-search Flight surface', async () => {
+  it("returns repo-backed hits from the live repo-search Flight surface", async () => {
     let matchedRepoId: string | null = null;
     let matchedQuery: string | null = null;
 
@@ -140,12 +153,12 @@ liveDescribe('live gateway repo search contract', () => {
       }
     }
 
-    expect(matchedRepoId, 'expected one live repo-search Flight hit').not.toBeNull();
+    expect(matchedRepoId, "expected one live repo-search Flight hit").not.toBeNull();
     expect(matchedQuery).not.toBeNull();
     expect(readyRepoIds).toContain(matchedRepoId);
   });
 
-  it('returns projected pages and repo-projected search hits from the live repo surface', async () => {
+  it("returns projected pages and repo-projected search hits from the live repo surface", async () => {
     let matchedRepoId: string | null = null;
     let matchedQuery: string | null = null;
     let projectedPagesCount = 0;
@@ -178,8 +191,8 @@ liveDescribe('live gateway repo search contract', () => {
       }
     }
 
-    expect(projectedPagesCount, 'expected one ready repo with projected pages').toBeGreaterThan(0);
-    expect(matchedRepoId, 'expected one live projected-page search hit').not.toBeNull();
+    expect(projectedPagesCount, "expected one ready repo with projected pages").toBeGreaterThan(0);
+    expect(matchedRepoId, "expected one live projected-page search hit").not.toBeNull();
     expect(matchedQuery).not.toBeNull();
     expect(readyRepoIds).toContain(matchedRepoId);
   });

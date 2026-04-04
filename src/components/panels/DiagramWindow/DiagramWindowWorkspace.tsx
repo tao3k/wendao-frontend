@@ -1,9 +1,13 @@
-import React, { Suspense, lazy } from 'react';
-import { MermaidViewport } from './MermaidViewport';
-import type { MermaidRenderResult } from './mermaidRenderResults';
-import type { DiagramWindowWorkspaceCopy } from './diagramWindowTypes';
+import React, { Suspense, lazy } from "react";
+import { MermaidViewport } from "./MermaidViewport";
+import type { MermaidRenderResult } from "./mermaidRenderResults";
+import type { DiagramWindowWorkspaceCopy } from "./diagramWindowTypes";
 
-export const preloadDiagramWindowTopology = () => import('../../SovereignTopology');
+function renderDiagramWindowBpmnFallback(message: string): React.ReactElement {
+  return <div className="diagram-window__message">{message}</div>;
+}
+
+export const preloadDiagramWindowTopology = () => import("../../SovereignTopology");
 
 const LazySovereignTopology = lazy(async () => {
   const module = await preloadDiagramWindowTopology();
@@ -38,14 +42,14 @@ export function DiagramWindowWorkspace({
   return (
     <div
       className={`diagram-window__workspace ${
-        isSplitMode ? 'diagram-window__workspace--split' : 'diagram-window__workspace--single'
+        isSplitMode ? "diagram-window__workspace--split" : "diagram-window__workspace--single"
       }`}
     >
       {showBpmn ? (
         <section className="diagram-window__diagram diagram-window__diagram--bpmn">
           <div className="diagram-window__panel-title">{copy.panelBpmn}</div>
           <div className="diagram-window__frame diagram-window__frame--bpmn">
-            <Suspense fallback={<div className="diagram-window__message">{copy.bpmnLoading}</div>}>
+            <Suspense fallback={renderDiagramWindowBpmnFallback(copy.bpmnLoading)}>
               <LazySovereignTopology
                 xml={content}
                 onNodeClick={onNodeClick}
@@ -63,7 +67,9 @@ export function DiagramWindowWorkspace({
             <div className="diagram-window__mermaid-stack">
               {renderedMermaid.map((block, index) => (
                 <div key={`mermaid-${index}`} className="diagram-window__mermaid-card">
-                  <div className="diagram-window__block-title">{copy.diagramIndexPrefix} {index + 1}</div>
+                  <div className="diagram-window__block-title">
+                    {copy.diagramIndexPrefix} {index + 1}
+                  </div>
                   {block.svg ? (
                     <MermaidViewport
                       svg={block.svg}
@@ -73,7 +79,9 @@ export function DiagramWindowWorkspace({
                     />
                   ) : (
                     <>
-                      <div className="diagram-window__mermaid-error">{copy.mermaidRenderFailedPrefix}: {block.error}</div>
+                      <div className="diagram-window__mermaid-error">
+                        {copy.mermaidRenderFailedPrefix}: {block.error}
+                      </div>
                       <pre className="diagram-window__mermaid-source">{block.source}</pre>
                     </>
                   )}

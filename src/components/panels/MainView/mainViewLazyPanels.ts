@@ -1,8 +1,8 @@
-import { lazy } from 'react';
+import { lazy } from "react";
 
-const loadGraphView = () => import('../GraphView');
-const loadDirectReader = () => import('../DirectReader');
-const loadDiagramWindow = () => import('../DiagramWindow');
+const loadGraphView = () => import("../GraphView");
+const loadDirectReader = () => import("../DirectReader");
+const loadDiagramWindow = () => import("../DiagramWindow");
 
 export const mainViewPanelLoaders = {
   diagram: loadDiagramWindow,

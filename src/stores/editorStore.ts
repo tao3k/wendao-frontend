@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { AcademicNode } from '../types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { AcademicNode } from "../types";
 
 interface HistoryState {
   xml: string;
@@ -56,7 +56,7 @@ export const useEditorStore = create<EditorState>()(
         }),
 
       // XML state
-      currentXml: '',
+      currentXml: "",
       setCurrentXml: (xml) => set({ currentXml: xml }),
 
       // History
@@ -107,11 +107,11 @@ export const useEditorStore = create<EditorState>()(
       setSidebarWidth: (width) => set({ sidebarWidth: width }),
     }),
     {
-      name: 'qianji-editor-state',
+      name: "qianji-editor-state",
       partialize: (state) => ({
         expandedPaths: state.expandedPaths,
         sidebarWidth: state.sidebarWidth,
       }),
-    }
-  )
+    },
+  ),
 );

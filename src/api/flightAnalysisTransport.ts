@@ -1,13 +1,9 @@
-import { create } from '@bufbuild/protobuf';
-import { createClient, ConnectError } from '@connectrpc/connect';
-import { createGrpcWebTransport } from '@connectrpc/connect-web';
+import { create } from "@bufbuild/protobuf";
+import { createClient, ConnectError } from "@connectrpc/connect";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-import { decodeRetrievalChunksFromArrowIpc } from './arrowRetrievalIpc';
-import type {
-  CodeAstAnalysisResponse,
-  MarkdownAnalysisResponse,
-  RetrievalChunk,
-} from './bindings';
+import { decodeRetrievalChunksFromArrowIpc } from "./arrowRetrievalIpc";
+import type { CodeAstAnalysisResponse, MarkdownAnalysisResponse, RetrievalChunk } from "./bindings";
 import {
   FlightData,
   FlightDescriptor,
@@ -17,15 +13,15 @@ import {
   FlightService,
   Ticket,
   TicketSchema,
-} from './flight/generated/Flight_pb';
-import { ApiClientError } from './responseTransport';
+} from "./flight/generated/Flight_pb";
+import { ApiClientError } from "./responseTransport";
 
-const WENDAO_SCHEMA_VERSION_HEADER = 'x-wendao-schema-version';
-const WENDAO_ANALYSIS_PATH_HEADER = 'x-wendao-analysis-path';
-const WENDAO_ANALYSIS_REPO_HEADER = 'x-wendao-analysis-repo';
-const WENDAO_ANALYSIS_LINE_HEADER = 'x-wendao-analysis-line';
-const ANALYSIS_MARKDOWN_ROUTE = '/analysis/markdown';
-const ANALYSIS_CODE_AST_ROUTE = '/analysis/code-ast';
+const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
+const WENDAO_ANALYSIS_PATH_HEADER = "x-wendao-analysis-path";
+const WENDAO_ANALYSIS_REPO_HEADER = "x-wendao-analysis-repo";
+const WENDAO_ANALYSIS_LINE_HEADER = "x-wendao-analysis-line";
+const ANALYSIS_MARKDOWN_ROUTE = "/analysis/markdown";
+const ANALYSIS_CODE_AST_ROUTE = "/analysis/code-ast";
 const IPC_CONTINUATION_TOKEN = 0xffffffff;
 const ARROW_STREAM_END = new Uint8Array([255, 255, 255, 255, 0, 0, 0, 0]);
 
@@ -50,10 +46,7 @@ export interface FlightServiceClientLike {
     descriptor: FlightDescriptor,
     options?: { headers?: HeadersInit },
   ): Promise<FlightInfo>;
-  doGet(
-    ticket: Ticket,
-    options?: { headers?: HeadersInit },
-  ): AsyncIterable<FlightData>;
+  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
 }
 
 export interface FlightAnalysisTransportDeps {
@@ -76,17 +69,17 @@ export async function loadMarkdownAnalysisFlight(
     deps,
   );
   return {
-    path: typeof response.metadata.path === 'string' ? response.metadata.path : request.path,
+    path: typeof response.metadata.path === "string" ? response.metadata.path : request.path,
     documentHash:
-      typeof response.metadata.documentHash === 'string' ? response.metadata.documentHash : '',
+      typeof response.metadata.documentHash === "string" ? response.metadata.documentHash : "",
     nodeCount:
-      typeof response.metadata.nodeCount === 'number'
+      typeof response.metadata.nodeCount === "number"
         ? response.metadata.nodeCount
         : Array.isArray(response.metadata.nodes)
           ? response.metadata.nodes.length
           : 0,
     edgeCount:
-      typeof response.metadata.edgeCount === 'number'
+      typeof response.metadata.edgeCount === "number"
         ? response.metadata.edgeCount
         : Array.isArray(response.metadata.edges)
           ? response.metadata.edges.length
@@ -123,18 +116,21 @@ export async function loadCodeAstAnalysisFlight(
   const nodes = Array.isArray(response.metadata.nodes) ? response.metadata.nodes : [];
   const edges = Array.isArray(response.metadata.edges) ? response.metadata.edges : [];
   return {
-    repoId: typeof response.metadata.repoId === 'string' ? response.metadata.repoId : request.repo ?? '',
-    path: typeof response.metadata.path === 'string' ? response.metadata.path : request.path,
-    language: typeof response.metadata.language === 'string' ? response.metadata.language : '',
+    repoId:
+      typeof response.metadata.repoId === "string"
+        ? response.metadata.repoId
+        : (request.repo ?? ""),
+    path: typeof response.metadata.path === "string" ? response.metadata.path : request.path,
+    language: typeof response.metadata.language === "string" ? response.metadata.language : "",
     nodeCount:
-      typeof response.metadata.nodeCount === 'number' ? response.metadata.nodeCount : nodes.length,
+      typeof response.metadata.nodeCount === "number" ? response.metadata.nodeCount : nodes.length,
     edgeCount:
-      typeof response.metadata.edgeCount === 'number' ? response.metadata.edgeCount : edges.length,
+      typeof response.metadata.edgeCount === "number" ? response.metadata.edgeCount : edges.length,
     nodes,
     edges,
     projections: Array.isArray(response.metadata.projections) ? response.metadata.projections : [],
     retrievalAtoms: response.retrievalAtoms,
-    ...(typeof response.metadata.focusNodeId === 'string'
+    ...(typeof response.metadata.focusNodeId === "string"
       ? { focusNodeId: response.metadata.focusNodeId }
       : {}),
     diagnostics: Array.isArray(response.metadata.diagnostics) ? response.metadata.diagnostics : [],
@@ -185,12 +181,12 @@ function buildAnalysisFlightHeaders(
   const headers = new Headers();
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
   headers.set(WENDAO_ANALYSIS_PATH_HEADER, request.path);
-  if ('repo' in request && request.repo?.trim()) {
+  if ("repo" in request && request.repo?.trim()) {
     headers.set(WENDAO_ANALYSIS_REPO_HEADER, request.repo.trim());
   }
   if (
-    'line' in request &&
-    typeof request.line === 'number' &&
+    "line" in request &&
+    typeof request.line === "number" &&
     Number.isFinite(request.line) &&
     request.line > 0
   ) {
@@ -202,7 +198,7 @@ function buildAnalysisFlightHeaders(
 function buildFlightDescriptor(route: AnalysisFlightRoute): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
-    path: route.slice(1).split('/'),
+    path: route.slice(1).split("/"),
   });
 }
 
@@ -214,12 +210,12 @@ function createFlightServiceClient(baseUrl: string): FlightServiceClientLike {
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.trim().replace(/\/+$/, '');
+  return baseUrl.trim().replace(/\/+$/, "");
 }
 
 function decodeAnalysisMetadata<TMetadata>(appMetadata: Uint8Array): TMetadata {
   if (appMetadata.byteLength === 0) {
-    throw new Error('Flight analysis route returned no application metadata');
+    throw new Error("Flight analysis route returned no application metadata");
   }
   return JSON.parse(new TextDecoder().decode(appMetadata)) as TMetadata;
 }
@@ -227,14 +223,14 @@ function decodeAnalysisMetadata<TMetadata>(appMetadata: Uint8Array): TMetadata {
 function readFlightTicket(flightInfo: FlightInfo): Ticket {
   const ticketBytes = flightInfo.endpoint[0]?.ticket?.ticket;
   if (!ticketBytes || ticketBytes.byteLength === 0) {
-    throw new Error('Flight analysis route returned no readable ticket');
+    throw new Error("Flight analysis route returned no readable ticket");
   }
   return create(TicketSchema, { ticket: ticketBytes });
 }
 
 function reassembleArrowIpcStreamFromFlight(
   schemaBytes: Uint8Array,
-  frames: Iterable<Pick<FlightData, 'dataHeader' | 'dataBody'>>,
+  frames: Iterable<Pick<FlightData, "dataHeader" | "dataBody">>,
 ): ArrayBuffer {
   const chunks: Uint8Array[] = [schemaBytes];
   for (const frame of frames) {
@@ -251,10 +247,7 @@ function reassembleArrowIpcStreamFromFlight(
   return merged.buffer.slice(merged.byteOffset, merged.byteOffset + merged.byteLength);
 }
 
-function encodeFlightRecordBatchFrame(
-  dataHeader: Uint8Array,
-  dataBody: Uint8Array,
-): Uint8Array {
+function encodeFlightRecordBatchFrame(dataHeader: Uint8Array, dataBody: Uint8Array): Uint8Array {
   const metadataLength = alignToEight(dataHeader.byteLength);
   const bodyPadding = alignToEight(dataBody.byteLength) - dataBody.byteLength;
   const frame = new Uint8Array(8 + metadataLength + dataBody.byteLength + bodyPadding);
@@ -280,18 +273,18 @@ function mapFlightAnalysisError(error: unknown): ApiClientError {
   if (error instanceof Error) {
     return new ApiClientError(inferFlightAnalysisErrorCode(error.message), error.message);
   }
-  return new ApiClientError('FLIGHT_ANALYSIS_ERROR', 'Unknown Flight analysis failure');
+  return new ApiClientError("FLIGHT_ANALYSIS_ERROR", "Unknown Flight analysis failure");
 }
 
 function inferFlightAnalysisErrorCode(message: string): string {
-  if (message.includes('UNKNOWN_REPOSITORY')) {
-    return 'UNKNOWN_REPOSITORY';
+  if (message.includes("UNKNOWN_REPOSITORY")) {
+    return "UNKNOWN_REPOSITORY";
   }
-  if (message.includes('UI_CONFIG_REQUIRED')) {
-    return 'UI_CONFIG_REQUIRED';
+  if (message.includes("UI_CONFIG_REQUIRED")) {
+    return "UI_CONFIG_REQUIRED";
   }
-  if (message.includes('FLIGHT_CONFIG_REQUIRED')) {
-    return 'FLIGHT_CONFIG_REQUIRED';
+  if (message.includes("FLIGHT_CONFIG_REQUIRED")) {
+    return "FLIGHT_CONFIG_REQUIRED";
   }
-  return 'FLIGHT_ANALYSIS_ERROR';
+  return "FLIGHT_ANALYSIS_ERROR";
 }

@@ -1,15 +1,15 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from "react";
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from '../SearchBar/searchBarControllerTypes';
-import { getSearchResultIdentity } from '../SearchBar/searchResultIdentity';
-import type { SearchResult } from '../SearchBar/types';
-import { ZenSearchHeader } from './ZenSearchHeader';
-import { ZenSearchPreviewPane } from './ZenSearchPreviewPane';
-import { ZenSearchResultsPane } from './ZenSearchResultsPane';
+} from "../SearchBar/searchBarControllerTypes";
+import { getSearchResultIdentity } from "../SearchBar/searchResultIdentity";
+import type { SearchResult } from "../SearchBar/types";
+import { ZenSearchHeader } from "./ZenSearchHeader";
+import { ZenSearchPreviewPane } from "./ZenSearchPreviewPane";
+import { ZenSearchResultsPane } from "./ZenSearchResultsPane";
 
 interface ZenSearchWorkspaceProps {
   shellProps: SearchBarControllerShellProps;
@@ -19,23 +19,22 @@ interface ZenSearchWorkspaceProps {
   showCodeFilterHelper: boolean;
 }
 
-function flattenVisibleResults(rows: SearchBarControllerResultsPanelProps['rows']): SearchResult[] {
-  return rows.flatMap((row): SearchResult[] => (
-    row.type === 'result' ? [row.result] : []
-  ));
+function flattenVisibleResults(rows: SearchBarControllerResultsPanelProps["rows"]): SearchResult[] {
+  return rows.flatMap((row): SearchResult[] => (row.type === "result" ? [row.result] : []));
 }
 
 function buildAdjacentPreviewCandidates(
   visibleResults: SearchResult[],
-  selectedIndex: number
+  selectedIndex: number,
 ): SearchResult[] {
   if (visibleResults.length <= 1) {
     return [];
   }
 
   const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
-  const prefetchIndices = [activeIndex - 1, activeIndex + 1]
-    .filter((index) => index >= 0 && index < visibleResults.length);
+  const prefetchIndices = [activeIndex - 1, activeIndex + 1].filter(
+    (index) => index >= 0 && index < visibleResults.length,
+  );
 
   return prefetchIndices.map((index) => visibleResults[index]).filter(Boolean);
 }
@@ -49,16 +48,16 @@ export const ZenSearchWorkspace: React.FC<ZenSearchWorkspaceProps> = ({
 }) => {
   const suggestions = suggestionsPanelProps.suggestions ?? [];
   const suggestionSelectionActive =
-    Boolean(suggestionsPanelProps.showSuggestions)
-    && (suggestionsPanelProps.selectedIndex ?? -1) >= 0
-    && (suggestionsPanelProps.selectedIndex ?? -1) < suggestions.length;
+    Boolean(suggestionsPanelProps.showSuggestions) &&
+    (suggestionsPanelProps.selectedIndex ?? -1) >= 0 &&
+    (suggestionsPanelProps.selectedIndex ?? -1) < suggestions.length;
   const visibleResults = useMemo(
     () => flattenVisibleResults(resultsPanelProps.rows),
-    [resultsPanelProps.rows]
+    [resultsPanelProps.rows],
   );
   const visibleResultIdentitySet = useMemo(
     () => new Set(visibleResults.map((result) => getSearchResultIdentity(result))),
-    [visibleResults]
+    [visibleResults],
   );
   const lastExplicitSelectionRef = useRef<SearchResult | null>(null);
   const selectedResult = useMemo(() => {
@@ -100,7 +99,7 @@ export const ZenSearchWorkspace: React.FC<ZenSearchWorkspaceProps> = ({
   ]);
   const prefetchResults = useMemo(
     () => buildAdjacentPreviewCandidates(visibleResults, resultsPanelProps.selectedIndex),
-    [resultsPanelProps.selectedIndex, visibleResults]
+    [resultsPanelProps.selectedIndex, visibleResults],
   );
 
   return (

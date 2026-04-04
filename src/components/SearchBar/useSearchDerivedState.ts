@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
-import { parseCodeFilters, type SearchFilters } from './codeSearchUtils';
-import type { SearchExecutionMode, SearchMeta } from './searchExecution';
-import type { SearchResultSection } from './searchResultSections';
-import { getVisibleSearchView } from './searchResultSections';
+import { useMemo } from "react";
+import { parseCodeFilters, type SearchFilters } from "./codeSearchUtils";
+import type { SearchExecutionMode, SearchMeta } from "./searchExecution";
+import type { SearchResultSection } from "./searchResultSections";
+import { getVisibleSearchView } from "./searchResultSections";
 import {
   getConfidenceLabel,
   getConfidenceTone,
@@ -12,8 +12,8 @@ import {
   resolveQueryToSearch,
   resolveSearchMode,
   type ConfidenceTone,
-} from './searchStateUtils';
-import type { SearchResult, SearchScope, SearchSort, UiLocale } from './types';
+} from "./searchStateUtils";
+import type { SearchResult, SearchScope, SearchSort, UiLocale } from "./types";
 
 interface UseSearchDerivedStateParams {
   results: SearchResult[];
@@ -66,56 +66,35 @@ export function useSearchDerivedState({
   isLoading,
 }: UseSearchDerivedStateParams): SearchDerivedState {
   const searchMode = useMemo(() => resolveSearchMode(scope), [scope]);
-  const hasCodeFilterOnlyQueryValue = useMemo(() => (
-    hasCodeFilterOnlyQuery(
-      scope,
-      query,
-      parsedCodeBaseQuery,
-      activeCodeFilterEntriesLength
-    )
-  ), [
-    activeCodeFilterEntriesLength,
-    parsedCodeBaseQuery,
-    query,
-    scope,
-  ]);
-  const queryToSearch = useMemo(() => (
-    hasCodeFilterOnlyQueryValue
-      ? ''
-      : resolveQueryToSearch(searchMode, debouncedCodeBaseQuery, debouncedQuery)
-  ), [
-    debouncedCodeBaseQuery,
-    debouncedQuery,
-    hasCodeFilterOnlyQueryValue,
-    searchMode,
-  ]);
+  const hasCodeFilterOnlyQueryValue = useMemo(
+    () => hasCodeFilterOnlyQuery(scope, query, parsedCodeBaseQuery, activeCodeFilterEntriesLength),
+    [activeCodeFilterEntriesLength, parsedCodeBaseQuery, query, scope],
+  );
+  const queryToSearch = useMemo(
+    () =>
+      hasCodeFilterOnlyQueryValue
+        ? ""
+        : resolveQueryToSearch(searchMode, debouncedCodeBaseQuery, debouncedQuery),
+    [debouncedCodeBaseQuery, debouncedQuery, hasCodeFilterOnlyQueryValue, searchMode],
+  );
   const resultsQuery = useMemo(() => {
-    const settledQuery = searchMeta?.query?.trim() ?? '';
+    const settledQuery = searchMeta?.query?.trim() ?? "";
     if (
-      isLoading
-      && (scope === 'all' || scope === 'code')
-      && settledQuery.length > 0
-      && settledQuery !== queryToSearch.trim()
+      isLoading &&
+      (scope === "all" || scope === "code") &&
+      settledQuery.length > 0 &&
+      settledQuery !== queryToSearch.trim()
     ) {
       return settledQuery;
     }
     return queryToSearch;
-  }, [
-    isLoading,
-    queryToSearch,
-    scope,
-    searchMeta?.query,
-  ]);
+  }, [isLoading, queryToSearch, scope, searchMeta?.query]);
   const visibleCodeFilters = useMemo(() => {
     if (resultsQuery === queryToSearch) {
       return parsedCodeFilters;
     }
     return parseCodeFilters(resultsQuery).filters;
-  }, [
-    parsedCodeFilters,
-    queryToSearch,
-    resultsQuery,
-  ]);
+  }, [parsedCodeFilters, queryToSearch, resultsQuery]);
 
   const { visibleResults, visibleSections } = useMemo(() => {
     return getVisibleSearchView(
@@ -124,16 +103,9 @@ export function useSearchDerivedState({
       sortMode,
       visibleCodeFilters,
       locale,
-      attachmentsLabel
+      attachmentsLabel,
     );
-  }, [
-    attachmentsLabel,
-    locale,
-    results,
-    scope,
-    sortMode,
-    visibleCodeFilters,
-  ]);
+  }, [attachmentsLabel, locale, results, scope, sortMode, visibleCodeFilters]);
 
   return useMemo(() => {
     const suggestionCount = showSuggestions ? suggestionsLength : 0;

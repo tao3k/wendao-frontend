@@ -4,8 +4,8 @@
  * Zero-serialization physics using Transferable ArrayBuffers.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { deterministicNodePosition } from '../utils/topologyContinuity';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { deterministicNodePosition } from "../utils/topologyContinuity";
 
 // === Binary Protocol Constants ===
 const NODE_STRIDE = 7; // x, y, z, vx, vy, vz, mass
@@ -47,10 +47,10 @@ interface UsePhysicsWorkerOptions {
 }
 
 export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
+  const { onNodesUpdate, enabled = true } = options;
   const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
   const nodeIndexMapRef = useRef<Map<string, number>>(new Map());
-  const enabled = options.enabled !== false;
 
   // Create worker on mount
   useEffect(() => {
@@ -59,44 +59,51 @@ export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
       return;
     }
 
-    workerRef.current = new Worker(
-      new URL('../workers/topology_physics.worker.ts', import.meta.url),
-      { type: 'module' }
+    const worker = new Worker(
+      new URL("../workers/topology_physics.worker.ts", import.meta.url),
+      { type: "module" },
     );
+    workerRef.current = worker;
 
-    workerRef.current.onmessage = (e: MessageEvent) => {
+    const handleWorkerMessage = (e: MessageEvent) => {
       const { type, ...data } = e.data;
 
       switch (type) {
-        case 'ready':
+        case "ready":
           setIsReady(true);
           break;
 
-        case 'ticked':
+        case "ticked":
           // Received transferable position buffer
           if (e.data.nodeCount && e.data.buffer) {
             const positions = new Float32Array(e.data.buffer);
-            options.onNodesUpdate?.(positions, data.nodeCount);
+            onNodesUpdate?.(positions, data.nodeCount);
           }
           break;
 
-        case 'positions':
+        case "positions":
           if (e.data.nodeCount && e.data.buffer) {
             const positions = new Float32Array(e.data.buffer);
-            options.onNodesUpdate?.(positions, data.nodeCount);
+            onNodesUpdate?.(positions, data.nodeCount);
           }
           break;
       }
     };
 
-    workerRef.current.onerror = (error) => {
-      console.error('[usePhysicsWorker] Error:', error);
+    const handleWorkerError = (error: ErrorEvent) => {
+      console.error("[usePhysicsWorker] Error:", error);
     };
 
+    worker.addEventListener("message", handleWorkerMessage);
+    worker.addEventListener("error", handleWorkerError);
+
     return () => {
-      workerRef.current?.terminate();
+      worker.removeEventListener("message", handleWorkerMessage);
+      worker.removeEventListener("error", handleWorkerError);
+      worker.terminate();
+      workerRef.current = null;
     };
-  }, [enabled]);
+  }, [enabled, onNodesUpdate]);
 
   /**
    * Initialize physics with nodes and links
@@ -140,19 +147,19 @@ export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
       // Transfer buffers to worker (zero-copy)
       workerRef.current.postMessage(
         {
-          type: 'init',
+          type: "init",
           nodeCount,
           linkCount,
           nodeBuffer: nodeBuffer.buffer,
           linkBuffer: linkBuffer.buffer,
           config,
         },
-        [nodeBuffer.buffer, linkBuffer.buffer]
+        [nodeBuffer.buffer, linkBuffer.buffer],
       );
 
       setIsReady(false);
     },
-    [enabled]
+    [enabled],
   );
 
   const syncGraph = useCallback(
@@ -188,62 +195,74 @@ export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
 
       workerRef.current.postMessage(
         {
-          type: 'sync',
+          type: "sync",
           nodeCount,
           linkCount,
           nodeBuffer: nodeBuffer.buffer,
           linkBuffer: linkBuffer.buffer,
           config,
         },
-        [nodeBuffer.buffer, linkBuffer.buffer]
+        [nodeBuffer.buffer, linkBuffer.buffer],
       );
     },
-    [enabled]
+    [enabled],
   );
   /**
    * Run physics ticks
    */
-  const tick = useCallback((ticks: number = 1) => {
-    if (!enabled || !workerRef.current || !isReady) return;
-    workerRef.current.postMessage({ type: 'tick', ticks });
-  }, [enabled, isReady]);
+  const tick = useCallback(
+    (ticks: number = 1) => {
+      if (!enabled || !workerRef.current || !isReady) return;
+      workerRef.current.postMessage({ type: "tick", ticks }, []);
+    },
+    [enabled, isReady],
+  );
 
   /**
    * Drag a node
    */
-  const drag = useCallback((nodeId: string, x: number, y: number, z: number) => {
-    if (!enabled || !workerRef.current) return;
-    const index = nodeIndexMapRef.current.get(nodeId);
-    if (index !== undefined) {
-      workerRef.current.postMessage({ type: 'drag', index, x, y, z });
-    }
-  }, [enabled]);
+  const drag = useCallback(
+    (nodeId: string, x: number, y: number, z: number) => {
+      if (!enabled || !workerRef.current) return;
+      const index = nodeIndexMapRef.current.get(nodeId);
+      if (index !== undefined) {
+        workerRef.current.postMessage({ type: "drag", index, x, y, z }, []);
+      }
+    },
+    [enabled],
+  );
 
   /**
    * Release a dragged node
    */
-  const release = useCallback((nodeId: string) => {
-    if (!enabled || !workerRef.current) return;
-    const index = nodeIndexMapRef.current.get(nodeId);
-    if (index !== undefined) {
-      workerRef.current.postMessage({ type: 'release', index });
-    }
-  }, [enabled]);
+  const release = useCallback(
+    (nodeId: string) => {
+      if (!enabled || !workerRef.current) return;
+      const index = nodeIndexMapRef.current.get(nodeId);
+      if (index !== undefined) {
+        workerRef.current.postMessage({ type: "release", index }, []);
+      }
+    },
+    [enabled],
+  );
 
   /**
    * Update config
    */
-  const setConfig = useCallback((newConfig: object) => {
-    if (!enabled || !workerRef.current) return;
-    workerRef.current.postMessage({ type: 'config', ...newConfig });
-  }, [enabled]);
+  const setConfig = useCallback(
+    (newConfig: object) => {
+      if (!enabled || !workerRef.current) return;
+      workerRef.current.postMessage({ type: "config", ...newConfig }, []);
+    },
+    [enabled],
+  );
 
   /**
    * Get current positions (async)
    */
   const getPositions = useCallback(() => {
     if (!enabled || !workerRef.current || !isReady) return;
-    workerRef.current.postMessage({ type: 'getPositions' });
+    workerRef.current.postMessage({ type: "getPositions" }, []);
   }, [enabled, isReady]);
 
   return {

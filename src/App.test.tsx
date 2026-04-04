@@ -1,9 +1,9 @@
-import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import App from './App';
-import { recordPerfTraceSnapshot } from './lib/testPerfRegistry';
-import { createPerfTrace } from './lib/testPerfTrace';
+import React from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import App from "./App";
+import { recordPerfTraceSnapshot } from "./lib/testPerfRegistry";
+import { createPerfTrace } from "./lib/testPerfTrace";
 
 const mocks = vi.hoisted(() => ({
   mainViewSpy: vi.fn(),
@@ -22,9 +22,9 @@ const mocks = vi.hoisted(() => ({
   getJuliaDeploymentArtifactMock: vi.fn(),
   getJuliaDeploymentArtifactTomlMock: vi.fn(),
   editorStore: {
-    currentXml: '<xml />',
+    currentXml: "<xml />",
     setCurrentXml: vi.fn(),
-    viewMode: '2d' as const,
+    viewMode: "2d" as const,
     setViewMode: vi.fn(),
     selectedNode: null,
     setSelectedNode: vi.fn(),
@@ -39,8 +39,14 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('./components', () => ({
-  AppLayout: ({ leftPanel, centerPanel, rightPanel, toolbar, statusBar }: Record<string, React.ReactNode>) => (
+vi.mock("./components", () => ({
+  AppLayout: ({
+    leftPanel,
+    centerPanel,
+    rightPanel,
+    toolbar,
+    statusBar,
+  }: Record<string, React.ReactNode>) => (
     <div data-testid="app-layout">
       <div>{toolbar}</div>
       <div>{leftPanel}</div>
@@ -51,20 +57,21 @@ vi.mock('./components', () => ({
   ),
   FileTree: (props: Record<string, unknown>) => {
     mocks.fileTreeSpy(props);
+    const onStatusChange = props.onStatusChange as
+      | ((status: {
+          vfsStatus: { isLoading: boolean; error: string | null };
+          repoIndexStatus: null;
+        }) => void)
+      | undefined;
     React.useEffect(() => {
       if (!mocks.fileTreeAutoHydrate) {
         return;
       }
-      (props.onStatusChange as
-        | ((status: {
-            vfsStatus: { isLoading: boolean; error: string | null };
-            repoIndexStatus: null;
-          }) => void)
-        | undefined)?.({
+      onStatusChange?.({
         vfsStatus: { isLoading: false, error: null },
         repoIndexStatus: null,
       });
-    }, [props.onStatusChange]);
+    }, [onStatusChange]);
     return <div data-testid="file-tree" />;
   },
   MainView: (props: Record<string, unknown>) => {
@@ -126,7 +133,7 @@ vi.mock('./components', () => ({
   },
 }));
 
-vi.mock('./components/ZenSearch', () => ({
+vi.mock("./components/ZenSearch", () => ({
   ZenSearchWindow: (props: Record<string, unknown>) => {
     mocks.zenSearchSpy(props);
     mocks.activePerfTrace?.markRender();
@@ -140,11 +147,11 @@ vi.mock('./components/ZenSearch', () => ({
   },
 }));
 
-vi.mock('./stores', () => ({
+vi.mock("./stores", () => ({
   useEditorStore: () => mocks.editorStore,
 }));
 
-vi.mock('./hooks', () => ({
+vi.mock("./hooks", () => ({
   useAccessibility: () => ({
     prefersReducedMotion: false,
     prefersHighContrast: false,
@@ -158,7 +165,7 @@ vi.mock('./hooks', () => ({
   },
 }));
 
-vi.mock('./api', () => ({
+vi.mock("./api", () => ({
   api: {
     get3DTopology: mocks.get3DTopologyMock,
     getVfsContent: mocks.getVfsContentMock,
@@ -170,7 +177,7 @@ vi.mock('./api', () => ({
   },
 }));
 
-describe('App topology wiring', () => {
+describe("App topology wiring", () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -182,7 +189,7 @@ describe('App topology wiring', () => {
   let originalCreateElement: typeof document.createElement;
 
   const openZenSearchMode = async () => {
-    const shortcut = mocks.keyboardShortcuts.find((entry) => entry.key === 'f' && entry.ctrl);
+    const shortcut = mocks.keyboardShortcuts.find((entry) => entry.key === "f" && entry.ctrl);
     expect(shortcut).toBeDefined();
 
     act(() => {
@@ -199,39 +206,41 @@ describe('App topology wiring', () => {
     mocks.activePerfTrace = null;
     mocks.keyboardShortcuts = [];
     mocks.fileTreeAutoHydrate = true;
-    window.location.hash = '';
+    window.location.hash = "";
     mocks.getJuliaDeploymentArtifactMock.mockResolvedValue({
-      artifactSchemaVersion: 'v1',
-      generatedAt: '2026-03-27T12:00:00Z',
-      baseUrl: 'http://127.0.0.1:18080',
-      route: '/rerank',
-      healthRoute: '/healthz',
-      schemaVersion: 'v1',
+      artifactSchemaVersion: "v1",
+      generatedAt: "2026-03-27T12:00:00Z",
+      baseUrl: "http://127.0.0.1:18080",
+      route: "/rerank",
+      healthRoute: "/healthz",
+      schemaVersion: "v1",
       timeoutSecs: 30,
-      selectedTransport: 'arrow_flight',
+      selectedTransport: "arrow_flight",
       launch: {
-        launcherPath: '.data/WendaoAnalyzer/scripts/run_analyzer_service.sh',
-        args: ['--service-mode', 'stream', '--analyzer-strategy', 'linear_blend'],
+        launcherPath: ".data/WendaoAnalyzer/scripts/run_analyzer_service.sh",
+        args: ["--service-mode", "stream", "--analyzer-strategy", "linear_blend"],
       },
     });
     mocks.getJuliaDeploymentArtifactTomlMock.mockResolvedValue('artifact_schema_version = "v1"');
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    createObjectUrlSpy = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:artifact');
-    revokeObjectUrlSpy = vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    createObjectUrlSpy = vi.spyOn(window.URL, "createObjectURL").mockReturnValue("blob:artifact");
+    revokeObjectUrlSpy = vi.spyOn(window.URL, "revokeObjectURL").mockImplementation(() => {});
     clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
+    Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: clipboardWriteTextMock },
     });
     anchorClickMock = vi.fn();
     originalCreateElement = document.createElement.bind(document);
-    createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(((tagName: string) => {
-      if (tagName.toLowerCase() === 'a') {
+    createElementSpy = vi.spyOn(document, "createElement").mockImplementation(((
+      tagName: string,
+    ) => {
+      if (tagName.toLowerCase() === "a") {
         return {
-          href: '',
-          download: '',
+          href: "",
+          download: "",
           click: anchorClickMock,
         } as unknown as HTMLAnchorElement;
       }
@@ -249,13 +258,13 @@ describe('App topology wiring', () => {
     createElementSpy.mockRestore();
   });
 
-  it('loads live topology from the gateway and passes it into the workspace panels', async () => {
+  it("loads live topology from the gateway and passes it into the workspace panels", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [
         {
-          id: 'live-task',
-          name: 'Live Task',
-          nodeType: 'task',
+          id: "live-task",
+          name: "Live Task",
+          nodeType: "task",
           position: [5, 10, 15],
         },
       ],
@@ -269,7 +278,7 @@ describe('App topology wiring', () => {
       const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
         | { topology: { nodes: Array<{ id: string }> } }
         | undefined;
-      expect(lastMainViewCall?.topology.nodes[0]?.id).toBe('live-task');
+      expect(lastMainViewCall?.topology.nodes[0]?.id).toBe("live-task");
     });
 
     expect(mocks.get3DTopologyMock).toHaveBeenCalledTimes(1);
@@ -279,10 +288,10 @@ describe('App topology wiring', () => {
       | { nodeCount: number; juliaDeploymentArtifact?: { artifactSchemaVersion: string } | null }
       | undefined;
     expect(lastStatusBarCall?.nodeCount).toBe(1);
-    expect(lastStatusBarCall?.juliaDeploymentArtifact?.artifactSchemaVersion).toBe('v1');
+    expect(lastStatusBarCall?.juliaDeploymentArtifact?.artifactSchemaVersion).toBe("v1");
   });
 
-  it('keeps the workspace hidden until the first VFS load completes', async () => {
+  it("keeps the workspace hidden until the first VFS load completes", async () => {
     mocks.fileTreeAutoHydrate = false;
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
@@ -293,7 +302,7 @@ describe('App topology wiring', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('workspace-shell')).toHaveAttribute('data-hidden', 'true');
+      expect(screen.getByTestId("workspace-shell")).toHaveAttribute("data-hidden", "true");
     });
 
     const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
@@ -313,11 +322,11 @@ describe('App topology wiring', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('workspace-shell')).toHaveAttribute('data-hidden', 'false');
+      expect(screen.getByTestId("workspace-shell")).toHaveAttribute("data-hidden", "false");
     });
   });
 
-  it('opens the repo diagnostics page from the status bar repo index chip', async () => {
+  it("opens the repo diagnostics page from the status bar repo index chip", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
@@ -381,28 +390,28 @@ describe('App topology wiring', () => {
       });
     });
 
-    fireEvent.click(screen.getByTestId('status-bar'));
+    fireEvent.click(screen.getByTestId("status-bar"));
 
     await waitFor(() => {
-      expect(screen.getByTestId('repo-diagnostics-page')).toBeInTheDocument();
+      expect(screen.getByTestId("repo-diagnostics-page")).toBeInTheDocument();
     });
-    expect(window.location.hash).toBe('#repo-diagnostics');
+    expect(window.location.hash).toBe("#repo-diagnostics");
 
-    fireEvent.click(screen.getByTestId('repo-diagnostics-page-close'));
+    fireEvent.click(screen.getByTestId("repo-diagnostics-page-close"));
 
     await waitFor(() => {
-      expect(screen.queryByTestId('repo-diagnostics-page')).not.toBeInTheDocument();
+      expect(screen.queryByTestId("repo-diagnostics-page")).not.toBeInTheDocument();
     });
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe("");
   });
 
-  it('keeps the workspace running when the Julia deployment artifact probe fails', async () => {
+  it("keeps the workspace running when the Julia deployment artifact probe fails", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getJuliaDeploymentArtifactMock.mockRejectedValue(new Error('deployment unavailable'));
+    mocks.getJuliaDeploymentArtifactMock.mockRejectedValue(new Error("deployment unavailable"));
 
     render(<App />);
 
@@ -414,12 +423,12 @@ describe('App topology wiring', () => {
     });
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      'Julia deployment artifact probe failed; continuing without analyzer inspection.',
-      expect.any(Error)
+      "Julia deployment artifact probe failed; continuing without analyzer inspection.",
+      expect.any(Error),
     );
   });
 
-  it('wires Julia artifact copy and download actions through the status bar', async () => {
+  it("wires Julia artifact copy and download actions through the status bar", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
@@ -432,34 +441,34 @@ describe('App topology wiring', () => {
       expect(mocks.getJuliaDeploymentArtifactMock).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByTestId('status-bar-copy-julia-artifact'));
+    fireEvent.click(screen.getByTestId("status-bar-copy-julia-artifact"));
     await waitFor(() => {
       expect(mocks.getJuliaDeploymentArtifactTomlMock).toHaveBeenCalledTimes(1);
     });
     expect(clipboardWriteTextMock).toHaveBeenCalledWith('artifact_schema_version = "v1"');
 
-    fireEvent.click(screen.getByTestId('status-bar-download-julia-artifact'));
+    fireEvent.click(screen.getByTestId("status-bar-download-julia-artifact"));
     expect(createObjectUrlSpy).toHaveBeenCalledTimes(1);
     expect(anchorClickMock).toHaveBeenCalledTimes(1);
-    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:artifact');
+    expect(revokeObjectUrlSpy).toHaveBeenCalledWith("blob:artifact");
   });
 
-  it('restores the repo diagnostics page from the URL hash on startup', async () => {
+  it("restores the repo diagnostics page from the URL hash on startup", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    window.location.hash = '#repo-diagnostics';
+    window.location.hash = "#repo-diagnostics";
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('repo-diagnostics-page')).toBeInTheDocument();
+      expect(screen.getByTestId("repo-diagnostics-page")).toBeInTheDocument();
     });
   });
 
-  it('switches from normal mode to zen search mode via Ctrl+F and returns via Escape', async () => {
+  it("switches from normal mode to zen search mode via Ctrl+F and returns via Escape", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
@@ -469,11 +478,11 @@ describe('App topology wiring', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('app-layout')).toBeInTheDocument();
+      expect(screen.getByTestId("app-layout")).toBeInTheDocument();
     });
 
     const openZenSearch = mocks.keyboardShortcuts.find(
-      (shortcut) => shortcut.key === 'f' && shortcut.ctrl
+      (shortcut) => shortcut.key === "f" && shortcut.ctrl,
     );
     expect(openZenSearch).toBeDefined();
 
@@ -482,13 +491,13 @@ describe('App topology wiring', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('zen-search-window')).toBeInTheDocument();
+      expect(screen.getByTestId("zen-search-window")).toBeInTheDocument();
     });
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'true');
-    expect(screen.getByTestId('workspace-shell')).toHaveAttribute('data-hidden', 'true');
-    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("workspace-shell")).toHaveAttribute("data-hidden", "true");
+    expect(screen.getByTestId("app-layout")).toBeInTheDocument();
 
-    const escapeShortcut = mocks.keyboardShortcuts.find((shortcut) => shortcut.key === 'Escape');
+    const escapeShortcut = mocks.keyboardShortcuts.find((shortcut) => shortcut.key === "Escape");
     expect(escapeShortcut).toBeDefined();
 
     act(() => {
@@ -496,14 +505,14 @@ describe('App topology wiring', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('app-layout')).toBeInTheDocument();
+      expect(screen.getByTestId("app-layout")).toBeInTheDocument();
     });
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'false');
-    expect(screen.getByTestId('workspace-shell')).toHaveAttribute('data-hidden', 'false');
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("data-open", "false");
+    expect(screen.getByTestId("workspace-shell")).toHaveAttribute("data-hidden", "false");
   });
 
-  it('keeps topology empty when the gateway topology request fails', async () => {
-    mocks.get3DTopologyMock.mockRejectedValue(new Error('Gateway unavailable'));
+  it("keeps topology empty when the gateway topology request fails", async () => {
+    mocks.get3DTopologyMock.mockRejectedValue(new Error("Gateway unavailable"));
 
     render(<App />);
 
@@ -515,41 +524,43 @@ describe('App topology wiring', () => {
     });
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '3D topology load failed; topology stays empty until the gateway responds.',
-      expect.any(Error)
+      "3D topology load failed; topology stays empty until the gateway responds.",
+      expect.any(Error),
     );
 
-    const lastStatusBarCall = mocks.statusBarSpy.mock.calls.at(-1)?.[0] as { nodeCount: number } | undefined;
+    const lastStatusBarCall = mocks.statusBarSpy.mock.calls.at(-1)?.[0] as
+      | { nodeCount: number }
+      | undefined;
     expect(lastStatusBarCall?.nodeCount).toBe(0);
   });
 
-  it('loads live file relationships and forwards them into MainView after file selection', async () => {
+  it("loads live file relationships and forwards them into MainView after file selection", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
     mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'kernel/knowledge/context.md',
-      category: 'knowledge',
-      projectName: 'kernel',
+      path: "kernel/knowledge/context.md",
+      category: "knowledge",
+      projectName: "kernel",
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Context' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Context" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'kernel/knowledge/context.md',
-        label: 'context.md',
-        path: 'kernel/knowledge/context.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/context.md",
+        label: "context.md",
+        path: "kernel/knowledge/context.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
       nodes: [],
       links: [
         {
-          source: 'kernel/knowledge/context.md',
-          target: 'kernel/skills/writer/SKILL.md',
-          direction: 'outgoing',
+          source: "kernel/knowledge/context.md",
+          target: "kernel/skills/writer/SKILL.md",
+          direction: "outgoing",
           distance: 1,
         },
       ],
@@ -565,7 +576,7 @@ describe('App topology wiring', () => {
             onFileSelect: (
               path: string,
               category: string,
-              metadata?: { projectName?: string; rootLabel?: string }
+              metadata?: { projectName?: string; rootLabel?: string },
             ) => Promise<void>;
           }
         | undefined;
@@ -577,16 +588,16 @@ describe('App topology wiring', () => {
           onFileSelect: (
             path: string,
             category: string,
-            metadata?: { projectName?: string; rootLabel?: string; graphPath?: string }
+            metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
           ) => Promise<void>;
         }
       | undefined;
 
     await act(async () => {
-      await fileTreeProps?.onFileSelect('knowledge/context.md', 'knowledge', {
-        projectName: 'kernel',
-        rootLabel: 'knowledge',
-        graphPath: 'knowledge/context.md',
+      await fileTreeProps?.onFileSelect("knowledge/context.md", "knowledge", {
+        projectName: "kernel",
+        rootLabel: "knowledge",
+        graphPath: "knowledge/context.md",
       });
     });
 
@@ -597,38 +608,37 @@ describe('App topology wiring', () => {
             relationships: Array<{ from?: string; to?: string; type: string }>;
           }
         | undefined;
-      expect(lastMainViewCall?.selectedFile.path).toBe('kernel/knowledge/context.md');
-      expect(lastMainViewCall?.selectedFile.projectName).toBe('kernel');
-      expect(lastMainViewCall?.selectedFile.rootLabel).toBe('knowledge');
+      expect(lastMainViewCall?.selectedFile.path).toBe("kernel/knowledge/context.md");
+      expect(lastMainViewCall?.selectedFile.projectName).toBe("kernel");
+      expect(lastMainViewCall?.selectedFile.rootLabel).toBe("knowledge");
       expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'kernel/knowledge/context.md',
-        to: 'kernel/skills/writer/SKILL.md',
-        type: 'outgoing',
+        from: "kernel/knowledge/context.md",
+        to: "kernel/skills/writer/SKILL.md",
+        type: "outgoing",
       });
     });
 
-    expect(mocks.getVfsContentMock).toHaveBeenCalledWith('kernel/knowledge/context.md');
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('kernel/knowledge/context.md', {
-      direction: 'both',
+    expect(mocks.getVfsContentMock).toHaveBeenCalledWith("kernel/knowledge/context.md");
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith("kernel/knowledge/context.md", {
+      direction: "both",
       hops: 1,
       limit: 20,
     });
   });
 
-
-  it('preserves empty string content in the selected file payload', async () => {
+  it("preserves empty string content in the selected file payload", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'kernel/knowledge/empty.md',
-        label: 'empty.md',
-        path: 'kernel/knowledge/empty.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/empty.md",
+        label: "empty.md",
+        path: "kernel/knowledge/empty.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
@@ -646,7 +656,7 @@ describe('App topology wiring', () => {
             onFileSelect: (
               path: string,
               category: string,
-              metadata?: { projectName?: string; rootLabel?: string }
+              metadata?: { projectName?: string; rootLabel?: string },
             ) => Promise<void>;
           }
         | undefined;
@@ -658,15 +668,15 @@ describe('App topology wiring', () => {
           onFileSelect: (
             path: string,
             category: string,
-            metadata?: { projectName?: string; rootLabel?: string }
+            metadata?: { projectName?: string; rootLabel?: string },
           ) => Promise<void>;
         }
       | undefined;
 
     await act(async () => {
-      await fileTreeProps?.onFileSelect('knowledge/empty.md', 'knowledge', {
-        projectName: 'kernel',
-        rootLabel: 'knowledge',
+      await fileTreeProps?.onFileSelect("knowledge/empty.md", "knowledge", {
+        projectName: "kernel",
+        rootLabel: "knowledge",
       });
     });
 
@@ -676,24 +686,24 @@ describe('App topology wiring', () => {
             selectedFile: { path: string; content?: string | null };
           }
         | undefined;
-      expect(lastMainViewCall?.selectedFile.path).toBe('kernel/knowledge/empty.md');
-      expect(lastMainViewCall?.selectedFile.content).toBe('');
+      expect(lastMainViewCall?.selectedFile.path).toBe("kernel/knowledge/empty.md");
+      expect(lastMainViewCall?.selectedFile.content).toBe("");
     });
   });
 
-  it('clears a stale graph-backed selection when GraphView reports the center node is invalid', async () => {
+  it("clears a stale graph-backed selection when GraphView reports the center node is invalid", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Context' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Context" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'kernel/knowledge/context.md',
-        label: 'context.md',
-        path: 'kernel/knowledge/context.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/context.md",
+        label: "context.md",
+        path: "kernel/knowledge/context.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
@@ -708,21 +718,33 @@ describe('App topology wiring', () => {
 
     await waitFor(() => {
       const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-        | { onGraphResultSelect: (selection: { path: string; category: string; graphPath?: string }) => Promise<void> }
+        | {
+            onGraphResultSelect: (selection: {
+              path: string;
+              category: string;
+              graphPath?: string;
+            }) => Promise<void>;
+          }
         | undefined;
       expect(searchBarProps?.onGraphResultSelect).toBeDefined();
     });
 
     const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-      | { onGraphResultSelect: (selection: { path: string; category: string; graphPath?: string }) => Promise<void> }
+      | {
+          onGraphResultSelect: (selection: {
+            path: string;
+            category: string;
+            graphPath?: string;
+          }) => Promise<void>;
+        }
       | undefined;
 
     await act(async () => {
       await searchBarProps?.onGraphResultSelect({
-        path: 'kernel/knowledge/context.md',
-        category: 'knowledge',
-        projectName: 'kernel',
-        graphPath: 'kernel/knowledge/context.md',
+        path: "kernel/knowledge/context.md",
+        category: "knowledge",
+        projectName: "kernel",
+        graphPath: "kernel/knowledge/context.md",
       });
     });
 
@@ -735,11 +757,11 @@ describe('App topology wiring', () => {
           }
         | undefined;
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'kernel/knowledge/context.md',
-        category: 'knowledge',
+        path: "kernel/knowledge/context.md",
+        category: "knowledge",
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('graph');
-      expect(lastMainViewCall?.graphCenterNodeId).toBe('kernel/knowledge/context.md');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("graph");
+      expect(lastMainViewCall?.graphCenterNodeId).toBe("kernel/knowledge/context.md");
     });
 
     const graphInvalidationProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
@@ -749,7 +771,7 @@ describe('App topology wiring', () => {
       | undefined;
 
     await act(async () => {
-      graphInvalidationProps?.onGraphCenterNodeInvalid?.('kernel/knowledge/context.md');
+      graphInvalidationProps?.onGraphCenterNodeInvalid?.("kernel/knowledge/context.md");
     });
 
     await waitFor(() => {
@@ -764,30 +786,30 @@ describe('App topology wiring', () => {
     expect(mocks.editorStore.clearSelection).toHaveBeenCalledTimes(1);
   });
 
-  it('hydrates search-open selections through the same file pipeline and preserves jump metadata', async () => {
+  it("hydrates search-open selections through the same file pipeline and preserves jump metadata", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
     mocks.getVfsContentMock.mockResolvedValue({
-      content: 'let service = AlphaService::new();',
+      content: "let service = AlphaService::new();",
     });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs',
-        label: 'repo.rs',
-        path: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs',
-        nodeType: 'document',
+        id: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+        label: "repo.rs",
+        path: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+        nodeType: "document",
         isCenter: true,
         distance: 0,
       },
       nodes: [],
       links: [
         {
-          source: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs',
-          target: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/lib.rs',
-          direction: 'outgoing',
+          source: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+          target: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/lib.rs",
+          direction: "outgoing",
           distance: 1,
         },
       ],
@@ -831,9 +853,9 @@ describe('App topology wiring', () => {
 
     await act(async () => {
       await searchBarProps?.onResultSelect({
-        path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
-        category: 'doc',
-        projectName: 'xiuxian-wendao',
+        path: "packages/rust/crates/xiuxian-wendao/src/repo.rs",
+        category: "doc",
+        projectName: "xiuxian-wendao",
         line: 21,
         column: 15,
       });
@@ -855,36 +877,41 @@ describe('App topology wiring', () => {
         | undefined;
 
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs',
-        category: 'doc',
-        projectName: 'xiuxian-wendao',
+        path: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+        category: "doc",
+        projectName: "xiuxian-wendao",
         line: 21,
         column: 15,
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('content');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("content");
       expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs',
-        to: 'xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/lib.rs',
-        type: 'outgoing',
+        from: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+        to: "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/lib.rs",
+        type: "outgoing",
       });
     });
 
-    expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'false');
-    expect(mocks.getVfsContentMock).toHaveBeenCalledWith('xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs');
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs', {
-      direction: 'both',
-      hops: 1,
-      limit: 20,
-    });
+    expect(screen.getByTestId("zen-search-window")).toHaveAttribute("data-open", "false");
+    expect(mocks.getVfsContentMock).toHaveBeenCalledWith(
+      "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+    );
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith(
+      "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+      {
+        direction: "both",
+        hops: 1,
+        limit: 20,
+      },
+    );
   });
 
-  it('keeps ZenSearch open when a result hydrate fails', async () => {
+  it("keeps ZenSearch open when a result hydrate fails", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getVfsContentMock.mockRejectedValue(new Error('vfs unavailable'));
+    mocks.getVfsContentMock.mockRejectedValue(new Error("vfs unavailable"));
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: null,
       nodes: [],
@@ -923,14 +950,14 @@ describe('App topology wiring', () => {
 
     await act(async () => {
       await searchBarProps?.onResultSelect({
-        path: 'packages/rust/crates/xiuxian-wendao/src/repo.rs',
-        category: 'doc',
-        projectName: 'xiuxian-wendao',
+        path: "packages/rust/crates/xiuxian-wendao/src/repo.rs",
+        category: "doc",
+        projectName: "xiuxian-wendao",
       });
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('zen-search-window')).toHaveAttribute('data-open', 'true');
+      expect(screen.getByTestId("zen-search-window")).toHaveAttribute("data-open", "true");
     });
 
     const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
@@ -939,11 +966,13 @@ describe('App topology wiring', () => {
         }
       | undefined;
 
-    expect(lastMainViewCall?.requestedTab?.tab).not.toBe('content');
-    expect(mocks.getVfsContentMock).toHaveBeenCalledWith('xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs');
+    expect(lastMainViewCall?.requestedTab?.tab).not.toBe("content");
+    expect(mocks.getVfsContentMock).toHaveBeenCalledWith(
+      "xiuxian-wendao/packages/rust/crates/xiuxian-wendao/src/repo.rs",
+    );
   });
 
-  it('recenters graph-node selections in the graph tab without jumping to content', async () => {
+  it("recenters graph-node selections in the graph tab without jumping to content", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
@@ -951,33 +980,33 @@ describe('App topology wiring', () => {
     });
     mocks.resolveStudioPathMock
       .mockResolvedValueOnce({
-        path: 'kernel/knowledge/context.md',
-        category: 'knowledge',
-        projectName: 'kernel',
+        path: "kernel/knowledge/context.md",
+        category: "knowledge",
+        projectName: "kernel",
       })
       .mockResolvedValueOnce({
-        path: 'kernel/knowledge/child.md',
-        category: 'knowledge',
-        projectName: 'kernel',
+        path: "kernel/knowledge/child.md",
+        category: "knowledge",
+        projectName: "kernel",
       });
     mocks.getVfsContentMock
-      .mockResolvedValueOnce({ content: '# Context' })
-      .mockResolvedValueOnce({ content: '# Child node' });
+      .mockResolvedValueOnce({ content: "# Context" })
+      .mockResolvedValueOnce({ content: "# Child node" });
     mocks.getGraphNeighborsMock.mockResolvedValueOnce({
       center: {
-        id: 'kernel/knowledge/context.md',
-        label: 'context.md',
-        path: 'kernel/knowledge/context.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/context.md",
+        label: "context.md",
+        path: "kernel/knowledge/context.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
       nodes: [],
       links: [
         {
-          source: 'kernel/knowledge/context.md',
-          target: 'kernel/skills/writer/SKILL.md',
-          direction: 'outgoing',
+          source: "kernel/knowledge/context.md",
+          target: "kernel/skills/writer/SKILL.md",
+          direction: "outgoing",
           distance: 1,
         },
       ],
@@ -986,19 +1015,19 @@ describe('App topology wiring', () => {
     });
     mocks.getGraphNeighborsMock.mockResolvedValueOnce({
       center: {
-        id: 'kernel/knowledge/child.md',
-        label: 'child.md',
-        path: 'kernel/knowledge/child.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/child.md",
+        label: "child.md",
+        path: "kernel/knowledge/child.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
       nodes: [],
       links: [
         {
-          source: 'kernel/knowledge/child.md',
-          target: 'kernel/knowledge/context.md',
-          direction: 'outgoing',
+          source: "kernel/knowledge/child.md",
+          target: "kernel/knowledge/context.md",
+          direction: "outgoing",
           distance: 1,
         },
       ],
@@ -1015,7 +1044,13 @@ describe('App topology wiring', () => {
         | undefined;
       expect(searchBarProps?.onGraphResultSelect).toBeDefined();
       const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | { onGraphFileSelect: (selection: { path: string; category: string; graphPath?: string }) => void }
+        | {
+            onGraphFileSelect: (selection: {
+              path: string;
+              category: string;
+              graphPath?: string;
+            }) => void;
+          }
         | undefined;
       expect(mainViewProps?.onGraphFileSelect).toBeDefined();
     });
@@ -1024,14 +1059,20 @@ describe('App topology wiring', () => {
       | { onGraphResultSelect: (selection: { path: string; category: string }) => Promise<void> }
       | undefined;
     const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | { onGraphFileSelect: (selection: { path: string; category: string; graphPath?: string }) => void }
+      | {
+          onGraphFileSelect: (selection: {
+            path: string;
+            category: string;
+            graphPath?: string;
+          }) => void;
+        }
       | undefined;
 
     await act(async () => {
       await searchBarProps?.onGraphResultSelect({
-        path: 'knowledge/context.md',
-        category: 'knowledge',
-        graphPath: 'knowledge/context.md',
+        path: "knowledge/context.md",
+        category: "knowledge",
+        graphPath: "knowledge/context.md",
       });
     });
 
@@ -1044,79 +1085,79 @@ describe('App topology wiring', () => {
           }
         | undefined;
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'kernel/knowledge/context.md',
-        category: 'knowledge',
+        path: "kernel/knowledge/context.md",
+        category: "knowledge",
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('graph');
-      expect(lastMainViewCall?.graphCenterNodeId).toBe('kernel/knowledge/context.md');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("graph");
+      expect(lastMainViewCall?.graphCenterNodeId).toBe("kernel/knowledge/context.md");
     });
 
     await act(async () => {
       mainViewProps?.onGraphFileSelect({
-        path: 'knowledge/child.md',
-        category: 'knowledge',
-        graphPath: 'knowledge/child.md',
+        path: "knowledge/child.md",
+        category: "knowledge",
+        graphPath: "knowledge/child.md",
       });
     });
 
     await waitFor(() => {
       const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
         | {
-          selectedFile: { path: string; category: string };
-          requestedTab?: { tab: string };
-          graphCenterNodeId?: string | null;
-          relationships: Array<{ from?: string; to?: string; type: string }>;
-        }
+            selectedFile: { path: string; category: string };
+            requestedTab?: { tab: string };
+            graphCenterNodeId?: string | null;
+            relationships: Array<{ from?: string; to?: string; type: string }>;
+          }
         | undefined;
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'kernel/knowledge/child.md',
-        category: 'knowledge',
+        path: "kernel/knowledge/child.md",
+        category: "knowledge",
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('graph');
-      expect(lastMainViewCall?.graphCenterNodeId).toBe('kernel/knowledge/child.md');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("graph");
+      expect(lastMainViewCall?.graphCenterNodeId).toBe("kernel/knowledge/child.md");
       expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'kernel/knowledge/child.md',
-        to: 'kernel/knowledge/context.md',
-        type: 'outgoing',
+        from: "kernel/knowledge/child.md",
+        to: "kernel/knowledge/context.md",
+        type: "outgoing",
       });
     });
 
-    expect(mocks.getVfsContentMock).toHaveBeenNthCalledWith(1, 'kernel/knowledge/context.md');
-    expect(mocks.getVfsContentMock).toHaveBeenNthCalledWith(2, 'kernel/knowledge/child.md');
-    expect(mocks.getGraphNeighborsMock).toHaveBeenNthCalledWith(1, 'kernel/knowledge/context.md', {
-      direction: 'both',
+    expect(mocks.getVfsContentMock).toHaveBeenNthCalledWith(1, "kernel/knowledge/context.md");
+    expect(mocks.getVfsContentMock).toHaveBeenNthCalledWith(2, "kernel/knowledge/child.md");
+    expect(mocks.getGraphNeighborsMock).toHaveBeenNthCalledWith(1, "kernel/knowledge/context.md", {
+      direction: "both",
       hops: 1,
       limit: 20,
     });
-    expect(mocks.getGraphNeighborsMock).toHaveBeenNthCalledWith(2, 'kernel/knowledge/child.md', {
-      direction: 'both',
+    expect(mocks.getGraphNeighborsMock).toHaveBeenNthCalledWith(2, "kernel/knowledge/child.md", {
+      direction: "both",
       hops: 1,
       limit: 20,
     });
   });
 
-  it('preserves graphPath as the graph center node id when graph selections target semantic subnodes', async () => {
+  it("preserves graphPath as the graph center node id when graph selections target semantic subnodes", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Index' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Index" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'main/docs/index.md#section:overview',
-        label: 'Overview',
-        path: 'main/docs/index.md#section:overview',
-        nodeType: 'doc',
+        id: "main/docs/index.md#section:overview",
+        label: "Overview",
+        path: "main/docs/index.md#section:overview",
+        nodeType: "doc",
         isCenter: true,
         distance: 0,
       },
       nodes: [
         {
-          id: 'main/docs/index.md#section:overview',
-          label: 'Overview',
-          path: 'main/docs/index.md#section:overview',
-          nodeType: 'doc',
+          id: "main/docs/index.md#section:overview",
+          label: "Overview",
+          path: "main/docs/index.md#section:overview",
+          nodeType: "doc",
           isCenter: true,
           distance: 0,
         },
@@ -1131,20 +1172,32 @@ describe('App topology wiring', () => {
 
     await waitFor(() => {
       const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-        | { onGraphResultSelect: (selection: { path: string; category: string; graphPath?: string }) => Promise<void> }
+        | {
+            onGraphResultSelect: (selection: {
+              path: string;
+              category: string;
+              graphPath?: string;
+            }) => Promise<void>;
+          }
         | undefined;
       expect(searchBarProps?.onGraphResultSelect).toBeDefined();
     });
 
     const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-      | { onGraphResultSelect: (selection: { path: string; category: string; graphPath?: string }) => Promise<void> }
+      | {
+          onGraphResultSelect: (selection: {
+            path: string;
+            category: string;
+            graphPath?: string;
+          }) => Promise<void>;
+        }
       | undefined;
 
     await act(async () => {
       await searchBarProps?.onGraphResultSelect({
-        path: 'main/docs/index.md',
-        graphPath: 'main/docs/index.md#section:overview',
-        category: 'doc',
+        path: "main/docs/index.md",
+        graphPath: "main/docs/index.md#section:overview",
+        category: "doc",
       });
     });
 
@@ -1157,36 +1210,36 @@ describe('App topology wiring', () => {
           }
         | undefined;
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'main/docs/index.md',
-        category: 'doc',
+        path: "main/docs/index.md",
+        category: "doc",
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('graph');
-      expect(lastMainViewCall?.graphCenterNodeId).toBe('main/docs/index.md#section:overview');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("graph");
+      expect(lastMainViewCall?.graphCenterNodeId).toBe("main/docs/index.md#section:overview");
     });
 
     expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith(
-      'main/docs/index.md#section:overview',
+      "main/docs/index.md#section:overview",
       {
-        direction: 'both',
+        direction: "both",
         hops: 1,
         limit: 20,
-      }
+      },
     );
   });
 
-  it('preserves semantic graph node ids for repo-backed graph selections', async () => {
+  it("preserves semantic graph node ids for repo-backed graph selections", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: 'module SparseConnectivityTracerTests' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "module SparseConnectivityTracerTests" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
-        label: 'Sparse Connectivity Tracer Tests',
-        path: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
-        nodeType: 'doc',
+        id: "repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl",
+        label: "Sparse Connectivity Tracer Tests",
+        path: "repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl",
+        nodeType: "doc",
         isCenter: true,
         distance: 0,
       },
@@ -1226,27 +1279,27 @@ describe('App topology wiring', () => {
 
     await act(async () => {
       await searchBarProps?.onGraphResultSelect({
-        path: 'DataInterpolations.jl/test/sparseconnectivitytracer_tests.jl',
-        graphPath: 'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
-        category: 'doc',
-        projectName: 'DataInterpolations.jl',
+        path: "DataInterpolations.jl/test/sparseconnectivitytracer_tests.jl",
+        graphPath: "repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl",
+        category: "doc",
+        projectName: "DataInterpolations.jl",
       });
     });
 
     await waitFor(() => {
       expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith(
-        'repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl',
+        "repo:DataInterpolations.jl:file:test/sparseconnectivitytracer_tests.jl",
         {
-          direction: 'both',
+          direction: "both",
           hops: 1,
           limit: 20,
-        }
+        },
       );
     });
   });
 
-  it('records repo-backed code hydration without graph fetches when bare selection paths are canonicalized', async () => {
-    const trace = createPerfTrace('AppHotspotPerf.repo-backed-code-selection');
+  it("records repo-backed code hydration without graph fetches when bare selection paths are canonicalized", async () => {
+    const trace = createPerfTrace("AppHotspotPerf.repo-backed-code-selection");
     mocks.activePerfTrace = trace;
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
@@ -1254,17 +1307,17 @@ describe('App topology wiring', () => {
       clusters: [],
     });
     mocks.getVfsContentMock.mockImplementation(async () => {
-      trace.increment('get-vfs-content-calls');
-      return { content: 'module Continuous' };
+      trace.increment("get-vfs-content-calls");
+      return { content: "module Continuous" };
     });
     mocks.getGraphNeighborsMock.mockImplementation(async () => {
-      trace.increment('get-graph-neighbors-calls');
+      trace.increment("get-graph-neighbors-calls");
       return {
         center: {
-          id: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
-          label: 'continuous',
-          path: 'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl',
-          nodeType: 'doc',
+          id: "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+          label: "continuous",
+          path: "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+          nodeType: "doc",
           isCenter: true,
           distance: 0,
         },
@@ -1304,436 +1357,216 @@ describe('App topology wiring', () => {
       | undefined;
 
     trace.reset();
-    await trace.measureAsync('hydrate-repo-code-selection', async () => {
+    await trace.measureAsync("hydrate-repo-code-selection", async () => {
       await act(async () => {
         await searchBarProps?.onResultSelect({
-          path: 'src/Blocks/continuous.jl',
-          category: 'repo_code',
-          projectName: 'ModelingToolkitStandardLibrary.jl',
+          path: "src/Blocks/continuous.jl",
+          category: "repo_code",
+          projectName: "ModelingToolkitStandardLibrary.jl",
           line: 42,
         });
       });
 
       await waitFor(() => {
         expect(mocks.getVfsContentMock).toHaveBeenCalledWith(
-          'ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl'
+          "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
         );
       });
     });
 
     expect(mocks.getGraphNeighborsMock).not.toHaveBeenCalled();
     const snapshot = trace.snapshot();
-    expect(snapshot.counters['get-vfs-content-calls']).toBe(1);
-    expect(snapshot.counters['get-graph-neighbors-calls'] ?? 0).toBe(0);
+    expect(snapshot.counters["get-vfs-content-calls"]).toBe(1);
+    expect(snapshot.counters["get-graph-neighbors-calls"] ?? 0).toBe(0);
     expect(snapshot.renderCount).toBeLessThanOrEqual(8);
-    recordPerfTraceSnapshot(
-      'App hotspot scenario: repo-backed code selection',
-      snapshot,
-    );
+    recordPerfTraceSnapshot("App hotspot scenario: repo-backed code selection", snapshot);
   });
 
-  it('resolves bi-links through the graph surface and then hydrates the linked file into content view', async () => {
+  it("resolves bi-links through the graph surface and then hydrates the linked file into content view", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Linked context' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Linked context" });
     mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'main/docs/index.md',
-      category: 'doc',
+      path: "main/docs/index.md",
+      category: "doc",
     });
-    mocks.getGraphNeighborsMock
-      .mockResolvedValueOnce({
-        center: {
-          id: 'main/docs/index.md',
-          label: 'index.md',
-          path: 'main/docs/index.md',
-          nodeType: 'doc',
-          navigationTarget: {
-            path: 'main/docs/index.md',
-            category: 'doc',
-          },
-          isCenter: true,
-          distance: 0,
-        },
-        nodes: [],
-        links: [
-          {
-            source: 'main/docs/index.md',
-            target: 'main/docs/guide.md',
-            direction: 'outgoing',
-            distance: 1,
-          },
-        ],
-        totalNodes: 2,
-        totalLinks: 1,
-      });
-
-    render(<App />);
-
-    await waitFor(() => {
-      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | { onBiLinkClick: (link: string) => Promise<void> }
-        | undefined;
-      expect(mainViewProps?.onBiLinkClick).toBeDefined();
-    });
-
-    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | { onBiLinkClick: (link: string) => Promise<void> }
-      | undefined;
-
-    await act(async () => {
-      await mainViewProps?.onBiLinkClick('index');
-    });
-
-    await waitFor(() => {
-      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | {
-            selectedFile: { path: string; category: string };
-            requestedTab?: { tab: string };
-            relationships: Array<{ from?: string; to?: string; type: string }>;
-          }
-        | undefined;
-
-      expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'main/docs/index.md',
-        category: 'doc',
-      });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('content');
-      expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'main/docs/index.md',
-        to: 'main/docs/guide.md',
-        type: 'outgoing',
-      });
-    });
-
-    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith('index');
-    expect(mocks.getVfsContentMock).toHaveBeenCalledWith('main/docs/index.md');
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledTimes(1);
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('main/docs/index.md', {
-      direction: 'both',
-      hops: 1,
-      limit: 20,
-    });
-  });
-
-  it('hydrates bi-links from graph center path when navigationTarget is missing', async () => {
-    mocks.get3DTopologyMock.mockResolvedValue({
-      nodes: [],
-      links: [],
-      clusters: [],
-    });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Linked context' });
-    mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'main/docs/index.md',
-      category: 'doc',
-    });
-    mocks.getGraphNeighborsMock
-      .mockResolvedValueOnce({
-        center: {
-          id: 'main/docs/index.md',
-          label: 'index.md',
-          path: 'main/docs/index.md',
-          nodeType: 'doc',
-          isCenter: true,
-          distance: 0,
-        },
-        nodes: [],
-        links: [
-          {
-            source: 'main/docs/index.md',
-            target: 'main/docs/guide.md',
-            direction: 'outgoing',
-            distance: 1,
-          },
-        ],
-        totalNodes: 2,
-        totalLinks: 1,
-      });
-
-    render(<App />);
-
-    await waitFor(() => {
-      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | { onBiLinkClick: (link: string) => Promise<void> }
-        | undefined;
-      expect(mainViewProps?.onBiLinkClick).toBeDefined();
-    });
-
-    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | { onBiLinkClick: (link: string) => Promise<void> }
-      | undefined;
-
-    await act(async () => {
-      await mainViewProps?.onBiLinkClick('index');
-    });
-
-    await waitFor(() => {
-      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | {
-            selectedFile: { path: string; category: string };
-            requestedTab?: { tab: string };
-            relationships: Array<{ from?: string; to?: string; type: string }>;
-          }
-        | undefined;
-
-      expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'main/docs/index.md',
-        category: 'doc',
-      });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('content');
-      expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'main/docs/index.md',
-        to: 'main/docs/guide.md',
-        type: 'outgoing',
-      });
-    });
-
-    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith('index');
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledTimes(1);
-    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith('main/docs/index.md', {
-      direction: 'both',
-      hops: 1,
-      limit: 20,
-    });
-  });
-
-  it('normalizes wendao:// bi-links for graph lookup and content hydration', async () => {
-    mocks.get3DTopologyMock.mockResolvedValue({
-      nodes: [],
-      links: [],
-      clusters: [],
-    });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Skill doc' });
-    mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'internal_skills/writer/SKILL.md',
-      category: 'skill',
-    });
-    mocks.getGraphNeighborsMock
-      .mockResolvedValueOnce({
-        center: {
-          id: 'internal_skills/writer/SKILL.md',
-          label: 'SKILL.md',
-          path: 'internal_skills/writer/SKILL.md',
-          nodeType: 'skill',
-          navigationTarget: {
-            path: 'internal_skills/writer/SKILL.md',
-            category: 'skill',
-          },
-          isCenter: true,
-          distance: 0,
-        },
-        nodes: [],
-        links: [],
-        totalNodes: 1,
-        totalLinks: 0,
-      });
-
-    render(<App />);
-
-    await waitFor(() => {
-      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | { onBiLinkClick: (link: string) => Promise<void> }
-        | undefined;
-      expect(mainViewProps?.onBiLinkClick).toBeDefined();
-    });
-
-    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | { onBiLinkClick: (link: string) => Promise<void> }
-      | undefined;
-
-    await act(async () => {
-      await mainViewProps?.onBiLinkClick('wendao://internal_skills/writer/SKILL.md');
-    });
-
-    await waitFor(() => {
-      expect(mocks.getVfsContentMock).toHaveBeenCalledWith('internal_skills/writer/SKILL.md');
-    });
-
-    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith(
-      'wendao://internal_skills/writer/SKILL.md'
-    );
-    expect(mocks.getGraphNeighborsMock).toHaveBeenNthCalledWith(
-      1,
-      'internal_skills/writer/SKILL.md',
-      {
-        direction: 'both',
-        hops: 1,
-        limit: 20,
-      }
-    );
-  });
-
-  it('falls back to normalized semantic path when graph resolution misses', async () => {
-    mocks.get3DTopologyMock.mockResolvedValue({
-      nodes: [],
-      links: [],
-      clusters: [],
-    });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Skill doc' });
-    mocks.getGraphNeighborsMock.mockRejectedValue(new Error('node not found'));
-    mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'internal_skills/writer/SKILL.md',
-      category: 'skill',
-    });
-
-    render(<App />);
-
-    await waitFor(() => {
-      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | { onBiLinkClick: (link: string) => Promise<void> }
-        | undefined;
-      expect(mainViewProps?.onBiLinkClick).toBeDefined();
-    });
-
-    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | { onBiLinkClick: (link: string) => Promise<void> }
-      | undefined;
-
-    await act(async () => {
-      await mainViewProps?.onBiLinkClick('id:internal_skills/writer/SKILL.md');
-    });
-
-    await waitFor(() => {
-      expect(mocks.getVfsContentMock).toHaveBeenCalledWith('internal_skills/writer/SKILL.md');
-    });
-    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith('id:internal_skills/writer/SKILL.md');
-  });
-
-  it('canonicalizes relative bi-links with the current project context when resolveStudioPath misses', async () => {
-    mocks.get3DTopologyMock.mockResolvedValue({
-      nodes: [],
-      links: [],
-      clusters: [],
-    });
-    mocks.getVfsContentMock
-      .mockResolvedValueOnce({ content: '# Seed doc' })
-      .mockResolvedValueOnce({ content: '# Handbook doc' });
-    mocks.resolveStudioPathMock.mockRejectedValueOnce(new Error('resolve failed'));
-    mocks.getGraphNeighborsMock
-      .mockResolvedValueOnce({
-        center: {
-          id: 'main/docs/index.md',
-          label: 'index.md',
-          path: 'main/docs/index.md',
-          nodeType: 'doc',
-          navigationTarget: {
-            path: 'main/docs/index.md',
-            category: 'doc',
-            projectName: 'main',
-          },
-          isCenter: true,
-          distance: 0,
-        },
-        nodes: [],
-        links: [],
-        totalNodes: 1,
-        totalLinks: 0,
-      })
-      .mockResolvedValueOnce({
-        center: {
-          id: 'main/docs/02_dev/HANDBOOK.md',
-          label: 'HANDBOOK.md',
-          path: 'main/docs/02_dev/HANDBOOK.md',
-          nodeType: 'doc',
-          navigationTarget: {
-            path: 'main/docs/02_dev/HANDBOOK.md',
-            category: 'doc',
-            projectName: 'main',
-          },
-          isCenter: true,
-          distance: 0,
-        },
-        nodes: [],
-        links: [],
-        totalNodes: 1,
-        totalLinks: 0,
-      });
-
-    render(<App />);
-
-    await waitFor(() => {
-      const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
-        | {
-            onFileSelect: (
-              path: string,
-              category: string,
-              metadata?: { projectName?: string; rootLabel?: string; graphPath?: string }
-            ) => Promise<void>;
-          }
-        | undefined;
-      expect(fileTreeProps?.onFileSelect).toBeDefined();
-    });
-
-    const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
-      | {
-          onFileSelect: (
-            path: string,
-            category: string,
-            metadata?: { projectName?: string; rootLabel?: string; graphPath?: string }
-          ) => Promise<void>;
-        }
-      | undefined;
-
-    await act(async () => {
-      await fileTreeProps?.onFileSelect('main/docs/index.md', 'knowledge', {
-        projectName: 'main',
-        rootLabel: 'docs',
-        graphPath: 'main/docs/index.md',
-      });
-    });
-
-    await waitFor(() => {
-      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | {
-            selectedFile: { path: string; projectName?: string; rootLabel?: string };
-          }
-        | undefined;
-      expect(lastMainViewCall?.selectedFile.path).toBe('main/docs/index.md');
-      expect(lastMainViewCall?.selectedFile.projectName).toBe('main');
-    });
-
-    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | { onBiLinkClick: (link: string) => Promise<void> }
-      | undefined;
-
-    await act(async () => {
-      await mainViewProps?.onBiLinkClick('docs/02_dev/HANDBOOK.md');
-    });
-
-    await waitFor(() => {
-      expect(mocks.getVfsContentMock).toHaveBeenLastCalledWith('main/docs/02_dev/HANDBOOK.md');
-    });
-
-    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith('docs/02_dev/HANDBOOK.md');
-    expect(mocks.getGraphNeighborsMock).toHaveBeenLastCalledWith(
-      'main/docs/02_dev/HANDBOOK.md',
-      {
-        direction: 'both',
-        hops: 1,
-        limit: 20,
-      }
-    );
-  });
-
-  it('strips semantic link prefixes when bi-link resolution falls back', async () => {
-    mocks.get3DTopologyMock.mockResolvedValue({
-      nodes: [],
-      links: [],
-      clusters: [],
-    });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Skill doc' });
-    mocks.resolveStudioPathMock.mockRejectedValueOnce(new Error('resolve failed'));
-    mocks.getGraphNeighborsMock.mockResolvedValue({
+    mocks.getGraphNeighborsMock.mockResolvedValueOnce({
       center: {
-        id: 'internal_skills/writer/SKILL.md',
-        label: 'SKILL.md',
-        path: 'internal_skills/writer/SKILL.md',
-        nodeType: 'skill',
+        id: "main/docs/index.md",
+        label: "index.md",
+        path: "main/docs/index.md",
+        nodeType: "doc",
         navigationTarget: {
-          path: 'internal_skills/writer/SKILL.md',
-          category: 'skill',
+          path: "main/docs/index.md",
+          category: "doc",
+        },
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [
+        {
+          source: "main/docs/index.md",
+          target: "main/docs/guide.md",
+          direction: "outgoing",
+          distance: 1,
+        },
+      ],
+      totalNodes: 2,
+      totalLinks: 1,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | { onBiLinkClick: (link: string) => Promise<void> }
+        | undefined;
+      expect(mainViewProps?.onBiLinkClick).toBeDefined();
+    });
+
+    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+      | { onBiLinkClick: (link: string) => Promise<void> }
+      | undefined;
+
+    await act(async () => {
+      await mainViewProps?.onBiLinkClick("index");
+    });
+
+    await waitFor(() => {
+      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | {
+            selectedFile: { path: string; category: string };
+            requestedTab?: { tab: string };
+            relationships: Array<{ from?: string; to?: string; type: string }>;
+          }
+        | undefined;
+
+      expect(lastMainViewCall?.selectedFile).toMatchObject({
+        path: "main/docs/index.md",
+        category: "doc",
+      });
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("content");
+      expect(lastMainViewCall?.relationships[0]).toEqual({
+        from: "main/docs/index.md",
+        to: "main/docs/guide.md",
+        type: "outgoing",
+      });
+    });
+
+    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith("index");
+    expect(mocks.getVfsContentMock).toHaveBeenCalledWith("main/docs/index.md");
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledTimes(1);
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith("main/docs/index.md", {
+      direction: "both",
+      hops: 1,
+      limit: 20,
+    });
+  });
+
+  it("hydrates bi-links from graph center path when navigationTarget is missing", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Linked context" });
+    mocks.resolveStudioPathMock.mockResolvedValue({
+      path: "main/docs/index.md",
+      category: "doc",
+    });
+    mocks.getGraphNeighborsMock.mockResolvedValueOnce({
+      center: {
+        id: "main/docs/index.md",
+        label: "index.md",
+        path: "main/docs/index.md",
+        nodeType: "doc",
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [
+        {
+          source: "main/docs/index.md",
+          target: "main/docs/guide.md",
+          direction: "outgoing",
+          distance: 1,
+        },
+      ],
+      totalNodes: 2,
+      totalLinks: 1,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | { onBiLinkClick: (link: string) => Promise<void> }
+        | undefined;
+      expect(mainViewProps?.onBiLinkClick).toBeDefined();
+    });
+
+    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+      | { onBiLinkClick: (link: string) => Promise<void> }
+      | undefined;
+
+    await act(async () => {
+      await mainViewProps?.onBiLinkClick("index");
+    });
+
+    await waitFor(() => {
+      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | {
+            selectedFile: { path: string; category: string };
+            requestedTab?: { tab: string };
+            relationships: Array<{ from?: string; to?: string; type: string }>;
+          }
+        | undefined;
+
+      expect(lastMainViewCall?.selectedFile).toMatchObject({
+        path: "main/docs/index.md",
+        category: "doc",
+      });
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("content");
+      expect(lastMainViewCall?.relationships[0]).toEqual({
+        from: "main/docs/index.md",
+        to: "main/docs/guide.md",
+        type: "outgoing",
+      });
+    });
+
+    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith("index");
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledTimes(1);
+    expect(mocks.getGraphNeighborsMock).toHaveBeenCalledWith("main/docs/index.md", {
+      direction: "both",
+      hops: 1,
+      limit: 20,
+    });
+  });
+
+  it("normalizes wendao:// bi-links for graph lookup and content hydration", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Skill doc" });
+    mocks.resolveStudioPathMock.mockResolvedValue({
+      path: "internal_skills/writer/SKILL.md",
+      category: "skill",
+    });
+    mocks.getGraphNeighborsMock.mockResolvedValueOnce({
+      center: {
+        id: "internal_skills/writer/SKILL.md",
+        label: "SKILL.md",
+        path: "internal_skills/writer/SKILL.md",
+        nodeType: "skill",
+        navigationTarget: {
+          path: "internal_skills/writer/SKILL.md",
+          category: "skill",
         },
         isCenter: true,
         distance: 0,
@@ -1758,45 +1591,254 @@ describe('App topology wiring', () => {
       | undefined;
 
     await act(async () => {
-      await mainViewProps?.onBiLinkClick('id:internal_skills/writer/SKILL.md');
+      await mainViewProps?.onBiLinkClick("wendao://internal_skills/writer/SKILL.md");
     });
 
     await waitFor(() => {
-      expect(mocks.getVfsContentMock).toHaveBeenCalledWith('internal_skills/writer/SKILL.md');
+      expect(mocks.getVfsContentMock).toHaveBeenCalledWith("internal_skills/writer/SKILL.md");
     });
 
     expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith(
-      'id:internal_skills/writer/SKILL.md'
+      "wendao://internal_skills/writer/SKILL.md",
+    );
+    expect(mocks.getGraphNeighborsMock).toHaveBeenNthCalledWith(
+      1,
+      "internal_skills/writer/SKILL.md",
+      {
+        direction: "both",
+        hops: 1,
+        limit: 20,
+      },
     );
   });
 
-  it('routes the search graph action into the graph tab hydration flow', async () => {
+  it("falls back to normalized semantic path when graph resolution misses", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Skill doc" });
+    mocks.getGraphNeighborsMock.mockRejectedValue(new Error("node not found"));
+    mocks.resolveStudioPathMock.mockResolvedValue({
+      path: "internal_skills/writer/SKILL.md",
+      category: "skill",
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | { onBiLinkClick: (link: string) => Promise<void> }
+        | undefined;
+      expect(mainViewProps?.onBiLinkClick).toBeDefined();
+    });
+
+    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+      | { onBiLinkClick: (link: string) => Promise<void> }
+      | undefined;
+
+    await act(async () => {
+      await mainViewProps?.onBiLinkClick("id:internal_skills/writer/SKILL.md");
+    });
+
+    await waitFor(() => {
+      expect(mocks.getVfsContentMock).toHaveBeenCalledWith("internal_skills/writer/SKILL.md");
+    });
+    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith("id:internal_skills/writer/SKILL.md");
+  });
+
+  it("canonicalizes relative bi-links with the current project context when resolveStudioPath misses", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock
+      .mockResolvedValueOnce({ content: "# Seed doc" })
+      .mockResolvedValueOnce({ content: "# Handbook doc" });
+    mocks.resolveStudioPathMock.mockRejectedValueOnce(new Error("resolve failed"));
+    mocks.getGraphNeighborsMock
+      .mockResolvedValueOnce({
+        center: {
+          id: "main/docs/index.md",
+          label: "index.md",
+          path: "main/docs/index.md",
+          nodeType: "doc",
+          navigationTarget: {
+            path: "main/docs/index.md",
+            category: "doc",
+            projectName: "main",
+          },
+          isCenter: true,
+          distance: 0,
+        },
+        nodes: [],
+        links: [],
+        totalNodes: 1,
+        totalLinks: 0,
+      })
+      .mockResolvedValueOnce({
+        center: {
+          id: "main/docs/02_dev/HANDBOOK.md",
+          label: "HANDBOOK.md",
+          path: "main/docs/02_dev/HANDBOOK.md",
+          nodeType: "doc",
+          navigationTarget: {
+            path: "main/docs/02_dev/HANDBOOK.md",
+            category: "doc",
+            projectName: "main",
+          },
+          isCenter: true,
+          distance: 0,
+        },
+        nodes: [],
+        links: [],
+        totalNodes: 1,
+        totalLinks: 0,
+      });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onFileSelect: (
+              path: string,
+              category: string,
+              metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
+            ) => Promise<void>;
+          }
+        | undefined;
+      expect(fileTreeProps?.onFileSelect).toBeDefined();
+    });
+
+    const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onFileSelect: (
+            path: string,
+            category: string,
+            metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
+          ) => Promise<void>;
+        }
+      | undefined;
+
+    await act(async () => {
+      await fileTreeProps?.onFileSelect("main/docs/index.md", "knowledge", {
+        projectName: "main",
+        rootLabel: "docs",
+        graphPath: "main/docs/index.md",
+      });
+    });
+
+    await waitFor(() => {
+      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | {
+            selectedFile: { path: string; projectName?: string; rootLabel?: string };
+          }
+        | undefined;
+      expect(lastMainViewCall?.selectedFile.path).toBe("main/docs/index.md");
+      expect(lastMainViewCall?.selectedFile.projectName).toBe("main");
+    });
+
+    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+      | { onBiLinkClick: (link: string) => Promise<void> }
+      | undefined;
+
+    await act(async () => {
+      await mainViewProps?.onBiLinkClick("docs/02_dev/HANDBOOK.md");
+    });
+
+    await waitFor(() => {
+      expect(mocks.getVfsContentMock).toHaveBeenLastCalledWith("main/docs/02_dev/HANDBOOK.md");
+    });
+
+    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith("docs/02_dev/HANDBOOK.md");
+    expect(mocks.getGraphNeighborsMock).toHaveBeenLastCalledWith("main/docs/02_dev/HANDBOOK.md", {
+      direction: "both",
+      hops: 1,
+      limit: 20,
+    });
+  });
+
+  it("strips semantic link prefixes when bi-link resolution falls back", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Skill doc" });
+    mocks.resolveStudioPathMock.mockRejectedValueOnce(new Error("resolve failed"));
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: {
+        id: "internal_skills/writer/SKILL.md",
+        label: "SKILL.md",
+        path: "internal_skills/writer/SKILL.md",
+        nodeType: "skill",
+        navigationTarget: {
+          path: "internal_skills/writer/SKILL.md",
+          category: "skill",
+        },
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | { onBiLinkClick: (link: string) => Promise<void> }
+        | undefined;
+      expect(mainViewProps?.onBiLinkClick).toBeDefined();
+    });
+
+    const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+      | { onBiLinkClick: (link: string) => Promise<void> }
+      | undefined;
+
+    await act(async () => {
+      await mainViewProps?.onBiLinkClick("id:internal_skills/writer/SKILL.md");
+    });
+
+    await waitFor(() => {
+      expect(mocks.getVfsContentMock).toHaveBeenCalledWith("internal_skills/writer/SKILL.md");
+    });
+
+    expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith("id:internal_skills/writer/SKILL.md");
+  });
+
+  it("routes the search graph action into the graph tab hydration flow", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
     mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'kernel/knowledge/context.md',
-      category: 'knowledge',
-      projectName: 'kernel',
+      path: "kernel/knowledge/context.md",
+      category: "knowledge",
+      projectName: "kernel",
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Context' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Context" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'kernel/knowledge/context.md',
-        label: 'context.md',
-        path: 'kernel/knowledge/context.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/context.md",
+        label: "context.md",
+        path: "kernel/knowledge/context.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
       nodes: [],
       links: [
         {
-          source: 'kernel/knowledge/context.md',
-          target: 'kernel/skills/writer/SKILL.md',
-          direction: 'outgoing',
+          source: "kernel/knowledge/context.md",
+          target: "kernel/skills/writer/SKILL.md",
+          direction: "outgoing",
           distance: 1,
         },
       ],
@@ -1820,8 +1862,8 @@ describe('App topology wiring', () => {
 
     await act(async () => {
       searchBarProps?.onGraphResultSelect({
-        path: 'knowledge/context.md',
-        category: 'knowledge',
+        path: "knowledge/context.md",
+        category: "knowledge",
       });
     });
 
@@ -1831,49 +1873,49 @@ describe('App topology wiring', () => {
             selectedFile: { path: string; category: string };
             requestedTab?: { tab: string };
             relationships: Array<{ from?: string; to?: string; type: string }>;
-        }
+          }
         | undefined;
 
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'kernel/knowledge/context.md',
-        category: 'knowledge',
+        path: "kernel/knowledge/context.md",
+        category: "knowledge",
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('graph');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("graph");
       expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'kernel/knowledge/context.md',
-        to: 'kernel/skills/writer/SKILL.md',
-        type: 'outgoing',
+        from: "kernel/knowledge/context.md",
+        to: "kernel/skills/writer/SKILL.md",
+        type: "outgoing",
       });
     });
   });
 
-  it('routes the search references action into the references tab hydration flow', async () => {
+  it("routes the search references action into the references tab hydration flow", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],
       links: [],
       clusters: [],
     });
     mocks.resolveStudioPathMock.mockResolvedValue({
-      path: 'kernel/knowledge/context.md',
-      category: 'knowledge',
-      projectName: 'kernel',
+      path: "kernel/knowledge/context.md",
+      category: "knowledge",
+      projectName: "kernel",
     });
-    mocks.getVfsContentMock.mockResolvedValue({ content: '# Context' });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Context" });
     mocks.getGraphNeighborsMock.mockResolvedValue({
       center: {
-        id: 'kernel/knowledge/context.md',
-        label: 'context.md',
-        path: 'kernel/knowledge/context.md',
-        nodeType: 'knowledge',
+        id: "kernel/knowledge/context.md",
+        label: "context.md",
+        path: "kernel/knowledge/context.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
       nodes: [],
       links: [
         {
-          source: 'kernel/knowledge/context.md',
-          target: 'kernel/skills/writer/SKILL.md',
-          direction: 'outgoing',
+          source: "kernel/knowledge/context.md",
+          target: "kernel/skills/writer/SKILL.md",
+          direction: "outgoing",
           distance: 1,
         },
       ],
@@ -1911,8 +1953,8 @@ describe('App topology wiring', () => {
 
     await act(async () => {
       await searchBarProps?.onReferencesResultSelect({
-        path: 'knowledge/context.md',
-        category: 'knowledge',
+        path: "knowledge/context.md",
+        category: "knowledge",
         line: 21,
       });
     });
@@ -1923,19 +1965,19 @@ describe('App topology wiring', () => {
             selectedFile: { path: string; category: string; line?: number };
             requestedTab?: { tab: string };
             relationships: Array<{ from?: string; to?: string; type: string }>;
-        }
+          }
         | undefined;
 
       expect(lastMainViewCall?.selectedFile).toMatchObject({
-        path: 'kernel/knowledge/context.md',
-        category: 'knowledge',
+        path: "kernel/knowledge/context.md",
+        category: "knowledge",
         line: 21,
       });
-      expect(lastMainViewCall?.requestedTab?.tab).toBe('references');
+      expect(lastMainViewCall?.requestedTab?.tab).toBe("references");
       expect(lastMainViewCall?.relationships[0]).toEqual({
-        from: 'kernel/knowledge/context.md',
-        to: 'kernel/skills/writer/SKILL.md',
-        type: 'outgoing',
+        from: "kernel/knowledge/context.md",
+        to: "kernel/skills/writer/SKILL.md",
+        type: "outgoing",
       });
     });
   });

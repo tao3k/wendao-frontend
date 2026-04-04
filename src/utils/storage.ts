@@ -31,10 +31,7 @@ export const createStorage = <T>(key: string, defaultValue: T) => {
 /**
  * Hook-friendly storage wrapper
  */
-export const useStorageValue = <T>(
-  key: string,
-  defaultValue: T
-): [T, (value: T) => void] => {
+export const useStorageValue = <T>(key: string, defaultValue: T): [T, (value: T) => void] => {
   const storage = createStorage(key, defaultValue);
 
   const getValue = (): T => storage.get();

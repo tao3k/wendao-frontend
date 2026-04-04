@@ -2,11 +2,11 @@
 
 :root {
   /* Base theme tokens */
-  --pb-deep-space: #05080F;
-  --pb-neon-blue: #00D2FF;
-  --pb-gold: #FFD700;
-  --pb-slate: #1A2333;
-  --pb-white: #E6F3FF;
+  --pb-deep-space: #05080f;
+  --pb-neon-blue: #00d2ff;
+  --pb-gold: #ffd700;
+  --pb-slate: #1a2333;
+  --pb-white: #e6f3ff;
 
   /* IDE-specific tokens */
   --ide-panel-bg: rgba(10, 15, 30, 0.95);
@@ -28,7 +28,10 @@
 
 .ide-layout {
   display: grid;
-  grid-template-columns: var(--ide-sidebar-width, var(--ide-sidebar-default)) 1fr var(--ide-property-width, var(--ide-property-default));
+  grid-template-columns: var(--ide-sidebar-width, var(--ide-sidebar-default)) 1fr var(
+      --ide-property-width,
+      var(--ide-property-default)
+    );
   grid-template-rows: var(--ide-toolbar-height) 1fr var(--ide-statusbar-height);
   height: 100vh;
   width: 100vw;

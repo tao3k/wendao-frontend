@@ -1,38 +1,41 @@
-import type { DiagramKind } from './diagramSignature';
+import type { DiagramKind } from "./diagramSignature";
 
-export type DiagramDisplayMode = 'bpmn' | 'mermaid' | 'split';
+export type DiagramDisplayMode = "bpmn" | "mermaid" | "split";
 
 export function resolveDiagramKind(hasBpmn: boolean, hasMermaid: boolean): DiagramKind {
   if (hasBpmn && hasMermaid) {
-    return 'both';
+    return "both";
   }
 
   if (hasBpmn) {
-    return 'bpmn';
+    return "bpmn";
   }
 
   if (hasMermaid) {
-    return 'mermaid';
+    return "mermaid";
   }
 
-  return 'none';
+  return "none";
 }
 
-export function resolveInitialDisplayMode(hasBpmn: boolean, hasMermaid: boolean): DiagramDisplayMode {
+export function resolveInitialDisplayMode(
+  hasBpmn: boolean,
+  hasMermaid: boolean,
+): DiagramDisplayMode {
   if (hasBpmn && hasMermaid) {
-    return 'split';
+    return "split";
   }
 
   if (hasBpmn) {
-    return 'bpmn';
+    return "bpmn";
   }
 
-  return 'mermaid';
+  return "mermaid";
 }
 
 export function shouldLoadMermaidRuntime(
   hasMermaid: boolean,
-  displayMode: DiagramDisplayMode
+  displayMode: DiagramDisplayMode,
 ): boolean {
-  return hasMermaid && (displayMode === 'mermaid' || displayMode === 'split');
+  return hasMermaid && (displayMode === "mermaid" || displayMode === "split");
 }

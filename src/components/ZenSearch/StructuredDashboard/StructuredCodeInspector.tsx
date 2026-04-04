@@ -1,5 +1,5 @@
-import React, { type ComponentProps } from 'react';
-import { CodeAstAnatomyView } from '../CodeAstAnatomyView';
+import React, { type ComponentProps } from "react";
+import { CodeAstAnatomyView } from "../CodeAstAnatomyView";
 
 type StructuredCodeInspectorProps = ComponentProps<typeof CodeAstAnatomyView>;
 

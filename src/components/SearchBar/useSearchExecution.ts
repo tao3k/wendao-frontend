@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import { executeSearchQuery, type SearchExecutionMode, type SearchMeta } from './searchExecution';
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import type { SearchResult } from './types';
+import { useEffect, useRef } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { executeSearchQuery, type SearchExecutionMode, type SearchMeta } from "./searchExecution";
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import type { SearchResult } from "./types";
 
 interface UseSearchExecutionParams {
   isOpen: boolean;
@@ -44,15 +44,17 @@ export function useSearchExecution({
     }
 
     let isActive = true;
-    const isLatestRequest = (): boolean => (
-      isActive && requestGenerationRef.current === requestGeneration
-    );
+    const isLatestRequest = (): boolean =>
+      isActive && requestGenerationRef.current === requestGeneration;
 
     const doSearch = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const outcome = await executeSearchQuery(queryToSearch, searchMode, { repoFilter, repoFacet });
+        const outcome = await executeSearchQuery(queryToSearch, searchMode, {
+          repoFilter,
+          repoFacet,
+        });
         if (!isLatestRequest()) {
           return;
         }
@@ -63,13 +65,12 @@ export function useSearchExecution({
         if (!isLatestRequest()) {
           return;
         }
-        setError(err instanceof Error ? err.message : 'Search failed');
+        setError(err instanceof Error ? err.message : "Search failed");
         setResults([]);
         setSearchMeta(null);
-      } finally {
-        if (!isLatestRequest()) {
-          return;
-        }
+      }
+
+      if (isLatestRequest()) {
         setIsLoading(false);
       }
     };

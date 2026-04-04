@@ -1,13 +1,19 @@
-import type { ComponentProps, KeyboardEvent, MouseEvent, RefObject } from 'react';
-import { CodeFilterHelper } from './CodeFilterHelper';
-import { SearchResultsPanel } from './SearchResultsPanel';
-import { SearchSuggestionsPanel } from './SearchSuggestionsPanel';
-import type { ConfidenceTone } from './searchStateUtils';
-import type { SearchMeta } from './searchExecution';
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import type { RepoOverviewStatusSnapshot } from './useRepoOverviewStatus';
-import type { RepoSyncStatusSnapshot } from './useRepoSyncStatus';
-import type { SearchBarCopy, SearchScope, SearchSelectionAction, SearchSort, UiLocale } from './types';
+import type { ComponentProps, KeyboardEvent, MouseEvent, RefObject } from "react";
+import { CodeFilterHelper } from "./CodeFilterHelper";
+import { SearchResultsPanel } from "./SearchResultsPanel";
+import { SearchSuggestionsPanel } from "./SearchSuggestionsPanel";
+import type { ConfidenceTone } from "./searchStateUtils";
+import type { SearchMeta } from "./searchExecution";
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import type { RepoOverviewStatusSnapshot } from "./useRepoOverviewStatus";
+import type { RepoSyncStatusSnapshot } from "./useRepoSyncStatus";
+import type {
+  SearchBarCopy,
+  SearchScope,
+  SearchSelectionAction,
+  SearchSort,
+  UiLocale,
+} from "./types";
 
 export interface SearchBarControllerShellProps {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -38,7 +44,9 @@ export interface SearchBarControllerShellProps {
   onSortModeChange: (sortMode: SearchSort) => void;
 }
 export type SearchBarControllerResultsPanelProps = ComponentProps<typeof SearchResultsPanel>;
-export type SearchBarControllerSuggestionsPanelProps = ComponentProps<typeof SearchSuggestionsPanel>;
+export type SearchBarControllerSuggestionsPanelProps = ComponentProps<
+  typeof SearchSuggestionsPanel
+>;
 export type SearchBarControllerCodeFilterHelperProps = ComponentProps<typeof CodeFilterHelper>;
 
 export interface UseSearchBarControllerParams {
@@ -48,7 +56,9 @@ export interface UseSearchBarControllerParams {
   onResultSelect: SearchSelectionAction;
   onReferencesResultSelect?: SearchSelectionAction;
   onGraphResultSelect?: SearchSelectionAction;
-  onRuntimeStatusChange?: (status: { tone: 'warning' | 'error'; message: string; source: 'search' } | null) => void;
+  onRuntimeStatusChange?: (
+    status: { tone: "warning" | "error"; message: string; source: "search" } | null,
+  ) => void;
 }
 
 export interface SearchBarControllerModalProps {

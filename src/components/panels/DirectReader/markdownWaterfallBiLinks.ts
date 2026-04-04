@@ -1,11 +1,11 @@
-import type { Root } from 'mdast';
-import { defaultUrlTransform } from 'react-markdown';
-import type { Plugin } from 'unified';
-import type { VFile } from 'vfile';
-import type { MarkdownAstNode } from './markdownWaterfallShared';
+import type { Root } from "mdast";
+import { defaultUrlTransform } from "react-markdown";
+import type { Plugin } from "unified";
+import type { VFile } from "vfile";
+import type { MarkdownAstNode } from "./markdownWaterfallShared";
 
 const BI_LINK_RE = /\[\[([^\]\n]+)\]\]/g;
-const INTERNAL_URI_PREFIXES = ['wendao://', '$wendao://', 'id:'] as const;
+const INTERNAL_URI_PREFIXES = ["wendao://", "$wendao://", "id:"] as const;
 
 export function hasInternalUriPrefix(value: string): boolean {
   const lower = value.toLowerCase();
@@ -21,13 +21,13 @@ function looksLikePathOrSemanticTarget(candidate: string): boolean {
     return true;
   }
   return (
-    value.includes('/') ||
-    value.includes('\\') ||
-    value.includes('.') ||
-    value.includes(':') ||
-    value.includes('#') ||
-    value.startsWith('~') ||
-    value.startsWith('@')
+    value.includes("/") ||
+    value.includes("\\") ||
+    value.includes(".") ||
+    value.includes(":") ||
+    value.includes("#") ||
+    value.startsWith("~") ||
+    value.startsWith("@")
   );
 }
 
@@ -37,7 +37,7 @@ function parseBiLink(raw: string): { target: string; label: string } | null {
     return null;
   }
 
-  const pipeIndex = trimmed.indexOf('|');
+  const pipeIndex = trimmed.indexOf("|");
   if (pipeIndex < 0) {
     return { target: trimmed, label: trimmed };
   }
@@ -66,13 +66,13 @@ function parseBiLink(raw: string): { target: string; label: string } | null {
 }
 
 function buildValueToRawIndexMap(value: string, rawSource: string): number[] {
-  const map = new Array<number>(value.length);
+  const map = Array.from<number>({ length: value.length });
   let valueIndex = 0;
   let rawIndex = 0;
 
   while (valueIndex < value.length && rawIndex < rawSource.length) {
     if (
-      rawSource[rawIndex] === '\\' &&
+      rawSource[rawIndex] === "\\" &&
       rawIndex + 1 < rawSource.length &&
       rawSource[rawIndex + 1] === value[valueIndex]
     ) {
@@ -96,27 +96,27 @@ function buildValueToRawIndexMap(value: string, rawSource: string): number[] {
 function isEscapedBiLinkInRaw(
   rawSource: string | null,
   valueToRawMap: number[] | null,
-  matchStart: number
+  matchStart: number,
 ): boolean {
   if (!rawSource || !valueToRawMap) {
     return false;
   }
 
   const rawIndex = valueToRawMap[matchStart];
-  if (typeof rawIndex !== 'number' || rawIndex <= 0) {
+  if (typeof rawIndex !== "number" || rawIndex <= 0) {
     return false;
   }
-  return rawSource[rawIndex - 1] === '\\';
+  return rawSource[rawIndex - 1] === "\\";
 }
 
 function isEmbeddedBiLink(source: string, matchStart: number): boolean {
-  return matchStart > 0 && source[matchStart - 1] === '!';
+  return matchStart > 0 && source[matchStart - 1] === "!";
 }
 
 function sliceNodeSource(node: MarkdownAstNode, source: string): string | null {
   const start = node.position?.start?.offset;
   const end = node.position?.end?.offset;
-  if (typeof start !== 'number' || typeof end !== 'number') {
+  if (typeof start !== "number" || typeof end !== "number") {
     return null;
   }
   return source.slice(start, end);
@@ -130,7 +130,7 @@ function transformBiLinks(node: MarkdownAstNode, source: string): void {
   for (let index = 0; index < node.children.length; index += 1) {
     const child = node.children[index];
 
-    if (child.type === 'text' && typeof child.value === 'string') {
+    if (child.type === "text" && typeof child.value === "string") {
       const replacement = splitTextWithBiLinks(child.value, sliceNodeSource(child, source));
       if (replacement) {
         node.children.splice(index, 1, ...replacement);
@@ -160,7 +160,7 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
 
     if (isEscapedBiLinkInRaw(rawSource, valueToRawMap, matchStart)) {
       nodes.push({
-        type: 'text',
+        type: "text",
         value: value.slice(lastIndex, matchEnd),
       });
       lastIndex = matchEnd;
@@ -170,7 +170,7 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
 
     if (isEmbeddedBiLink(value, matchStart)) {
       nodes.push({
-        type: 'text',
+        type: "text",
         value: value.slice(lastIndex, matchEnd),
       });
       lastIndex = matchEnd;
@@ -180,7 +180,7 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
 
     if (matchStart > lastIndex) {
       nodes.push({
-        type: 'text',
+        type: "text",
         value: value.slice(lastIndex, matchStart),
       });
     }
@@ -188,13 +188,13 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
     const parsed = parseBiLink(match[1]);
     if (parsed) {
       nodes.push({
-        type: 'link',
+        type: "link",
         url: `bilink:${encodeURIComponent(parsed.target)}`,
-        children: [{ type: 'text', value: parsed.label }],
+        children: [{ type: "text", value: parsed.label }],
       });
     } else {
       nodes.push({
-        type: 'text',
+        type: "text",
         value: match[0],
       });
     }
@@ -205,7 +205,7 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
 
   if (lastIndex < value.length) {
     nodes.push({
-      type: 'text',
+      type: "text",
       value: value.slice(lastIndex),
     });
   }
@@ -214,7 +214,7 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
 }
 
 export function decodeBiLinkHref(href: string): string {
-  const encoded = href.slice('bilink:'.length);
+  const encoded = href.slice("bilink:".length);
   try {
     return decodeURIComponent(encoded);
   } catch {
@@ -223,7 +223,7 @@ export function decodeBiLinkHref(href: string): string {
 }
 
 export function directReaderUrlTransform(url: string): string {
-  if (url.startsWith('bilink:') || hasInternalUriPrefix(url)) {
+  if (url.startsWith("bilink:") || hasInternalUriPrefix(url)) {
     return url;
   }
   return defaultUrlTransform(url);
@@ -231,7 +231,7 @@ export function directReaderUrlTransform(url: string): string {
 
 export const remarkBiLinks: Plugin<[], Root> = () => {
   return (tree: Root, file: VFile) => {
-    const source = typeof file?.value === 'string' ? file.value : '';
+    const source = typeof file?.value === "string" ? file.value : "";
     transformBiLinks(tree as unknown as MarkdownAstNode, source);
   };
 };

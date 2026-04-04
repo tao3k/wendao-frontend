@@ -1,9 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { recordPerfTraceSnapshot } from '../../../lib/testPerfRegistry';
-import { createPerfTrace } from '../../../lib/testPerfTrace';
-import type { SearchResult } from '../../SearchBar/types';
-import { useZenSearchPreview } from '../useZenSearchPreview';
+import { renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
+import { createPerfTrace } from "../../../lib/testPerfTrace";
+import type { SearchResult } from "../../SearchBar/types";
+import { useZenSearchPreview } from "../useZenSearchPreview";
 
 const mocks = vi.hoisted(() => ({
   getVfsContent: vi.fn(),
@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   getMarkdownAnalysis: vi.fn(),
 }));
 
-vi.mock('../../../api', () => ({
+vi.mock("../../../api", () => ({
   api: {
     getVfsContent: mocks.getVfsContent,
     getGraphNeighbors: mocks.getGraphNeighbors,
@@ -33,80 +33,80 @@ function createDeferred<T>() {
 
 function buildSearchResult(): SearchResult {
   return {
-    stem: 'Documentation Index',
-    title: 'Documentation Index',
-    path: '.data/wendao-frontend/docs/index.md',
-    docType: 'knowledge',
+    stem: "Documentation Index",
+    title: "Documentation Index",
+    path: ".data/wendao-frontend/docs/index.md",
+    docType: "knowledge",
     tags: [],
     score: 0.92,
-    category: 'document',
+    category: "document",
     navigationTarget: {
-      path: '.data/wendao-frontend/docs/index.md',
-      graphPath: '.data/wendao-frontend/docs/index.md#semantic-root',
-      category: 'knowledge',
-      projectName: 'main',
-      rootLabel: 'docs',
+      path: ".data/wendao-frontend/docs/index.md",
+      graphPath: ".data/wendao-frontend/docs/index.md#semantic-root",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
     },
-    searchSource: 'search-index',
+    searchSource: "search-index",
   } as SearchResult;
 }
 
 function buildCodeSearchResult(): SearchResult {
   return {
-    stem: 'Kernel Solver',
-    title: 'Kernel Solver',
-    path: 'kernel/src/lib.rs',
+    stem: "Kernel Solver",
+    title: "Kernel Solver",
+    path: "kernel/src/lib.rs",
     line: 12,
-    docType: 'symbol',
-    tags: ['lang:rust', 'kind:function'],
+    docType: "symbol",
+    tags: ["lang:rust", "kind:function"],
     score: 0.93,
-    category: 'symbol',
-    projectName: 'kernel',
-    rootLabel: 'src',
-    codeLanguage: 'rust',
-    codeKind: 'function',
-    codeRepo: 'kernel',
-    bestSection: 'solve',
-    matchReason: 'symbol',
+    category: "symbol",
+    projectName: "kernel",
+    rootLabel: "src",
+    codeLanguage: "rust",
+    codeKind: "function",
+    codeRepo: "kernel",
+    bestSection: "solve",
+    matchReason: "symbol",
     navigationTarget: {
-      path: 'kernel/src/lib.rs',
-      category: 'doc',
-      projectName: 'kernel',
+      path: "kernel/src/lib.rs",
+      category: "doc",
+      projectName: "kernel",
     },
-    searchSource: 'search-index',
+    searchSource: "search-index",
   } as SearchResult;
 }
 
 function buildSecondCodeSearchResult(): SearchResult {
   return {
     ...buildCodeSearchResult(),
-    stem: 'Kernel Integrator',
-    title: 'Kernel Integrator',
-    path: 'kernel/src/integrator.rs',
+    stem: "Kernel Integrator",
+    title: "Kernel Integrator",
+    path: "kernel/src/integrator.rs",
     navigationTarget: {
-      path: 'kernel/src/integrator.rs',
-      category: 'doc',
-      projectName: 'kernel',
+      path: "kernel/src/integrator.rs",
+      category: "doc",
+      projectName: "kernel",
     },
   } as SearchResult;
 }
 
-describe('useZenSearchPreview', () => {
+describe("useZenSearchPreview", () => {
   beforeEach(() => {
     mocks.getVfsContent.mockReset();
     mocks.getGraphNeighbors.mockReset();
     mocks.getCodeAstAnalysis.mockReset();
     mocks.getMarkdownAnalysis.mockReset();
     mocks.getVfsContent.mockResolvedValue({
-      content: '# Documentation Index',
-      contentType: 'markdown',
+      content: "# Documentation Index",
+      contentType: "markdown",
     });
     mocks.getGraphNeighbors.mockResolvedValue({
       center: {
-        id: 'main/docs/index.md',
-        label: 'Documentation Index',
-        path: 'main/docs/index.md',
-        nodeType: 'knowledge',
+        id: "main/docs/index.md",
+        label: "Documentation Index",
+        path: "main/docs/index.md",
+        nodeType: "knowledge",
         isCenter: true,
         distance: 0,
       },
@@ -116,80 +116,86 @@ describe('useZenSearchPreview', () => {
       totalLinks: 0,
     });
     mocks.getCodeAstAnalysis.mockResolvedValue({
-      repoId: 'kernel',
-      path: 'kernel/src/lib.rs',
-      language: 'rust',
+      repoId: "kernel",
+      path: "kernel/src/lib.rs",
+      language: "rust",
       nodes: [],
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [{
-        ownerId: 'symbol:solve',
-        chunkId: 'ast:solve:declaration',
-        semanticType: 'function',
-        fingerprint: 'fp:solve',
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: "symbol:solve",
+          chunkId: "ast:solve:declaration",
+          semanticType: "function",
+          fingerprint: "fp:solve",
+          tokenEstimate: 12,
+          surface: "declaration",
+        },
+      ],
     });
     mocks.getMarkdownAnalysis.mockResolvedValue({
-      path: 'main/docs/index.md',
-      documentHash: 'hash',
+      path: "main/docs/index.md",
+      documentHash: "hash",
       nodeCount: 1,
       edgeCount: 0,
       nodes: [],
       edges: [],
       projections: [],
-      retrievalAtoms: [{
-        ownerId: 'section:intro',
-        chunkId: 'md:intro',
-        semanticType: 'section',
-        fingerprint: 'fp:intro',
-        tokenEstimate: 16,
-        surface: 'section',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: "section:intro",
+          chunkId: "md:intro",
+          semanticType: "section",
+          fingerprint: "fp:intro",
+          tokenEstimate: 16,
+          surface: "section",
+        },
+      ],
       diagnostics: [],
     });
   });
 
-  it('strips internal workspace prefixes for VFS while using graphPath for neighbors', async () => {
+  it("strips internal workspace prefixes for VFS while using graphPath for neighbors", async () => {
     const selectedResult = buildSearchResult();
 
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-      expect(result.current.contentPath).toBe('main/docs/index.md');
+      expect(result.current.contentPath).toBe("main/docs/index.md");
     });
 
-    expect(mocks.getVfsContent).toHaveBeenCalledWith('main/docs/index.md');
-    expect(mocks.getGraphNeighbors).toHaveBeenCalledWith('main/docs/index.md#semantic-root', {
-      direction: 'both',
+    expect(mocks.getVfsContent).toHaveBeenCalledWith("main/docs/index.md");
+    expect(mocks.getGraphNeighbors).toHaveBeenCalledWith("main/docs/index.md#semantic-root", {
+      direction: "both",
       hops: 1,
       limit: 20,
     });
-    expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith('main/docs/index.md');
+    expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith("main/docs/index.md");
     expect(result.current.markdownAnalysis).toEqual({
-      path: 'main/docs/index.md',
-      documentHash: 'hash',
+      path: "main/docs/index.md",
+      documentHash: "hash",
       nodeCount: 1,
       edgeCount: 0,
       nodes: [],
       edges: [],
       projections: [],
-      retrievalAtoms: [{
-        ownerId: 'section:intro',
-        chunkId: 'md:intro',
-        semanticType: 'section',
-        fingerprint: 'fp:intro',
-        tokenEstimate: 16,
-        surface: 'section',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: "section:intro",
+          chunkId: "md:intro",
+          semanticType: "section",
+          fingerprint: "fp:intro",
+          tokenEstimate: 16,
+          surface: "section",
+        },
+      ],
       diagnostics: [],
     });
   });
 
-  it('requests code AST analysis for code results with repo and line hints', async () => {
+  it("requests code AST analysis for code results with repo and line hints", async () => {
     const selectedResult = buildCodeSearchResult();
 
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
@@ -199,75 +205,79 @@ describe('useZenSearchPreview', () => {
       expect(result.current.codeAstLoading).toBe(false);
     });
 
-    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith('kernel/src/lib.rs', {
-      repo: 'kernel',
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith("kernel/src/lib.rs", {
+      repo: "kernel",
       line: 12,
     });
     expect(mocks.getGraphNeighbors).not.toHaveBeenCalled();
     expect(result.current.codeAstAnalysis).toEqual({
-      repoId: 'kernel',
-      path: 'kernel/src/lib.rs',
-      language: 'rust',
+      repoId: "kernel",
+      path: "kernel/src/lib.rs",
+      language: "rust",
       nodes: [],
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [{
-        ownerId: 'symbol:solve',
-        chunkId: 'ast:solve:declaration',
-        semanticType: 'function',
-        fingerprint: 'fp:solve',
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: "symbol:solve",
+          chunkId: "ast:solve:declaration",
+          semanticType: "function",
+          fingerprint: "fp:solve",
+          tokenEstimate: 12,
+          surface: "declaration",
+        },
+      ],
     });
   });
 
-  it('publishes AST lane completion before the broader preview batch finishes', async () => {
+  it("publishes AST lane completion before the broader preview batch finishes", async () => {
     const selectedResult = buildCodeSearchResult();
     const deferredContent = createDeferred<{ content: string; contentType: string }>();
 
     mocks.getVfsContent.mockReturnValueOnce(deferredContent.promise);
     mocks.getCodeAstAnalysis.mockResolvedValueOnce({
-      repoId: 'kernel',
-      path: 'kernel/src/lib.rs',
-      language: 'rust',
+      repoId: "kernel",
+      path: "kernel/src/lib.rs",
+      language: "rust",
       nodes: [],
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [{
-        ownerId: 'symbol:solve',
-        chunkId: 'ast:solve:declaration',
-        semanticType: 'function',
-        fingerprint: 'fp:solve',
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: "symbol:solve",
+          chunkId: "ast:solve:declaration",
+          semanticType: "function",
+          fingerprint: "fp:solve",
+          tokenEstimate: 12,
+          surface: "declaration",
+        },
+      ],
     });
 
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
 
     await waitFor(() => {
       expect(result.current.codeAstLoading).toBe(false);
-      expect(result.current.codeAstAnalysis?.repoId).toBe('kernel');
+      expect(result.current.codeAstAnalysis?.repoId).toBe("kernel");
     });
 
     expect(result.current.loading).toBe(true);
     expect(result.current.content).toBeNull();
 
     deferredContent.resolve({
-      content: 'pub fn solve() {}',
-      contentType: 'text/rust',
+      content: "pub fn solve() {}",
+      contentType: "text/rust",
     });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-      expect(result.current.content).toBe('pub fn solve() {}');
+      expect(result.current.content).toBe("pub fn solve() {}");
     });
   });
 
-  it('keeps retrieval atoms on the AST analysis payload returned by Flight', async () => {
+  it("keeps retrieval atoms on the AST analysis payload returned by Flight", async () => {
     const selectedResult = buildCodeSearchResult();
     const deferredAnalysis = createDeferred<{
       repoId: string;
@@ -278,13 +288,13 @@ describe('useZenSearchPreview', () => {
       projections: [];
       diagnostics: [];
       retrievalAtoms: Array<{
-      ownerId: string;
-      chunkId: string;
-      semanticType: string;
-      fingerprint: string;
-      tokenEstimate: number;
-      surface: string;
-    }>;
+        ownerId: string;
+        chunkId: string;
+        semanticType: string;
+        fingerprint: string;
+        tokenEstimate: number;
+        surface: string;
+      }>;
     }>();
 
     mocks.getCodeAstAnalysis.mockReturnValueOnce(deferredAnalysis.promise);
@@ -292,73 +302,76 @@ describe('useZenSearchPreview', () => {
     const { result } = renderHook(() => useZenSearchPreview(selectedResult));
 
     deferredAnalysis.resolve({
-      repoId: 'kernel',
-      path: 'kernel/src/lib.rs',
-      language: 'rust',
+      repoId: "kernel",
+      path: "kernel/src/lib.rs",
+      language: "rust",
       nodes: [],
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [{
-        ownerId: 'symbol:solve',
-        chunkId: 'ast:solve:declaration',
-        semanticType: 'function',
-        fingerprint: 'fp:solve',
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: "symbol:solve",
+          chunkId: "ast:solve:declaration",
+          semanticType: "function",
+          fingerprint: "fp:solve",
+          tokenEstimate: 12,
+          surface: "declaration",
+        },
+      ],
     });
 
     await waitFor(() => {
       expect(result.current.codeAstLoading).toBe(false);
-      expect(result.current.codeAstAnalysis?.repoId).toBe('kernel');
+      expect(result.current.codeAstAnalysis?.repoId).toBe("kernel");
     });
 
-    expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([{
-      ownerId: 'symbol:solve',
-      chunkId: 'ast:solve:declaration',
-      semanticType: 'function',
-      fingerprint: 'fp:solve',
-      tokenEstimate: 12,
-      surface: 'declaration',
-    }]);
+    expect(result.current.codeAstAnalysis?.retrievalAtoms).toEqual([
+      {
+        ownerId: "symbol:solve",
+        chunkId: "ast:solve:declaration",
+        semanticType: "function",
+        fingerprint: "fp:solve",
+        tokenEstimate: 12,
+        surface: "declaration",
+      },
+    ]);
   });
 
-  it('reuses cached preview state when revisiting a result identity', async () => {
+  it("reuses cached preview state when revisiting a result identity", async () => {
     mocks.getVfsContent.mockImplementation(async (path: string) => ({
       content: `content:${path}`,
-      contentType: 'text/plain',
+      contentType: "text/plain",
     }));
     mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => ({
-      repoId: 'kernel',
+      repoId: "kernel",
       path,
-      language: 'rust',
+      language: "rust",
       nodes: [],
       edges: [],
       projections: [],
       diagnostics: [],
-      retrievalAtoms: [{
-        ownerId: `symbol:${path}`,
-        chunkId: `atom:${path}`,
-        semanticType: 'function',
-        fingerprint: `fp:${path}`,
-        tokenEstimate: 12,
-        surface: 'declaration',
-      }],
+      retrievalAtoms: [
+        {
+          ownerId: `symbol:${path}`,
+          chunkId: `atom:${path}`,
+          semanticType: "function",
+          fingerprint: `fp:${path}`,
+          tokenEstimate: 12,
+          surface: "declaration",
+        },
+      ],
     }));
 
     const primary = buildCodeSearchResult();
     const secondary = buildSecondCodeSearchResult();
-    const { result, rerender } = renderHook(
-      ({ selected }) => useZenSearchPreview(selected),
-      {
-        initialProps: { selected: primary as SearchResult | null },
-      }
-    );
+    const { result, rerender } = renderHook(({ selected }) => useZenSearchPreview(selected), {
+      initialProps: { selected: primary as SearchResult | null },
+    });
 
     await waitFor(() => {
-      expect(result.current.content).toBe('content:kernel/src/lib.rs');
-      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/lib.rs');
+      expect(result.current.content).toBe("content:kernel/src/lib.rs");
+      expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/lib.rs");
     });
 
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(1);
@@ -367,8 +380,8 @@ describe('useZenSearchPreview', () => {
     rerender({ selected: secondary });
 
     await waitFor(() => {
-      expect(result.current.content).toBe('content:kernel/src/integrator.rs');
-      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/integrator.rs');
+      expect(result.current.content).toBe("content:kernel/src/integrator.rs");
+      expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/integrator.rs");
     });
 
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
@@ -376,39 +389,41 @@ describe('useZenSearchPreview', () => {
 
     rerender({ selected: primary });
 
-    expect(result.current.content).toBe('content:kernel/src/lib.rs');
-    expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/lib.rs');
+    expect(result.current.content).toBe("content:kernel/src/lib.rs");
+    expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/lib.rs");
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
     expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
   });
 
-  it('prefetches adjacent results without eagerly triggering code AST analysis', async () => {
-    const trace = createPerfTrace('useZenSearchPreview.prefetch-hot-path');
+  it("prefetches adjacent results without eagerly triggering code AST analysis", async () => {
+    const trace = createPerfTrace("useZenSearchPreview.prefetch-hot-path");
     mocks.getVfsContent.mockImplementation(async (path: string) => {
-      trace.increment('vfs-fetches');
+      trace.increment("vfs-fetches");
       return {
         content: `content:${path}`,
-        contentType: 'text/plain',
+        contentType: "text/plain",
       };
     });
     mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => {
-      trace.increment('ast-fetches');
+      trace.increment("ast-fetches");
       return {
-        repoId: 'kernel',
+        repoId: "kernel",
         path,
-        language: 'rust',
+        language: "rust",
         nodes: [],
         edges: [],
         projections: [],
         diagnostics: [],
-        retrievalAtoms: [{
-          ownerId: `symbol:${path}`,
-          chunkId: `atom:${path}`,
-          semanticType: 'function',
-          fingerprint: `fp:${path}`,
-          tokenEstimate: 12,
-          surface: 'declaration',
-        }],
+        retrievalAtoms: [
+          {
+            ownerId: `symbol:${path}`,
+            chunkId: `atom:${path}`,
+            semanticType: "function",
+            fingerprint: `fp:${path}`,
+            tokenEstimate: 12,
+            surface: "declaration",
+          },
+        ],
       };
     });
 
@@ -421,12 +436,12 @@ describe('useZenSearchPreview', () => {
           selected: primary as SearchResult | null,
           prefetch: [secondary] as SearchResult[],
         },
-      }
+      },
     );
 
     await waitFor(() => {
-      expect(result.current.content).toBe('content:kernel/src/lib.rs');
-      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/lib.rs');
+      expect(result.current.content).toBe("content:kernel/src/lib.rs");
+      expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/lib.rs");
     });
 
     await waitFor(() => {
@@ -436,14 +451,14 @@ describe('useZenSearchPreview', () => {
 
     const prefetchSnapshot = trace.snapshot();
     expect(prefetchSnapshot).toMatchObject({
-      label: 'useZenSearchPreview.prefetch-hot-path',
+      label: "useZenSearchPreview.prefetch-hot-path",
       counters: {
-        'vfs-fetches': 2,
-        'ast-fetches': 1,
+        "vfs-fetches": 2,
+        "ast-fetches": 1,
       },
     });
     recordPerfTraceSnapshot(
-      'ZenSearch/useZenSearchPreview adjacent prefetch warm state',
+      "ZenSearch/useZenSearchPreview adjacent prefetch warm state",
       prefetchSnapshot,
     );
 
@@ -453,8 +468,8 @@ describe('useZenSearchPreview', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.content).toBe('content:kernel/src/integrator.rs');
-      expect(result.current.codeAstAnalysis?.path).toBe('kernel/src/integrator.rs');
+      expect(result.current.content).toBe("content:kernel/src/integrator.rs");
+      expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/integrator.rs");
     });
 
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
@@ -462,14 +477,14 @@ describe('useZenSearchPreview', () => {
 
     const activationSnapshot = trace.snapshot();
     expect(activationSnapshot).toMatchObject({
-      label: 'useZenSearchPreview.prefetch-hot-path',
+      label: "useZenSearchPreview.prefetch-hot-path",
       counters: {
-        'vfs-fetches': 2,
-        'ast-fetches': 2,
+        "vfs-fetches": 2,
+        "ast-fetches": 2,
       },
     });
     recordPerfTraceSnapshot(
-      'ZenSearch/useZenSearchPreview adjacent selection activation',
+      "ZenSearch/useZenSearchPreview adjacent selection activation",
       activationSnapshot,
     );
   });

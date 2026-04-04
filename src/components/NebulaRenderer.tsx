@@ -8,12 +8,12 @@
  * - Tokyo Night aesthetic
  */
 
-import React, { useRef, useEffect, useMemo, useCallback, useState } from 'react';
-import * as THREE from 'three';
-import { useFrame, useThree } from '@react-three/fiber';
-import { usePhysicsWorker } from '../hooks';
-import { SovereignRaycaster } from './SovereignRaycaster';
-import { topologyShapeSignature } from '../utils/topologyContinuity';
+import React, { useRef, useEffect, useMemo, useCallback, useState } from "react";
+import * as THREE from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { usePhysicsWorker } from "../hooks";
+import { SovereignRaycaster } from "./SovereignRaycaster";
+import { topologyShapeSignature } from "../utils/topologyContinuity";
 
 interface NebulaNode {
   id: string;
@@ -46,22 +46,22 @@ interface NebulaRendererProps {
   onNodeHover?: (node: NebulaNode | null) => void;
   onNodeDrag?: (nodeId: string, worldPosition: { x: number; y: number; z: number }) => void;
   colorPalette?: string[];
-  layoutMode?: 'physics' | 'static';
+  layoutMode?: "physics" | "static";
 }
 
 // Tokyo Night color palette
 const DEFAULT_PALETTE = [
-  '#7dcfff', // Cyan
-  '#f7768e', // Pink
-  '#c678dd', // Purple
-  '#7aa2f7', // Blue
-  '#bb9af7', // Magenta
-  '#61afef', // Green
-  '#ff9e64', // Orange
-  '#fda4af', // Peach
+  "#7dcfff", // Cyan
+  "#f7768e", // Pink
+  "#c678dd", // Purple
+  "#7aa2f7", // Blue
+  "#bb9af7", // Magenta
+  "#61afef", // Green
+  "#ff9e64", // Orange
+  "#fda4af", // Peach
 ];
 
-const HOVER_COLOR = '#c89dff'; // Soft purple accent for pointer focus
+const HOVER_COLOR = "#c89dff"; // Soft purple accent for pointer focus
 const HOVER_SCALE = 1.3;
 const NODE_SCALE_BASE = 1.06;
 const CORE_INSTANCE_SCALE = 0.00012;
@@ -71,10 +71,13 @@ const CORE_GLOW_SCALE = 2.3;
 const CORE_FRAME_GAIN = 80;
 const CORE_RING_RADIUS = 1.45;
 const CORE_RING_TILT = 0.42;
-const CORE_NODE_COLOR = '#ffb347';
-const CORE_GLOW_COLOR = '#ffd97a';
+const CORE_NODE_COLOR = "#ffb347";
+const CORE_GLOW_COLOR = "#ffd97a";
 const BASE_NODE_RADIUS = 0.66;
 const DRAG_THRESHOLD_PX = 5;
+const CORE_RING_ROTATION_A = [CORE_RING_TILT, 0.4, 0] as const;
+const CORE_RING_ROTATION_B = [-CORE_RING_TILT, 1.2, 0.6] as const;
+const CORE_RING_ROTATION_C = [0, CORE_RING_TILT, -0.5] as const;
 
 export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
   nodes,
@@ -83,9 +86,10 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
   onNodeHover,
   onNodeDrag,
   colorPalette = DEFAULT_PALETTE,
-  layoutMode = 'physics',
+  layoutMode = "physics",
 }) => {
-  const meshRef = useRef<THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshPhysicalMaterial>>(null);
+  const meshRef =
+    useRef<THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshPhysicalMaterial>>(null);
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const { raycaster, camera, gl } = useThree();
@@ -94,7 +98,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
     () =>
       new THREE.MeshPhysicalMaterial({
         vertexColors: true,
-        emissive: new THREE.Color('#1f2432'),
+        emissive: new THREE.Color("#1f2432"),
         emissiveIntensity: 0.16,
         roughness: 0.46,
         metalness: 0.18,
@@ -102,9 +106,9 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         clearcoatRoughness: 0.3,
         reflectivity: 0.55,
       }),
-    []
+    [],
   );
-  const pointerRef = useMemo(() => new THREE.Vector2(), []);
+  const pointerRef = useRef(new THREE.Vector2());
   const dragPlane = useMemo(() => new THREE.Plane(), []);
   const dragPoint = useMemo(() => new THREE.Vector3(), []);
   const dragRayTarget = useMemo(() => new THREE.Vector3(), []);
@@ -119,7 +123,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
   const [suppressPick, setSuppressPick] = useState(false);
   const suppressPickTimerRef = useRef<number | null>(null);
   const suppressPickRef = useRef(false);
-  const usePhysics = layoutMode !== 'static';
+  const usePhysics = layoutMode !== "static";
 
   // Hover state
   const [hoveredInstanceId, setHoveredInstanceId] = useState<number | null>(null);
@@ -138,12 +142,18 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
   const coreAnchorRef = useRef<THREE.Mesh>(null);
   const coreNodeIndexRef = useRef(-1);
   const coreSurfaceGeometry = useMemo(
-    () => new THREE.WireframeGeometry(new THREE.OctahedronGeometry(BASE_NODE_RADIUS * CORE_FRAME_SCALE, 0)),
-    []
+    () =>
+      new THREE.WireframeGeometry(
+        new THREE.OctahedronGeometry(BASE_NODE_RADIUS * CORE_FRAME_SCALE, 0),
+      ),
+    [],
   );
   const coreGlowGeometry = useMemo(
-    () => new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(BASE_NODE_RADIUS * CORE_GLOW_SCALE, 0)),
-    []
+    () =>
+      new THREE.WireframeGeometry(
+        new THREE.IcosahedronGeometry(BASE_NODE_RADIUS * CORE_GLOW_SCALE, 0),
+      ),
+    [],
   );
   const coreSurfaceMaterial = useMemo(
     () =>
@@ -154,7 +164,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
-    []
+    [],
   );
   const coreGlowMaterial = useMemo(
     () =>
@@ -165,19 +175,19 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
-    []
+    [],
   );
   const coreRingGeometryA = useMemo(
     () => new THREE.TorusGeometry(CORE_RING_RADIUS, 0.012, 4, 160),
-    []
+    [],
   );
   const coreRingGeometryB = useMemo(
     () => new THREE.TorusGeometry(CORE_RING_RADIUS * 0.78, 0.012, 4, 140),
-    []
+    [],
   );
   const coreRingGeometryC = useMemo(
     () => new THREE.TorusGeometry(CORE_RING_RADIUS * 1.26, 0.014, 6, 150),
-    []
+    [],
   );
   const coreRingMaterialA = useMemo(
     () =>
@@ -189,7 +199,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
-    []
+    [],
   );
   const coreRingMaterialB = useMemo(
     () =>
@@ -201,7 +211,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
-    []
+    [],
   );
   const coreRingMaterialC = useMemo(
     () =>
@@ -213,7 +223,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
-    []
+    [],
   );
   const coreSparkGeometry = useMemo(() => {
     const total = 56;
@@ -231,7 +241,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       positions[cursor + 2] = z;
     }
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     return geometry;
   }, []);
   const coreSparkMaterial = useMemo(
@@ -244,11 +254,11 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
-    []
+    [],
   );
   const coreAnchorGeometry = useMemo(
     () => new THREE.TetrahedronGeometry(BASE_NODE_RADIUS * (CORE_FRAME_SCALE + 0.08), 0),
-    []
+    [],
   );
   const coreAnchorMaterial = useMemo(
     () =>
@@ -266,11 +276,11 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
-    []
+    [],
   );
   const coreNodeIndex = useMemo(
     () => nodes.findIndex((node) => (node.distance ?? 1) === 0),
-    [nodes]
+    [nodes],
   );
 
   useEffect(() => {
@@ -309,9 +319,17 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
     () =>
       topologyShapeSignature(
         nodes.map((node) => ({ id: node.id })),
-        links.map((link) => ({ from: link.source, to: link.target }))
+        links.map((link) => ({ from: link.source, to: link.target })),
       ),
-    [links, nodes]
+    [links, nodes],
+  );
+  const instancedMeshArgs = useMemo(
+    () => [baseGeometry, baseMaterial, nodes.length] as const,
+    [baseGeometry, baseMaterial, nodes.length],
+  );
+  const lineBufferAttributeArgs = useMemo(
+    () => [new Float32Array(links.length * 6), 3] as const,
+    [links.length],
   );
 
   // Update line geometry
@@ -335,13 +353,13 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         linePositions[cursor++] = positions[targetOffset + 2];
       }
 
-      const positionAttr = lineMeshRef.current.geometry.getAttribute('position');
+      const positionAttr = lineMeshRef.current.geometry.getAttribute("position");
       if (positionAttr) {
         positionAttr.array.set(linePositions);
         positionAttr.needsUpdate = true;
       }
     },
-    [links, nodeIndexMap]
+    [links, nodeIndexMap],
   );
 
   const renderBufferedPositions = useCallback(
@@ -366,11 +384,11 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       meshRef.current.instanceMatrix.needsUpdate = true;
       updateLinesFromPositions(positions);
     },
-    [dummy, hoveredInstanceId, nodes, updateLinesFromPositions]
+    [dummy, hoveredInstanceId, nodes, updateLinesFromPositions],
   );
 
   const getScreenPosition = useCallback((event: MouseEvent | TouchEvent | PointerEvent) => {
-    if ('touches' in event) {
+    if ("touches" in event) {
       const touch = event.touches[0] || event.changedTouches[0];
       if (!touch) return null;
       return { x: touch.clientX, y: touch.clientY };
@@ -383,9 +401,10 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       if (!meshRef.current) return null;
 
       const rect = gl.domElement.getBoundingClientRect();
-      pointerRef.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      pointerRef.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointerRef, camera);
+      const pointerVector = pointerRef.current;
+      pointerVector.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerVector.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerVector, camera);
 
       const intersects = raycaster.intersectObject(meshRef.current, false);
       if (intersects.length === 0) {
@@ -402,18 +421,18 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         point: firstHit.point,
       };
     },
-    [camera, gl.domElement, raycaster]
+    [camera, gl.domElement, raycaster],
   );
 
   const getNodeScale = useCallback(
     (index: number, hovered: boolean) => {
-    const nebulaNode = nodes[index];
+      const nebulaNode = nodes[index];
       const size = nebulaNode?.size !== undefined ? nebulaNode.size : 0.5;
       const isCore = (nebulaNode?.distance ?? 1) === 0;
       const baseScale = size * NODE_SCALE_BASE * (isCore ? CORE_INSTANCE_SCALE : 1);
       return hovered ? baseScale * HOVER_SCALE : baseScale;
     },
-    [nodes]
+    [nodes],
   );
 
   const applyNodeWorldPosition = useCallback(
@@ -440,14 +459,14 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       meshRef.current.instanceMatrix.needsUpdate = true;
       updateLinesFromPositions(targetPositionsRef.current);
     },
-    [dummy, getNodeScale, hoveredInstanceId, updateLinesFromPositions]
+    [dummy, getNodeScale, hoveredInstanceId, updateLinesFromPositions],
   );
 
   const handlePointerDown = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent) => {
       const clientPoint = getScreenPosition(event);
       if (!clientPoint) return;
-      if ('button' in event && event.button !== 0 && event.type !== 'touchstart') {
+      if ("button" in event && event.button !== 0 && event.type !== "touchstart") {
         return;
       }
 
@@ -467,7 +486,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       };
       suppressPickRef.current = false;
       setRaycasterEnabled(false);
-      gl.domElement.style.cursor = 'grabbing';
+      gl.domElement.style.cursor = "grabbing";
       event.preventDefault();
       event.stopPropagation();
     },
@@ -481,7 +500,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       pickNodeByPointer,
       setRaycasterEnabled,
       gl.domElement,
-    ]
+    ],
   );
 
   const handlePointerMove = useCallback(
@@ -496,7 +515,10 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
 
       const dragDistX = clientPoint.x - state.originX;
       const dragDistY = clientPoint.y - state.originY;
-      if (!state.moved && Math.sqrt(dragDistX * dragDistX + dragDistY * dragDistY) > DRAG_THRESHOLD_PX) {
+      if (
+        !state.moved &&
+        Math.sqrt(dragDistX * dragDistX + dragDistY * dragDistY) > DRAG_THRESHOLD_PX
+      ) {
         state.moved = true;
       }
 
@@ -505,9 +527,10 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       }
 
       const rect = gl.domElement.getBoundingClientRect();
-      pointerRef.x = ((clientPoint.x - rect.left) / rect.width) * 2 - 1;
-      pointerRef.y = -((clientPoint.y - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointerRef, camera);
+      const pointerVector = pointerRef.current;
+      pointerVector.x = ((clientPoint.x - rect.left) / rect.width) * 2 - 1;
+      pointerVector.y = -((clientPoint.y - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerVector, camera);
       const intersect = raycaster.ray.intersectPlane(dragPlane, dragRayTarget);
       if (!intersect) return;
 
@@ -520,9 +543,19 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
           z: intersect.z,
         });
       }
-      gl.domElement.style.cursor = 'grabbing';
+      gl.domElement.style.cursor = "grabbing";
     },
-    [dragPlane, dragRayTarget, getScreenPosition, gl.domElement, nodes, onNodeDrag, pointerRef, applyNodeWorldPosition, raycaster, camera]
+    [
+      dragPlane,
+      dragRayTarget,
+      getScreenPosition,
+      gl.domElement,
+      nodes,
+      onNodeDrag,
+      applyNodeWorldPosition,
+      raycaster,
+      camera,
+    ],
   );
 
   const handlePointerUp = useCallback(() => {
@@ -532,7 +565,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
     setRaycasterEnabled(true);
 
     if (gl.domElement) {
-      gl.domElement.style.cursor = hoveredInstanceId !== null ? 'pointer' : 'default';
+      gl.domElement.style.cursor = hoveredInstanceId !== null ? "pointer" : "default";
     }
 
     if (!state.moved) {
@@ -554,16 +587,16 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
   useEffect(() => {
     const canvas = gl.domElement;
 
-    canvas.addEventListener('pointerdown', handlePointerDown, { passive: false, capture: true });
-    window.addEventListener('pointermove', handlePointerMove, { passive: false, capture: true });
-    window.addEventListener('pointerup', handlePointerUp, { capture: true });
-    window.addEventListener('pointercancel', handlePointerUp, { capture: true });
+    canvas.addEventListener("pointerdown", handlePointerDown, { passive: false, capture: true });
+    window.addEventListener("pointermove", handlePointerMove, { passive: false, capture: true });
+    window.addEventListener("pointerup", handlePointerUp, { capture: true });
+    window.addEventListener("pointercancel", handlePointerUp, { capture: true });
 
     return () => {
-      canvas.removeEventListener('pointerdown', handlePointerDown, true);
-      window.removeEventListener('pointermove', handlePointerMove, true);
-      window.removeEventListener('pointerup', handlePointerUp, true);
-      window.removeEventListener('pointercancel', handlePointerUp, true);
+      canvas.removeEventListener("pointerdown", handlePointerDown, true);
+      window.removeEventListener("pointermove", handlePointerMove, true);
+      window.removeEventListener("pointerup", handlePointerUp, true);
+      window.removeEventListener("pointercancel", handlePointerUp, true);
 
       if (suppressPickTimerRef.current) {
         window.clearTimeout(suppressPickTimerRef.current);
@@ -612,7 +645,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
     (positions: Float32Array, nodeCount: number) => {
       stagePositions(positions, nodeCount);
     },
-    [stagePositions]
+    [stagePositions],
   );
 
   const applyStaticLayout = useCallback(
@@ -637,7 +670,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
 
       stagePositions(positions, nodes.length, !usePhysics);
     },
-    [nodeIndexMap, nodes, stagePositions, usePhysics]
+    [nodeIndexMap, nodes, stagePositions, usePhysics],
   );
 
   // Physics worker hook
@@ -677,7 +710,16 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       syncGraph(physicsNodes, physicsLinks);
       lastTopologyShapeKeyRef.current = topologyShapeKey;
     }
-  }, [usePhysics, nodes, physicsNodes, physicsLinks, init, stagePositions, syncGraph, topologyShapeKey]);
+  }, [
+    usePhysics,
+    nodes,
+    physicsNodes,
+    physicsLinks,
+    init,
+    stagePositions,
+    syncGraph,
+    topologyShapeKey,
+  ]);
 
   // Apply static layout positions
   useEffect(() => {
@@ -733,7 +775,9 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       const coreY = displayPositions[offset + 1];
       const coreZ = displayPositions[offset + 2];
       const isCoreHovered = hoveredInstanceId === coreIndex;
-      const coreScale = Math.max(1.4, getNodeScale(coreIndex, isCoreHovered) * CORE_FRAME_GAIN) * (isCoreHovered ? 1.08 : 1);
+      const coreScale =
+        Math.max(1.4, getNodeScale(coreIndex, isCoreHovered) * CORE_FRAME_GAIN) *
+        (isCoreHovered ? 1.08 : 1);
       const pulse = 1 + Math.sin(state.clock.elapsedTime * 1.7) * 0.06;
       const spin = state.clock.elapsedTime * 0.45;
       const spin2 = state.clock.elapsedTime * -0.28;
@@ -743,9 +787,12 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
 
       coreRingMaterialA.opacity = 0.18 + Math.sin(state.clock.elapsedTime * 1.2 + 1) * 0.04;
       coreRingMaterialB.opacity = 0.12 + Math.sin(state.clock.elapsedTime * 1.1 + 2) * 0.03;
-      coreRingMaterialC.opacity = 0.10 + Math.sin(state.clock.elapsedTime * 0.95 + 4) * 0.03;
+      coreRingMaterialC.opacity = 0.1 + Math.sin(state.clock.elapsedTime * 0.95 + 4) * 0.03;
       coreSparkMaterial.opacity = Math.max(0.08, Math.min(0.38, coreSparkOpacity));
-      coreSurfaceMaterial.opacity = Math.max(0.55, Math.min(0.92, 0.82 + Math.sin(state.clock.elapsedTime) * 0.08));
+      coreSurfaceMaterial.opacity = Math.max(
+        0.55,
+        Math.min(0.92, 0.82 + Math.sin(state.clock.elapsedTime) * 0.08),
+      );
       coreGlowMaterial.opacity = Math.max(0.12, Math.min(0.34, coreGlowOpacity));
 
       if (coreSurfaceRef.current) {
@@ -779,7 +826,9 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       if (coreRingRefC.current) {
         coreRingRefC.current.position.set(coreX, coreY, coreZ);
         coreRingRefC.current.rotation.set(spin * 0.12, spin2 * 0.2, spin * 0.5);
-        coreRingRefC.current.scale.setScalar(coreScale * 0.48 * (0.78 + (isCoreHovered ? 0.12 : 0)));
+        coreRingRefC.current.scale.setScalar(
+          coreScale * 0.48 * (0.78 + (isCoreHovered ? 0.12 : 0)),
+        );
         coreRingRefC.current.visible = true;
       }
 
@@ -793,7 +842,9 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       if (coreAnchorRef.current) {
         coreAnchorRef.current.position.set(coreX, coreY, coreZ);
         coreAnchorRef.current.rotation.set(spin * 0.55, spin * 0.35, spin2 * 0.22);
-        coreAnchorRef.current.scale.setScalar(coreScale * CORE_ANCHOR_SCALE * (0.9 + (isCoreHovered ? 0.12 : 0)));
+        coreAnchorRef.current.scale.setScalar(
+          coreScale * CORE_ANCHOR_SCALE * (0.9 + (isCoreHovered ? 0.12 : 0)),
+        );
         coreAnchorRef.current.visible = true;
       }
     } else {
@@ -844,7 +895,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       colorAttr.setXYZ(i, color.r, color.g, color.b);
     });
 
-    meshRef.current.geometry.setAttribute('color', colorAttr);
+    meshRef.current.geometry.setAttribute("color", colorAttr);
     meshRef.current.instanceColor = colorAttr;
 
     // Store original colors for hover reset
@@ -852,7 +903,6 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
 
     colorAttr.needsUpdate = true;
   }, [nodes, colorPalette]);
-
 
   // Handle hover from raycaster
   const handleHover = useCallback(
@@ -891,7 +941,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
 
       colorAttr.needsUpdate = true;
     },
-    [hoveredInstanceId, nodes, onNodeHover, suppressPick]
+    [hoveredInstanceId, nodes, onNodeHover, suppressPick],
   );
 
   // Handle click from raycaster
@@ -907,7 +957,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         onNodeClick?.(nebulaNode);
       }
     },
-    [nodes, onNodeClick, suppressPick]
+    [nodes, onNodeClick, suppressPick],
   );
 
   // Nodes for raycaster
@@ -922,15 +972,15 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
   return (
     <group>
       {/* Instanced mesh for nodes */}
-      <instancedMesh ref={meshRef} args={[baseGeometry, baseMaterial, nodes.length]} />
+      <instancedMesh ref={meshRef} args={instancedMeshArgs} />
 
       {/* Lines for links */}
       {links.length > 0 && (
-          <lineSegments ref={lineMeshRef}>
-            <bufferGeometry>
-              <bufferAttribute
-                attach="attributes-position"
-                args={[new Float32Array(links.length * 6), 3]}
+        <lineSegments ref={lineMeshRef}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              args={lineBufferAttributeArgs}
             />
           </bufferGeometry>
           <lineBasicMaterial color="#7dcfff" transparent opacity={0.3} />
@@ -954,21 +1004,21 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         ref={coreRingRefA}
         geometry={coreRingGeometryA}
         material={coreRingMaterialA}
-        rotation={[CORE_RING_TILT, 0.4, 0]}
+        rotation={CORE_RING_ROTATION_A}
         visible={false}
       />
       <mesh
         ref={coreRingRefB}
         geometry={coreRingGeometryB}
         material={coreRingMaterialB}
-        rotation={[-CORE_RING_TILT, 1.2, 0.6]}
+        rotation={CORE_RING_ROTATION_B}
         visible={false}
       />
       <mesh
         ref={coreRingRefC}
         geometry={coreRingGeometryC}
         material={coreRingMaterialC}
-        rotation={[0, CORE_RING_TILT, -0.5]}
+        rotation={CORE_RING_ROTATION_C}
         visible={false}
       />
       <mesh
@@ -977,7 +1027,12 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
         material={coreAnchorMaterial}
         visible={false}
       />
-      <points ref={coreSparkRef} geometry={coreSparkGeometry} material={coreSparkMaterial} visible={false} />
+      <points
+        ref={coreSparkRef}
+        geometry={coreSparkGeometry}
+        material={coreSparkMaterial}
+        visible={false}
+      />
 
       {/* Sovereign Raycaster for picking */}
       <SovereignRaycaster

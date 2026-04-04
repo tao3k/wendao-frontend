@@ -1,13 +1,21 @@
-import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import rehypeKatex from 'rehype-katex';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from '../../../api';
-import { remarkBiLinks } from './markdownWaterfallBiLinks';
-import { buildMarkdownComponents, directReaderUrlTransform } from './markdownWaterfallComponents';
-import type { MarkdownSection, MarkdownWaterfallCopy } from './markdownWaterfallShared';
+import React from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkFrontmatter from "remark-frontmatter";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from "../../../api";
+import { remarkBiLinks } from "./markdownWaterfallBiLinks";
+import { buildMarkdownComponents, directReaderUrlTransform } from "./markdownWaterfallComponents";
+import type { MarkdownSection, MarkdownWaterfallCopy } from "./markdownWaterfallShared";
+
+const MARKDOWN_WATERFALL_REMARK_PLUGINS = Object.freeze([
+  remarkFrontmatter,
+  remarkGfm,
+  remarkMath,
+  remarkBiLinks,
+]);
+const MARKDOWN_WATERFALL_REHYPE_PLUGINS = Object.freeze([rehypeKatex]);
 
 interface MarkdownWaterfallSectionBodyProps {
   activeSection: MarkdownSection;
@@ -32,8 +40,8 @@ export const MarkdownWaterfallSectionBody: React.FC<MarkdownWaterfallSectionBody
 }) => {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath, remarkBiLinks]}
-      rehypePlugins={[rehypeKatex]}
+      remarkPlugins={MARKDOWN_WATERFALL_REMARK_PLUGINS}
+      rehypePlugins={MARKDOWN_WATERFALL_REHYPE_PLUGINS}
       urlTransform={directReaderUrlTransform}
       components={buildMarkdownComponents({
         onBiLinkClick,

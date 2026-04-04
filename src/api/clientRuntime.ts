@@ -56,7 +56,7 @@ import type {
   ProjectedPageIndexTree,
   RefineEntityDocRequest,
   RefineEntityDocResponse,
-} from './bindings';
+} from "./bindings";
 
 // Re-export types for convenience
 export type {
@@ -132,39 +132,33 @@ import {
   decodeReferenceSearchHitsFromArrowIpc,
   decodeSearchHitsFromArrowIpc,
   decodeSymbolSearchHitsFromArrowIpc,
-} from './arrowSearchIpc';
+} from "./arrowSearchIpc";
 import {
   decodeProjectedPageIndexTreeFromArrowIpc,
   decodeRefineEntityDocResponseFromArrowIpc,
-} from './arrowDocumentIpc';
-import * as flightSearchTransport from './flightSearchTransport';
-import * as flightProjectedPageIndexTransport from './flightProjectedPageIndexTransport';
-import * as flightRefineEntityDocTransport from './flightRefineEntityDocTransport';
-import * as flightRepoDocCoverageTransport from './flightRepoDocCoverageTransport';
-import * as flightRepoIndexTransport from './flightRepoIndexTransport';
-import * as flightRepoIndexStatusTransport from './flightRepoIndexStatusTransport';
-import * as flightRepoOverviewTransport from './flightRepoOverviewTransport';
-import * as flightRepoSyncTransport from './flightRepoSyncTransport';
-import * as flightRepoSearchTransport from './flightRepoSearchTransport';
-import * as flightAnalysisTransport from './flightAnalysisTransport';
-import * as flightDocumentTransport from './flightDocumentTransport';
-import * as flightGraphTransport from './flightGraphTransport';
-import * as flightWorkspaceTransport from './flightWorkspaceTransport';
-import {
-  ApiClientError,
-  handleResponse,
-  handleTextResponse,
-} from './responseTransport';
-import { createUiConfigTransportState } from './uiConfigTransport';
+} from "./arrowDocumentIpc";
+import * as flightSearchTransport from "./flightSearchTransport";
+import * as flightProjectedPageIndexTransport from "./flightProjectedPageIndexTransport";
+import * as flightRefineEntityDocTransport from "./flightRefineEntityDocTransport";
+import * as flightRepoDocCoverageTransport from "./flightRepoDocCoverageTransport";
+import * as flightRepoIndexTransport from "./flightRepoIndexTransport";
+import * as flightRepoIndexStatusTransport from "./flightRepoIndexStatusTransport";
+import * as flightRepoOverviewTransport from "./flightRepoOverviewTransport";
+import * as flightRepoSyncTransport from "./flightRepoSyncTransport";
+import * as flightRepoSearchTransport from "./flightRepoSearchTransport";
+import * as flightAnalysisTransport from "./flightAnalysisTransport";
+import * as flightDocumentTransport from "./flightDocumentTransport";
+import * as flightGraphTransport from "./flightGraphTransport";
+import * as flightWorkspaceTransport from "./flightWorkspaceTransport";
+import { ApiClientError, handleResponse, handleTextResponse } from "./responseTransport";
+import { createUiConfigTransportState } from "./uiConfigTransport";
 import {
   fetchControlPlaneJuliaDeploymentArtifact,
   fetchControlPlaneJuliaDeploymentArtifactToml,
   fetchControlPlaneUiConfig,
   postControlPlaneUiConfig,
-} from './controlPlane/transport';
-import {
-  fetchHealthResponse,
-} from './workspaceTransport';
+} from "./controlPlane/transport";
+import { fetchHealthResponse } from "./workspaceTransport";
 import type {
   RepoBacklinkItem,
   RepoDocCoverageDoc,
@@ -176,12 +170,12 @@ import type {
   RepoSyncResponse,
   UiCapabilities,
   UiJuliaDeploymentArtifact,
-} from './apiContracts';
-import { getConfig, toUiConfig } from '../config/loader';
+} from "./apiContracts";
+import { getConfig, toUiConfig } from "../config/loader";
 
-const API_BASE = '/api';
+const API_BASE = "/api";
 
-const UI_CONFIG_RETRY_CODES = new Set(['UNKNOWN_REPOSITORY', 'UI_CONFIG_REQUIRED']);
+const UI_CONFIG_RETRY_CODES = new Set(["UNKNOWN_REPOSITORY", "UI_CONFIG_REQUIRED"]);
 
 function shouldRetryWithUiConfigSync(error: unknown): error is ApiClientError {
   return error instanceof ApiClientError && UI_CONFIG_RETRY_CODES.has(error.code);
@@ -219,17 +213,17 @@ const controlPlaneTextTransportDeps = {
 };
 
 function resolveBrowserFlightBaseUrl(): string {
-  if (typeof window !== 'undefined' && window.location.origin) {
+  if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin;
   }
-  if (typeof globalThis.location !== 'undefined' && globalThis.location?.origin) {
+  if (typeof globalThis.location !== "undefined" && globalThis.location?.origin) {
     return globalThis.location.origin;
   }
-  return '';
+  return "";
 }
 
 function nextRepoIndexFlightRequestId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
   return `repo-index-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -295,7 +289,7 @@ export const api = {
    */
   async getGraphNeighbors(
     nodeId: string,
-    options?: { direction?: string; hops?: number; limit?: number }
+    options?: { direction?: string; hops?: number; limit?: number },
   ): Promise<GraphNeighborsResponse> {
     const config = await getConfig();
     return flightGraphTransport.loadGraphNeighborsFlight({
@@ -329,7 +323,7 @@ export const api = {
   async searchKnowledge(
     query: string,
     limit: number = 10,
-    options?: { intent?: string; repo?: string }
+    options?: { intent?: string; repo?: string },
   ): Promise<SearchResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
@@ -362,7 +356,7 @@ export const api = {
       titleFilters?: string[];
       tagFilters?: string[];
       filenameFilters?: string[];
-    }
+    },
   ): Promise<SearchResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
@@ -392,7 +386,7 @@ export const api = {
   async searchAttachments(
     query: string,
     limit: number = 10,
-    options?: { ext?: string[]; kind?: string[]; caseSensitive?: boolean }
+    options?: { ext?: string[]; kind?: string[]; caseSensitive?: boolean },
   ): Promise<AttachmentSearchResponse> {
     const config = await getConfig();
     return flightSearchTransport.searchAttachmentsFlight(
@@ -434,7 +428,7 @@ export const api = {
    */
   async resolveDefinition(
     query: string,
-    options?: { path?: string; line?: number }
+    options?: { path?: string; line?: number },
   ): Promise<DefinitionResolveResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
@@ -444,7 +438,7 @@ export const api = {
           schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
           query,
           ...(options?.path ? { path: options.path } : {}),
-          ...(typeof options?.line === 'number' ? { line: options.line } : {}),
+          ...(typeof options?.line === "number" ? { line: options.line } : {}),
         },
         {
           decodeDefinitionHits: decodeDefinitionHitsFromArrowIpc,
@@ -511,7 +505,10 @@ export const api = {
   /**
    * Inspect normalized doc coverage rows from repo-intelligence.
    */
-  async getRepoDocCoverage(repo: string, moduleQualifiedName?: string): Promise<RepoDocCoverageResponse> {
+  async getRepoDocCoverage(
+    repo: string,
+    moduleQualifiedName?: string,
+  ): Promise<RepoDocCoverageResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
       return flightRepoDocCoverageTransport.loadRepoDocCoverageFlight(
@@ -531,7 +528,10 @@ export const api = {
   /**
    * Inspect repo sync/status state for one managed repository.
    */
-  async getRepoSync(repo: string, mode: 'ensure' | 'refresh' | 'status' = 'status'): Promise<RepoSyncResponse> {
+  async getRepoSync(
+    repo: string,
+    mode: "ensure" | "refresh" | "status" = "status",
+  ): Promise<RepoSyncResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
       return flightRepoSyncTransport.loadRepoSyncFlight(
@@ -611,7 +611,10 @@ export const api = {
   /**
    * Get a deterministic projected page-index tree for a repository page.
    */
-  async getRepoProjectedPageIndexTree(repo: string, pageId: string): Promise<ProjectedPageIndexTree> {
+  async getRepoProjectedPageIndexTree(
+    repo: string,
+    pageId: string,
+  ): Promise<ProjectedPageIndexTree> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
       return flightProjectedPageIndexTransport.loadRepoProjectedPageIndexTreeFlight(
@@ -681,7 +684,7 @@ export const api = {
     options?: {
       repo?: string;
       line?: number;
-    }
+    },
   ): Promise<CodeAstAnalysisResponse> {
     const config = await getConfig();
     return flightAnalysisTransport.loadCodeAstAnalysisFlight({
@@ -701,7 +704,7 @@ export const api = {
     options?: {
       repo?: string;
       line?: number;
-    }
+    },
   ): Promise<RetrievalChunk[]> {
     const config = await getConfig();
     return flightAnalysisTransport.loadCodeAstRetrievalChunksFlight({

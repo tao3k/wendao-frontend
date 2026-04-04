@@ -29,7 +29,7 @@
   margin: 0;
   color: #c0caf5;
   font-size: 16px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 }
 
 .diagram-window__path {
@@ -39,7 +39,7 @@
   border-radius: 10px;
   color: var(--tokyo-text-muted);
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   word-break: break-all;
 }
 
@@ -75,7 +75,7 @@
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   transition: all 120ms ease;
 }
 
@@ -101,7 +101,7 @@
   text-transform: uppercase;
   font-weight: 700;
   color: var(--tokyo-text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 }
 
 .diagram-window__chip--bpmn {
@@ -254,7 +254,7 @@
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   transition: all 120ms ease;
 }
 
@@ -267,7 +267,7 @@
 .diagram-window__block-title {
   color: rgba(125, 207, 255, 0.9);
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -290,7 +290,7 @@
   border: 1px solid rgba(125, 207, 255, 0.18);
   background: rgba(36, 40, 59, 0.72);
   color: #9cb1ff;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;

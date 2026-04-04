@@ -1,4 +1,4 @@
-export type JuliaDeploymentInspectionLocale = 'en' | 'zh';
+export type JuliaDeploymentInspectionLocale = "en" | "zh";
 
 export interface JuliaDeploymentInspectionClipboard {
   writeText(text: string): Promise<void>;

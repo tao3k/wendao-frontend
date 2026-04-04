@@ -13,6 +13,7 @@ const POSITION_STRIDE = 3; // x, y, z
 const workerScope = self as unknown as {
   postMessage: (message: unknown, transfer?: Transferable[]) => void;
 };
+const WORKER_MESSAGE_TARGET_ORIGIN = "*";
 
 // === Octree Constants (Barnes-Hut) ===
 const MAX_TREE_NODES = 262144; // 256K tree nodes for up to ~100K particles
@@ -89,7 +90,13 @@ function getOctant(x: number, y: number, z: number, cx: number, cy: number, cz: 
 /**
  * Get center of a child octant
  */
-function getChildCenter(octant: number, parentCx: number, parentCy: number, parentCz: number, halfSize: number): [number, number, number] {
+function getChildCenter(
+  octant: number,
+  parentCx: number,
+  parentCy: number,
+  parentCz: number,
+  halfSize: number,
+): [number, number, number] {
   const ox = (octant & 4) !== 0 ? halfSize : -halfSize;
   const oy = (octant & 2) !== 0 ? halfSize : -halfSize;
   const oz = (octant & 1) !== 0 ? halfSize : -halfSize;
@@ -101,12 +108,12 @@ function getChildCenter(octant: number, parentCx: number, parentCy: number, pare
  */
 function allocTreeNode(): number {
   if (treeNodeCount >= MAX_TREE_NODES) {
-    console.warn('[Octree] Max tree nodes exceeded');
+    console.warn("[Octree] Max tree nodes exceeded");
     return -1;
   }
   const idx = treeNodeCount++;
   const offset = idx * TREE_DATA_STRIDE;
-  treeData[offset] = 0;     // cx
+  treeData[offset] = 0; // cx
   treeData[offset + 1] = 0; // cy
   treeData[offset + 2] = 0; // cz
   treeData[offset + 3] = 0; // mass
@@ -133,7 +140,7 @@ function insertParticle(
   py: number,
   pz: number,
   pmass: number,
-  bbox: BBox
+  bbox: BBox,
 ): void {
   const dataOffset = treeIdx * TREE_DATA_STRIDE;
   const leafFlag = treeData[dataOffset + 5];
@@ -183,7 +190,7 @@ function insertParticle(
       cx: treeData[childIdx * TREE_DATA_STRIDE],
       cy: treeData[childIdx * TREE_DATA_STRIDE + 1],
       cz: treeData[childIdx * TREE_DATA_STRIDE + 2],
-      size: halfSize
+      size: halfSize,
     };
     insertParticle(childIdx, existingParticle, ex, ey, ez, emass, childBBox);
   }
@@ -206,7 +213,7 @@ function insertParticle(
     cx: treeData[childIdx * TREE_DATA_STRIDE],
     cy: treeData[childIdx * TREE_DATA_STRIDE + 1],
     cz: treeData[childIdx * TREE_DATA_STRIDE + 2],
-    size: halfSize
+    size: halfSize,
   };
   insertParticle(childIdx, particleIdx, px, py, pz, pmass, childBBox);
 
@@ -231,8 +238,12 @@ function buildOctree(): void {
   treeNodeCount = 0;
 
   // Calculate bounding box
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
 
   for (let i = 0; i < nodeCount; i++) {
     const offset = i * NODE_STRIDE;
@@ -302,7 +313,7 @@ function calculateRepulsion(nodeIdx: number, treeIdx: number): void {
   const dist = Math.sqrt(distSq) || 0.001;
 
   // Barnes-Hut criterion: s/d < theta
-  if (leafFlag === 1 || (size / dist < config.theta)) {
+  if (leafFlag === 1 || size / dist < config.theta) {
     // Treat as single body
     if (distSq > 0.0001) {
       const force = (config.repulsion * mass) / distSq;
@@ -414,9 +425,7 @@ function tick(): void {
     // Soft bounds
     const maxDist = 100;
     const currentDist = Math.sqrt(
-      nodeBuffer[offset] ** 2 +
-      nodeBuffer[offset + 1] ** 2 +
-      nodeBuffer[offset + 2] ** 2
+      nodeBuffer[offset] ** 2 + nodeBuffer[offset + 1] ** 2 + nodeBuffer[offset + 2] ** 2,
     );
 
     if (currentDist > maxDist) {
@@ -451,7 +460,7 @@ function rebuildPositionBuffer(): void {
   positionBuffer = nextBuffer;
 }
 
-function postCurrentPositions(type: 'ticked' | 'positions'): void {
+function postCurrentPositions(type: "ticked" | "positions"): void {
   if (!positionBuffer) {
     rebuildPositionBuffer();
   }
@@ -466,7 +475,7 @@ function postCurrentPositions(type: 'ticked' | 'positions'): void {
       nodeCount,
       buffer: transferBuffer,
     },
-    [transferBuffer]
+    [transferBuffer],
   );
 
   // Keep an in-worker copy aligned with the latest node state for later reads.
@@ -475,11 +484,11 @@ function postCurrentPositions(type: 'ticked' | 'positions'): void {
 
 // === Message Handler ===
 
-self.onmessage = (e: MessageEvent) => {
+function handleTopologyPhysicsWorkerMessage(e: MessageEvent): void {
   const { type, ...data } = e.data;
 
   switch (type) {
-    case 'init': {
+    case "init": {
       nodeCount = data.nodeCount;
       linkCount = data.linkCount;
 
@@ -498,21 +507,21 @@ self.onmessage = (e: MessageEvent) => {
 
       rebuildPositionBuffer();
 
-      workerScope.postMessage({ type: 'ready', nodeCount, linkCount });
+      workerScope.postMessage({ type: "ready", nodeCount, linkCount }, []);
       break;
     }
 
-    case 'tick': {
+    case "tick": {
       const ticks = data.ticks ?? 1;
       for (let i = 0; i < ticks; i++) {
         tick();
       }
 
-      postCurrentPositions('ticked');
+      postCurrentPositions("ticked");
       break;
     }
 
-    case 'sync': {
+    case "sync": {
       nodeCount = data.nodeCount;
       linkCount = data.linkCount;
 
@@ -528,11 +537,11 @@ self.onmessage = (e: MessageEvent) => {
       }
 
       rebuildPositionBuffer();
-      postCurrentPositions('positions');
+      postCurrentPositions("positions");
       break;
     }
 
-    case 'drag': {
+    case "drag": {
       const { index, x, y, z } = data;
       if (nodeBuffer && index >= 0 && index < nodeCount) {
         const offset = getNodeOffset(index);
@@ -546,25 +555,27 @@ self.onmessage = (e: MessageEvent) => {
       break;
     }
 
-    case 'release': {
+    case "release": {
       // Node will naturally return to equilibrium via physics
       break;
     }
 
-    case 'config': {
+    case "config": {
       config = { ...config, ...data };
       break;
     }
 
-    case 'getPositions': {
-      postCurrentPositions('positions');
+    case "getPositions": {
+      postCurrentPositions("positions");
       break;
     }
 
     default:
-      console.warn('[PhysicsWorker] Unknown message type:', type);
+      console.warn("[PhysicsWorker] Unknown message type:", type);
   }
-};
+}
+
+self.addEventListener("message", handleTopologyPhysicsWorkerMessage);
 
 // TypeScript export for type checking
-export {};
+export const topologyPhysicsWorkerModule = WORKER_MESSAGE_TARGET_ORIGIN;

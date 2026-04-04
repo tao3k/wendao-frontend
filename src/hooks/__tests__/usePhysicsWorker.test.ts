@@ -4,7 +4,7 @@
  * Tests buffer creation, node/link data layout, and transferable protocol.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
 // === Binary Protocol Constants (mirrored from hook) ===
 const NODE_STRIDE = 7; // x, y, z, vx, vy, vz, mass
@@ -29,9 +29,9 @@ interface PhysicsLink {
   strength?: number;
 }
 
-describe('usePhysicsWorker Binary Protocol', () => {
-  describe('Node Buffer Creation', () => {
-    it('should create buffer with correct stride', () => {
+describe("usePhysicsWorker Binary Protocol", () => {
+  describe("Node Buffer Creation", () => {
+    it("should create buffer with correct stride", () => {
       const nodeCount = 3;
       const nodeBuffer = new Float32Array(nodeCount * NODE_STRIDE);
 
@@ -39,11 +39,11 @@ describe('usePhysicsWorker Binary Protocol', () => {
       expect(nodeBuffer.length).toBe(21); // 3 * 7
     });
 
-    it('should fill node buffer correctly', () => {
+    it("should fill node buffer correctly", () => {
       const nodes: PhysicsNode[] = [
-        { id: 'a', x: 0, y: 1, z: 2, vx: 0.1, vy: 0.2, vz: 0.3, mass: 1 },
-        { id: 'b', x: 10, y: 20, z: 30, vx: 0, vy: 0, vz: 0, mass: 2 },
-        { id: 'c', x: -5, y: -5, z: -5, vx: 1, vy: 1, vz: 1, mass: 0.5 },
+        { id: "a", x: 0, y: 1, z: 2, vx: 0.1, vy: 0.2, vz: 0.3, mass: 1 },
+        { id: "b", x: 10, y: 20, z: 30, vx: 0, vy: 0, vz: 0, mass: 2 },
+        { id: "c", x: -5, y: -5, z: -5, vx: 1, vy: 1, vz: 1, mass: 0.5 },
       ];
 
       const nodeBuffer = new Float32Array(nodes.length * NODE_STRIDE);
@@ -60,7 +60,7 @@ describe('usePhysicsWorker Binary Protocol', () => {
       });
 
       // Verify node 0
-      const offset0 = 0 * NODE_STRIDE;
+      const offset0 = 0;
       expect(nodeBuffer[offset0]).toBe(0);
       expect(nodeBuffer[offset0 + 1]).toBe(1);
       expect(nodeBuffer[offset0 + 2]).toBe(2);
@@ -75,8 +75,8 @@ describe('usePhysicsWorker Binary Protocol', () => {
       expect(nodeBuffer[offset2 + 6]).toBeCloseTo(0.5, 5);
     });
 
-    it('should use default values for missing properties', () => {
-      const nodes: PhysicsNode[] = [{ id: 'a', x: 5, y: 5, z: 5, vx: 0, vy: 0, vz: 0, mass: 1 }];
+    it("should use default values for missing properties", () => {
+      const nodes: PhysicsNode[] = [{ id: "a", x: 5, y: 5, z: 5, vx: 0, vy: 0, vz: 0, mass: 1 }];
       const nodeBuffer = new Float32Array(nodes.length * NODE_STRIDE);
 
       nodes.forEach((node, i) => {
@@ -90,7 +90,7 @@ describe('usePhysicsWorker Binary Protocol', () => {
         nodeBuffer[offset + 6] = node.mass !== undefined ? node.mass : 1;
       });
 
-      const offset = 0 * NODE_STRIDE;
+      const offset = 0;
       expect(nodeBuffer[offset]).toBe(5);
       expect(nodeBuffer[offset + 3]).toBe(0); // Default vx
       expect(nodeBuffer[offset + 4]).toBe(0); // vy as specified
@@ -99,8 +99,8 @@ describe('usePhysicsWorker Binary Protocol', () => {
     });
   });
 
-  describe('Link Buffer Creation', () => {
-    it('should create buffer with correct stride', () => {
+  describe("Link Buffer Creation", () => {
+    it("should create buffer with correct stride", () => {
       const linkCount = 5;
       const linkBuffer = new Uint16Array(linkCount * LINK_STRIDE);
 
@@ -108,16 +108,16 @@ describe('usePhysicsWorker Binary Protocol', () => {
       expect(linkBuffer.length).toBe(10); // 5 * 2
     });
 
-    it('should fill link buffer with node indices', () => {
+    it("should fill link buffer with node indices", () => {
       const nodes: PhysicsNode[] = [
-        { id: 'a', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
-        { id: 'b', x: 1, y: 1, z: 1, vx: 0, vy: 0, vz: 0, mass: 1 },
-        { id: 'c', x: 2, y: 2, z: 2, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "a", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "b", x: 1, y: 1, z: 1, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "c", x: 2, y: 2, z: 2, vx: 0, vy: 0, vz: 0, mass: 1 },
       ];
 
       const links: PhysicsLink[] = [
-        { source: 'a', target: 'b' },
-        { source: 'b', target: 'c' },
+        { source: "a", target: "b" },
+        { source: "b", target: "c" },
       ];
 
       const nodeIndexMap = new Map(nodes.map((n, i) => [n.id, i]));
@@ -140,10 +140,10 @@ describe('usePhysicsWorker Binary Protocol', () => {
       expect(linkBuffer[3]).toBe(2);
     });
 
-    it('should handle missing nodes gracefully', () => {
-      const nodes: PhysicsNode[] = [{ id: 'a', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 }];
+    it("should handle missing nodes gracefully", () => {
+      const nodes: PhysicsNode[] = [{ id: "a", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 }];
 
-      const links: PhysicsLink[] = [{ source: 'a', target: 'nonexistent' }];
+      const links: PhysicsLink[] = [{ source: "a", target: "nonexistent" }];
 
       const nodeIndexMap = new Map(nodes.map((n, i) => [n.id, i]));
       const linkBuffer = new Uint16Array(links.length * LINK_STRIDE);
@@ -161,15 +161,15 @@ describe('usePhysicsWorker Binary Protocol', () => {
     });
   });
 
-  describe('Transferable Protocol', () => {
-    it('should create transferable message with buffers', () => {
+  describe("Transferable Protocol", () => {
+    it("should create transferable message with buffers", () => {
       const nodeCount = 3;
       const linkCount = 2;
       const nodeBuffer = new Float32Array(nodeCount * NODE_STRIDE);
       const linkBuffer = new Uint16Array(linkCount * LINK_STRIDE);
 
       const message = {
-        type: 'init',
+        type: "init",
         nodeCount,
         linkCount,
         nodeBuffer: nodeBuffer.buffer,
@@ -177,14 +177,14 @@ describe('usePhysicsWorker Binary Protocol', () => {
         config: { repulsion: 2000 },
       };
 
-      expect(message.type).toBe('init');
+      expect(message.type).toBe("init");
       expect(message.nodeCount).toBe(3);
       expect(message.linkCount).toBe(2);
       expect(message.nodeBuffer).toBeInstanceOf(ArrayBuffer);
       expect(message.linkBuffer).toBeInstanceOf(ArrayBuffer);
     });
 
-    it('should support zero-copy transfer', () => {
+    it("should support zero-copy transfer", () => {
       const nodeBuffer = new Float32Array(21);
       const linkBuffer = new Uint16Array(4);
 
@@ -201,8 +201,8 @@ describe('usePhysicsWorker Binary Protocol', () => {
     });
   });
 
-  describe('Position Buffer Reception', () => {
-    it('should create Float32Array from received buffer', () => {
+  describe("Position Buffer Reception", () => {
+    it("should create Float32Array from received buffer", () => {
       const nodeCount = 3;
       const positionBuffer = new Float32Array(nodeCount * 3);
 
@@ -221,83 +221,83 @@ describe('usePhysicsWorker Binary Protocol', () => {
     });
   });
 
-  describe('Node Index Map', () => {
-    it('should map node IDs to indices', () => {
+  describe("Node Index Map", () => {
+    it("should map node IDs to indices", () => {
       const nodes: PhysicsNode[] = [
-        { id: 'node-1', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
-        { id: 'node-2', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
-        { id: 'node-3', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "node-1", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "node-2", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "node-3", x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: 1 },
       ];
 
       const nodeIndexMap = new Map(nodes.map((n, i) => [n.id, i]));
 
-      expect(nodeIndexMap.get('node-1')).toBe(0);
-      expect(nodeIndexMap.get('node-2')).toBe(1);
-      expect(nodeIndexMap.get('node-3')).toBe(2);
-      expect(nodeIndexMap.get('nonexistent')).toBeUndefined();
+      expect(nodeIndexMap.get("node-1")).toBe(0);
+      expect(nodeIndexMap.get("node-2")).toBe(1);
+      expect(nodeIndexMap.get("node-3")).toBe(2);
+      expect(nodeIndexMap.get("nonexistent")).toBeUndefined();
     });
 
-    it('should support drag operation lookup', () => {
+    it("should support drag operation lookup", () => {
       const nodes: PhysicsNode[] = [
-        { id: 'draggable', x: 5, y: 5, z: 5, vx: 0, vy: 0, vz: 0, mass: 1 },
+        { id: "draggable", x: 5, y: 5, z: 5, vx: 0, vy: 0, vz: 0, mass: 1 },
       ];
 
       const nodeIndexMap = new Map(nodes.map((n, i) => [n.id, i]));
-      const index = nodeIndexMap.get('draggable');
+      const index = nodeIndexMap.get("draggable");
 
       expect(index).toBe(0);
 
       // Simulate drag message
-      const dragMessage = { type: 'drag', index, x: 10, y: 10, z: 10 };
+      const dragMessage = { type: "drag", index, x: 10, y: 10, z: 10 };
       expect(dragMessage.index).toBe(0);
       expect(dragMessage.x).toBe(10);
     });
   });
 
-  describe('Worker Message Types', () => {
-    it('should create init message', () => {
-      const message = { type: 'init', nodeCount: 10, linkCount: 5 };
-      expect(message.type).toBe('init');
+  describe("Worker Message Types", () => {
+    it("should create init message", () => {
+      const message = { type: "init", nodeCount: 10, linkCount: 5 };
+      expect(message.type).toBe("init");
     });
 
-    it('should create tick message', () => {
-      const message = { type: 'tick', ticks: 1 };
-      expect(message.type).toBe('tick');
+    it("should create tick message", () => {
+      const message = { type: "tick", ticks: 1 };
+      expect(message.type).toBe("tick");
       expect(message.ticks).toBe(1);
     });
 
-    it('should create sync message', () => {
-      const message = { type: 'sync', nodeCount: 4, linkCount: 3 };
-      expect(message.type).toBe('sync');
+    it("should create sync message", () => {
+      const message = { type: "sync", nodeCount: 4, linkCount: 3 };
+      expect(message.type).toBe("sync");
       expect(message.nodeCount).toBe(4);
       expect(message.linkCount).toBe(3);
     });
 
-    it('should create drag message', () => {
-      const message = { type: 'drag', index: 5, x: 10, y: 20, z: 30 };
-      expect(message.type).toBe('drag');
+    it("should create drag message", () => {
+      const message = { type: "drag", index: 5, x: 10, y: 20, z: 30 };
+      expect(message.type).toBe("drag");
       expect(message.index).toBe(5);
     });
 
-    it('should create release message', () => {
-      const message = { type: 'release', index: 5 };
-      expect(message.type).toBe('release');
+    it("should create release message", () => {
+      const message = { type: "release", index: 5 };
+      expect(message.type).toBe("release");
     });
 
-    it('should create config message', () => {
-      const message = { type: 'config', repulsion: 3000, damping: 0.95 };
-      expect(message.type).toBe('config');
+    it("should create config message", () => {
+      const message = { type: "config", repulsion: 3000, damping: 0.95 };
+      expect(message.type).toBe("config");
     });
 
-    it('should create getPositions message', () => {
-      const message = { type: 'getPositions' };
-      expect(message.type).toBe('getPositions');
+    it("should create getPositions message", () => {
+      const message = { type: "getPositions" };
+      expect(message.type).toBe("getPositions");
     });
   });
 });
 
-describe('usePhysicsWorker Performance', () => {
-  it('should handle large node counts', () => {
+describe("usePhysicsWorker Performance", () => {
+  it("should handle large node counts", () => {
     const nodeCount = 10000;
     const nodeBuffer = new Float32Array(nodeCount * NODE_STRIDE);
 
@@ -309,7 +309,7 @@ describe('usePhysicsWorker Performance', () => {
     expect(bytes / 1024).toBeCloseTo(273.4, 1); // ~273 KB
   });
 
-  it('should handle large link counts', () => {
+  it("should handle large link counts", () => {
     const linkCount = 50000;
     const linkBuffer = new Uint16Array(linkCount * LINK_STRIDE);
 
@@ -321,7 +321,7 @@ describe('usePhysicsWorker Performance', () => {
     expect(bytes / 1024).toBeCloseTo(195.3, 1); // ~195 KB
   });
 
-  it('should transfer buffers efficiently', () => {
+  it("should transfer buffers efficiently", () => {
     // Transfer should be O(1) - just pointer handoff
     const nodeBuffer = new Float32Array(10000 * NODE_STRIDE);
     const linkBuffer = new Uint16Array(50000 * LINK_STRIDE);

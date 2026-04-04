@@ -1,17 +1,17 @@
-import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import { GraphSVG } from '../GraphSVG';
-import type { SimulatedLink, SimulatedNode } from '../types';
+import React from "react";
+import { describe, expect, it, vi } from "vitest";
+import { render } from "@testing-library/react";
+import { GraphSVG } from "../GraphSVG";
+import type { SimulatedLink, SimulatedNode } from "../types";
 
-describe('GraphSVG', () => {
-  it('shows the full center label while keeping a tooltip for every node', () => {
+describe("GraphSVG", () => {
+  it("shows the full center label while keeping a tooltip for every node", () => {
     const nodes: SimulatedNode[] = [
       {
-        id: 'kernel/docs/index.md',
-        label: 'Qianji Studio DocOS Kernel: Map of Content',
-        path: 'kernel/docs/index.md',
-        nodeType: 'doc',
+        id: "kernel/docs/index.md",
+        label: "Qianji Studio DocOS Kernel: Map of Content",
+        path: "kernel/docs/index.md",
+        nodeType: "doc",
         isCenter: true,
         distance: 0,
         x: 120,
@@ -20,10 +20,10 @@ describe('GraphSVG', () => {
         vy: 0,
       },
       {
-        id: 'kernel/docs/testing.md',
-        label: 'Documentation Index',
-        path: 'kernel/docs/testing.md',
-        nodeType: 'doc',
+        id: "kernel/docs/testing.md",
+        label: "Documentation Index",
+        path: "kernel/docs/testing.md",
+        nodeType: "doc",
         isCenter: false,
         distance: 1,
         x: 220,
@@ -34,9 +34,9 @@ describe('GraphSVG', () => {
     ];
     const links: SimulatedLink[] = [
       {
-        source: 'kernel/docs/index.md',
-        target: 'kernel/docs/testing.md',
-        direction: 'outgoing',
+        source: "kernel/docs/index.md",
+        target: "kernel/docs/testing.md",
+        direction: "outgoing",
         distance: 1,
         sourceNode: nodes[0],
         targetNode: nodes[1],
@@ -51,25 +51,19 @@ describe('GraphSVG', () => {
         links={links}
         onNodeClick={vi.fn()}
         onNodeDragStart={vi.fn()}
-      />
+      />,
     );
 
-    const labels = Array.from(container.querySelectorAll('.graph-node-label')).map(
-      (node) => node.textContent
+    const labels = Array.from(container.querySelectorAll(".graph-node-label")).map(
+      (node) => node.textContent,
     );
-    expect(labels).toEqual([
-      'Qianji Studio DocOS Kernel: Map of Content',
-      'Documentation I...',
-    ]);
+    expect(labels).toEqual(["Qianji Studio DocOS Kernel: Map of Content", "Documentation I..."]);
 
-    expect(container.querySelector('.graph-node--index-page')).toBeNull();
-    expect(container.querySelector('.graph-node-index-badge-text')).toBeNull();
-    expect(container.querySelectorAll('.graph-node-index-badge')).toHaveLength(0);
+    expect(container.querySelector(".graph-node--index-page")).toBeNull();
+    expect(container.querySelector(".graph-node-index-badge-text")).toBeNull();
+    expect(container.querySelectorAll(".graph-node-index-badge")).toHaveLength(0);
 
-    const titles = Array.from(container.querySelectorAll('title')).map((node) => node.textContent);
-    expect(titles).toEqual([
-      'Qianji Studio DocOS Kernel: Map of Content',
-      'Documentation Index',
-    ]);
+    const titles = Array.from(container.querySelectorAll("title")).map((node) => node.textContent);
+    expect(titles).toEqual(["Qianji Studio DocOS Kernel: Map of Content", "Documentation Index"]);
   });
 });

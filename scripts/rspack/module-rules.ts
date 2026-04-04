@@ -1,5 +1,5 @@
-import type { Configuration, SwcLoaderOptions } from '@rspack/core';
-import { RSPACK_TARGETS } from './build-profile';
+import type { Configuration, SwcLoaderOptions } from "@rspack/core";
+import { RSPACK_TARGETS } from "./build-profile";
 
 export function createSwcRule({
   isDev,
@@ -12,16 +12,16 @@ export function createSwcRule({
     test: /\.(jsx?|tsx?)$/,
     use: [
       {
-        loader: 'builtin:swc-loader',
+        loader: "builtin:swc-loader",
         options: {
           jsc: {
             parser: {
-              syntax: 'typescript',
+              syntax: "typescript",
               tsx: true,
             },
             transform: {
               react: {
-                runtime: 'automatic',
+                runtime: "automatic",
                 development: isDev,
                 refresh: isDev,
               },
@@ -40,17 +40,17 @@ export function createRspackModuleRules({
 }: {
   isDev: boolean;
   targets?: string[];
-}): NonNullable<Configuration['module']>['rules'] {
+}): NonNullable<Configuration["module"]>["rules"] {
   return [
     {
       test: /\.svg$/,
-      type: 'asset',
+      type: "asset",
     },
     {
       test: /\.(bpmn|glb|gltf)$/,
-      type: 'asset/resource',
+      type: "asset/resource",
       generator: {
-        filename: 'assets/[name].[hash][ext]',
+        filename: "assets/[name].[hash][ext]",
       },
     },
     createSwcRule({ isDev, targets }),

@@ -1,24 +1,29 @@
-import React from 'react';
-import type { Components } from 'react-markdown';
-import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
-import rehypeKatex from 'rehype-katex';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import 'katex/dist/katex.min.css';
-import { CodeSyntaxHighlighter } from '../../code-syntax';
-import { MarkdownWaterfall } from './MarkdownWaterfall';
+import React from "react";
+import type { Components } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkFrontmatter from "remark-frontmatter";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import "katex/dist/katex.min.css";
+import { CodeSyntaxHighlighter } from "../../code-syntax";
+import { MarkdownWaterfall } from "./MarkdownWaterfall";
 import {
   describeUnsupportedMermaidDialect,
   hasInlineRenderableMermaidSource,
   MERMAID_RENDER_THEME,
   useSharedMermaidRenderer,
-} from '../mermaidRuntime';
-import {
-  decodeBiLinkHref,
-  hasInternalUriPrefix,
+} from "../mermaidRuntime";
+import { decodeBiLinkHref, hasInternalUriPrefix, remarkBiLinks } from "./markdownWaterfallBiLinks";
+
+const DIRECT_READER_RICH_REMARK_PLUGINS = [
+  remarkFrontmatter,
+  remarkGfm,
+  remarkMath,
   remarkBiLinks,
-} from './markdownWaterfallBiLinks';
+] as const;
+const DIRECT_READER_RICH_REHYPE_PLUGINS = [rehypeKatex] as const;
+const DIRECT_READER_MERMAID_INNER_HTML = (svg: string) => ({ __html: svg });
 
 interface DirectReaderRichContentCopy {
   emptyContent: string;
@@ -31,20 +36,47 @@ interface DirectReaderRichContentProps {
   content: string;
   copy: DirectReaderRichContentCopy;
   isMarkdownDocument: boolean;
-  locale: 'en' | 'zh';
+  locale: "en" | "zh";
   onBiLinkClick?: (link: string) => void;
   path?: string;
 }
 
+interface DirectReaderBiLinkButtonProps {
+  link: string;
+  children: React.ReactNode;
+  onBiLinkClick?: (link: string) => void;
+}
+
+const DirectReaderBiLinkButton = React.memo(function DirectReaderBiLinkButton({
+  link,
+  children,
+  onBiLinkClick,
+}: DirectReaderBiLinkButtonProps): React.ReactElement {
+  const handleClick = React.useCallback(() => {
+    onBiLinkClick?.(link);
+  }, [link, onBiLinkClick]);
+
+  return (
+    <button
+      type="button"
+      className="direct-reader__bilink"
+      data-link={link}
+      onClick={handleClick}
+    >
+      {children}
+    </button>
+  );
+});
+
 function directReaderUrlTransform(url: string): string {
-  if (url.startsWith('bilink:') || hasInternalUriPrefix(url)) {
+  if (url.startsWith("bilink:") || hasInternalUriPrefix(url)) {
     return url;
   }
   return defaultUrlTransform(url);
 }
 
 function isBlockCode(codeClassName: string | undefined, rawValue: string): boolean {
-  if (typeof codeClassName === 'string' && /language-([\w-]+)/.test(codeClassName)) {
+  if (typeof codeClassName === "string" && /language-([\w-]+)/.test(codeClassName)) {
     return true;
   }
 
@@ -54,12 +86,16 @@ function isBlockCode(codeClassName: string | undefined, rawValue: string): boole
 function renderMermaidNode(
   source: string,
   copy: DirectReaderRichContentCopy,
-  renderMermaid: ReturnType<typeof useSharedMermaidRenderer>
+  renderMermaid: ReturnType<typeof useSharedMermaidRenderer>,
 ): React.ReactElement {
   const trimmed = source.trim();
   const unsupportedDialect = describeUnsupportedMermaidDialect(trimmed);
   if (!trimmed) {
-    return <div className="direct-reader__mermaid direct-reader__mermaid--empty">{copy.emptyMermaidBlock}</div>;
+    return (
+      <div className="direct-reader__mermaid direct-reader__mermaid--empty">
+        {copy.emptyMermaidBlock}
+      </div>
+    );
   }
 
   if (unsupportedDialect) {
@@ -81,7 +117,12 @@ function renderMermaidNode(
 
   try {
     const svg = renderMermaid(trimmed, MERMAID_RENDER_THEME);
-    return <div className="direct-reader__mermaid" dangerouslySetInnerHTML={{ __html: svg }} />;
+    return (
+      <div
+        className="direct-reader__mermaid"
+        dangerouslySetInnerHTML={DIRECT_READER_MERMAID_INNER_HTML(svg)}
+      />
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return (
@@ -102,7 +143,7 @@ function buildMarkdownComponents({
   onBiLinkClick,
   path,
   renderMermaid,
-}: Pick<DirectReaderRichContentProps, 'copy' | 'onBiLinkClick' | 'path'> & {
+}: Pick<DirectReaderRichContentProps, "copy" | "onBiLinkClick" | "path"> & {
   renderMermaid: ReturnType<typeof useSharedMermaidRenderer>;
 }): Components {
   return {
@@ -153,31 +194,21 @@ function buildMarkdownComponents({
       return <td className="direct-reader__td">{children}</td>;
     },
     a({ href, children }) {
-      if (typeof href === 'string' && href.startsWith('bilink:')) {
+      if (typeof href === "string" && href.startsWith("bilink:")) {
         const link = decodeBiLinkHref(href);
         return (
-          <button
-            type="button"
-            className="direct-reader__bilink"
-            data-link={link}
-            onClick={() => onBiLinkClick?.(link)}
-          >
+          <DirectReaderBiLinkButton link={link} onBiLinkClick={onBiLinkClick}>
             {children}
-          </button>
+          </DirectReaderBiLinkButton>
         );
       }
 
-      if (typeof href === 'string' && hasInternalUriPrefix(href) && onBiLinkClick) {
-        const target = href.startsWith('$') ? href.slice(1) : href;
+      if (typeof href === "string" && hasInternalUriPrefix(href) && onBiLinkClick) {
+        const target = href.startsWith("$") ? href.slice(1) : href;
         return (
-          <button
-            type="button"
-            className="direct-reader__bilink"
-            data-link={target}
-            onClick={() => onBiLinkClick(target)}
-          >
+          <DirectReaderBiLinkButton link={target} onBiLinkClick={onBiLinkClick}>
             {children}
-          </button>
+          </DirectReaderBiLinkButton>
         );
       }
 
@@ -188,31 +219,29 @@ function buildMarkdownComponents({
       );
     },
     code({ className: codeClassName, children }: any) {
-      const languageMatch = /language-([\w-]+)/.exec(codeClassName || '');
-      const language = (languageMatch?.[1] || 'plaintext').toLowerCase();
-      const rawValue = String(children ?? '');
-      const value = rawValue.replace(/\n$/, '');
+      const languageMatch = /language-([\w-]+)/.exec(codeClassName || "");
+      const language = (languageMatch?.[1] || "plaintext").toLowerCase();
+      const rawValue = String(children ?? "");
+      const value = rawValue.replace(/\n$/, "");
       const isBlock = isBlockCode(codeClassName, rawValue);
 
       if (isBlock) {
-        if (language === 'mermaid') {
+        if (language === "mermaid") {
           return renderMermaidNode(value, copy, renderMermaid);
         }
 
         return (
           <pre className="direct-reader__code" data-lang={language}>
             <code className={codeClassName}>
-              <CodeSyntaxHighlighter
-                source={value}
-                language={language}
-                sourcePath={path}
-              />
+              <CodeSyntaxHighlighter source={value} language={language} sourcePath={path} />
             </code>
           </pre>
         );
       }
 
-      const inlineClassName = ['direct-reader__inline-code', codeClassName].filter(Boolean).join(' ');
+      const inlineClassName = ["direct-reader__inline-code", codeClassName]
+        .filter(Boolean)
+        .join(" ");
       return <code className={inlineClassName}>{children}</code>;
     },
   };
@@ -230,9 +259,15 @@ export function DirectReaderRichContent({
     !isMarkdownDocument &&
     /```mermaid|language-mermaid/.test(content) &&
     hasInlineRenderableMermaidSource(
-      [...content.matchAll(/```(?:\s*mermaid)?\s*\n([\s\S]*?)```/gi)].map((match) => match[1] || '')
+      [...content.matchAll(/```(?:\s*mermaid)?\s*\n([\s\S]*?)```/gi)].map(
+        (match) => match[1] || "",
+      ),
     );
   const renderMermaid = useSharedMermaidRenderer({ shouldLoad: shouldLoadMermaidRuntime });
+  const markdownComponents = React.useMemo(
+    () => buildMarkdownComponents({ copy, onBiLinkClick, path, renderMermaid }),
+    [copy, onBiLinkClick, path, renderMermaid],
+  );
 
   if (!content) {
     return <div className="direct-reader__empty">{copy.emptyContent}</div>;
@@ -251,13 +286,13 @@ export function DirectReaderRichContent({
 
   return (
     <ReactMarkdown
-        remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath, remarkBiLinks]}
-        rehypePlugins={[rehypeKatex]}
-        urlTransform={directReaderUrlTransform}
-        components={buildMarkdownComponents({ copy, onBiLinkClick, path, renderMermaid })}
-      >
-        {content}
-      </ReactMarkdown>
+      remarkPlugins={DIRECT_READER_RICH_REMARK_PLUGINS}
+      rehypePlugins={DIRECT_READER_RICH_REHYPE_PLUGINS}
+      urlTransform={directReaderUrlTransform}
+      components={markdownComponents}
+    >
+      {content}
+    </ReactMarkdown>
   );
 }
 

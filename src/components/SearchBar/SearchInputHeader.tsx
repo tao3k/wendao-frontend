@@ -1,6 +1,6 @@
-import React, { startTransition, useEffect, useState } from 'react';
-import { Search, Sparkles, X } from 'lucide-react';
-import type { SearchBarCopy, UiLocale } from './types';
+import React, { startTransition, useCallback, useEffect, useState } from "react";
+import { Search, Sparkles, X } from "lucide-react";
+import type { SearchBarCopy, UiLocale } from "./types";
 
 interface SearchInputHeaderProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
@@ -20,7 +20,7 @@ interface SearchInputHeaderProps {
 export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
   inputRef,
   copy,
-  locale,
+  locale: _locale,
   query,
   isLoading,
   showSuggestions,
@@ -32,6 +32,16 @@ export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
   onCompositionEnd,
 }) => {
   const [draftQuery, setDraftQuery] = useState(query);
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const nextQuery = event.target.value;
+      setDraftQuery(nextQuery);
+      startTransition(() => {
+        onQueryChange(nextQuery);
+      });
+    },
+    [onQueryChange],
+  );
 
   useEffect(() => {
     setDraftQuery(query);
@@ -43,33 +53,29 @@ export const SearchInputHeader: React.FC<SearchInputHeaderProps> = ({
       <input
         ref={inputRef}
         type="text"
-        autoFocus
         className="search-input"
         placeholder={copy.placeholder}
         value={draftQuery}
-        onChange={(event) => {
-          const nextQuery = event.target.value;
-          setDraftQuery(nextQuery);
-          startTransition(() => {
-            onQueryChange(nextQuery);
-          });
-        }}
+        onChange={handleChange}
         onKeyDown={onKeyDown}
         onCompositionStart={onCompositionStart}
         onCompositionEnd={onCompositionEnd}
       />
       <button
         type="button"
-        className={`search-toolbar-btn search-toolbar-btn-icon ${showSuggestions ? 'active' : ''}`}
+        className={`search-toolbar-btn search-toolbar-btn-icon ${showSuggestions ? "active" : ""}`}
         onClick={onToggleSuggestions}
         title={copy.toggleSuggestions}
         aria-pressed={showSuggestions}
         aria-label={copy.toggleSuggestions}
       >
         <Sparkles size={14} className="search-toolbar-btn-icon-symbol" aria-hidden="true" />
-        <span className={`search-toolbar-btn-indicator ${showSuggestions ? 'active' : 'inactive'}`} aria-hidden="true" />
+        <span
+          className={`search-toolbar-btn-indicator ${showSuggestions ? "active" : "inactive"}`}
+          aria-hidden="true"
+        />
       </button>
-      <span className={`search-loading ${isLoading ? 'is-visible' : ''}`}>{copy.searching}</span>
+      <span className={`search-loading ${isLoading ? "is-visible" : ""}`}>{copy.searching}</span>
       <button type="button" className="search-close" onClick={onClose}>
         <X size={16} />
       </button>

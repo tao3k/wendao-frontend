@@ -1,10 +1,10 @@
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
 
 const GENERIC_FACET_TERMS: Record<RepoOverviewFacet, Set<string>> = {
-  module: new Set(['module', 'modules']),
-  symbol: new Set(['symbol', 'symbols', 'function', 'functions', 'solve']),
-  example: new Set(['example', 'examples', 'demo', 'demos']),
-  doc: new Set(['doc', 'docs', 'documentation', 'readme']),
+  module: new Set(["module", "modules"]),
+  symbol: new Set(["symbol", "symbols", "function", "functions", "solve"]),
+  example: new Set(["example", "examples", "demo", "demos"]),
+  doc: new Set(["doc", "docs", "documentation", "readme"]),
 };
 
 export function shouldUseRepoOverviewFallback(facet: RepoOverviewFacet, query: string): boolean {

@@ -1,9 +1,9 @@
-import { create } from '@bufbuild/protobuf';
-import { createClient, ConnectError } from '@connectrpc/connect';
-import { createGrpcWebTransport } from '@connectrpc/connect-web';
+import { create } from "@bufbuild/protobuf";
+import { createClient, ConnectError } from "@connectrpc/connect";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-import type { RefineEntityDocRequest, RefineEntityDocResponse } from './bindings';
-import { decodeRefineEntityDocResponseFromArrowIpc } from './arrowDocumentIpc';
+import type { RefineEntityDocRequest, RefineEntityDocResponse } from "./bindings";
+import { decodeRefineEntityDocResponseFromArrowIpc } from "./arrowDocumentIpc";
 import {
   FlightData,
   FlightDescriptor,
@@ -13,15 +13,15 @@ import {
   FlightService,
   Ticket,
   TicketSchema,
-} from './flight/generated/Flight_pb';
-import { reassembleArrowIpcStreamFromFlight } from './flightSearchTransport';
-import { ApiClientError } from './responseTransport';
+} from "./flight/generated/Flight_pb";
+import { reassembleArrowIpcStreamFromFlight } from "./flightSearchTransport";
+import { ApiClientError } from "./responseTransport";
 
-const WENDAO_SCHEMA_VERSION_HEADER = 'x-wendao-schema-version';
-const WENDAO_REFINE_DOC_REPO_HEADER = 'x-wendao-refine-doc-repo';
-const WENDAO_REFINE_DOC_ENTITY_ID_HEADER = 'x-wendao-refine-doc-entity-id';
-const WENDAO_REFINE_DOC_USER_HINTS_HEADER = 'x-wendao-refine-doc-user-hints-b64';
-const ANALYSIS_REFINE_DOC_ROUTE = '/analysis/refine-doc';
+const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
+const WENDAO_REFINE_DOC_REPO_HEADER = "x-wendao-refine-doc-repo";
+const WENDAO_REFINE_DOC_ENTITY_ID_HEADER = "x-wendao-refine-doc-entity-id";
+const WENDAO_REFINE_DOC_USER_HINTS_HEADER = "x-wendao-refine-doc-user-hints-b64";
+const ANALYSIS_REFINE_DOC_ROUTE = "/analysis/refine-doc";
 
 export interface RefineEntityDocFlightRequest {
   baseUrl: string;
@@ -34,23 +34,18 @@ interface FlightServiceClientLike {
     descriptor: FlightDescriptor,
     options?: { headers?: HeadersInit },
   ): Promise<FlightInfo>;
-  doGet(
-    ticket: Ticket,
-    options?: { headers?: HeadersInit },
-  ): AsyncIterable<FlightData>;
+  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
 }
 
 export interface FlightRefineEntityDocTransportDeps {
   createClient?: (baseUrl: string) => FlightServiceClientLike;
-  decodeRefineEntityDocResponse?: (
-    payload: ArrayBuffer,
-  ) => RefineEntityDocResponse | undefined;
+  decodeRefineEntityDocResponse?: (payload: ArrayBuffer) => RefineEntityDocResponse | undefined;
 }
 
 export function buildRefineEntityDocFlightDescriptor(): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
-    path: ANALYSIS_REFINE_DOC_ROUTE.slice(1).split('/'),
+    path: ANALYSIS_REFINE_DOC_ROUTE.slice(1).split("/"),
   });
 }
 
@@ -89,8 +84,8 @@ export async function loadRefineEntityDocFlight(
       decodeRefineEntityDocMetadata(flightInfo.appMetadata);
     if (!response) {
       throw new ApiClientError(
-        'FLIGHT_REFINE_DOC_ERROR',
-        'Flight refine-doc route returned no readable response',
+        "FLIGHT_REFINE_DOC_ERROR",
+        "Flight refine-doc route returned no readable response",
       );
     }
     return response;
@@ -101,7 +96,7 @@ export async function loadRefineEntityDocFlight(
 
 function createFlightServiceClient(baseUrl: string): FlightServiceClientLike {
   const transport = createGrpcWebTransport({
-    baseUrl: baseUrl.trim().replace(/\/+$/, ''),
+    baseUrl: baseUrl.trim().replace(/\/+$/, ""),
   });
   return createClient(FlightService, transport);
 }
@@ -109,14 +104,14 @@ function createFlightServiceClient(baseUrl: string): FlightServiceClientLike {
 function readFlightTicket(flightInfo: FlightInfo): Ticket {
   const ticketBytes = flightInfo.endpoint[0]?.ticket?.ticket;
   if (!ticketBytes || ticketBytes.byteLength === 0) {
-    throw new Error('Flight refine-doc route returned no readable ticket');
+    throw new Error("Flight refine-doc route returned no readable ticket");
   }
   return create(TicketSchema, { ticket: ticketBytes });
 }
 
 function encodeUtf8Base64(value: string): string {
   const bytes = new TextEncoder().encode(value);
-  let binary = '';
+  let binary = "";
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
@@ -129,27 +124,27 @@ function decodeRefineEntityDocMetadata(
   if (appMetadata.byteLength === 0) {
     return undefined;
   }
-  const parsed = JSON.parse(new TextDecoder().decode(appMetadata)) as Partial<RefineEntityDocResponse> & {
+  const parsed = JSON.parse(
+    new TextDecoder().decode(appMetadata),
+  ) as Partial<RefineEntityDocResponse> & {
     repoId?: string;
     entityId?: string;
     refinedContent?: string;
     verificationState?: string;
   };
-  const repoId = typeof parsed.repo_id === 'string' ? parsed.repo_id : parsed.repoId;
-  const entityId = typeof parsed.entity_id === 'string' ? parsed.entity_id : parsed.entityId;
+  const repoId = typeof parsed.repo_id === "string" ? parsed.repo_id : parsed.repoId;
+  const entityId = typeof parsed.entity_id === "string" ? parsed.entity_id : parsed.entityId;
   const refinedContent =
-    typeof parsed.refined_content === 'string'
-      ? parsed.refined_content
-      : parsed.refinedContent;
+    typeof parsed.refined_content === "string" ? parsed.refined_content : parsed.refinedContent;
   const verificationState =
-    typeof parsed.verification_state === 'string'
+    typeof parsed.verification_state === "string"
       ? parsed.verification_state
       : parsed.verificationState;
   if (
-    typeof repoId !== 'string' ||
-    typeof entityId !== 'string' ||
-    typeof refinedContent !== 'string' ||
-    typeof verificationState !== 'string'
+    typeof repoId !== "string" ||
+    typeof entityId !== "string" ||
+    typeof refinedContent !== "string" ||
+    typeof verificationState !== "string"
   ) {
     return undefined;
   }
@@ -171,24 +166,21 @@ function mapFlightRefineDocError(error: unknown): ApiClientError {
   if (error instanceof Error) {
     return new ApiClientError(inferFlightRefineDocErrorCode(error.message), error.message);
   }
-  return new ApiClientError(
-    'FLIGHT_REFINE_DOC_ERROR',
-    'Unknown Flight refine-doc failure',
-  );
+  return new ApiClientError("FLIGHT_REFINE_DOC_ERROR", "Unknown Flight refine-doc failure");
 }
 
 function inferFlightRefineDocErrorCode(message: string): string {
-  if (message.includes('UNKNOWN_REPOSITORY')) {
-    return 'UNKNOWN_REPOSITORY';
+  if (message.includes("UNKNOWN_REPOSITORY")) {
+    return "UNKNOWN_REPOSITORY";
   }
-  if (message.includes('UI_CONFIG_REQUIRED')) {
-    return 'UI_CONFIG_REQUIRED';
+  if (message.includes("UI_CONFIG_REQUIRED")) {
+    return "UI_CONFIG_REQUIRED";
   }
-  if (message.includes('FLIGHT_CONFIG_REQUIRED')) {
-    return 'FLIGHT_CONFIG_REQUIRED';
+  if (message.includes("FLIGHT_CONFIG_REQUIRED")) {
+    return "FLIGHT_CONFIG_REQUIRED";
   }
-  if (message.toLowerCase().includes('not found')) {
-    return 'NOT_FOUND';
+  if (message.toLowerCase().includes("not found")) {
+    return "NOT_FOUND";
   }
-  return 'FLIGHT_REFINE_DOC_ERROR';
+  return "FLIGHT_REFINE_DOC_ERROR";
 }

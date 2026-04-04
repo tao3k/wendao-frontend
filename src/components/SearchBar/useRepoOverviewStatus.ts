@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { api } from '../../api';
-import type { SearchScope } from './types';
+import { useEffect, useState } from "react";
+import { api } from "../../api";
+import type { SearchScope } from "./types";
 
 interface UseRepoOverviewStatusParams {
   isOpen: boolean;
@@ -16,16 +16,16 @@ export interface RepoOverviewStatusSnapshot {
   docCount: number;
 }
 
-export function useRepoOverviewStatus({
-  isOpen,
-  scope,
-  repoFilter,
-}: UseRepoOverviewStatusParams): { repoOverviewStatus: RepoOverviewStatusSnapshot | null } {
-  const [repoOverviewStatus, setRepoOverviewStatus] = useState<RepoOverviewStatusSnapshot | null>(null);
+export function useRepoOverviewStatus({ isOpen, scope, repoFilter }: UseRepoOverviewStatusParams): {
+  repoOverviewStatus: RepoOverviewStatusSnapshot | null;
+} {
+  const [repoOverviewStatus, setRepoOverviewStatus] = useState<RepoOverviewStatusSnapshot | null>(
+    null,
+  );
 
   useEffect(() => {
     const normalizedRepo = repoFilter?.trim();
-    if (!isOpen || scope !== 'code' || !normalizedRepo) {
+    if (!isOpen || scope !== "code" || !normalizedRepo) {
       setRepoOverviewStatus(null);
       return;
     }

@@ -1,12 +1,15 @@
-import React, { useRef } from 'react';
-import { assembleSearchBarControllerResult } from './searchBarControllerAssembler';
-import { SEARCH_BAR_COPY } from './searchPresentation';
-import { getDocIcon, highlightMatch } from './searchRenderUtils';
-import { useSearchBarResetOnOpen } from './useSearchBarResetOnOpen';
-import { useSearchBarRepoSlice } from './useSearchBarRepoSlice';
-import { useSearchBarControllerState } from './useSearchBarControllerState';
-import { useSearchBarControllerPresentation } from './useSearchBarControllerPresentation';
-import type { SearchBarControllerResult, UseSearchBarControllerParams } from './searchBarControllerTypes';
+import React, { useRef } from "react";
+import { assembleSearchBarControllerResult } from "./searchBarControllerAssembler";
+import { SEARCH_BAR_COPY } from "./searchPresentation";
+import { getDocIcon, highlightMatch } from "./searchRenderUtils";
+import { useSearchBarResetOnOpen } from "./useSearchBarResetOnOpen";
+import { useSearchBarRepoSlice } from "./useSearchBarRepoSlice";
+import { useSearchBarControllerState } from "./useSearchBarControllerState";
+import { useSearchBarControllerPresentation } from "./useSearchBarControllerPresentation";
+import type {
+  SearchBarControllerResult,
+  UseSearchBarControllerParams,
+} from "./searchBarControllerTypes";
 
 export function useSearchBarController({
   isOpen,
@@ -89,7 +92,6 @@ export function useSearchBarController({
     setSortMode,
   });
   const {
-    visibleSections,
     interactionProps,
     getSuggestionIcon,
     clearCodeFilters,
@@ -173,7 +175,7 @@ export function useSearchBarController({
     onRemoveFilter: removeCodeFilter,
     onClearFilters: clearCodeFilters,
     ...interactionProps,
-    showCodeFilterHelper: scope === 'code',
+    showCodeFilterHelper: scope === "code",
     shellProps: searchShellProps,
     resultsPanelProps: searchResultsPanelProps,
   });

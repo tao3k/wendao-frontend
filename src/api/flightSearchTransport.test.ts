@@ -1,11 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import {
-  FlightDataSchema,
-  FlightInfoSchema,
-  TicketSchema,
-} from "./flight/generated/Flight_pb";
+import { FlightDataSchema, FlightInfoSchema, TicketSchema } from "./flight/generated/Flight_pb";
 import {
   buildAttachmentSearchFlightHeaders,
   buildKnowledgeSearchFlightHeaders,
@@ -19,26 +15,14 @@ import {
 
 describe("flightSearchTransport", () => {
   it("builds canonical semantic descriptor paths", () => {
-    expect(buildSearchFlightDescriptor("/search/knowledge").path).toEqual([
-      "search",
-      "knowledge",
-    ]);
-    expect(buildSearchFlightDescriptor("/search/symbols").path).toEqual([
-      "search",
-      "symbols",
-    ]);
+    expect(buildSearchFlightDescriptor("/search/knowledge").path).toEqual(["search", "knowledge"]);
+    expect(buildSearchFlightDescriptor("/search/symbols").path).toEqual(["search", "symbols"]);
   });
 
   it("routes code-biased searches through the semantic intent Flight route", () => {
-    expect(resolveSearchFlightRoute({ intent: "code_search" })).toBe(
-      "/search/intent",
-    );
-    expect(resolveSearchFlightRoute({ intent: "hybrid_search" })).toBe(
-      "/search/intent",
-    );
-    expect(resolveSearchFlightRoute({ intent: "knowledge_lookup" })).toBe(
-      "/search/knowledge",
-    );
+    expect(resolveSearchFlightRoute({ intent: "code_search" })).toBe("/search/intent");
+    expect(resolveSearchFlightRoute({ intent: "hybrid_search" })).toBe("/search/intent");
+    expect(resolveSearchFlightRoute({ intent: "knowledge_lookup" })).toBe("/search/knowledge");
     expect(resolveSearchFlightRoute({})).toBe("/search/knowledge");
   });
 
@@ -71,64 +55,22 @@ describe("flightSearchTransport", () => {
     });
 
     expect(headers.get("x-wendao-search-query")).toBe("topology");
-    expect(headers.get("x-wendao-attachment-search-ext-filters")).toBe(
-      "png,jpg",
-    );
-    expect(headers.get("x-wendao-attachment-search-kind-filters")).toBe(
-      "image,document",
-    );
-    expect(headers.get("x-wendao-attachment-search-case-sensitive")).toBe(
-      "true",
-    );
+    expect(headers.get("x-wendao-attachment-search-ext-filters")).toBe("png,jpg");
+    expect(headers.get("x-wendao-attachment-search-kind-filters")).toBe("image,document");
+    expect(headers.get("x-wendao-attachment-search-case-sensitive")).toBe("true");
   });
 
   it("reassembles Flight schema and frames into one Arrow IPC stream buffer", () => {
-    const buffer = reassembleArrowIpcStreamFromFlight(
-      new Uint8Array([1, 2, 3]),
-      [
-        {
-          dataHeader: new Uint8Array([4, 5, 6]),
-          dataBody: new Uint8Array([7, 8]),
-        },
-      ],
-    );
+    const buffer = reassembleArrowIpcStreamFromFlight(new Uint8Array([1, 2, 3]), [
+      {
+        dataHeader: new Uint8Array([4, 5, 6]),
+        dataBody: new Uint8Array([7, 8]),
+      },
+    ]);
 
     expect(Array.from(new Uint8Array(buffer))).toEqual([
-      1,
-      2,
-      3,
-      255,
-      255,
-      255,
-      255,
-      8,
-      0,
-      0,
-      0,
-      4,
-      5,
-      6,
-      0,
-      0,
-      0,
-      0,
-      0,
-      7,
-      8,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      255,
-      255,
-      255,
-      255,
-      0,
-      0,
-      0,
-      0,
+      1, 2, 3, 255, 255, 255, 255, 8, 0, 0, 0, 4, 5, 6, 0, 0, 0, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0, 255,
+      255, 255, 255, 0, 0, 0, 0,
     ]);
   });
 
@@ -176,41 +118,8 @@ describe("flightSearchTransport", () => {
         }),
         decodeSearchHits: (payload) => {
           expect(Array.from(new Uint8Array(payload))).toEqual([
-            1,
-            2,
-            3,
-            255,
-            255,
-            255,
-            255,
-            8,
-            0,
-            0,
-            0,
-            4,
-            5,
-            6,
-            0,
-            0,
-            0,
-            0,
-            0,
-            7,
-            8,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            255,
-            255,
-            255,
-            255,
-            0,
-            0,
-            0,
-            0,
+            1, 2, 3, 255, 255, 255, 255, 8, 0, 0, 0, 4, 5, 6, 0, 0, 0, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0,
+            255, 255, 255, 255, 0, 0, 0, 0,
           ]);
           return [
             {

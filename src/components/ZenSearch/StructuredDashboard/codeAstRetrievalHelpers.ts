@@ -1,8 +1,11 @@
 import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
-} from '../../../api';
-import { buildArrowRetrievalLookup, type ArrowRetrievalLookup } from '../../../utils/arrowRetrievalLookup';
+} from "../../../api";
+import {
+  buildArrowRetrievalLookup,
+  type ArrowRetrievalLookup,
+} from "../../../utils/arrowRetrievalLookup";
 
 export interface CodeAstRetrievalAtom {
   id: string;
@@ -17,8 +20,8 @@ function slugifySegment(value: string): string {
     value
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'item'
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "item"
   );
 }
 
@@ -29,11 +32,11 @@ function buildStableFingerprint(value: string): string {
     hash = ((hash << 5) + hash) ^ value.charCodeAt(index);
   }
 
-  return `fp:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  return `fp:${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
 function estimateTokenCount(value: string): number {
-  const normalized = value.replace(/\s+/g, ' ').trim();
+  const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) {
     return 0;
   }
@@ -43,11 +46,11 @@ function estimateTokenCount(value: string): number {
 
 export function buildCodeAstRetrievalAtom(
   path: string,
-  scope: 'declaration' | 'block' | 'symbol',
+  scope: "declaration" | "block" | "symbol",
   semanticType: string,
   locator: string,
   ordinal: number,
-  content: string
+  content: string,
 ): CodeAstRetrievalAtom {
   const pathSlug = slugifySegment(path);
   const semanticSlug = slugifySegment(semanticType);
@@ -55,23 +58,28 @@ export function buildCodeAstRetrievalAtom(
 
   return {
     id: `ast:${pathSlug}:${scope}:${semanticSlug}:${locatorSlug}`,
-    displayId: `ast:${String(ordinal).padStart(2, '0')}`,
+    displayId: `ast:${String(ordinal).padStart(2, "0")}`,
     semanticType,
-    fingerprint: buildStableFingerprint([path, scope, semanticType, locator, content.slice(0, 240)].join('|')),
+    fingerprint: buildStableFingerprint(
+      [path, scope, semanticType, locator, content.slice(0, 240)].join("|"),
+    ),
     tokenEstimate: estimateTokenCount(content),
   };
 }
 
 export function buildBackendAtomLookup(
-  analysis: CodeAstAnalysisResponse
+  analysis: CodeAstAnalysisResponse,
 ): ArrowRetrievalLookup<ApiCodeAstRetrievalAtom> {
   return buildArrowRetrievalLookup(analysis.retrievalAtoms ?? []);
 }
 
-export function toDisplayRetrievalAtom(atom: ApiCodeAstRetrievalAtom, ordinal: number): CodeAstRetrievalAtom {
+export function toDisplayRetrievalAtom(
+  atom: ApiCodeAstRetrievalAtom,
+  ordinal: number,
+): CodeAstRetrievalAtom {
   return {
     id: atom.chunkId,
-    displayId: `ast:${String(ordinal).padStart(2, '0')}`,
+    displayId: `ast:${String(ordinal).padStart(2, "0")}`,
     semanticType: atom.semanticType,
     fingerprint: atom.fingerprint,
     tokenEstimate: atom.tokenEstimate,
@@ -81,9 +89,9 @@ export function toDisplayRetrievalAtom(atom: ApiCodeAstRetrievalAtom, ordinal: n
 export function resolveDisplayRetrievalAtom(
   lookup: ArrowRetrievalLookup<ApiCodeAstRetrievalAtom>,
   ownerId: string,
-  scope: 'declaration' | 'block' | 'symbol',
+  scope: "declaration" | "block" | "symbol",
   ordinal: number,
-  fallback: () => CodeAstRetrievalAtom
+  fallback: () => CodeAstRetrievalAtom,
 ): CodeAstRetrievalAtom {
   const backendAtom = lookup.findByOwnerSurface(ownerId, scope);
   if (backendAtom) {

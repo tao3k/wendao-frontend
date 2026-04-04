@@ -1,5 +1,5 @@
-import { useDebouncedValue } from '../../hooks';
-import { useSearchBarState } from './useSearchBarState';
+import { useDebouncedValue } from "../../hooks";
+import { useSearchBarState } from "./useSearchBarState";
 
 export interface UseSearchBarControllerStateOptions {
   queryDebounceMs?: number;

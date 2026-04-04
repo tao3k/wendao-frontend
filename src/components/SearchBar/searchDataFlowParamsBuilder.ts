@@ -1,4 +1,4 @@
-import type { useSearchDataFlow } from './useSearchDataFlow';
+import type { useSearchDataFlow } from "./useSearchDataFlow";
 
 export type SearchDataFlowParams = Parameters<typeof useSearchDataFlow>[0];
 

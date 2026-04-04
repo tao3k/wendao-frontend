@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import type {
   ComponentProps,
   Dispatch,
@@ -6,18 +6,18 @@ import type {
   MouseEvent,
   RefObject,
   SetStateAction,
-} from 'react';
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import { SearchResultsPanel } from './SearchResultsPanel';
-import { buildSearchResultsPanelProps, buildSearchShellProps } from './searchBarPanelPropsBuilder';
-import type { SearchBarControllerShellProps } from './searchBarControllerTypes';
-import type { SearchMeta } from './searchExecution';
-import { buildSearchResultsListModel } from './interface/results';
-import type { ConfidenceTone } from './searchStateUtils';
-import type { SearchResultSection } from './searchResultSections';
-import type { SearchBarCopy, SearchResult, SearchScope, SearchSort, UiLocale } from './types';
-import type { RepoOverviewStatusSnapshot } from './useRepoOverviewStatus';
-import type { RepoSyncStatusSnapshot } from './useRepoSyncStatus';
+} from "react";
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import { SearchResultsPanel } from "./SearchResultsPanel";
+import { buildSearchResultsPanelProps, buildSearchShellProps } from "./searchBarPanelPropsBuilder";
+import type { SearchBarControllerShellProps } from "./searchBarControllerTypes";
+import type { SearchMeta } from "./searchExecution";
+import { buildSearchResultsListModel } from "./interface/results";
+import type { ConfidenceTone } from "./searchStateUtils";
+import type { SearchResultSection } from "./searchResultSections";
+import type { SearchBarCopy, SearchResult, SearchScope, SearchSort, UiLocale } from "./types";
+import type { RepoOverviewStatusSnapshot } from "./useRepoOverviewStatus";
+import type { RepoSyncStatusSnapshot } from "./useRepoSyncStatus";
 
 type SearchResultsPanelViewProps = ComponentProps<typeof SearchResultsPanel>;
 
@@ -62,7 +62,10 @@ interface UseSearchViewActionsParams {
   onSortModeChange: (sortMode: SearchSort) => void;
   setResultSelectedIndex: Dispatch<SetStateAction<number>>;
   onOpen: (result: SearchResult, event?: MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  onOpenDefinition: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  onOpenDefinition: (
+    result: SearchResult,
+    event: MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void;
   onOpenGraph: (result: SearchResult, event: MouseEvent<HTMLButtonElement>) => void;
   onTogglePreview: (result: SearchResult) => void;
@@ -125,9 +128,10 @@ export function useSearchViewProps({
   searchShellProps: SearchBarControllerShellProps;
   searchResultsPanelProps: SearchResultsPanelViewProps;
 } {
-  const searchResultsListModel = useMemo(() => (
-    buildSearchResultsListModel(visibleSections)
-  ), [visibleSections]);
+  const searchResultsListModel = useMemo(
+    () => buildSearchResultsListModel(visibleSections),
+    [visibleSections],
+  );
 
   const searchShellProps = useMemo(() => {
     return buildSearchShellProps({

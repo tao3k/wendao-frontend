@@ -7,9 +7,9 @@
  * - Tokyo Night hover highlighting
  */
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import * as THREE from 'three';
-import { useThree, useFrame } from '@react-three/fiber';
+import React, { useRef, useState, useCallback, useEffect } from "react";
+import * as THREE from "three";
+import { useThree, useFrame } from "@react-three/fiber";
 
 interface PickedNode {
   id: string;
@@ -27,8 +27,8 @@ interface SovereignRaycasterProps {
 }
 
 // Tokyo Night colors
-const HOVER_COLOR = new THREE.Color('#bb9af7'); // Purple
-const DEFAULT_COLOR = new THREE.Color('#7dcfff'); // Cyan
+const HOVER_COLOR = new THREE.Color("#bb9af7"); // Purple
+const DEFAULT_COLOR = new THREE.Color("#7dcfff"); // Cyan
 
 export const SovereignRaycaster: React.FC<SovereignRaycasterProps> = ({
   meshRef,
@@ -44,13 +44,11 @@ export const SovereignRaycaster: React.FC<SovereignRaycasterProps> = ({
 
   // Store original colors when hovering
   useEffect(() => {
-    if (!meshRef.current) return;
-
-    // Initialize color storage if needed
+    const originalColors = originalColorsRef.current;
     return () => {
-      originalColorsRef.current.clear();
+      originalColors.clear();
     };
-  }, [meshRef]);
+  }, []);
 
   // High-precision Instance Raycasting
   const performRaycast = useCallback(() => {
@@ -82,10 +80,10 @@ export const SovereignRaycaster: React.FC<SovereignRaycasterProps> = ({
         });
 
         // Change cursor to pointer
-        gl.domElement.style.cursor = 'pointer';
+        gl.domElement.style.cursor = "pointer";
       } else {
         onHover?.(null);
-        gl.domElement.style.cursor = 'default';
+        gl.domElement.style.cursor = "default";
       }
     }
   }, [performRaycast, hoveredId, nodes, onHover, gl]);
@@ -141,13 +139,13 @@ export const SovereignRaycaster: React.FC<SovereignRaycasterProps> = ({
   useEffect(() => {
     const canvas = gl.domElement;
 
-    canvas.addEventListener('pointermove', handlePointerMove);
-    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("click", handleClick);
 
     return () => {
-      canvas.removeEventListener('pointermove', handlePointerMove);
-      canvas.removeEventListener('click', handleClick);
-      canvas.style.cursor = 'default';
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("click", handleClick);
+      canvas.style.cursor = "default";
     };
   }, [gl, handlePointerMove, handleClick]);
 
@@ -165,7 +163,7 @@ export function useSovereignRaycaster(
     onPick?: (node: PickedNode) => void;
     onHover?: (node: PickedNode | null) => void;
     enabled?: boolean;
-  } = {}
+  } = {},
 ) {
   const [hoveredNode, setHoveredNode] = useState<PickedNode | null>(null);
   const [pickedNode, setPickedNode] = useState<PickedNode | null>(null);
@@ -175,7 +173,7 @@ export function useSovereignRaycaster(
       setPickedNode(node);
       options.onPick?.(node);
     },
-    [options]
+    [options],
   );
 
   const handleHover = useCallback(
@@ -183,7 +181,7 @@ export function useSovereignRaycaster(
       setHoveredNode(node);
       options.onHover?.(node);
     },
-    [options]
+    [options],
   );
 
   const raycasterElement = (

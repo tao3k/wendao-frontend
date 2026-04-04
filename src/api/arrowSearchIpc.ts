@@ -1,4 +1,4 @@
-import { tableFromIPC } from 'apache-arrow';
+import { tableFromIPC } from "apache-arrow";
 
 import type {
   AutocompleteSuggestion,
@@ -13,39 +13,41 @@ import type {
   SearchHit,
   StudioNavigationTarget,
   SymbolSearchHit,
-} from './bindings';
+} from "./bindings";
 
 type ArrowRowRecord = Record<string, unknown>;
 
 function requireString(row: Record<string, unknown>, key: string): string {
   const value = row[key];
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value;
   }
   throw new Error(`Arrow search payload is missing required string field "${key}"`);
 }
 
 function toOptionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
+  return typeof value === "string" ? value : undefined;
 }
 
 function toOptionalNumber(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
   return undefined;
 }
 
 function parseJsonArrayOfStrings(value: unknown): string[] {
-  if (typeof value !== 'string' || value.length === 0) {
+  if (typeof value !== "string" || value.length === 0) {
     return [];
   }
   const parsed = JSON.parse(value) as unknown;
-  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(parsed)
+    ? parsed.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function parseOptionalJson<T>(value: unknown): T | undefined {
-  if (typeof value !== 'string' || value.length === 0) {
+  if (typeof value !== "string" || value.length === 0) {
     return undefined;
   }
   return JSON.parse(value) as T;
@@ -53,20 +55,17 @@ function parseOptionalJson<T>(value: unknown): T | undefined {
 
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string');
+    return value.filter((item): item is string => typeof item === "string");
   }
-  if (value && typeof value === 'object' && Symbol.iterator in value) {
+  if (value && typeof value === "object" && Symbol.iterator in value) {
     return Array.from(value as Iterable<unknown>).filter(
-      (item): item is string => typeof item === 'string'
+      (item): item is string => typeof item === "string",
     );
   }
   return [];
 }
 
-function decodeArrowRows<T>(
-  payload: ArrayBuffer,
-  mapRow: (record: ArrowRowRecord) => T
-): T[] {
+function decodeArrowRows<T>(payload: ArrayBuffer, mapRow: (record: ArrowRowRecord) => T): T[] {
   if (payload.byteLength === 0) {
     return [];
   }
@@ -86,13 +85,15 @@ export function decodeSearchHitsFromArrowIpc(payload: ArrayBuffer): SearchHit[] 
     const verificationState = toOptionalString(record.verificationState);
     const hierarchy = parseOptionalJson<string[]>(record.hierarchyJson);
     const implicitBacklinks = parseOptionalJson<string[]>(record.implicitBacklinksJson);
-    const implicitBacklinkItems = parseOptionalJson<SearchBacklinkItem[]>(record.implicitBacklinkItemsJson);
+    const implicitBacklinkItems = parseOptionalJson<SearchBacklinkItem[]>(
+      record.implicitBacklinkItemsJson,
+    );
     const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
 
     return {
-      stem: requireString(record, 'stem'),
+      stem: requireString(record, "stem"),
       ...(title ? { title } : {}),
-      path: requireString(record, 'path'),
+      path: requireString(record, "path"),
       ...(docType ? { docType } : {}),
       tags: parseJsonArrayOfStrings(record.tagsJson),
       score: toOptionalNumber(record.score) ?? 0,
@@ -100,11 +101,13 @@ export function decodeSearchHitsFromArrowIpc(payload: ArrayBuffer): SearchHit[] 
       ...(matchReason ? { matchReason } : {}),
       ...(hierarchicalUri ? { hierarchicalUri } : {}),
       ...(hierarchy && hierarchy.length > 0 ? { hierarchy } : {}),
-      ...(typeof saliencyScore === 'number' ? { saliencyScore } : {}),
+      ...(typeof saliencyScore === "number" ? { saliencyScore } : {}),
       ...(auditStatus ? { auditStatus } : {}),
       ...(verificationState ? { verificationState } : {}),
       ...(implicitBacklinks && implicitBacklinks.length > 0 ? { implicitBacklinks } : {}),
-      ...(implicitBacklinkItems && implicitBacklinkItems.length > 0 ? { implicitBacklinkItems } : {}),
+      ...(implicitBacklinkItems && implicitBacklinkItems.length > 0
+        ? { implicitBacklinkItems }
+        : {}),
       ...(navigationTarget ? { navigationTarget } : {}),
     };
   });
@@ -112,10 +115,10 @@ export function decodeSearchHitsFromArrowIpc(payload: ArrayBuffer): SearchHit[] 
 
 export function decodeRepoSearchHitsFromArrowIpc(
   payload: ArrayBuffer,
-  fallbackRepoId: string
+  fallbackRepoId: string,
 ): SearchHit[] {
   return decodeArrowRows(payload, (record) => {
-    const path = requireString(record, 'path');
+    const path = requireString(record, "path");
     const language = toOptionalString(record.language)?.toLowerCase();
     const tags = toStringArray(record.tags);
     const normalizedTags =
@@ -128,17 +131,17 @@ export function decodeRepoSearchHitsFromArrowIpc(
     const navigationLineEnd = toOptionalNumber(record.navigation_line_end);
     const navigationTarget: StudioNavigationTarget = {
       path: navigationPath,
-      category: 'repo_code',
+      category: "repo_code",
       projectName: fallbackRepoId,
       ...(navigationLine && navigationLine > 0 ? { line: navigationLine } : {}),
       ...(navigationLineEnd && navigationLineEnd > 0 ? { lineEnd: navigationLineEnd } : {}),
     };
 
     return {
-      stem: requireString(record, 'doc_id'),
+      stem: requireString(record, "doc_id"),
       ...(toOptionalString(record.title) ? { title: toOptionalString(record.title) } : {}),
       path,
-      docType: 'file',
+      docType: "file",
       tags: normalizedTags,
       score: toOptionalNumber(record.score) ?? 0,
       ...(toOptionalString(record.best_section)
@@ -155,27 +158,25 @@ export function decodeRepoSearchHitsFromArrowIpc(
 
 export function decodeRepoDocCoverageDocsFromArrowIpc(
   payload: ArrayBuffer,
-  fallbackRepoId: string
+  fallbackRepoId: string,
 ): RepoDocCoverageDoc[] {
   return decodeArrowRows(payload, (record) => ({
     repoId: toOptionalString(record.repoId) ?? fallbackRepoId,
-    docId: requireString(record, 'docId'),
-    title: requireString(record, 'title'),
-    path: requireString(record, 'path'),
-    format: toOptionalString(record.format) ?? 'unknown',
+    docId: requireString(record, "docId"),
+    title: requireString(record, "title"),
+    path: requireString(record, "path"),
+    format: toOptionalString(record.format) ?? "unknown",
   }));
 }
 
 export function decodeRepoOverviewResponseFromArrowIpc(
   payload: ArrayBuffer,
-  fallbackRepoId: string
+  fallbackRepoId: string,
 ): RepoOverviewResponse {
   const [overview] = decodeArrowRows(payload, (record) => ({
     repoId: toOptionalString(record.repoId) ?? fallbackRepoId,
-    displayName: requireString(record, 'displayName'),
-    ...(toOptionalString(record.revision)
-      ? { revision: toOptionalString(record.revision) }
-      : {}),
+    displayName: requireString(record, "displayName"),
+    ...(toOptionalString(record.revision) ? { revision: toOptionalString(record.revision) } : {}),
     moduleCount: toOptionalNumber(record.moduleCount) ?? 0,
     symbolCount: toOptionalNumber(record.symbolCount) ?? 0,
     exampleCount: toOptionalNumber(record.exampleCount) ?? 0,
@@ -186,14 +187,14 @@ export function decodeRepoOverviewResponseFromArrowIpc(
   }));
 
   if (!overview) {
-    throw new Error('Arrow repo overview payload must contain one summary row');
+    throw new Error("Arrow repo overview payload must contain one summary row");
   }
 
   return overview;
 }
 
 export function decodeRepoIndexStatusResponseFromArrowIpc(
-  payload: ArrayBuffer
+  payload: ArrayBuffer,
 ): RepoIndexStatusResponse {
   const [status] = decodeArrowRows(payload, (record) => ({
     total: toOptionalNumber(record.total) ?? 0,
@@ -210,42 +211,36 @@ export function decodeRepoIndexStatusResponseFromArrowIpc(
     ...(toOptionalString(record.currentRepoId)
       ? { currentRepoId: toOptionalString(record.currentRepoId) }
       : {}),
-    repos: parseOptionalJson<RepoIndexStatusResponse['repos']>(record.reposJson) ?? [],
+    repos: parseOptionalJson<RepoIndexStatusResponse["repos"]>(record.reposJson) ?? [],
   }));
 
   if (!status) {
-    throw new Error('Arrow repo index status payload must contain one summary row');
+    throw new Error("Arrow repo index status payload must contain one summary row");
   }
 
   return status;
 }
 
-export function decodeRepoSyncResponseFromArrowIpc(
-  payload: ArrayBuffer
-): RepoSyncResponse {
+export function decodeRepoSyncResponseFromArrowIpc(payload: ArrayBuffer): RepoSyncResponse {
   const [status] = decodeArrowRows(payload, (record) => ({
-    repoId: requireString(record, 'repoId'),
-    mode: requireString(record, 'mode'),
+    repoId: requireString(record, "repoId"),
+    mode: requireString(record, "mode"),
     ...(toOptionalString(record.sourceKind)
       ? { sourceKind: toOptionalString(record.sourceKind) }
       : {}),
-    ...(toOptionalString(record.refresh)
-      ? { refresh: toOptionalString(record.refresh) }
-      : {}),
+    ...(toOptionalString(record.refresh) ? { refresh: toOptionalString(record.refresh) } : {}),
     ...(toOptionalString(record.mirrorState)
       ? { mirrorState: toOptionalString(record.mirrorState) }
       : {}),
     ...(toOptionalString(record.checkoutState)
       ? { checkoutState: toOptionalString(record.checkoutState) }
       : {}),
-    ...(toOptionalString(record.revision)
-      ? { revision: toOptionalString(record.revision) }
-      : {}),
-    checkoutPath: requireString(record, 'checkoutPath'),
+    ...(toOptionalString(record.revision) ? { revision: toOptionalString(record.revision) } : {}),
+    checkoutPath: requireString(record, "checkoutPath"),
     ...(toOptionalString(record.mirrorPath)
       ? { mirrorPath: toOptionalString(record.mirrorPath) }
       : { mirrorPath: null }),
-    checkedAt: requireString(record, 'checkedAt'),
+    checkedAt: requireString(record, "checkedAt"),
     ...(toOptionalString(record.lastFetchedAt)
       ? { lastFetchedAt: toOptionalString(record.lastFetchedAt) }
       : {}),
@@ -261,7 +256,7 @@ export function decodeRepoSyncResponseFromArrowIpc(
     ...(toOptionalString(record.driftState)
       ? { driftState: toOptionalString(record.driftState) }
       : {}),
-    ...(typeof record.statusSummaryJson === 'string'
+    ...(typeof record.statusSummaryJson === "string"
       ? {
           statusSummary:
             parseOptionalJson<Record<string, unknown>>(record.statusSummaryJson) ?? undefined,
@@ -270,14 +265,14 @@ export function decodeRepoSyncResponseFromArrowIpc(
   }));
 
   if (!status) {
-    throw new Error('Arrow repo sync payload must contain one summary row');
+    throw new Error("Arrow repo sync payload must contain one summary row");
   }
 
   return status;
 }
 
 export function decodeAttachmentSearchHitsFromArrowIpc(
-  payload: ArrayBuffer
+  payload: ArrayBuffer,
 ): AttachmentSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const name = toOptionalString(record.name);
@@ -287,17 +282,17 @@ export function decodeAttachmentSearchHitsFromArrowIpc(
 
     return {
       ...(name ? { name } : {}),
-      path: requireString(record, 'path'),
-      sourceId: requireString(record, 'sourceId'),
-      sourceStem: requireString(record, 'sourceStem'),
+      path: requireString(record, "path"),
+      sourceId: requireString(record, "sourceId"),
+      sourceStem: requireString(record, "sourceStem"),
       ...(sourceTitle ? { sourceTitle } : {}),
       ...(navigationTarget ? { navigationTarget } : {}),
-      sourcePath: requireString(record, 'sourcePath'),
-      attachmentId: requireString(record, 'attachmentId'),
-      attachmentPath: requireString(record, 'attachmentPath'),
-      attachmentName: requireString(record, 'attachmentName'),
-      attachmentExt: requireString(record, 'attachmentExt'),
-      kind: requireString(record, 'kind') as AttachmentSearchHit['kind'],
+      sourcePath: requireString(record, "sourcePath"),
+      attachmentId: requireString(record, "attachmentId"),
+      attachmentPath: requireString(record, "attachmentPath"),
+      attachmentName: requireString(record, "attachmentName"),
+      attachmentExt: requireString(record, "attachmentExt"),
+      kind: requireString(record, "kind") as AttachmentSearchHit["kind"],
       score: toOptionalNumber(record.score) ?? 0,
       ...(visionSnippet ? { visionSnippet } : {}),
     };
@@ -305,11 +300,14 @@ export function decodeAttachmentSearchHitsFromArrowIpc(
 }
 
 export function decodeAutocompleteSuggestionsFromArrowIpc(
-  payload: ArrayBuffer
+  payload: ArrayBuffer,
 ): AutocompleteSuggestion[] {
   return decodeArrowRows(payload, (record) => ({
-    text: requireString(record, 'text'),
-    suggestionType: requireString(record, 'suggestionType') as AutocompleteSuggestion['suggestionType'],
+    text: requireString(record, "text"),
+    suggestionType: requireString(
+      record,
+      "suggestionType",
+    ) as AutocompleteSuggestion["suggestionType"],
   }));
 }
 
@@ -320,19 +318,19 @@ export function decodeSymbolSearchHitsFromArrowIpc(payload: ArrayBuffer): Symbol
     const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
 
     return {
-      name: requireString(record, 'name'),
-      kind: requireString(record, 'kind'),
-      path: requireString(record, 'path'),
+      name: requireString(record, "name"),
+      kind: requireString(record, "kind"),
+      path: requireString(record, "path"),
       line: toOptionalNumber(record.line) ?? 1,
-      location: requireString(record, 'location'),
-      language: requireString(record, 'language'),
-      source: requireString(record, 'source'),
-      crateName: requireString(record, 'crateName'),
+      location: requireString(record, "location"),
+      language: requireString(record, "language"),
+      source: requireString(record, "source"),
+      crateName: requireString(record, "crateName"),
       ...(projectName ? { projectName } : {}),
       ...(rootLabel ? { rootLabel } : {}),
       navigationTarget: navigationTarget ?? {
-        path: requireString(record, 'path'),
-        category: 'doc',
+        path: requireString(record, "path"),
+        category: "doc",
       },
       score: toOptionalNumber(record.score) ?? 0,
     };
@@ -346,19 +344,19 @@ export function decodeReferenceSearchHitsFromArrowIpc(payload: ArrayBuffer): Ref
     const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
 
     return {
-      name: requireString(record, 'name'),
-      path: requireString(record, 'path'),
-      language: requireString(record, 'language'),
-      crateName: requireString(record, 'crateName'),
+      name: requireString(record, "name"),
+      path: requireString(record, "path"),
+      language: requireString(record, "language"),
+      crateName: requireString(record, "crateName"),
       ...(projectName ? { projectName } : {}),
       ...(rootLabel ? { rootLabel } : {}),
       navigationTarget: navigationTarget ?? {
-        path: requireString(record, 'path'),
-        category: 'doc',
+        path: requireString(record, "path"),
+        category: "doc",
       },
       line: toOptionalNumber(record.line) ?? 1,
       column: toOptionalNumber(record.column) ?? 1,
-      lineText: requireString(record, 'lineText'),
+      lineText: requireString(record, "lineText"),
       score: toOptionalNumber(record.score) ?? 0,
     };
   });
@@ -373,18 +371,18 @@ export function decodeAstSearchHitsFromArrowIpc(payload: ArrayBuffer): AstSearch
     const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
 
     return {
-      name: requireString(record, 'name'),
-      signature: requireString(record, 'signature'),
-      path: requireString(record, 'path'),
-      language: requireString(record, 'language'),
-      crateName: requireString(record, 'crateName'),
+      name: requireString(record, "name"),
+      signature: requireString(record, "signature"),
+      path: requireString(record, "path"),
+      language: requireString(record, "language"),
+      crateName: requireString(record, "crateName"),
       ...(projectName ? { projectName } : {}),
       ...(rootLabel ? { rootLabel } : {}),
       ...(nodeKind ? { nodeKind } : {}),
       ...(ownerTitle ? { ownerTitle } : {}),
       navigationTarget: navigationTarget ?? {
-        path: requireString(record, 'path'),
-        category: 'doc',
+        path: requireString(record, "path"),
+        category: "doc",
       },
       lineStart: toOptionalNumber(record.lineStart) ?? 1,
       lineEnd: toOptionalNumber(record.lineEnd) ?? 1,
@@ -402,18 +400,18 @@ export function decodeDefinitionHitsFromArrowIpc(payload: ArrayBuffer): AstSearc
     const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
 
     return {
-      name: requireString(record, 'name'),
-      signature: requireString(record, 'signature'),
-      path: requireString(record, 'path'),
-      language: requireString(record, 'language'),
-      crateName: requireString(record, 'crateName'),
+      name: requireString(record, "name"),
+      signature: requireString(record, "signature"),
+      path: requireString(record, "path"),
+      language: requireString(record, "language"),
+      crateName: requireString(record, "crateName"),
       ...(projectName ? { projectName } : {}),
       ...(rootLabel ? { rootLabel } : {}),
       ...(nodeKind ? { nodeKind } : {}),
       ...(ownerTitle ? { ownerTitle } : {}),
       navigationTarget: navigationTarget ?? {
-        path: requireString(record, 'path'),
-        category: 'doc',
+        path: requireString(record, "path"),
+        category: "doc",
       },
       lineStart: toOptionalNumber(record.lineStart) ?? 1,
       lineEnd: toOptionalNumber(record.lineEnd) ?? 1,

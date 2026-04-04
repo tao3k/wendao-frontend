@@ -3,16 +3,16 @@
  * Implements the "Research Pulse" from wendao_cockpit_v1.md
  */
 
-import { eventBus } from '../lib/EventBus';
-import type { AcademicNode, AcademicLink, AcademicTopology } from '../types';
-import type { NodeState, TopologySnapshot, TopologySubscriber } from './types';
+import { eventBus } from "../lib/EventBus";
+import type { AcademicNode, AcademicLink, AcademicTopology } from "../types";
+import type { NodeState, TopologySnapshot, TopologySubscriber } from "./types";
 
 const STATE_TO_CSS_CLASS: Record<NodeState, string> = {
-  idle: '',
-  active: 'node-active',
-  processing: 'node-processing',
-  success: 'node-success',
-  wait: 'node-wait',
+  idle: "",
+  active: "node-active",
+  processing: "node-processing",
+  success: "node-success",
+  wait: "node-wait",
 };
 
 export class TopologyController {
@@ -41,7 +41,7 @@ export class TopologyController {
 
     topology.nodes.forEach((node) => {
       this.nodes.set(node.id, node);
-      this.nodeStates.set(node.id, 'idle');
+      this.nodeStates.set(node.id, "idle");
     });
 
     this.notifySubscribers();
@@ -68,13 +68,13 @@ export class TopologyController {
     this.notifySubscribers();
 
     // Emit event for 2D/3D sync
-    if (state !== 'idle') {
-      eventBus.emit('node:activated', { id, state });
+    if (state !== "idle") {
+      eventBus.emit("node:activated", { id, state });
     }
   }
 
   getNodeState(id: string): NodeState {
-    return this.nodeStates.get(id) || 'idle';
+    return this.nodeStates.get(id) || "idle";
   }
 
   getCSSClassForNode(id: string): string {
@@ -84,14 +84,14 @@ export class TopologyController {
 
   // === Selection ===
 
-  selectNode(id: string | null, source: '2d' | '3d' | 'browser' = 'browser'): void {
+  selectNode(id: string | null, source: "2d" | "3d" | "browser" = "browser"): void {
     this.selectedNodeId = id;
     this.notifySubscribers();
 
     if (id) {
       const node = this.nodes.get(id);
       if (node) {
-        eventBus.emit('node:selected', {
+        eventBus.emit("node:selected", {
           id,
           name: node.name,
           type: node.type,
@@ -137,15 +137,11 @@ export class TopologyController {
   }
 
   getIncoming(nodeId: string): string[] {
-    return this.links
-      .filter((link) => link.to === nodeId)
-      .map((link) => link.from);
+    return this.links.filter((link) => link.to === nodeId).map((link) => link.from);
   }
 
   getOutgoing(nodeId: string): string[] {
-    return this.links
-      .filter((link) => link.from === nodeId)
-      .map((link) => link.to);
+    return this.links.filter((link) => link.from === nodeId).map((link) => link.to);
   }
 
   // === Subscription ===
@@ -177,7 +173,7 @@ export class TopologyController {
     // Parse BPMN XML and extract nodes/links
     // This would use bpmn-js's import utilities
     // For now, emit an event
-    eventBus.emit('bpmn:imported', {
+    eventBus.emit("bpmn:imported", {
       xml,
       nodeCount: this.nodes.size,
     });

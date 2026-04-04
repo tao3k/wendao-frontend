@@ -1,15 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   loadMermaidRuntimeProviderByName,
   MERMAID_BAKEOFF_FIXTURES,
   type MermaidRuntimeProviderName,
-} from '../components/panels/mermaidRuntime';
+} from "../components/panels/mermaidRuntime";
 
 const BAKEOFF_THEME = {
-  bg: '#000000',
-  fg: '#ffffff',
-  accent: '#33ccff',
+  bg: "#000000",
+  fg: "#ffffff",
+  accent: "#33ccff",
   transparent: false,
 } as const;
 
@@ -17,18 +17,18 @@ function runFixture(
   providerName: MermaidRuntimeProviderName,
   source: string,
   renderMermaid: (source: string, theme: typeof BAKEOFF_THEME) => string,
-): 'pass' | 'fail' {
+): "pass" | "fail" {
   try {
     const svg = renderMermaid(source, BAKEOFF_THEME);
-    return svg.includes('<svg') ? 'pass' : 'fail';
+    return svg.includes("<svg") ? "pass" : "fail";
   } catch {
-    return 'fail';
+    return "fail";
   }
 }
 
-describe('Mermaid provider bakeoff corpus', () => {
-  it('keeps beautiful-mermaid green on the bounded corpus', async () => {
-    const provider = await loadMermaidRuntimeProviderByName('beautiful-mermaid');
+describe("Mermaid provider bakeoff corpus", () => {
+  it("keeps beautiful-mermaid green on the bounded corpus", async () => {
+    const provider = await loadMermaidRuntimeProviderByName("beautiful-mermaid");
 
     const outcomes = MERMAID_BAKEOFF_FIXTURES.map((fixture) => ({
       id: fixture.id,
@@ -38,13 +38,13 @@ describe('Mermaid provider bakeoff corpus', () => {
     expect(outcomes).toEqual(
       MERMAID_BAKEOFF_FIXTURES.map((fixture) => ({
         id: fixture.id,
-        outcome: 'pass',
+        outcome: "pass",
       })),
     );
   });
 
-  it('pins the compact-flow spike to its intentionally narrow coverage boundary', async () => {
-    const provider = await loadMermaidRuntimeProviderByName('compact-flow');
+  it("pins the compact-flow spike to its intentionally narrow coverage boundary", async () => {
+    const provider = await loadMermaidRuntimeProviderByName("compact-flow");
 
     const outcomes = MERMAID_BAKEOFF_FIXTURES.map((fixture) => ({
       id: fixture.id,

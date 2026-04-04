@@ -1,6 +1,6 @@
-import '@testing-library/jest-dom/vitest';
-import { afterAll, vi } from 'vitest';
-import { getPerfTraceSnapshots, writePerfTraceArtifact } from '../lib/testPerfRegistry';
+import "@testing-library/jest-dom/vitest";
+import { afterAll, vi } from "vitest";
+import { getPerfTraceSnapshots, writePerfTraceArtifact } from "../lib/testPerfRegistry";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -19,12 +19,12 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
 });
 
 // Mock matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
@@ -45,14 +45,14 @@ class MockResizeObserver {
   disconnect = vi.fn();
 }
 
-Object.defineProperty(globalThis, 'ResizeObserver', {
+Object.defineProperty(globalThis, "ResizeObserver", {
   writable: true,
   configurable: true,
   value: MockResizeObserver,
 });
 
 afterAll(async () => {
-  if (process.env.QIANJI_WRITE_HOTSPOT_PERF_REPORT !== '1') {
+  if (process.env.QIANJI_WRITE_HOTSPOT_PERF_REPORT !== "1") {
     return;
   }
 

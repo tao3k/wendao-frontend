@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import { createMainViewTabPreloader } from './mainViewTabPreloader';
-import { mainViewPanelLoaders } from './mainViewLazyPanels';
-import type { MainViewGraphOptions } from './mainViewProps';
-import type { MainViewTab } from './mainViewTypes';
+import React, { useMemo } from "react";
+import { createMainViewTabPreloader } from "./mainViewTabPreloader";
+import { mainViewPanelLoaders } from "./mainViewLazyPanels";
+import type { MainViewGraphOptions } from "./mainViewProps";
+import type { MainViewTab } from "./mainViewTypes";
 
 interface UseMainViewViewModelParams {
   panelLoadingText: string;
@@ -17,18 +17,15 @@ interface UseMainViewViewModelResult {
 export function useMainViewViewModel({
   panelLoadingText,
 }: UseMainViewViewModelParams): UseMainViewViewModelResult {
-  const preloadTab = useMemo(
-    () => createMainViewTabPreloader(mainViewPanelLoaders),
-    []
-  );
+  const preloadTab = useMemo(() => createMainViewTabPreloader(mainViewPanelLoaders), []);
 
   const graphOptions = useMemo(
     () => ({
-      direction: 'both' as const,
+      direction: "both" as const,
       hops: 2,
       limit: 50,
     }),
-    []
+    [],
   );
 
   const panelLoadingFallback = useMemo(
@@ -37,7 +34,7 @@ export function useMainViewViewModel({
         {panelLoadingText}
       </div>
     ),
-    [panelLoadingText]
+    [panelLoadingText],
   );
 
   return {

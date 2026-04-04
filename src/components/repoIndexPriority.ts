@@ -1,4 +1,4 @@
-import { api } from '../api';
+import { api } from "../api";
 
 const REPO_INDEX_PRIORITY_COOLDOWN_MS = 2_000;
 

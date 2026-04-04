@@ -7,17 +7,17 @@
  * - Smooth transitions with reduced motion support
  */
 
-import { useEffect, useRef } from 'react';
-import { useThree } from '@react-three/fiber';
-import type { Camera } from 'three';
-import { eventBus } from '../lib/EventBus';
+import { useEffect, useRef } from "react";
+import { useThree } from "@react-three/fiber";
+import type { Camera } from "three";
+import { eventBus } from "../lib/EventBus";
 import {
   focusOnNode,
   focusOnCluster,
   resetCamera,
   isTweening,
   getDefaultDuration,
-} from '../lib/camera/tweenCamera';
+} from "../lib/camera/tweenCamera";
 
 export interface CameraControllerProps {
   /** Enable automatic focus on node selection */
@@ -27,7 +27,7 @@ export interface CameraControllerProps {
   /** Custom duration for animations (ms) */
   animationDuration?: number;
   /** Called when camera focus changes */
-  onFocusChange?: (target: { type: 'node' | 'cluster' | 'reset'; id?: string }) => void;
+  onFocusChange?: (target: { type: "node" | "cluster" | "reset"; id?: string }) => void;
 }
 
 /**
@@ -45,16 +45,15 @@ export function CameraController({
   const cancelTweenRef = useRef<(() => void) | null>(null);
   const nodePositionsRef = useRef<Map<string, [number, number, number]>>(new Map());
 
-
   // Handle node selection
   useEffect(() => {
     if (!autoFocus) return;
 
-    const unsubscribe = eventBus.on('node:selected', (event) => {
+    const unsubscribe = eventBus.on("node:selected", (event) => {
       const { id, source } = event;
 
       // Don't auto-focus if selection came from 3D view (already focused)
-      if (source === '3d') return;
+      if (source === "3d") return;
 
       // Cancel any ongoing tween
       if (cancelTweenRef.current) {
@@ -68,7 +67,7 @@ export function CameraController({
           duration: animationDuration ?? getDefaultDuration(),
           onComplete: () => {
             cancelTweenRef.current = null;
-            onFocusChange?.({ type: 'node', id: id });
+            onFocusChange?.({ type: "node", id: id });
           },
         });
       }
@@ -79,7 +78,7 @@ export function CameraController({
 
   // Handle camera focus events from event bus
   useEffect(() => {
-    const unsubscribe = eventBus.on('camera:focus', (event) => {
+    const unsubscribe = eventBus.on("camera:focus", (event) => {
       const { target, position, centroid, nodeCount } = event;
 
       // Cancel any ongoing tween
@@ -87,28 +86,28 @@ export function CameraController({
         cancelTweenRef.current();
       }
 
-      if (target === 'node' && position) {
+      if (target === "node" && position) {
         cancelTweenRef.current = focusOnNode(camera, position, {
           duration: animationDuration ?? getDefaultDuration(),
           onComplete: () => {
             cancelTweenRef.current = null;
-            onFocusChange?.({ type: 'node' });
+            onFocusChange?.({ type: "node" });
           },
         });
-      } else if (target === 'cluster' && centroid) {
+      } else if (target === "cluster" && centroid) {
         cancelTweenRef.current = focusOnCluster(camera, centroid, nodeCount ?? 1, {
           duration: animationDuration ?? getDefaultDuration(),
           onComplete: () => {
             cancelTweenRef.current = null;
-            onFocusChange?.({ type: 'cluster' });
+            onFocusChange?.({ type: "cluster" });
           },
         });
-      } else if (target === 'reset') {
+      } else if (target === "reset") {
         cancelTweenRef.current = resetCamera(camera, {
           duration: animationDuration ?? getDefaultDuration(),
           onComplete: () => {
             cancelTweenRef.current = null;
-            onFocusChange?.({ type: 'reset' });
+            onFocusChange?.({ type: "reset" });
           },
         });
       }
@@ -123,7 +122,7 @@ export function CameraController({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Escape to reset camera
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (cancelTweenRef.current) {
           cancelTweenRef.current();
         }
@@ -131,14 +130,14 @@ export function CameraController({
           duration: animationDuration ?? getDefaultDuration(),
           onComplete: () => {
             cancelTweenRef.current = null;
-            onFocusChange?.({ type: 'reset' });
+            onFocusChange?.({ type: "reset" });
           },
         });
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [camera, enableKeyboardShortcuts, animationDuration, onFocusChange]);
 
   // Cleanup on unmount
@@ -159,15 +158,15 @@ export function CameraController({
 /**
  * Hook to register node positions for camera control
  */
-export function useCameraNodePositions(
-  positions: Map<string, [number, number, number]>
-): void {
+export function useCameraNodePositions(positions: Map<string, [number, number, number]>): void {
   const { camera } = useThree();
 
   useEffect(() => {
     // This would ideally use a context to communicate with CameraController
     // For simplicity, we store positions on the camera object itself
-    (camera as Camera & { __nodePositions?: Map<string, [number, number, number]> }).__nodePositions = positions;
+    (
+      camera as Camera & { __nodePositions?: Map<string, [number, number, number]> }
+    ).__nodePositions = positions;
   }, [camera, positions]);
 }
 

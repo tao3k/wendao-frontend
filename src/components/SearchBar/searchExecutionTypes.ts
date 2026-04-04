@@ -1,14 +1,14 @@
-import type { RepoOverviewFacet } from './repoOverviewQueryBuilder';
-import type { SearchResult } from './types';
+import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import type { SearchResult } from "./types";
 
 export type SearchExecutionMode =
-  | 'all'
-  | 'knowledge'
-  | 'symbol'
-  | 'ast'
-  | 'reference'
-  | 'attachment'
-  | 'code';
+  | "all"
+  | "knowledge"
+  | "symbol"
+  | "ast"
+  | "reference"
+  | "attachment"
+  | "code";
 
 export interface SearchMeta {
   query: string;

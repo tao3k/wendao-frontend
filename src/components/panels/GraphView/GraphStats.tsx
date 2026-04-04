@@ -2,7 +2,7 @@
  * Graph stats display component
  */
 
-import { memo } from 'react';
+import { memo } from "react";
 
 interface GraphStatsProps {
   totalNodes: number;

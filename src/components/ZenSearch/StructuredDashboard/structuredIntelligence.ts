@@ -1,6 +1,6 @@
-import type { SearchResult } from '../../SearchBar/types';
-import { isCodeSearchResult } from '../../SearchBar/searchResultNormalization';
-import type { ZenSearchPreviewState } from '../useZenSearchPreview';
+import type { SearchResult } from "../../SearchBar/types";
+import { isCodeSearchResult } from "../../SearchBar/searchResultNormalization";
+import type { ZenSearchPreviewState } from "../useZenSearchPreview";
 
 export interface StructuredChip {
   label: string;
@@ -9,7 +9,7 @@ export interface StructuredChip {
 }
 
 export interface StructuredFragment {
-  kind: 'heading' | 'code' | 'math' | 'excerpt';
+  kind: "heading" | "code" | "math" | "excerpt";
   label: string;
   value: string;
   query?: string;
@@ -20,7 +20,7 @@ export interface StructuredNeighbor {
   id: string;
   label: string;
   path: string;
-  direction: 'incoming' | 'outgoing';
+  direction: "incoming" | "outgoing";
   query?: string;
 }
 
@@ -57,14 +57,14 @@ function buildPathTrail(path: string | null | undefined): StructuredChip[] {
     return [];
   }
 
-  const segments = normalizedPath.split('/').filter((segment) => segment.trim().length > 0);
+  const segments = normalizedPath.split("/").filter((segment) => segment.trim().length > 0);
   const trail: StructuredChip[] = [];
 
   segments.forEach((segment, index) => {
     trail.push({
       label: segment,
-      value: segments.slice(0, index + 1).join('/'),
-      query: segments.slice(0, index + 1).join('/'),
+      value: segments.slice(0, index + 1).join("/"),
+      query: segments.slice(0, index + 1).join("/"),
     });
   });
 
@@ -94,59 +94,73 @@ interface OutlinePattern {
 }
 
 const GENERIC_CODE_OUTLINE_PATTERNS: OutlinePattern[] = [
-  { kind: 'function', regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
-  { kind: 'class', regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: 'interface', regex: /^(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: 'type', regex: /^(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: 'enum', regex: /^(?:export\s+)?enum\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: 'struct', regex: /^(?:pub\s+)?struct\s+([A-Za-z_][\w:]*)\b/ },
-  { kind: 'trait', regex: /^(?:pub\s+)?trait\s+([A-Za-z_][\w:]*)\b/ },
-  { kind: 'module', regex: /^(?:pub\s+)?mod\s+([A-Za-z_][\w:]*)\b/ },
-  { kind: 'def', regex: /^(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(/ },
-  { kind: 'method', regex: /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][\w]*)\s*\(/ },
-  { kind: 'model', regex: /^(?:partial\s+)?(?:encapsulated\s+)?(?:model|block|class|function|package|record|connector|operator)\s+([A-Za-z_][\w]*)\b/ },
+  { kind: "function", regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
+  { kind: "class", regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
+  { kind: "interface", regex: /^(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\b/ },
+  { kind: "type", regex: /^(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\b/ },
+  { kind: "enum", regex: /^(?:export\s+)?enum\s+([A-Za-z_$][\w$]*)\b/ },
+  { kind: "struct", regex: /^(?:pub\s+)?struct\s+([A-Za-z_][\w:]*)\b/ },
+  { kind: "trait", regex: /^(?:pub\s+)?trait\s+([A-Za-z_][\w:]*)\b/ },
+  { kind: "module", regex: /^(?:pub\s+)?mod\s+([A-Za-z_][\w:]*)\b/ },
+  { kind: "def", regex: /^(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(/ },
+  { kind: "method", regex: /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][\w]*)\s*\(/ },
+  {
+    kind: "model",
+    regex:
+      /^(?:partial\s+)?(?:encapsulated\s+)?(?:model|block|class|function|package|record|connector|operator)\s+([A-Za-z_][\w]*)\b/,
+  },
 ];
 
 const LANGUAGE_CODE_OUTLINE_PATTERNS: Record<string, OutlinePattern[]> = {
   rust: [
-    { kind: 'function', regex: /^(?:pub\s+)?(?:async\s+)?fn\s+([A-Za-z_][\w]*)\s*(?:<[^>]*>)?\s*\(/ },
-    { kind: 'struct', regex: /^(?:pub\s+)?struct\s+([A-Za-z_][\w:]*)\b/ },
-    { kind: 'enum', regex: /^(?:pub\s+)?enum\s+([A-Za-z_][\w:]*)\b/ },
-    { kind: 'trait', regex: /^(?:pub\s+)?trait\s+([A-Za-z_][\w:]*)\b/ },
-    { kind: 'impl', regex: /^impl(?:<[^>]+>)?\s+([A-Za-z_][\w:]*)/ },
-    { kind: 'module', regex: /^(?:pub\s+)?mod\s+([A-Za-z_][\w:]*)\b/ },
+    {
+      kind: "function",
+      regex: /^(?:pub\s+)?(?:async\s+)?fn\s+([A-Za-z_][\w]*)\s*(?:<[^>]*>)?\s*\(/,
+    },
+    { kind: "struct", regex: /^(?:pub\s+)?struct\s+([A-Za-z_][\w:]*)\b/ },
+    { kind: "enum", regex: /^(?:pub\s+)?enum\s+([A-Za-z_][\w:]*)\b/ },
+    { kind: "trait", regex: /^(?:pub\s+)?trait\s+([A-Za-z_][\w:]*)\b/ },
+    { kind: "impl", regex: /^impl(?:<[^>]+>)?\s+([A-Za-z_][\w:]*)/ },
+    { kind: "module", regex: /^(?:pub\s+)?mod\s+([A-Za-z_][\w:]*)\b/ },
   ],
   julia: [
-    { kind: 'function', regex: /^(?:function\s+)?([A-Za-z_][\w!]*)\s*\(/ },
-    { kind: 'struct', regex: /^(?:mutable\s+)?struct\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: 'module', regex: /^module\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: 'macro', regex: /^macro\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: 'type', regex: /^(?:abstract|primitive)\s+type\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: 'constant', regex: /^const\s+([A-Za-z_][\w!]*)\b/ },
+    { kind: "function", regex: /^(?:function\s+)?([A-Za-z_][\w!]*)\s*\(/ },
+    { kind: "struct", regex: /^(?:mutable\s+)?struct\s+([A-Za-z_][\w!]*)\b/ },
+    { kind: "module", regex: /^module\s+([A-Za-z_][\w!]*)\b/ },
+    { kind: "macro", regex: /^macro\s+([A-Za-z_][\w!]*)\b/ },
+    { kind: "type", regex: /^(?:abstract|primitive)\s+type\s+([A-Za-z_][\w!]*)\b/ },
+    { kind: "constant", regex: /^const\s+([A-Za-z_][\w!]*)\b/ },
   ],
   python: [
-    { kind: 'class', regex: /^class\s+([A-Za-z_][\w]*)\b/ },
-    { kind: 'function', regex: /^(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(/ },
+    { kind: "class", regex: /^class\s+([A-Za-z_][\w]*)\b/ },
+    { kind: "function", regex: /^(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(/ },
   ],
   typescript: [
-    { kind: 'class', regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: 'interface', regex: /^(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: 'type', regex: /^(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: 'function', regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
+    { kind: "class", regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
+    { kind: "interface", regex: /^(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\b/ },
+    { kind: "type", regex: /^(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\b/ },
+    { kind: "function", regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
   ],
   javascript: [
-    { kind: 'class', regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: 'function', regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
-    { kind: 'constant', regex: /^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function|\()/ },
+    { kind: "class", regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
+    { kind: "function", regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
+    {
+      kind: "constant",
+      regex: /^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function|\()/,
+    },
   ],
   go: [
-    { kind: 'function', regex: /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][\w]*)\s*\(/ },
-    { kind: 'type', regex: /^type\s+([A-Za-z_][\w]*)\s+struct\b/ },
-    { kind: 'interface', regex: /^type\s+([A-Za-z_][\w]*)\s+interface\b/ },
+    { kind: "function", regex: /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][\w]*)\s*\(/ },
+    { kind: "type", regex: /^type\s+([A-Za-z_][\w]*)\s+struct\b/ },
+    { kind: "interface", regex: /^type\s+([A-Za-z_][\w]*)\s+interface\b/ },
   ],
   modelica: [
-    { kind: 'model', regex: /^(?:partial\s+)?(?:encapsulated\s+)?(?:model|block|class|function|package|record|connector|operator)\s+([A-Za-z_][\w]*)\b/ },
-    { kind: 'function', regex: /^function\s+([A-Za-z_][\w]*)\b/ },
+    {
+      kind: "model",
+      regex:
+        /^(?:partial\s+)?(?:encapsulated\s+)?(?:model|block|class|function|package|record|connector|operator)\s+([A-Za-z_][\w]*)\b/,
+    },
+    { kind: "function", regex: /^function\s+([A-Za-z_][\w]*)\b/ },
   ],
 };
 
@@ -162,13 +176,13 @@ function inferCodeOutlineLanguage(result: SearchResult): string | null {
   }
 
   const lower = path.toLowerCase();
-  if (lower.endsWith('.jl')) return 'julia';
-  if (lower.endsWith('.rs')) return 'rust';
-  if (lower.endsWith('.py')) return 'python';
-  if (lower.endsWith('.ts') || lower.endsWith('.tsx')) return 'typescript';
-  if (lower.endsWith('.js') || lower.endsWith('.jsx')) return 'javascript';
-  if (lower.endsWith('.go')) return 'go';
-  if (lower.endsWith('.mo')) return 'modelica';
+  if (lower.endsWith(".jl")) return "julia";
+  if (lower.endsWith(".rs")) return "rust";
+  if (lower.endsWith(".py")) return "python";
+  if (lower.endsWith(".ts") || lower.endsWith(".tsx")) return "typescript";
+  if (lower.endsWith(".js") || lower.endsWith(".jsx")) return "javascript";
+  if (lower.endsWith(".go")) return "go";
+  if (lower.endsWith(".mo")) return "modelica";
   return null;
 }
 
@@ -179,7 +193,7 @@ function extractCodeOutline(content: string | null, result: SearchResult): Struc
 
   const language = inferCodeOutlineLanguage(result);
   const patterns = [
-    ...(language ? LANGUAGE_CODE_OUTLINE_PATTERNS[language] ?? [] : []),
+    ...(language ? (LANGUAGE_CODE_OUTLINE_PATTERNS[language] ?? []) : []),
     ...GENERIC_CODE_OUTLINE_PATTERNS,
   ];
 
@@ -231,10 +245,10 @@ function extractCodeFences(content: string | null): StructuredFragment[] {
   let match: RegExpExecArray | null;
 
   while ((match = fenceRegex.exec(content)) !== null && fragments.length < 3) {
-    const language = normalizeText(match[1]) ?? 'code';
-    const body = normalizeText(match[2]) ?? '';
+    const language = normalizeText(match[1]) ?? "code";
+    const body = normalizeText(match[2]) ?? "";
     fragments.push({
-      kind: 'code',
+      kind: "code",
       label: language,
       value: body.length > 180 ? `${body.slice(0, 177)}...` : body,
       query: language,
@@ -255,16 +269,16 @@ function extractMathFragments(content: string | null): StructuredFragment[] {
   let match: RegExpExecArray | null;
 
   while ((match = blockRegex.exec(content)) !== null && fragments.length < 2) {
-    const body = normalizeText(match[1] ?? match[2]) ?? '';
+    const body = normalizeText(match[1] ?? match[2]) ?? "";
     if (!body) {
       continue;
     }
 
     fragments.push({
-      kind: 'math',
-      label: 'math',
+      kind: "math",
+      label: "math",
       value: body.length > 180 ? `${body.slice(0, 177)}...` : body,
-      query: 'math',
+      query: "math",
     });
   }
 
@@ -280,7 +294,7 @@ function buildSaliencyExcerpt(result: SearchResult, content: string | null): str
     if (index >= 0) {
       const start = Math.max(0, index - 80);
       const end = Math.min(content.length, index + bestSection.length + 120);
-      const excerpt = content.slice(start, end).replace(/\s+/g, ' ').trim();
+      const excerpt = content.slice(start, end).replace(/\s+/g, " ").trim();
       if (excerpt.length > 0) {
         return excerpt.length > 220 ? `${excerpt.slice(0, 217)}...` : excerpt;
       }
@@ -299,7 +313,7 @@ function buildSaliencyExcerpt(result: SearchResult, content: string | null): str
     return null;
   }
 
-  const normalized = content.replace(/\s+/g, ' ').trim();
+  const normalized = content.replace(/\s+/g, " ").trim();
   return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
 }
 
@@ -313,27 +327,47 @@ function buildMetadata(result: SearchResult): StructuredChip[] {
     metadata.push({ label, value: normalized, query });
   };
 
-  append('score', result.score != null ? `${Math.round(result.score * 100)}%` : null);
-  append('audit', result.auditStatus ?? undefined, result.auditStatus ? `audit:${result.auditStatus}` : undefined);
+  append("score", result.score != null ? `${Math.round(result.score * 100)}%` : null);
   append(
-    'verify',
-    result.verification_state ?? undefined,
-    result.verification_state ? `verify:${result.verification_state}` : undefined
+    "audit",
+    result.auditStatus ?? undefined,
+    result.auditStatus ? `audit:${result.auditStatus}` : undefined,
   );
-  append('kind', result.codeKind ?? result.docType ?? undefined, result.codeKind ? `kind:${result.codeKind}` : undefined);
-  append('language', result.codeLanguage ?? undefined, result.codeLanguage ? `lang:${result.codeLanguage}` : undefined);
-  append('repo', result.codeRepo ?? result.projectName ?? undefined, result.codeRepo ? `repo:${result.codeRepo}` : undefined);
-  append('project', result.projectName ?? undefined, result.projectName ? `repo:${result.projectName}` : undefined);
-  append('root', result.rootLabel ?? undefined, result.rootLabel ? result.rootLabel : undefined);
-  append('source', result.searchSource ?? undefined);
-  append('section', result.bestSection ?? undefined, result.bestSection ?? undefined);
-  append('reason', result.matchReason ?? undefined, result.matchReason ?? undefined);
+  append(
+    "verify",
+    result.verification_state ?? undefined,
+    result.verification_state ? `verify:${result.verification_state}` : undefined,
+  );
+  append(
+    "kind",
+    result.codeKind ?? result.docType ?? undefined,
+    result.codeKind ? `kind:${result.codeKind}` : undefined,
+  );
+  append(
+    "language",
+    result.codeLanguage ?? undefined,
+    result.codeLanguage ? `lang:${result.codeLanguage}` : undefined,
+  );
+  append(
+    "repo",
+    result.codeRepo ?? result.projectName ?? undefined,
+    result.codeRepo ? `repo:${result.codeRepo}` : undefined,
+  );
+  append(
+    "project",
+    result.projectName ?? undefined,
+    result.projectName ? `repo:${result.projectName}` : undefined,
+  );
+  append("root", result.rootLabel ?? undefined, result.rootLabel ? result.rootLabel : undefined);
+  append("source", result.searchSource ?? undefined);
+  append("section", result.bestSection ?? undefined, result.bestSection ?? undefined);
+  append("reason", result.matchReason ?? undefined, result.matchReason ?? undefined);
 
   const tags = result.tags ?? [];
   if (tags.length > 0) {
     metadata.push({
-      label: 'tags',
-      value: tags.join(', '),
+      label: "tags",
+      value: tags.join(", "),
       query: tags[0],
     });
   }
@@ -360,7 +394,7 @@ function buildBacklinks(result: SearchResult): StructuredChip[] {
 
 function buildProjectionAnchors(result: SearchResult): StructuredChip[] {
   return (result.projectionPageIds ?? []).slice(0, 8).map((pageId) => ({
-    label: pageId.split(':').at(-1) ?? pageId,
+    label: pageId.split(":").at(-1) ?? pageId,
     value: pageId,
     query: pageId,
   }));
@@ -369,7 +403,7 @@ function buildProjectionAnchors(result: SearchResult): StructuredChip[] {
 function buildGraphNeighbors(preview: ZenSearchPreviewState): {
   incoming: StructuredNeighbor[];
   outgoing: StructuredNeighbor[];
-  graphSummary: StructuredEntityModel['graphSummary'];
+  graphSummary: StructuredEntityModel["graphSummary"];
 } {
   const graphNeighbors = preview.graphNeighbors;
   const selected = preview.selectedResult;
@@ -382,7 +416,8 @@ function buildGraphNeighbors(preview: ZenSearchPreviewState): {
     };
   }
 
-  const centerPath = normalizeText(graphNeighbors.center.path) ?? normalizeText(selected.path) ?? '';
+  const centerPath =
+    normalizeText(graphNeighbors.center.path) ?? normalizeText(selected.path) ?? "";
   const centerId = graphNeighbors.center.id;
   const nodeById = new Map(graphNeighbors.nodes.map((node) => [node.id, node]));
 
@@ -395,7 +430,7 @@ function buildGraphNeighbors(preview: ZenSearchPreviewState): {
         id: link.source,
         label: node?.label ?? link.source,
         path: node?.path ?? link.source,
-        direction: 'incoming' as const,
+        direction: "incoming" as const,
         query: node?.path ?? link.source,
       };
     });
@@ -409,7 +444,7 @@ function buildGraphNeighbors(preview: ZenSearchPreviewState): {
         id: link.target,
         label: node?.label ?? link.target,
         path: node?.path ?? link.target,
-        direction: 'outgoing' as const,
+        direction: "outgoing" as const,
         query: node?.path ?? link.target,
       };
     });
@@ -456,19 +491,23 @@ export function deriveStructuredEntity(preview: ZenSearchPreviewState): Structur
   const { incoming, outgoing, graphSummary } = buildGraphNeighbors(preview);
 
   return {
-    pathTrail: buildPathTrail(preview.contentPath ?? selected.navigationTarget?.path ?? selected.path),
+    pathTrail: buildPathTrail(
+      preview.contentPath ?? selected.navigationTarget?.path ?? selected.path,
+    ),
     metadata,
     outline: headings,
     fragments: [
       ...codeFragments,
       ...mathFragments,
       ...(saliencyExcerpt
-        ? [{
-            kind: 'excerpt' as const,
-            label: selected.bestSection ?? 'excerpt',
-            value: saliencyExcerpt,
-            query: selected.bestSection ?? selected.matchReason ?? selected.path,
-          }]
+        ? [
+            {
+              kind: "excerpt" as const,
+              label: selected.bestSection ?? "excerpt",
+              value: saliencyExcerpt,
+              query: selected.bestSection ?? selected.matchReason ?? selected.path,
+            },
+          ]
         : []),
     ],
     incoming,

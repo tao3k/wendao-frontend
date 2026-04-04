@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { parseCodeFilters } from './codeSearchUtils';
-import { resolveRepoFacetFromFilters } from './repoFacetResolution';
-import type { SearchScope } from './types';
-import type { RepoOverviewStatusSnapshot } from './useRepoOverviewStatus';
-import { useRepoOverviewStatus } from './useRepoOverviewStatus';
-import type { RepoSyncStatusSnapshot } from './useRepoSyncStatus';
-import { useRepoSyncStatus } from './useRepoSyncStatus';
+import { useMemo } from "react";
+import { parseCodeFilters } from "./codeSearchUtils";
+import { resolveRepoFacetFromFilters } from "./repoFacetResolution";
+import type { SearchScope } from "./types";
+import type { RepoOverviewStatusSnapshot } from "./useRepoOverviewStatus";
+import { useRepoOverviewStatus } from "./useRepoOverviewStatus";
+import type { RepoSyncStatusSnapshot } from "./useRepoSyncStatus";
+import { useRepoSyncStatus } from "./useRepoSyncStatus";
 
 interface UseRepoSearchStateParams {
   query: string;
@@ -36,7 +36,7 @@ export function useRepoSearchState({
   const primaryRepoFilter = parsedCodeSearch.filters.repo[0];
   const repoFacet = useMemo(
     () => resolveRepoFacetFromFilters(parsedCodeSearch.filters),
-    [parsedCodeSearch.filters]
+    [parsedCodeSearch.filters],
   );
 
   const { repoOverviewStatus } = useRepoOverviewStatus({

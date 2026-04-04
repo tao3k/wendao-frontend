@@ -2,13 +2,13 @@
  * Tests for FloatingPanel component
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
-import { FloatingPanel } from './FloatingPanel';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+import { FloatingPanel } from "./FloatingPanel";
 
 // Mock useAccessibility hook
-vi.mock('../../../hooks', () => ({
+vi.mock("../../../hooks", () => ({
   useAccessibility: () => ({
     prefersReducedMotion: false,
     getTransition: (t: string) => t,
@@ -16,162 +16,162 @@ vi.mock('../../../hooks', () => ({
 }));
 
 // Mock createPortal
-vi.mock('react-dom', async () => {
-  const actual = await vi.importActual('react-dom');
+vi.mock("react-dom", async () => {
+  const actual = await vi.importActual("react-dom");
   return {
     ...actual,
     createPortal: (children: React.ReactNode) => children,
   };
 });
 
-describe('FloatingPanel', () => {
+describe("FloatingPanel", () => {
   const defaultProps = {
-    id: 'test-panel',
-    title: 'Test Panel',
+    id: "test-panel",
+    title: "Test Panel",
     children: <div>Panel Content</div>,
   };
 
   beforeEach(() => {
     // Create a container for portals
-    const portalRoot = document.createElement('div');
-    portalRoot.id = 'portal-root';
+    const portalRoot = document.createElement("div");
+    portalRoot.id = "portal-root";
     document.body.appendChild(portalRoot);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    document.body.innerHTML = '';
+    document.body.innerHTML = "";
   });
 
-  describe('rendering', () => {
-    it('should render the panel with title', () => {
+  describe("rendering", () => {
+    it("should render the panel with title", () => {
       render(<FloatingPanel {...defaultProps} />);
 
-      expect(screen.getByText('Test Panel')).toBeInTheDocument();
+      expect(screen.getByText("Test Panel")).toBeInTheDocument();
     });
 
-    it('should render children', () => {
+    it("should render children", () => {
       render(<FloatingPanel {...defaultProps} />);
 
-      expect(screen.getByText('Panel Content')).toBeInTheDocument();
+      expect(screen.getByText("Panel Content")).toBeInTheDocument();
     });
 
-    it('should apply custom className', () => {
+    it("should apply custom className", () => {
       render(<FloatingPanel {...defaultProps} className="custom-class" />);
 
-      const panel = document.querySelector('.floating-panel');
-      expect(panel).toHaveClass('custom-class');
+      const panel = document.querySelector(".floating-panel");
+      expect(panel).toHaveClass("custom-class");
     });
 
-    it('should set initial position', () => {
+    it("should set initial position", () => {
       render(<FloatingPanel {...defaultProps} initialPosition={[100, 200]} />);
 
-      const panel = document.querySelector('.floating-panel') as HTMLElement;
-      expect(panel.style.left).toBe('100px');
-      expect(panel.style.top).toBe('200px');
+      const panel = document.querySelector(".floating-panel") as HTMLElement;
+      expect(panel.style.left).toBe("100px");
+      expect(panel.style.top).toBe("200px");
     });
 
-    it('should set initial size', () => {
+    it("should set initial size", () => {
       render(<FloatingPanel {...defaultProps} initialSize={[300, 400]} />);
 
-      const panel = document.querySelector('.floating-panel') as HTMLElement;
-      expect(panel.style.width).toBe('300px');
-      expect(panel.style.height).toBe('400px');
+      const panel = document.querySelector(".floating-panel") as HTMLElement;
+      expect(panel.style.width).toBe("300px");
+      expect(panel.style.height).toBe("400px");
     });
   });
 
-  describe('minimize', () => {
-    it('should show minimize button when minimizable', () => {
+  describe("minimize", () => {
+    it("should show minimize button when minimizable", () => {
       render(<FloatingPanel {...defaultProps} minimizable />);
 
-      expect(screen.getByLabelText('Minimize')).toBeInTheDocument();
+      expect(screen.getByLabelText("Minimize")).toBeInTheDocument();
     });
 
-    it('should hide minimize button when not minimizable', () => {
+    it("should hide minimize button when not minimizable", () => {
       render(<FloatingPanel {...defaultProps} minimizable={false} />);
 
-      expect(screen.queryByLabelText('Minimize')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Minimize")).not.toBeInTheDocument();
     });
 
-    it('should toggle minimized state on click', async () => {
+    it("should toggle minimized state on click", async () => {
       const onMinimize = vi.fn();
       render(<FloatingPanel {...defaultProps} minimizable onMinimize={onMinimize} />);
 
-      fireEvent.click(screen.getByLabelText('Minimize'));
+      fireEvent.click(screen.getByLabelText("Minimize"));
 
       expect(onMinimize).toHaveBeenCalledWith(true);
     });
 
-    it('should hide content when minimized', () => {
+    it("should hide content when minimized", () => {
       render(<FloatingPanel {...defaultProps} minimizable initialMinimized />);
 
-      expect(screen.queryByText('Panel Content')).not.toBeInTheDocument();
+      expect(screen.queryByText("Panel Content")).not.toBeInTheDocument();
     });
 
-    it('should show restore button when minimized', () => {
+    it("should show restore button when minimized", () => {
       render(<FloatingPanel {...defaultProps} minimizable initialMinimized />);
 
-      expect(screen.getByLabelText('Restore')).toBeInTheDocument();
+      expect(screen.getByLabelText("Restore")).toBeInTheDocument();
     });
   });
 
-  describe('close', () => {
-    it('should show close button when closable', () => {
+  describe("close", () => {
+    it("should show close button when closable", () => {
       render(<FloatingPanel {...defaultProps} closable />);
 
-      expect(screen.getByLabelText('Close')).toBeInTheDocument();
+      expect(screen.getByLabelText("Close")).toBeInTheDocument();
     });
 
-    it('should hide close button when not closable', () => {
+    it("should hide close button when not closable", () => {
       render(<FloatingPanel {...defaultProps} closable={false} />);
 
-      expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Close")).not.toBeInTheDocument();
     });
 
-    it('should call onClose when close button clicked', () => {
+    it("should call onClose when close button clicked", () => {
       const onClose = vi.fn();
       render(<FloatingPanel {...defaultProps} closable onClose={onClose} />);
 
-      fireEvent.click(screen.getByLabelText('Close'));
+      fireEvent.click(screen.getByLabelText("Close"));
 
       expect(onClose).toHaveBeenCalled();
     });
   });
 
-  describe('focus', () => {
-    it('should call onFocus when panel is clicked', () => {
+  describe("focus", () => {
+    it("should call onFocus when panel is clicked", () => {
       const onFocus = vi.fn();
       render(<FloatingPanel {...defaultProps} onFocus={onFocus} />);
 
-      const panel = document.querySelector('.floating-panel') as HTMLElement;
+      const panel = document.querySelector(".floating-panel") as HTMLElement;
       fireEvent.mouseDown(panel);
 
       expect(onFocus).toHaveBeenCalled();
     });
   });
 
-  describe('dragging', () => {
-    it('should start dragging on header mousedown', () => {
+  describe("dragging", () => {
+    it("should start dragging on header mousedown", () => {
       render(<FloatingPanel {...defaultProps} />);
 
-      const header = document.querySelector('.floating-panel__header') as HTMLElement;
+      const header = document.querySelector(".floating-panel__header") as HTMLElement;
       fireEvent.mouseDown(header, { clientX: 100, clientY: 100 });
 
-      const panel = document.querySelector('.floating-panel') as HTMLElement;
-      expect(panel).toHaveClass('floating-panel--dragging');
+      const panel = document.querySelector(".floating-panel") as HTMLElement;
+      expect(panel).toHaveClass("floating-panel--dragging");
     });
 
-    it('should update position during drag', async () => {
+    it("should update position during drag", async () => {
       const onPositionChange = vi.fn();
       render(
         <FloatingPanel
           {...defaultProps}
           initialPosition={[0, 0]}
           onPositionChange={onPositionChange}
-        />
+        />,
       );
 
-      const header = document.querySelector('.floating-panel__header') as HTMLElement;
+      const header = document.querySelector(".floating-panel__header") as HTMLElement;
       fireEvent.mouseDown(header, { clientX: 100, clientY: 100 });
 
       fireEvent.mouseMove(document, { clientX: 150, clientY: 150 });
@@ -182,28 +182,28 @@ describe('FloatingPanel', () => {
       });
     });
 
-    it('should not drag when clicking on controls', () => {
+    it("should not drag when clicking on controls", () => {
       render(<FloatingPanel {...defaultProps} closable />);
 
-      const controls = document.querySelector('.floating-panel__controls') as HTMLElement;
+      const controls = document.querySelector(".floating-panel__controls") as HTMLElement;
       fireEvent.mouseDown(controls);
 
-      const panel = document.querySelector('.floating-panel') as HTMLElement;
-      expect(panel).not.toHaveClass('floating-panel--dragging');
+      const panel = document.querySelector(".floating-panel") as HTMLElement;
+      expect(panel).not.toHaveClass("floating-panel--dragging");
     });
   });
 
-  describe('resizing', () => {
-    it('should start resizing on resize handle mousedown', () => {
+  describe("resizing", () => {
+    it("should start resizing on resize handle mousedown", () => {
       render(<FloatingPanel {...defaultProps} resizable />);
 
-      const resizeHandle = document.querySelector('.floating-panel__resize-handle') as HTMLElement;
+      const resizeHandle = document.querySelector(".floating-panel__resize-handle") as HTMLElement;
       fireEvent.mouseDown(resizeHandle, { clientX: 100, clientY: 100 });
 
       expect(resizeHandle).toBeInTheDocument();
     });
 
-    it('should update size during resize', async () => {
+    it("should update size during resize", async () => {
       const onSizeChange = vi.fn();
       render(
         <FloatingPanel
@@ -211,10 +211,10 @@ describe('FloatingPanel', () => {
           resizable
           initialSize={[300, 300]}
           onSizeChange={onSizeChange}
-        />
+        />,
       );
 
-      const resizeHandle = document.querySelector('.floating-panel__resize-handle') as HTMLElement;
+      const resizeHandle = document.querySelector(".floating-panel__resize-handle") as HTMLElement;
       fireEvent.mouseDown(resizeHandle, { clientX: 0, clientY: 0 });
 
       fireEvent.mouseMove(document, { clientX: 50, clientY: 50 });
@@ -225,7 +225,7 @@ describe('FloatingPanel', () => {
       });
     });
 
-    it('should not resize below minimum size', async () => {
+    it("should not resize below minimum size", async () => {
       const onSizeChange = vi.fn();
       render(
         <FloatingPanel
@@ -235,10 +235,10 @@ describe('FloatingPanel', () => {
           minWidth={200}
           minHeight={200}
           onSizeChange={onSizeChange}
-        />
+        />,
       );
 
-      const resizeHandle = document.querySelector('.floating-panel__resize-handle') as HTMLElement;
+      const resizeHandle = document.querySelector(".floating-panel__resize-handle") as HTMLElement;
       fireEvent.mouseDown(resizeHandle, { clientX: 0, clientY: 0 });
 
       // Try to shrink below minimum
@@ -252,26 +252,26 @@ describe('FloatingPanel', () => {
     });
   });
 
-  describe('accessibility', () => {
-    it('should have dialog role', () => {
+  describe("accessibility", () => {
+    it("should have dialog role", () => {
       render(<FloatingPanel {...defaultProps} />);
 
-      const panel = screen.getByRole('dialog');
+      const panel = screen.getByRole("dialog");
       expect(panel).toBeInTheDocument();
     });
 
-    it('should have aria-label', () => {
+    it("should have aria-label", () => {
       render(<FloatingPanel {...defaultProps} />);
 
-      const panel = screen.getByLabelText('Test Panel');
+      const panel = screen.getByLabelText("Test Panel");
       expect(panel).toBeInTheDocument();
     });
 
-    it('should be focusable', () => {
+    it("should be focusable", () => {
       render(<FloatingPanel {...defaultProps} />);
 
-      const panel = document.querySelector('.floating-panel') as HTMLElement;
-      expect(panel).toHaveAttribute('tabindex', '-1');
+      const panel = document.querySelector(".floating-panel") as HTMLElement;
+      expect(panel).toHaveAttribute("tabindex", "-1");
     });
   });
 });

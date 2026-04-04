@@ -1,9 +1,9 @@
-import type { UseSearchBarViewModelParams } from './searchBarViewModelTypes';
+import type { UseSearchBarViewModelParams } from "./searchBarViewModelTypes";
 
-export type SearchBarInteractionState = UseSearchBarViewModelParams['interactions']['state'];
-export type SearchBarInteractionActions = UseSearchBarViewModelParams['interactions']['actions'];
-export type SearchBarViewState = UseSearchBarViewModelParams['viewState'];
-export type SearchBarViewActions = UseSearchBarViewModelParams['viewActions'];
+export type SearchBarInteractionState = UseSearchBarViewModelParams["interactions"]["state"];
+export type SearchBarInteractionActions = UseSearchBarViewModelParams["interactions"]["actions"];
+export type SearchBarViewState = UseSearchBarViewModelParams["viewState"];
+export type SearchBarViewActions = UseSearchBarViewModelParams["viewActions"];
 
 interface BuildSearchBarViewModelParamsInput {
   interactionState: SearchBarInteractionState;
@@ -13,7 +13,7 @@ interface BuildSearchBarViewModelParamsInput {
 }
 
 export function buildSearchBarInteractionState(
-  params: SearchBarInteractionState
+  params: SearchBarInteractionState,
 ): SearchBarInteractionState {
   return {
     ...params,
@@ -21,7 +21,7 @@ export function buildSearchBarInteractionState(
 }
 
 export function buildSearchBarInteractionActions(
-  params: SearchBarInteractionActions
+  params: SearchBarInteractionActions,
 ): SearchBarInteractionActions {
   return {
     ...params,

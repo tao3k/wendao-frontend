@@ -1,6 +1,6 @@
-import { useSearchAutocompleteInterface } from './interface/autocomplete';
-import type { SearchFilters } from './codeSearchUtils';
-import type { SearchScope } from './types';
+import { useSearchAutocompleteInterface } from "./interface/autocomplete";
+import type { SearchFilters } from "./codeSearchUtils";
+import type { SearchScope } from "./types";
 
 interface UseSearchSuggestionsParams {
   isOpen: boolean;

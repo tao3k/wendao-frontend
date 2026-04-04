@@ -1,25 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../../api';
-import type { UiProjectConfig, UiRepoProjectConfig } from '../../../api/bindings';
-import { getConfig, toUiConfig } from '../../../config/loader';
-import type { RepoIndexStatus } from '../../statusBar/types';
+import { useCallback, useEffect, useState } from "react";
+import { api } from "../../../api";
+import type { UiProjectConfig, UiRepoProjectConfig } from "../../../api/bindings";
+import { getConfig, toUiConfig } from "../../../config/loader";
+import type { RepoIndexStatus } from "../../statusBar/types";
 import {
   linkGraphOnlyRepoProjectIds,
   startRepoIndexStatusPolling,
   toRepoIndexStatusSnapshot,
-} from './repoIndexStatus';
-import { buildTree, formatProjectSourceHint, formatRepoProjectSourceHint } from './treeModel';
-import type { ConfiguredProjectGroup, FileNode, FileTreeLocale } from './types';
+} from "./repoIndexStatus";
+import { buildTree, formatProjectSourceHint, formatRepoProjectSourceHint } from "./treeModel";
+import type { ConfiguredProjectGroup, FileNode, FileTreeLocale } from "./types";
 
 interface UseFileTreeRuntimeOptions {
   locale: FileTreeLocale;
   emptyProjectHint: string;
 }
 
-export function useFileTreeRuntime({
-  locale,
-  emptyProjectHint,
-}: UseFileTreeRuntimeOptions) {
+export function useFileTreeRuntime({ locale, emptyProjectHint }: UseFileTreeRuntimeOptions) {
   const [treeData, setTreeData] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +30,7 @@ export function useFileTreeRuntime({
 
   const refreshRepoIndexStatus = useCallback(async () => {
     const status = await api.getRepoIndexStatus();
-    setRepoIndexStatus(
-      toRepoIndexStatusSnapshot(status, { linkGraphOnlyProjectIds })
-    );
+    setRepoIndexStatus(toRepoIndexStatusSnapshot(status, { linkGraphOnlyProjectIds }));
   }, [linkGraphOnlyProjectIds]);
 
   useEffect(() => {
@@ -73,17 +68,21 @@ export function useFileTreeRuntime({
 
         try {
           await api.setUiConfig(uiConfig);
-          console.log('Pushed runtime UI config to backend:', uiConfig);
+          console.log("Pushed runtime UI config to backend:", uiConfig);
         } catch (pushErr) {
-          console.warn('Failed to push config to backend:', pushErr);
+          console.warn("Failed to push config to backend:", pushErr);
         }
 
         if (repoIndexProjects.length > 0) {
-          stopRepoIndexPolling = startRepoIndexStatusPolling((status) => {
-            if (!cancelled) {
-              setRepoIndexStatus(status);
-            }
-          }, undefined, { linkGraphOnlyProjectIds: linkGraphOnlyProjects });
+          stopRepoIndexPolling = startRepoIndexStatusPolling(
+            (status) => {
+              if (!cancelled) {
+                setRepoIndexStatus(status);
+              }
+            },
+            undefined,
+            { linkGraphOnlyProjectIds: linkGraphOnlyProjects },
+          );
         }
 
         const vfsResult = await api.scanVfs();
@@ -98,7 +97,7 @@ export function useFileTreeRuntime({
         }
         setRepoIndexStatus(null);
         setLinkGraphOnlyProjectIds([]);
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load file tree');
+        setError(loadError instanceof Error ? loadError.message : "Failed to load file tree");
         setTreeData([]);
       } finally {
         if (!cancelled) {
@@ -126,10 +125,10 @@ export function useFileTreeRuntime({
       retryGatewaySync();
     }, 2500);
 
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
     return () => {
       window.clearTimeout(retryTimer);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [error, retryGatewaySync]);
 

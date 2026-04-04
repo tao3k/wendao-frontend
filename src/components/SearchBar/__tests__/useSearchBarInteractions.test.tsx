@@ -1,6 +1,6 @@
-import { renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSearchBarInteractions } from '../useSearchBarInteractions';
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useSearchBarInteractions } from "../useSearchBarInteractions";
 
 const useSearchInputInteractionsMock = vi.fn();
 const useCodeFilterInteractionsMock = vi.fn();
@@ -9,31 +9,31 @@ const useSearchKeyboardNavigationMock = vi.fn();
 const useSearchResultActionsMock = vi.fn();
 const useRepoQueryActionsMock = vi.fn();
 
-vi.mock('../useSearchInputInteractions', () => ({
+vi.mock("../useSearchInputInteractions", () => ({
   useSearchInputInteractions: (args: unknown) => useSearchInputInteractionsMock(args),
 }));
 
-vi.mock('../useCodeFilterInteractions', () => ({
+vi.mock("../useCodeFilterInteractions", () => ({
   useCodeFilterInteractions: (args: unknown) => useCodeFilterInteractionsMock(args),
 }));
 
-vi.mock('../useSearchResultPreviewState', () => ({
+vi.mock("../useSearchResultPreviewState", () => ({
   useSearchResultPreviewState: () => useSearchResultPreviewStateMock(),
 }));
 
-vi.mock('../useSearchKeyboardNavigation', () => ({
+vi.mock("../useSearchKeyboardNavigation", () => ({
   useSearchKeyboardNavigation: (args: unknown) => useSearchKeyboardNavigationMock(args),
 }));
 
-vi.mock('../useSearchResultActions', () => ({
+vi.mock("../useSearchResultActions", () => ({
   useSearchResultActions: (args: unknown) => useSearchResultActionsMock(args),
 }));
 
-vi.mock('../useRepoQueryActions', () => ({
+vi.mock("../useRepoQueryActions", () => ({
   useRepoQueryActions: (args: unknown) => useRepoQueryActionsMock(args),
 }));
 
-describe('useSearchBarInteractions', () => {
+describe("useSearchBarInteractions", () => {
   beforeEach(() => {
     useSearchInputInteractionsMock.mockReset();
     useCodeFilterInteractionsMock.mockReset();
@@ -50,22 +50,22 @@ describe('useSearchBarInteractions', () => {
     useRepoQueryActionsMock.mockReturnValue({ handleApplyRepoFacet: vi.fn() });
   });
 
-  it('composes child hooks and returns merged interaction api', () => {
+  it("composes child hooks and returns merged interaction api", () => {
     const params = {
       state: {
         isComposing: false,
-        query: 'solve',
+        query: "solve",
         suggestions: [],
         suggestionCount: 0,
         activeSuggestionIndex: 0,
         resultCount: 0,
         resultSelectedIndex: 0,
         visibleResults: [],
-        activeRepoFilter: 'active-repo',
-        primaryRepoFilter: 'primary-repo',
-        repoOverviewRepoId: 'overview-repo',
-        fallbackFacet: 'symbol',
-        fallbackFromQuery: 'GatewaySyncPkg',
+        activeRepoFilter: "active-repo",
+        primaryRepoFilter: "primary-repo",
+        repoOverviewRepoId: "overview-repo",
+        fallbackFacet: "symbol",
+        fallbackFromQuery: "GatewaySyncPkg",
       },
       actions: {
         inputRef: { current: null },

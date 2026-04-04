@@ -1,49 +1,48 @@
-import { useCodeFilterInteractions } from './useCodeFilterInteractions';
-import { useRepoQueryActions } from './useRepoQueryActions';
-import { useSearchInputInteractions } from './useSearchInputInteractions';
-import { useSearchKeyboardNavigation } from './useSearchKeyboardNavigation';
-import { useSearchResultActions } from './useSearchResultActions';
-import { useSearchResultPreviewState } from './useSearchResultPreviewState';
-import type { SearchResult } from './types';
+import { useCodeFilterInteractions } from "./useCodeFilterInteractions";
+import { useRepoQueryActions } from "./useRepoQueryActions";
+import { useSearchInputInteractions } from "./useSearchInputInteractions";
+import { useSearchKeyboardNavigation } from "./useSearchKeyboardNavigation";
+import { useSearchResultActions } from "./useSearchResultActions";
+import { useSearchResultPreviewState } from "./useSearchResultPreviewState";
+import type { SearchResult } from "./types";
 
 type SearchInputInteractionsArgs = Parameters<typeof useSearchInputInteractions>[0];
-type CodeFilterInteractionsArgs = Parameters<typeof useCodeFilterInteractions>[0];
 type SearchKeyboardNavigationArgs = Parameters<typeof useSearchKeyboardNavigation>[0];
 type SearchResultActionsArgs = Parameters<typeof useSearchResultActions>[0];
 type RepoQueryActionsArgs = Parameters<typeof useRepoQueryActions>[0];
 
 interface UseSearchBarInteractionsStateParams {
-  isComposing: SearchKeyboardNavigationArgs['isComposing'];
-  query: SearchKeyboardNavigationArgs['query'];
-  suggestions: SearchKeyboardNavigationArgs['suggestions'];
-  suggestionCount: SearchKeyboardNavigationArgs['suggestionCount'];
-  activeSuggestionIndex: SearchKeyboardNavigationArgs['activeSuggestionIndex'];
-  resultCount: SearchKeyboardNavigationArgs['resultCount'];
-  resultSelectedIndex: SearchKeyboardNavigationArgs['resultSelectedIndex'];
-  visibleResults: SearchKeyboardNavigationArgs['visibleResults'];
-  activeRepoFilter?: RepoQueryActionsArgs['activeRepoFilter'];
-  primaryRepoFilter?: RepoQueryActionsArgs['primaryRepoFilter'];
-  repoOverviewRepoId?: RepoQueryActionsArgs['repoOverviewRepoId'];
-  fallbackFacet?: RepoQueryActionsArgs['fallbackFacet'];
-  fallbackFromQuery?: RepoQueryActionsArgs['fallbackFromQuery'];
+  isComposing: SearchKeyboardNavigationArgs["isComposing"];
+  query: SearchKeyboardNavigationArgs["query"];
+  suggestions: SearchKeyboardNavigationArgs["suggestions"];
+  suggestionCount: SearchKeyboardNavigationArgs["suggestionCount"];
+  activeSuggestionIndex: SearchKeyboardNavigationArgs["activeSuggestionIndex"];
+  resultCount: SearchKeyboardNavigationArgs["resultCount"];
+  resultSelectedIndex: SearchKeyboardNavigationArgs["resultSelectedIndex"];
+  visibleResults: SearchKeyboardNavigationArgs["visibleResults"];
+  activeRepoFilter?: RepoQueryActionsArgs["activeRepoFilter"];
+  primaryRepoFilter?: RepoQueryActionsArgs["primaryRepoFilter"];
+  repoOverviewRepoId?: RepoQueryActionsArgs["repoOverviewRepoId"];
+  fallbackFacet?: RepoQueryActionsArgs["fallbackFacet"];
+  fallbackFromQuery?: RepoQueryActionsArgs["fallbackFromQuery"];
 }
 
 interface UseSearchBarInteractionsActionsParams {
-  inputRef: SearchKeyboardNavigationArgs['inputRef'];
-  setIsComposing: SearchInputInteractionsArgs['setIsComposing'];
-  setQuery: SearchKeyboardNavigationArgs['setQuery'];
-  setShowSuggestions: SearchKeyboardNavigationArgs['setShowSuggestions'];
-  setResultSelectedIndex: SearchKeyboardNavigationArgs['setResultSelectedIndex'];
-  setActiveSuggestionIndex: SearchKeyboardNavigationArgs['setActiveSuggestionIndex'];
-  setScope: RepoQueryActionsArgs['setScope'];
-  onClose: SearchKeyboardNavigationArgs['onClose'];
-  onResultSelect: SearchKeyboardNavigationArgs['onResultSelect'];
+  inputRef: SearchKeyboardNavigationArgs["inputRef"];
+  setIsComposing: SearchInputInteractionsArgs["setIsComposing"];
+  setQuery: SearchKeyboardNavigationArgs["setQuery"];
+  setShowSuggestions: SearchKeyboardNavigationArgs["setShowSuggestions"];
+  setResultSelectedIndex: SearchKeyboardNavigationArgs["setResultSelectedIndex"];
+  setActiveSuggestionIndex: SearchKeyboardNavigationArgs["setActiveSuggestionIndex"];
+  setScope: RepoQueryActionsArgs["setScope"];
+  onClose: SearchKeyboardNavigationArgs["onClose"];
+  onResultSelect: SearchKeyboardNavigationArgs["onResultSelect"];
   onPreviewSelect?: (result: SearchResult) => void;
-  onReferencesResultSelect: SearchResultActionsArgs['onReferencesResultSelect'];
-  onGraphResultSelect: SearchResultActionsArgs['onGraphResultSelect'];
-  setIsLoading: SearchResultActionsArgs['setIsLoading'];
-  setError: SearchResultActionsArgs['setError'];
-  selectSuggestion: SearchKeyboardNavigationArgs['selectSuggestion'];
+  onReferencesResultSelect: SearchResultActionsArgs["onReferencesResultSelect"];
+  onGraphResultSelect: SearchResultActionsArgs["onGraphResultSelect"];
+  setIsLoading: SearchResultActionsArgs["setIsLoading"];
+  setError: SearchResultActionsArgs["setError"];
+  selectSuggestion: SearchKeyboardNavigationArgs["selectSuggestion"];
 }
 
 interface UseSearchBarInteractionsParams {

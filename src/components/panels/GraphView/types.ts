@@ -2,25 +2,25 @@
  * GraphView type definitions
  */
 
-import type { StudioNavigationTarget } from '../../../api/bindings';
+import type { StudioNavigationTarget } from "../../../api/bindings";
 
 export interface GraphRuntimeStatus {
-  tone: 'active' | 'warning' | 'error';
+  tone: "active" | "warning" | "error";
   message: string;
-  source: 'graph';
+  source: "graph";
 }
 
 export interface GraphViewProps {
   /** The file path to use as the center node */
   centerNodeId: string | null;
   /** UI locale */
-  locale?: 'en' | 'zh';
+  locale?: "en" | "zh";
   /** When false, graph requests and auto-refresh are paused. */
   enabled?: boolean;
   /** Called when a node is clicked */
   onNodeClick?: (
     nodeId: string,
-    selection: StudioNavigationTarget & { graphPath?: string }
+    selection: StudioNavigationTarget & { graphPath?: string },
   ) => void;
   /** Called when graph summary data updates for right-side panel */
   onSidebarSummaryChange?: (summary: GraphSidebarSummary | null) => void;
@@ -30,7 +30,7 @@ export interface GraphViewProps {
   onCenterNodeInvalid?: (nodeId: string) => void;
   /** Graph traversal options */
   options?: {
-    direction?: 'incoming' | 'outgoing' | 'both';
+    direction?: "incoming" | "outgoing" | "both";
     hops?: number;
     limit?: number;
   };

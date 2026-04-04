@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from "react";
 
 export interface ShortcutDefinition {
   key: string;
@@ -20,24 +20,22 @@ export const useKeyboardShortcuts = (shortcuts: ShortcutDefinition[]) => {
       const target = e.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
       ) {
         // Allow Escape even in input fields
-        if (e.key !== 'Escape' && e.key !== 'Esc') {
+        if (e.key !== "Escape" && e.key !== "Esc") {
           return;
         }
       }
 
-      const normalizedKey = e.key === 'Esc' ? 'Escape' : e.key;
+      const normalizedKey = e.key === "Esc" ? "Escape" : e.key;
 
       const matchingShortcut = shortcuts.find(
         (s) =>
           s.key.toLowerCase() === normalizedKey.toLowerCase() &&
           !!s.ctrl === (e.ctrlKey || e.metaKey) && // Meta for Mac
           !!s.shift === e.shiftKey &&
-          !!s.alt === e.altKey
+          !!s.alt === e.altKey,
       );
 
       if (matchingShortcut) {
@@ -45,21 +43,21 @@ export const useKeyboardShortcuts = (shortcuts: ShortcutDefinition[]) => {
         matchingShortcut.action();
       }
     },
-    [shortcuts]
+    [shortcuts],
   );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 };
 
 // Helper to format shortcut for display
 export const formatShortcut = (shortcut: ShortcutDefinition): string => {
   const parts: string[] = [];
-  if (shortcut.ctrl) parts.push('⌘');
-  if (shortcut.shift) parts.push('⇧');
-  if (shortcut.alt) parts.push('⌥');
+  if (shortcut.ctrl) parts.push("⌘");
+  if (shortcut.shift) parts.push("⇧");
+  if (shortcut.alt) parts.push("⌥");
   parts.push(shortcut.key.toUpperCase());
-  return parts.join('');
+  return parts.join("");
 };

@@ -13,7 +13,13 @@
 }
 
 /* 💎 💎 💎 THE ULTIMATE CLIPPING BURST (GLOBAL) */
-svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewport {
+svg,
+.djs-container,
+.djs-group,
+.djs-element,
+.djs-shape,
+.djs-visual,
+.viewport {
   overflow: visible !important;
   clip-path: none !important;
 }
@@ -22,28 +28,32 @@ svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewpor
 .djs-shape .djs-visual rect,
 .djs-shape .djs-visual polygon,
 .djs-shape .djs-visual circle {
-  fill: #1A2333 !important;
+  fill: #1a2333 !important;
   fill-opacity: 0.85 !important;
-  stroke: #00D2FF !important;
+  stroke: #00d2ff !important;
   stroke-width: 2px !important;
   vector-effect: non-scaling-stroke;
-  transition: stroke 0.3s ease, filter 0.3s ease;
+  transition:
+    stroke 0.3s ease,
+    filter 0.3s ease;
 }
 
 /* Logic Line Impact */
 .djs-connection .djs-visual path {
-  stroke: #00D2FF !important;
+  stroke: #00d2ff !important;
   stroke-width: 3px !important;
   opacity: 0.9;
 }
 
 .djs-label {
-  fill: #E6F3FF !important;
+  fill: #e6f3ff !important;
   font-weight: 900 !important;
   text-shadow: 0 0 10px #000;
 }
 
-.bjs-powered-by { display: none !important; }
+.bjs-powered-by {
+  display: none !important;
+}
 
 /* === Node State Classes (wendao_cockpit_v1.md) === */
 
@@ -51,9 +61,9 @@ svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewpor
 .node-active .djs-visual rect,
 .node-active .djs-visual polygon,
 .node-active .djs-visual circle {
-  stroke: #00D2FF !important;
+  stroke: #00d2ff !important;
   stroke-width: 3px !important;
-  filter: drop-shadow(0 0 8px #00D2FF);
+  filter: drop-shadow(0 0 8px #00d2ff);
   animation: breathe 2s ease-in-out infinite;
 }
 
@@ -61,9 +71,9 @@ svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewpor
 .node-processing .djs-visual rect,
 .node-processing .djs-visual polygon,
 .node-processing .djs-visual circle {
-  stroke: #FFD700 !important;
+  stroke: #ffd700 !important;
   stroke-width: 3px !important;
-  filter: drop-shadow(0 0 8px #FFD700);
+  filter: drop-shadow(0 0 8px #ffd700);
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -71,9 +81,9 @@ svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewpor
 .node-success .djs-visual rect,
 .node-success .djs-visual polygon,
 .node-success .djs-visual circle {
-  stroke: #00FF88 !important;
+  stroke: #00ff88 !important;
   stroke-width: 3px !important;
-  filter: drop-shadow(0 0 8px #00FF88);
+  filter: drop-shadow(0 0 8px #00ff88);
 }
 
 /* Wait: Dimmed opacity */
@@ -85,11 +95,21 @@ svg, .djs-container, .djs-group, .djs-element, .djs-shape, .djs-visual, .viewpor
 
 /* Animations */
 @keyframes breathe {
-  0%, 100% { filter: drop-shadow(0 0 4px #00D2FF); }
-  50% { filter: drop-shadow(0 0 12px #00D2FF); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px #00d2ff);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px #00d2ff);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
 }

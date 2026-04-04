@@ -1,4 +1,4 @@
-import type { MainViewTab } from './mainViewTypes';
+import type { MainViewTab } from "./mainViewTypes";
 
 interface NetworkConnectionLike {
   saveData?: boolean;
@@ -12,10 +12,10 @@ interface NetworkNavigatorLike {
   webkitConnection?: NetworkConnectionLike;
 }
 
-const SLOW_EFFECTIVE_TYPES = new Set(['slow-2g', '2g', '3g']);
+const SLOW_EFFECTIVE_TYPES = new Set(["slow-2g", "2g", "3g"]);
 
 const readNetworkConnection = (): NetworkConnectionLike | undefined => {
-  if (typeof navigator === 'undefined') {
+  if (typeof navigator === "undefined") {
     return undefined;
   }
 
@@ -28,7 +28,7 @@ const readNetworkConnection = (): NetworkConnectionLike | undefined => {
 };
 
 export const isConstrainedNetwork = (
-  connection: NetworkConnectionLike | undefined = readNetworkConnection()
+  connection: NetworkConnectionLike | undefined = readNetworkConnection(),
 ): boolean => {
   if (!connection) {
     return false;
@@ -43,7 +43,7 @@ export const isConstrainedNetwork = (
   }
 
   if (
-    typeof connection.downlink === 'number' &&
+    typeof connection.downlink === "number" &&
     connection.downlink > 0 &&
     connection.downlink < 1.2
   ) {
@@ -55,9 +55,9 @@ export const isConstrainedNetwork = (
 
 export const canPreloadMainViewTab = (
   tab: MainViewTab,
-  connection: NetworkConnectionLike | undefined = readNetworkConnection()
+  connection: NetworkConnectionLike | undefined = readNetworkConnection(),
 ): boolean => {
-  if (tab === 'references') {
+  if (tab === "references") {
     return false;
   }
 
@@ -65,5 +65,5 @@ export const canPreloadMainViewTab = (
     return true;
   }
 
-  return tab === 'content';
+  return tab === "content";
 };

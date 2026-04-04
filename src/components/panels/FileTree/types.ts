@@ -1,6 +1,6 @@
-import type { RepoIndexStatus, VfsStatus } from '../../statusBar/types';
+import type { RepoIndexStatus, VfsStatus } from "../../statusBar/types";
 
-export type FileTreeLocale = 'en' | 'zh';
+export type FileTreeLocale = "en" | "zh";
 
 export interface FileSelectionMetadata {
   projectName?: string;
@@ -11,14 +11,14 @@ export interface FileSelectionMetadata {
 export type OnFileSelect = (
   path: string,
   category: string,
-  metadata?: FileSelectionMetadata
+  metadata?: FileSelectionMetadata,
 ) => void;
 
 export interface FileNode {
   name: string;
   path: string;
   isDir: boolean;
-  category: 'folder' | 'skill' | 'doc' | 'knowledge' | 'other';
+  category: "folder" | "skill" | "doc" | "knowledge" | "other";
   projectName?: string;
   rootLabel?: string;
   sourceHint?: string;
@@ -33,7 +33,10 @@ export interface FileTreeProps {
   onFileSelect: OnFileSelect;
   selectedPath?: string | null;
   locale?: FileTreeLocale;
-  onStatusChange?: (status: { vfsStatus: VfsStatus; repoIndexStatus: RepoIndexStatus | null }) => void;
+  onStatusChange?: (status: {
+    vfsStatus: VfsStatus;
+    repoIndexStatus: RepoIndexStatus | null;
+  }) => void;
 }
 
 export interface FileTreeCopy {

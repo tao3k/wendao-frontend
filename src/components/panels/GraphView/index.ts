@@ -2,7 +2,7 @@
  * GraphView component exports
  */
 
-export { GraphView } from './GraphView';
+export { GraphView } from "./GraphView";
 export type {
   GraphRuntimeStatus,
   GraphViewProps,
@@ -11,4 +11,4 @@ export type {
   SimulatedNode,
   SimulatedLink,
   DragState,
-} from './types';
+} from "./types";

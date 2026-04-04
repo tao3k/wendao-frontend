@@ -1,6 +1,10 @@
-import { api } from '../../../api';
-import type { UiRepoProjectConfig } from '../../../api/bindings';
-import type { RepoIndexIssue, RepoIndexStatus, RepoIndexUnsupportedReason } from '../../statusBar/types';
+import { api } from "../../../api";
+import type { UiRepoProjectConfig } from "../../../api/bindings";
+import type {
+  RepoIndexIssue,
+  RepoIndexStatus,
+  RepoIndexUnsupportedReason,
+} from "../../statusBar/types";
 
 const DEFAULT_REPO_INDEX_POLL_INTERVAL_MS = 1_500;
 
@@ -22,7 +26,7 @@ function normalizeUnsupportedReason(lastError: string): string {
 function collectUnsupportedReasons(issues: RepoIndexIssue[]): RepoIndexUnsupportedReason[] {
   const groupedReasons = new Map<string, RepoIndexUnsupportedReason>();
   for (const issue of issues) {
-    if (issue.phase !== 'unsupported' || !issue.lastError) {
+    if (issue.phase !== "unsupported" || !issue.lastError) {
       continue;
     }
     const reason = normalizeUnsupportedReason(issue.lastError);
@@ -38,7 +42,7 @@ function collectUnsupportedReasons(issues: RepoIndexIssue[]): RepoIndexUnsupport
       repoIds: [issue.repoId],
     });
   }
-  return Array.from(groupedReasons.values()).sort((left, right) => {
+  return Array.from(groupedReasons.values()).toSorted((left, right) => {
     if (right.count !== left.count) {
       return right.count - left.count;
     }
@@ -46,40 +50,47 @@ function collectUnsupportedReasons(issues: RepoIndexIssue[]): RepoIndexUnsupport
   });
 }
 
-function toRepoIndexStatusSnapshot(status: {
-  total: number;
-  queued: number;
-  checking: number;
-  syncing: number;
-  indexing: number;
-  ready: number;
-  unsupported: number;
-  failed: number;
-  targetConcurrency?: number;
-  maxConcurrency?: number;
-  syncConcurrencyLimit?: number;
-  currentRepoId?: string;
-  repos?: Array<{
-    repoId: string;
-    phase: string;
-    queuePosition?: number;
-    lastError?: string;
-    lastRevision?: string;
-    updatedAt?: string;
-    attemptCount: number;
-  }>;
-}, options: RepoIndexStatusSnapshotOptions = {}): RepoIndexStatus {
+function toRepoIndexStatusSnapshot(
+  status: {
+    total: number;
+    queued: number;
+    checking: number;
+    syncing: number;
+    indexing: number;
+    ready: number;
+    unsupported: number;
+    failed: number;
+    targetConcurrency?: number;
+    maxConcurrency?: number;
+    syncConcurrencyLimit?: number;
+    currentRepoId?: string;
+    repos?: Array<{
+      repoId: string;
+      phase: string;
+      queuePosition?: number;
+      lastError?: string;
+      lastRevision?: string;
+      updatedAt?: string;
+      attemptCount: number;
+    }>;
+  },
+  options: RepoIndexStatusSnapshotOptions = {},
+): RepoIndexStatus {
   const linkGraphOnlyProjectIds = options.linkGraphOnlyProjectIds ?? [];
   const queuedRepos = (status.repos ?? [])
-    .filter((repo) => repo.phase === 'queued' && typeof repo.queuePosition === 'number')
-    .sort((left, right) => (left.queuePosition ?? Number.MAX_SAFE_INTEGER) - (right.queuePosition ?? Number.MAX_SAFE_INTEGER))
+    .filter((repo) => repo.phase === "queued" && typeof repo.queuePosition === "number")
+    .toSorted(
+      (left, right) =>
+        (left.queuePosition ?? Number.MAX_SAFE_INTEGER) -
+        (right.queuePosition ?? Number.MAX_SAFE_INTEGER),
+    )
     .slice(0, 3)
     .map((repo) => ({
       repoId: repo.repoId,
       queuePosition: repo.queuePosition as number,
     }));
   const issues: RepoIndexIssue[] = (status.repos ?? [])
-    .filter((repo) => repo.phase === 'unsupported' || repo.phase === 'failed')
+    .filter((repo) => repo.phase === "unsupported" || repo.phase === "failed")
     .map((repo) => ({
       repoId: repo.repoId,
       phase: repo.phase,
@@ -100,9 +111,13 @@ function toRepoIndexStatusSnapshot(status: {
     ready: status.ready,
     unsupported: status.unsupported,
     failed: status.failed,
-    ...(typeof status.targetConcurrency === 'number' ? { targetConcurrency: status.targetConcurrency } : {}),
-    ...(typeof status.maxConcurrency === 'number' ? { maxConcurrency: status.maxConcurrency } : {}),
-    ...(typeof status.syncConcurrencyLimit === 'number' ? { syncConcurrencyLimit: status.syncConcurrencyLimit } : {}),
+    ...(typeof status.targetConcurrency === "number"
+      ? { targetConcurrency: status.targetConcurrency }
+      : {}),
+    ...(typeof status.maxConcurrency === "number" ? { maxConcurrency: status.maxConcurrency } : {}),
+    ...(typeof status.syncConcurrencyLimit === "number"
+      ? { syncConcurrencyLimit: status.syncConcurrencyLimit }
+      : {}),
     currentRepoId: status.currentRepoId,
     ...(queuedRepos.length > 0 ? { queuedRepos } : {}),
     ...(issues.length > 0 ? { issues } : {}),
@@ -119,7 +134,7 @@ function toRepoIndexStatusSnapshot(status: {
 export function startRepoIndexStatusPolling(
   onStatus: (status: RepoIndexStatus | null) => void,
   intervalMs: number = DEFAULT_REPO_INDEX_POLL_INTERVAL_MS,
-  options: RepoIndexStatusSnapshotOptions = {}
+  options: RepoIndexStatusSnapshotOptions = {},
 ): () => void {
   let cancelled = false;
   let timer: number | null = null;

@@ -1,15 +1,15 @@
-import React from 'react';
-import { CodeFilterHelper } from '../SearchBar/CodeFilterHelper';
-import { SearchResultsPanel } from '../SearchBar/SearchResultsPanel';
-import { SearchStatusBar } from '../SearchBar/SearchStatusBar';
-import { SearchSuggestionsPanel } from '../SearchBar/SearchSuggestionsPanel';
-import { SearchToolbar } from '../SearchBar/SearchToolbar';
+import React from "react";
+import { CodeFilterHelper } from "../SearchBar/CodeFilterHelper";
+import { SearchResultsPanel } from "../SearchBar/SearchResultsPanel";
+import { SearchStatusBar } from "../SearchBar/SearchStatusBar";
+import { SearchSuggestionsPanel } from "../SearchBar/SearchSuggestionsPanel";
+import { SearchToolbar } from "../SearchBar/SearchToolbar";
 import type {
   SearchBarControllerCodeFilterHelperProps,
   SearchBarControllerResultsPanelProps,
   SearchBarControllerShellProps,
   SearchBarControllerSuggestionsPanelProps,
-} from '../SearchBar/searchBarControllerTypes';
+} from "../SearchBar/searchBarControllerTypes";
 
 interface ZenSearchResultsPaneProps {
   shellProps: SearchBarControllerShellProps;

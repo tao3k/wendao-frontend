@@ -1,7 +1,7 @@
-import type { DiagramDisplayMode } from './diagramWindowState';
-import { shouldLoadMermaidRuntime } from './diagramWindowState';
-import { hasInlineRenderableMermaidSource, useSharedMermaidRenderer } from '../mermaidRuntime';
-import type { MermaidRenderFunction } from '../mermaidRuntime';
+import type { DiagramDisplayMode } from "./diagramWindowState";
+import { shouldLoadMermaidRuntime } from "./diagramWindowState";
+import { hasInlineRenderableMermaidSource, useSharedMermaidRenderer } from "../mermaidRuntime";
+import type { MermaidRenderFunction } from "../mermaidRuntime";
 
 interface UseMermaidRendererParams {
   hasMermaid: boolean;

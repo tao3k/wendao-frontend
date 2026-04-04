@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { api } from '../../../api';
+import { useEffect, useState } from "react";
+import { api } from "../../../api";
 import {
   isCodeDiagramPath,
   isMarkdownPath,
   selectPreferredCodeProjectionSource,
   selectPreferredProjectionSource,
   type DiagramKind,
-} from './diagramSignature';
+} from "./diagramSignature";
 
 interface UseMarkdownProjectionMermaidParams {
   path: string;
@@ -32,9 +32,7 @@ export function useMarkdownProjectionMermaid({
     const markdownFile = isMarkdownPath(path);
     const codeFile = isCodeDiagramPath(path);
     const shouldAnalyzeProjection =
-      content.length > 0 &&
-      baseKind === 'none' &&
-      (markdownFile || codeFile);
+      content.length > 0 && baseKind === "none" && (markdownFile || codeFile);
 
     if (!shouldAnalyzeProjection) {
       setAnalysisMermaidSources([]);
@@ -46,24 +44,24 @@ export function useMarkdownProjectionMermaid({
 
     setAnalysisLoading(true);
     const request = markdownFile
-      ? api
-          .getMarkdownAnalysis(path)
-          .then((analysis) => selectPreferredProjectionSource(analysis))
+      ? api.getMarkdownAnalysis(path).then((analysis) => selectPreferredProjectionSource(analysis))
       : api
           .getCodeAstAnalysis(path)
           .then((analysis) => selectPreferredCodeProjectionSource(analysis));
     request
       .then((analysis) => {
         if (cancelled) {
-          return;
+          return undefined;
         }
         setAnalysisMermaidSources(analysis ? [analysis] : []);
+        return undefined;
       })
       .catch(() => {
         if (cancelled) {
-          return;
+          return undefined;
         }
         setAnalysisMermaidSources([]);
+        return undefined;
       })
       .finally(() => {
         if (!cancelled) {

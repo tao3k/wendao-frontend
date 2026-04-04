@@ -1,1 +1,1 @@
-export { useEditorStore } from './editorStore';
+export { useEditorStore } from "./editorStore";

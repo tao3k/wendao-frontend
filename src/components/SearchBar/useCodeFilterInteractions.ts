@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { removeCodeFilterFromQuery, stripCodeFilters } from './codeSearchUtils';
-import type { SearchFilters } from './codeSearchUtils';
-import { appendUniqueQueryToken, applyScenarioQueryTokens } from './searchInteractionUtils';
+import { useCallback } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
+import { removeCodeFilterFromQuery, stripCodeFilters } from "./codeSearchUtils";
+import type { SearchFilters } from "./codeSearchUtils";
+import { appendUniqueQueryToken, applyScenarioQueryTokens } from "./searchInteractionUtils";
 
 interface UseCodeFilterInteractionsParams {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -31,26 +31,38 @@ export function useCodeFilterInteractions({
     setQuery((current) => stripCodeFilters(current));
   }, [setQuery]);
 
-  const removeCodeFilter = useCallback((key: keyof SearchFilters, label: string) => {
-    const value = label.split(':').slice(1).join(':');
-    setQuery((current) => removeCodeFilterFromQuery(current, key, value));
-  }, [setQuery]);
+  const removeCodeFilter = useCallback(
+    (key: keyof SearchFilters, label: string) => {
+      const value = label.split(":").slice(1).join(":");
+      setQuery((current) => removeCodeFilterFromQuery(current, key, value));
+    },
+    [setQuery],
+  );
 
-  const appendCodeFilterToken = useCallback((token: string) => {
-    setQuery((current) => appendUniqueQueryToken(current, token));
-    setShowSuggestions(true);
-    focusInput();
-  }, [focusInput, setQuery, setShowSuggestions]);
+  const appendCodeFilterToken = useCallback(
+    (token: string) => {
+      setQuery((current) => appendUniqueQueryToken(current, token));
+      setShowSuggestions(true);
+      focusInput();
+    },
+    [focusInput, setQuery, setShowSuggestions],
+  );
 
-  const insertCodeFilterPrefix = useCallback((prefix: string) => {
-    appendCodeFilterToken(`${prefix}:`);
-  }, [appendCodeFilterToken]);
+  const insertCodeFilterPrefix = useCallback(
+    (prefix: string) => {
+      appendCodeFilterToken(`${prefix}:`);
+    },
+    [appendCodeFilterToken],
+  );
 
-  const applyCodeScenario = useCallback((tokens: string[]) => {
-    setQuery((current) => applyScenarioQueryTokens(current, tokens));
-    setShowSuggestions(true);
-    focusInput();
-  }, [focusInput, setQuery, setShowSuggestions]);
+  const applyCodeScenario = useCallback(
+    (tokens: string[]) => {
+      setQuery((current) => applyScenarioQueryTokens(current, tokens));
+      setShowSuggestions(true);
+      focusInput();
+    },
+    [focusInput, setQuery, setShowSuggestions],
+  );
 
   return {
     clearCodeFilters,

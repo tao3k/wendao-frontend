@@ -21,7 +21,7 @@ export interface VfsEntry {
   projectDirs?: string[];
 }
 
-export type VfsCategory = 'folder' | 'skill' | 'doc' | 'knowledge' | 'other';
+export type VfsCategory = "folder" | "skill" | "doc" | "knowledge" | "other";
 
 export interface VfsScanEntry {
   path: string;
@@ -107,13 +107,13 @@ export interface Topology3D {
 
 // === State Types ===
 
-export type NodeState = 'idle' | 'active' | 'processing' | 'success' | 'wait';
+export type NodeState = "idle" | "active" | "processing" | "success" | "wait";
 
 export type ResearchStateEvent =
-  | { type: 'node_activated'; nodeId: string; state: NodeState }
-  | { type: 'step_started'; stepId: string; timestamp: number }
-  | { type: 'step_completed'; stepId: string; success: boolean; durationMs: number }
-  | { type: 'topology_updated'; nodeCount: number; linkCount: number };
+  | { type: "node_activated"; nodeId: string; state: NodeState }
+  | { type: "step_started"; stepId: string; timestamp: number }
+  | { type: "step_completed"; stepId: string; success: boolean; durationMs: number }
+  | { type: "topology_updated"; nodeCount: number; linkCount: number };
 
 // === Search Types ===
 
@@ -167,14 +167,14 @@ export interface SearchResponse {
 }
 
 export type AttachmentSearchKind =
-  | 'image'
-  | 'pdf'
-  | 'gpg'
-  | 'document'
-  | 'archive'
-  | 'audio'
-  | 'video'
-  | 'other';
+  | "image"
+  | "pdf"
+  | "gpg"
+  | "document"
+  | "archive"
+  | "audio"
+  | "video"
+  | "other";
 
 export interface AttachmentSearchHit {
   name?: string;
@@ -264,7 +264,7 @@ export interface ReferenceSearchResponse {
   selectedScope: string;
 }
 
-export type SymbolSearchSource = 'project' | 'external';
+export type SymbolSearchSource = "project" | "external";
 
 export interface SymbolSearchHit {
   name: string;
@@ -291,7 +291,7 @@ export interface SymbolSearchResponse {
   indexError?: string;
 }
 
-export type AutocompleteSuggestionType = 'title' | 'tag' | 'stem';
+export type AutocompleteSuggestionType = "title" | "tag" | "stem";
 
 export interface AutocompleteSuggestion {
   text: string;
@@ -307,9 +307,16 @@ export interface AutocompleteResponse {
 
 // === Analysis Types ===
 
-export type AnalysisNodeKind = 'document' | 'section' | 'task' | 'codeblock' | 'table' | 'math' | 'reference';
+export type AnalysisNodeKind =
+  | "document"
+  | "section"
+  | "task"
+  | "codeblock"
+  | "table"
+  | "math"
+  | "reference";
 
-export type AnalysisEdgeKind = 'contains' | 'references' | 'next_step';
+export type AnalysisEdgeKind = "contains" | "references" | "next_step";
 
 export interface AnalysisEvidence {
   path: string;
@@ -337,7 +344,7 @@ export interface AnalysisEdge {
   evidence: AnalysisEvidence;
 }
 
-export type MermaidViewKind = 'mindmap' | 'flowchart' | 'graph';
+export type MermaidViewKind = "mindmap" | "flowchart" | "graph";
 
 export interface MermaidProjection {
   kind: MermaidViewKind;
@@ -361,15 +368,15 @@ export interface MarkdownAnalysisResponse {
 }
 
 export type RetrievalChunkSurface =
-  | 'document'
-  | 'section'
-  | 'codeblock'
-  | 'table'
-  | 'math'
-  | 'observation'
-  | 'declaration'
-  | 'block'
-  | 'symbol';
+  | "document"
+  | "section"
+  | "codeblock"
+  | "table"
+  | "math"
+  | "observation"
+  | "declaration"
+  | "block"
+  | "symbol";
 
 export interface RetrievalChunk {
   ownerId: string;
@@ -387,14 +394,17 @@ export interface RetrievalChunk {
 export interface MarkdownRetrievalAtom extends RetrievalChunk {
   lineStart: number;
   lineEnd: number;
-  surface: Extract<RetrievalChunkSurface, 'document' | 'section' | 'codeblock' | 'table' | 'math' | 'observation'>;
+  surface: Extract<
+    RetrievalChunkSurface,
+    "document" | "section" | "codeblock" | "table" | "math" | "observation"
+  >;
 }
 
-export type CodeAstNodeKind = 'file' | 'module' | 'symbol' | 'external_symbol';
+export type CodeAstNodeKind = "file" | "module" | "symbol" | "external_symbol";
 
-export type CodeAstEdgeKind = 'contains' | 'declares' | 'uses';
+export type CodeAstEdgeKind = "contains" | "declares" | "uses";
 
-export type CodeAstProjectionKind = 'structure' | 'calls' | 'flow';
+export type CodeAstProjectionKind = "structure" | "calls" | "flow";
 
 export interface CodeAstNode {
   id: string;
@@ -422,7 +432,10 @@ export interface CodeAstProjection {
   diagnostics: string[];
 }
 
-export type CodeAstRetrievalAtomScope = Extract<RetrievalChunkSurface, 'declaration' | 'block' | 'symbol'>;
+export type CodeAstRetrievalAtomScope = Extract<
+  RetrievalChunkSurface,
+  "declaration" | "block" | "symbol"
+>;
 
 export interface CodeAstRetrievalAtom extends RetrievalChunk {
   surface: CodeAstRetrievalAtomScope;
@@ -474,7 +487,7 @@ export interface ApiError {
 
 // === Projection Types ===
 
-export type ProjectionPageKind = 'reference' | 'how_to' | 'tutorial' | 'explanation';
+export type ProjectionPageKind = "reference" | "how_to" | "tutorial" | "explanation";
 
 export interface ProjectedPageIndexSection {
   heading_path: string;

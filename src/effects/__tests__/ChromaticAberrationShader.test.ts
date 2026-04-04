@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { ChromaticAberrationEffect } from '../ChromaticAberrationShader';
+import { describe, expect, it } from "vitest";
+import { ChromaticAberrationEffect } from "../ChromaticAberrationShader";
 
-describe('ChromaticAberrationEffect', () => {
-  it('initializes uniforms from constructor values', () => {
+describe("ChromaticAberrationEffect", () => {
+  it("initializes uniforms from constructor values", () => {
     const effect = new ChromaticAberrationEffect({
       intensity: 0.6,
       offset: 0.004,
@@ -14,7 +14,7 @@ describe('ChromaticAberrationEffect', () => {
     expect(effect.time).toBeCloseTo(1.5);
   });
 
-  it('updates uniforms via setters', () => {
+  it("updates uniforms via setters", () => {
     const effect = new ChromaticAberrationEffect();
 
     effect.intensity = 0.25;

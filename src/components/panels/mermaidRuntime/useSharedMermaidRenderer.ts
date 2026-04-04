@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { loadMermaidRuntimeProvider } from './runtime';
-import type { MermaidRenderFunction } from './provider';
+import { useEffect, useState } from "react";
+import { loadMermaidRuntimeProvider } from "./runtime";
+import type { MermaidRenderFunction } from "./provider";
 
 interface UseSharedMermaidRendererParams {
   shouldLoad: boolean;
@@ -26,11 +26,13 @@ export function useSharedMermaidRenderer({
         if (!cancelled) {
           setRenderMermaid(() => provider.renderMermaid);
         }
+        return undefined;
       })
       .catch(() => {
         if (!cancelled) {
           setRenderMermaid(null);
         }
+        return undefined;
       });
 
     return () => {

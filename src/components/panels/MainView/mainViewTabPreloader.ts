@@ -1,5 +1,5 @@
-import { canPreloadMainViewTab } from './mainViewPreloadPolicy';
-import type { MainViewTab } from './mainViewTypes';
+import { canPreloadMainViewTab } from "./mainViewPreloadPolicy";
+import type { MainViewTab } from "./mainViewTypes";
 
 interface MainViewTabLoaders {
   diagram: () => Promise<unknown>;
@@ -11,7 +11,7 @@ type MainViewPreloadDecider = (tab: MainViewTab) => boolean;
 
 export const createMainViewTabPreloader = (
   loaders: MainViewTabLoaders,
-  canPreload: MainViewPreloadDecider = canPreloadMainViewTab
+  canPreload: MainViewPreloadDecider = canPreloadMainViewTab,
 ): ((tab: MainViewTab) => void) => {
   const preloadedTabs = new Set<MainViewTab>();
 
@@ -20,21 +20,21 @@ export const createMainViewTabPreloader = (
       return;
     }
 
-    if (tab === 'references') {
+    if (tab === "references") {
       return;
     }
 
     preloadedTabs.add(tab);
 
-    if (tab === 'diagram') {
+    if (tab === "diagram") {
       void loaders.diagram();
       return;
     }
-    if (tab === 'graph') {
+    if (tab === "graph") {
       void loaders.graph();
       return;
     }
-    if (tab === 'content') {
+    if (tab === "content") {
       void loaders.content();
     }
   };

@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { RepoIndexStatusView } from './RepoIndexStatusView';
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { RepoIndexStatusView } from "./RepoIndexStatusView";
 
-describe('RepoIndexStatusView', () => {
-  it('renders repo-index details and dispatches the diagnostics action', () => {
+describe("RepoIndexStatusView", () => {
+  it("renders repo-index details and dispatches the diagnostics action", () => {
     const onOpenDiagnostics = vi.fn();
 
     render(
@@ -18,14 +18,14 @@ describe('RepoIndexStatusView', () => {
         unsupportedReasonLabels={[]}
         issueLabel={null}
         onOpenDiagnostics={onOpenDiagnostics}
-      />
+      />,
     );
 
-    expect(screen.getByText('Repo index processed 1/3')).toBeInTheDocument();
-    expect(screen.getByText('Repo index details')).toBeInTheDocument();
-    expect(screen.getByText('Analysis budget 3/15 · Sync limit 2')).toBeInTheDocument();
+    expect(screen.getByText("Repo index processed 1/3")).toBeInTheDocument();
+    expect(screen.getByText("Repo index details")).toBeInTheDocument();
+    expect(screen.getByText("Analysis budget 3/15 · Sync limit 2")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open repo index diagnostics' }));
+    fireEvent.click(screen.getByRole("button", { name: "Open repo index diagnostics" }));
     expect(onOpenDiagnostics).toHaveBeenCalledTimes(1);
   });
 });

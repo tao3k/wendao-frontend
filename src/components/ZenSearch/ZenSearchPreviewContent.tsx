@@ -1,7 +1,7 @@
-import React from 'react';
-import { DirectReader } from '../panels/DirectReader/DirectReader';
-import type { UiLocale } from '../SearchBar/types';
-import { ZenSearchPreviewInfo } from './ZenSearchPreviewInfo';
+import React from "react";
+import { DirectReader } from "../panels/DirectReader/DirectReader";
+import type { UiLocale } from "../SearchBar/types";
+import { ZenSearchPreviewInfo } from "./ZenSearchPreviewInfo";
 
 interface ZenSearchPreviewContentProps {
   locale: UiLocale;

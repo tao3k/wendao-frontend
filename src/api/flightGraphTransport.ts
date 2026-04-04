@@ -1,9 +1,9 @@
-import { create } from '@bufbuild/protobuf';
-import { createClient, ConnectError } from '@connectrpc/connect';
-import { createGrpcWebTransport } from '@connectrpc/connect-web';
+import { create } from "@bufbuild/protobuf";
+import { createClient, ConnectError } from "@connectrpc/connect";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-import { decodeGraphNeighborsFromArrowIpc, decodeTopology3DFromArrowIpc } from './arrowGraphIpc';
-import type { GraphNeighborsResponse, Topology3D } from './bindings';
+import { decodeGraphNeighborsFromArrowIpc, decodeTopology3DFromArrowIpc } from "./arrowGraphIpc";
+import type { GraphNeighborsResponse, Topology3D } from "./bindings";
 import {
   FlightData,
   FlightDescriptor,
@@ -13,17 +13,17 @@ import {
   FlightService,
   Ticket,
   TicketSchema,
-} from './flight/generated/Flight_pb';
-import { reassembleArrowIpcStreamFromFlight } from './flightSearchTransport';
-import { ApiClientError } from './responseTransport';
+} from "./flight/generated/Flight_pb";
+import { reassembleArrowIpcStreamFromFlight } from "./flightSearchTransport";
+import { ApiClientError } from "./responseTransport";
 
-const WENDAO_SCHEMA_VERSION_HEADER = 'x-wendao-schema-version';
-const WENDAO_GRAPH_NODE_ID_HEADER = 'x-wendao-graph-node-id';
-const WENDAO_GRAPH_DIRECTION_HEADER = 'x-wendao-graph-direction';
-const WENDAO_GRAPH_HOPS_HEADER = 'x-wendao-graph-hops';
-const WENDAO_GRAPH_LIMIT_HEADER = 'x-wendao-graph-limit';
-const GRAPH_NEIGHBORS_ROUTE = '/graph/neighbors';
-const TOPOLOGY_3D_ROUTE = '/topology/3d';
+const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
+const WENDAO_GRAPH_NODE_ID_HEADER = "x-wendao-graph-node-id";
+const WENDAO_GRAPH_DIRECTION_HEADER = "x-wendao-graph-direction";
+const WENDAO_GRAPH_HOPS_HEADER = "x-wendao-graph-hops";
+const WENDAO_GRAPH_LIMIT_HEADER = "x-wendao-graph-limit";
+const GRAPH_NEIGHBORS_ROUTE = "/graph/neighbors";
+const TOPOLOGY_3D_ROUTE = "/topology/3d";
 
 export interface GraphNeighborsFlightRequest {
   baseUrl: string;
@@ -44,10 +44,7 @@ export interface FlightServiceClientLike {
     descriptor: FlightDescriptor,
     options?: { headers?: HeadersInit },
   ): Promise<FlightInfo>;
-  doGet(
-    ticket: Ticket,
-    options?: { headers?: HeadersInit },
-  ): AsyncIterable<FlightData>;
+  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
 }
 
 export interface FlightGraphTransportDeps {
@@ -69,31 +66,27 @@ function buildGraphFlightDescriptor(
 ): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
-    path: route.slice(1).split('/'),
+    path: route.slice(1).split("/"),
   });
 }
 
-export function buildGraphNeighborsFlightHeaders(
-  request: GraphNeighborsFlightRequest,
-): Headers {
+export function buildGraphNeighborsFlightHeaders(request: GraphNeighborsFlightRequest): Headers {
   const headers = new Headers();
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
   headers.set(WENDAO_GRAPH_NODE_ID_HEADER, request.nodeId.trim());
   if (request.direction?.trim()) {
     headers.set(WENDAO_GRAPH_DIRECTION_HEADER, request.direction.trim());
   }
-  if (typeof request.hops === 'number' && Number.isFinite(request.hops)) {
+  if (typeof request.hops === "number" && Number.isFinite(request.hops)) {
     headers.set(WENDAO_GRAPH_HOPS_HEADER, String(Math.floor(request.hops)));
   }
-  if (typeof request.limit === 'number' && Number.isFinite(request.limit)) {
+  if (typeof request.limit === "number" && Number.isFinite(request.limit)) {
     headers.set(WENDAO_GRAPH_LIMIT_HEADER, String(Math.floor(request.limit)));
   }
   return headers;
 }
 
-export function buildTopology3DFlightHeaders(
-  request: GraphTopologyFlightRequest,
-): Headers {
+export function buildTopology3DFlightHeaders(request: GraphTopologyFlightRequest): Headers {
   const headers = new Headers();
   headers.set(WENDAO_SCHEMA_VERSION_HEADER, request.schemaVersion);
   return headers;
@@ -151,13 +144,13 @@ function createFlightServiceClient(baseUrl: string): FlightServiceClientLike {
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.trim().replace(/\/+$/, '');
+  return baseUrl.trim().replace(/\/+$/, "");
 }
 
 function readFlightTicket(flightInfo: FlightInfo): Ticket {
   const ticketBytes = flightInfo.endpoint[0]?.ticket?.ticket;
   if (!ticketBytes || ticketBytes.byteLength === 0) {
-    throw new Error('Flight graph route returned no readable ticket');
+    throw new Error("Flight graph route returned no readable ticket");
   }
   return create(TicketSchema, { ticket: ticketBytes });
 }
@@ -167,29 +160,20 @@ function mapFlightGraphError(error: unknown): ApiClientError {
     return error;
   }
   if (error instanceof ConnectError) {
-    return new ApiClientError(
-      inferFlightGraphErrorCode(error.message),
-      error.message,
-    );
+    return new ApiClientError(inferFlightGraphErrorCode(error.message), error.message);
   }
   if (error instanceof Error) {
-    return new ApiClientError(
-      inferFlightGraphErrorCode(error.message),
-      error.message,
-    );
+    return new ApiClientError(inferFlightGraphErrorCode(error.message), error.message);
   }
-  return new ApiClientError(
-    'FLIGHT_GRAPH_ERROR',
-    'Unknown Flight graph failure',
-  );
+  return new ApiClientError("FLIGHT_GRAPH_ERROR", "Unknown Flight graph failure");
 }
 
 function inferFlightGraphErrorCode(message: string): string {
-  if (message.includes('UI_CONFIG_REQUIRED')) {
-    return 'UI_CONFIG_REQUIRED';
+  if (message.includes("UI_CONFIG_REQUIRED")) {
+    return "UI_CONFIG_REQUIRED";
   }
-  if (message.includes('FLIGHT_CONFIG_REQUIRED')) {
-    return 'FLIGHT_CONFIG_REQUIRED';
+  if (message.includes("FLIGHT_CONFIG_REQUIRED")) {
+    return "FLIGHT_CONFIG_REQUIRED";
   }
-  return 'FLIGHT_GRAPH_ERROR';
+  return "FLIGHT_GRAPH_ERROR";
 }

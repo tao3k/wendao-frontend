@@ -1,7 +1,7 @@
-import React from 'react';
-import type { SearchBarCopy, SearchResult } from './types';
-import type { SearchResultsVirtualRow } from './interface/results/buildVirtualizedSearchRows';
-import { VirtualizedSearchResultsList } from './interface/results';
+import React from "react";
+import type { SearchBarCopy, SearchResult } from "./types";
+import type { SearchResultsVirtualRow } from "./interface/results/buildVirtualizedSearchRows";
+import { VirtualizedSearchResultsList } from "./interface/results";
 
 interface SearchResultsPanelProps {
   query: string;
@@ -18,8 +18,14 @@ interface SearchResultsPanelProps {
   renderIcon: (docType?: string) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onSelectIndex: (index: number) => void;
-  onOpen: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  onOpen: (
+    result: SearchResult,
+    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => void;
+  onOpenDefinition: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenGraph: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onPreview: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -55,7 +61,9 @@ export const SearchResultsPanel = React.memo(function SearchResultsPanel({
       )}
 
       {query.trim() && !isLoading && visibleResultCount === 0 && !hasCodeFilterOnlyQuery && (
-        <div className="search-empty">{copy.noResultsPrefix} "{query}"</div>
+        <div className="search-empty">
+          {copy.noResultsPrefix} "{query}"
+        </div>
       )}
 
       <VirtualizedSearchResultsList
@@ -81,4 +89,4 @@ export const SearchResultsPanel = React.memo(function SearchResultsPanel({
   );
 });
 
-SearchResultsPanel.displayName = 'SearchResultsPanel';
+SearchResultsPanel.displayName = "SearchResultsPanel";

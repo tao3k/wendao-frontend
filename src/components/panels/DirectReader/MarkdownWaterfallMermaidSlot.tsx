@@ -1,12 +1,12 @@
-import React from 'react';
-import { copyToClipboard } from './markdownWaterfallShared';
-import { buildMarkdownRichSlotCopyPayload } from './markdownWaterfallModel';
-import type { MarkdownRetrievalChunk, MarkdownWaterfallCopy } from './markdownWaterfallShared';
+import React from "react";
+import { copyToClipboard } from "./markdownWaterfallShared";
+import { buildMarkdownRichSlotCopyPayload } from "./markdownWaterfallModel";
+import type { MarkdownRetrievalChunk, MarkdownWaterfallCopy } from "./markdownWaterfallShared";
 import {
   describeUnsupportedMermaidDialect,
   MERMAID_RENDER_THEME,
   useSharedMermaidRenderer,
-} from '../mermaidRuntime';
+} from "../mermaidRuntime";
 
 interface MarkdownWaterfallMermaidSlotProps {
   chunk?: MarkdownRetrievalChunk;
@@ -16,11 +16,15 @@ interface MarkdownWaterfallMermaidSlotProps {
   source: string;
 }
 
+function buildMermaidSlotSvgMarkup(svg: string): { __html: string } {
+  return { __html: svg };
+}
+
 function renderRichSlotHeader(
   copy: MarkdownWaterfallCopy,
   label: string,
   chunk?: MarkdownRetrievalChunk,
-  onCopy?: () => void
+  onCopy?: () => void,
 ): React.ReactElement {
   return (
     <div className="markdown-waterfall__rich-slot-header">
@@ -40,7 +44,9 @@ function renderRichSlotHeader(
               <span className="markdown-waterfall__section-chunk-value">{chunk.semanticType}</span>
             </span>
             <span className="markdown-waterfall__section-chunk-pill" title={chunk.fingerprint}>
-              <span className="markdown-waterfall__section-chunk-label">{copy.fingerprintLabel}</span>
+              <span className="markdown-waterfall__section-chunk-label">
+                {copy.fingerprintLabel}
+              </span>
               <span className="markdown-waterfall__section-chunk-value">{chunk.fingerprint}</span>
             </span>
             <span
@@ -48,7 +54,9 @@ function renderRichSlotHeader(
               title={`~${chunk.tokenEstimate} ${copy.tokensLabel.toLowerCase()}`}
             >
               <span className="markdown-waterfall__section-chunk-label">{copy.tokensLabel}</span>
-              <span className="markdown-waterfall__section-chunk-value">~{chunk.tokenEstimate}</span>
+              <span className="markdown-waterfall__section-chunk-value">
+                ~{chunk.tokenEstimate}
+              </span>
             </span>
           </div>
         )}
@@ -93,10 +101,10 @@ export const MarkdownWaterfallMermaidSlot: React.FC<MarkdownWaterfallMermaidSlot
               slotLabel: copy.mermaidLabel,
               chunk,
               body: source,
-            })
+            }),
           );
         }
-      : undefined
+      : undefined,
   );
 
   if (!trimmed) {
@@ -109,7 +117,9 @@ export const MarkdownWaterfallMermaidSlot: React.FC<MarkdownWaterfallMermaidSlot
         data-chunk-fingerprint={chunk?.fingerprint}
       >
         {header}
-        <div className="direct-reader__mermaid direct-reader__mermaid--empty">{copy.emptyMermaidBlock}</div>
+        <div className="direct-reader__mermaid direct-reader__mermaid--empty">
+          {copy.emptyMermaidBlock}
+        </div>
       </div>
     );
   }
@@ -165,7 +175,10 @@ export const MarkdownWaterfallMermaidSlot: React.FC<MarkdownWaterfallMermaidSlot
         data-chunk-fingerprint={chunk?.fingerprint}
       >
         {header}
-        <div className="direct-reader__mermaid" dangerouslySetInnerHTML={{ __html: svg }} />
+        <div
+          className="direct-reader__mermaid"
+          dangerouslySetInnerHTML={buildMermaidSlotSvgMarkup(svg)}
+        />
       </div>
     );
   } catch (error) {

@@ -32,12 +32,9 @@ const WENDAO_SEARCH_QUERY_HEADER = "x-wendao-search-query";
 const WENDAO_SEARCH_LIMIT_HEADER = "x-wendao-search-limit";
 const WENDAO_SEARCH_INTENT_HEADER = "x-wendao-search-intent";
 const WENDAO_SEARCH_REPO_HEADER = "x-wendao-search-repo";
-const WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER =
-  "x-wendao-attachment-search-ext-filters";
-const WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER =
-  "x-wendao-attachment-search-kind-filters";
-const WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER =
-  "x-wendao-attachment-search-case-sensitive";
+const WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER = "x-wendao-attachment-search-ext-filters";
+const WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER = "x-wendao-attachment-search-kind-filters";
+const WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER = "x-wendao-attachment-search-case-sensitive";
 const SEARCH_KNOWLEDGE_ROUTE = "/search/knowledge";
 const SEARCH_INTENT_ROUTE = "/search/intent";
 const SEARCH_ATTACHMENTS_ROUTE = "/search/attachments";
@@ -84,10 +81,7 @@ export interface FlightServiceClientLike {
     descriptor: FlightDescriptor,
     options?: { headers?: HeadersInit },
   ): Promise<FlightInfo>;
-  doGet(
-    ticket: Ticket,
-    options?: { headers?: HeadersInit },
-  ): AsyncIterable<FlightData>;
+  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
 }
 
 export interface FlightSearchTransportDeps {
@@ -134,18 +128,13 @@ export interface FlightSearchProfile {
 }
 
 function nowMs(): number {
-  if (
-    typeof performance !== "undefined"
-    && typeof performance.now === "function"
-  ) {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
     return performance.now();
   }
   return Date.now();
 }
 
-export function resolveKnowledgeSearchFlightSchemaVersion(
-  config: WendaoConfig,
-): string {
+export function resolveKnowledgeSearchFlightSchemaVersion(config: WendaoConfig): string {
   const schemaVersion = config.search_flight?.schema_version?.trim();
   if (!schemaVersion) {
     throw new ApiClientError(
@@ -175,18 +164,14 @@ export function resolveSearchFlightRoute(
   return SEARCH_INTENT_ROUTE;
 }
 
-export function buildSearchFlightDescriptor(
-  route: SearchFlightRoute,
-): FlightDescriptor {
+export function buildSearchFlightDescriptor(route: SearchFlightRoute): FlightDescriptor {
   return create(FlightDescriptorSchema, {
     type: FlightDescriptor_DescriptorType.PATH,
     path: route.slice(1).split("/"),
   });
 }
 
-export function buildKnowledgeSearchFlightHeaders(
-  request: KnowledgeSearchFlightRequest,
-): Headers {
+export function buildKnowledgeSearchFlightHeaders(request: KnowledgeSearchFlightRequest): Headers {
   return buildBaseSearchFlightHeaders(request);
 }
 
@@ -196,17 +181,11 @@ export function buildAttachmentSearchFlightHeaders(
   const headers = buildBaseSearchFlightHeaders(request);
   const extFilters = normalizeAttachmentFilters(request.ext, true);
   if (extFilters.length > 0) {
-    headers.set(
-      WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
-      extFilters.join(","),
-    );
+    headers.set(WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER, extFilters.join(","));
   }
   const kindFilters = normalizeAttachmentFilters(request.kind, false);
   if (kindFilters.length > 0) {
-    headers.set(
-      WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER,
-      kindFilters.join(","),
-    );
+    headers.set(WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, kindFilters.join(","));
   }
   if (request.caseSensitive) {
     headers.set(WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, "true");
@@ -261,10 +240,7 @@ export function reassembleArrowIpcStreamFromFlight(
     merged.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return merged.buffer.slice(
-    merged.byteOffset,
-    merged.byteOffset + merged.byteLength,
-  );
+  return merged.buffer.slice(merged.byteOffset, merged.byteOffset + merged.byteLength);
 }
 
 export async function searchKnowledgeFlight(
@@ -279,11 +255,7 @@ export async function searchKnowledgeFlight(
     deps,
     deps.decodeSearchHits ?? missingSearchHitDecoder,
     (metadata, hits) => {
-      const responseMetadata = decodeSearchResponseMetadata(
-        metadata,
-        request.query,
-        hits.length,
-      );
+      const responseMetadata = decodeSearchResponseMetadata(metadata, request.query, hits.length);
       return { ...responseMetadata, hits };
     },
   );
@@ -293,28 +265,20 @@ export async function searchAttachmentsFlight(
   request: AttachmentSearchFlightRequest,
   deps: FlightSearchTransportDeps = {},
 ): Promise<AttachmentSearchResponse> {
-  return loadTypedSearchFlightResponse<
-    AttachmentSearchResponse,
-    AttachmentSearchHit
-  >(
+  return loadTypedSearchFlightResponse<AttachmentSearchResponse, AttachmentSearchHit>(
     SEARCH_ATTACHMENTS_ROUTE,
     request,
     buildAttachmentSearchFlightHeaders(request),
     deps,
     deps.decodeAttachmentHits ?? missingAttachmentHitDecoder,
     (metadata, hits) => {
-      const parsed = decodeStructuredFlightMetadata<
-        Partial<AttachmentSearchResponse>
-      >(metadata);
+      const parsed = decodeStructuredFlightMetadata<Partial<AttachmentSearchResponse>>(metadata);
       return {
         query: typeof parsed.query === "string" ? parsed.query : request.query,
         hits,
-        hitCount:
-          typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
+        hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
         selectedScope:
-          typeof parsed.selectedScope === "string"
-            ? parsed.selectedScope
-            : "attachments",
+          typeof parsed.selectedScope === "string" ? parsed.selectedScope : "attachments",
       };
     },
   );
@@ -331,18 +295,13 @@ export async function searchAstFlight(
     deps,
     deps.decodeAstHits ?? missingAstHitDecoder,
     (metadata, hits) => {
-      const parsed = decodeStructuredFlightMetadata<Partial<AstSearchResponse>>(
-        metadata,
-      );
+      const parsed = decodeStructuredFlightMetadata<Partial<AstSearchResponse>>(metadata);
       return {
         query: typeof parsed.query === "string" ? parsed.query : request.query,
         hits,
-        hitCount:
-          typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
+        hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
         selectedScope:
-          typeof parsed.selectedScope === "string"
-            ? parsed.selectedScope
-            : "definitions",
+          typeof parsed.selectedScope === "string" ? parsed.selectedScope : "definitions",
       };
     },
   );
@@ -352,28 +311,20 @@ export async function searchReferencesFlight(
   request: ReferenceSearchFlightRequest,
   deps: FlightSearchTransportDeps = {},
 ): Promise<ReferenceSearchResponse> {
-  return loadTypedSearchFlightResponse<
-    ReferenceSearchResponse,
-    ReferenceSearchHit
-  >(
+  return loadTypedSearchFlightResponse<ReferenceSearchResponse, ReferenceSearchHit>(
     SEARCH_REFERENCES_ROUTE,
     request,
     buildBaseSearchFlightHeaders(request),
     deps,
     deps.decodeReferenceHits ?? missingReferenceHitDecoder,
     (metadata, hits) => {
-      const parsed = decodeStructuredFlightMetadata<
-        Partial<ReferenceSearchResponse>
-      >(metadata);
+      const parsed = decodeStructuredFlightMetadata<Partial<ReferenceSearchResponse>>(metadata);
       return {
         query: typeof parsed.query === "string" ? parsed.query : request.query,
         hits,
-        hitCount:
-          typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
+        hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
         selectedScope:
-          typeof parsed.selectedScope === "string"
-            ? parsed.selectedScope
-            : "references",
+          typeof parsed.selectedScope === "string" ? parsed.selectedScope : "references",
       };
     },
   );
@@ -390,25 +341,17 @@ export async function searchSymbolsFlight(
     deps,
     deps.decodeSymbolHits ?? missingSymbolHitDecoder,
     (metadata, hits) => {
-      const parsed = decodeStructuredFlightMetadata<
-        Partial<SymbolSearchResponse>
-      >(metadata);
+      const parsed = decodeStructuredFlightMetadata<Partial<SymbolSearchResponse>>(metadata);
       return {
         query: typeof parsed.query === "string" ? parsed.query : request.query,
         hits,
-        hitCount:
-          typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
-        selectedScope:
-          typeof parsed.selectedScope === "string"
-            ? parsed.selectedScope
-            : "project",
+        hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
+        selectedScope: typeof parsed.selectedScope === "string" ? parsed.selectedScope : "project",
         partial: typeof parsed.partial === "boolean" ? parsed.partial : false,
         ...(typeof parsed.indexingState === "string"
           ? { indexingState: parsed.indexingState }
           : {}),
-        ...(typeof parsed.indexError === "string"
-          ? { indexError: parsed.indexError }
-          : {}),
+        ...(typeof parsed.indexError === "string" ? { indexError: parsed.indexError } : {}),
       };
     },
   );
@@ -422,12 +365,7 @@ async function loadTypedSearchFlightResponse<TResponse, THit>(
   decodeHits: (payload: ArrayBuffer) => THit[],
   buildResponse: (metadata: Uint8Array, hits: THit[]) => TResponse,
 ): Promise<TResponse> {
-  const searchRoutePayload = await loadSearchFlightRoute(
-    route,
-    request,
-    headers,
-    deps,
-  );
+  const searchRoutePayload = await loadSearchFlightRoute(route, request, headers, deps);
   const decodeHitsStartMs = nowMs();
   const hits = decodeHits(searchRoutePayload.payload);
   const decodeHitsMs = nowMs() - decodeHitsStartMs;
@@ -448,16 +386,10 @@ async function loadSearchFlightRoute(
 ): Promise<{
   appMetadata: Uint8Array;
   payload: ArrayBuffer;
-  publishProfile: (
-    hitCount: number,
-    decodeHitsMs: number,
-    decodeMetadataMs: number,
-  ) => void;
+  publishProfile: (hitCount: number, decodeHitsMs: number, decodeMetadataMs: number) => void;
 }> {
   const totalStartMs = nowMs();
-  const client = (deps.createClient ?? createFlightServiceClient)(
-    request.baseUrl,
-  );
+  const client = (deps.createClient ?? createFlightServiceClient)(request.baseUrl);
   const descriptor = buildSearchFlightDescriptor(route);
 
   try {
@@ -481,10 +413,7 @@ async function loadSearchFlightRoute(
     const doGetMs = nowMs() - doGetStartMs;
 
     const reassembleStartMs = nowMs();
-    const payload = reassembleArrowIpcStreamFromFlight(
-      flightInfo.schema,
-      frames,
-    );
+    const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);
     const reassembleMs = nowMs() - reassembleStartMs;
 
     return {
@@ -528,16 +457,11 @@ function normalizeBaseUrl(baseUrl: string): string {
   return trimmed.replace(/\/+$/, "");
 }
 
-function encodeFlightRecordBatchFrame(
-  dataHeader: Uint8Array,
-  dataBody: Uint8Array,
-): Uint8Array {
+function encodeFlightRecordBatchFrame(dataHeader: Uint8Array, dataBody: Uint8Array): Uint8Array {
   const metadataLength = alignToEight(dataHeader.byteLength);
   const metadataPadding = metadataLength - dataHeader.byteLength;
   const bodyPadding = alignToEight(dataBody.byteLength) - dataBody.byteLength;
-  const frame = new Uint8Array(
-    8 + metadataLength + dataBody.byteLength + bodyPadding,
-  );
+  const frame = new Uint8Array(8 + metadataLength + dataBody.byteLength + bodyPadding);
   const view = new DataView(frame.buffer);
   view.setUint32(0, IPC_CONTINUATION_TOKEN, true);
   view.setInt32(4, metadataLength, true);
@@ -557,9 +481,7 @@ function alignToEight(value: number): number {
 function readFlightTicket(flightInfo: FlightInfo): Ticket {
   const ticketBytes = flightInfo.endpoint[0]?.ticket?.ticket;
   if (!ticketBytes || ticketBytes.byteLength === 0) {
-    throw new Error(
-      "Flight route returned no readable ticket",
-    );
+    throw new Error("Flight route returned no readable ticket");
   }
   return create(TicketSchema, { ticket: ticketBytes });
 }
@@ -575,42 +497,27 @@ function decodeSearchResponseMetadata(
       hitCount: fallbackHitCount,
     };
   }
-  const parsed = JSON.parse(
-    new TextDecoder().decode(appMetadata),
-  ) as Partial<SearchResponse>;
+  const parsed = JSON.parse(new TextDecoder().decode(appMetadata)) as Partial<SearchResponse>;
   return {
     query: typeof parsed.query === "string" ? parsed.query : fallbackQuery,
-    hitCount:
-      typeof parsed.hitCount === "number" ? parsed.hitCount : fallbackHitCount,
+    hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : fallbackHitCount,
     ...(typeof parsed.graphConfidenceScore === "number"
       ? { graphConfidenceScore: parsed.graphConfidenceScore }
       : {}),
-    ...(typeof parsed.selectedMode === "string"
-      ? { selectedMode: parsed.selectedMode }
-      : {}),
+    ...(typeof parsed.selectedMode === "string" ? { selectedMode: parsed.selectedMode } : {}),
     ...(typeof parsed.intent === "string" ? { intent: parsed.intent } : {}),
     ...(typeof parsed.intentConfidence === "number"
       ? { intentConfidence: parsed.intentConfidence }
       : {}),
-    ...(typeof parsed.searchMode === "string"
-      ? { searchMode: parsed.searchMode }
-      : {}),
+    ...(typeof parsed.searchMode === "string" ? { searchMode: parsed.searchMode } : {}),
     ...(typeof parsed.partial === "boolean" ? { partial: parsed.partial } : {}),
-    ...(typeof parsed.indexingState === "string"
-      ? { indexingState: parsed.indexingState }
-      : {}),
-    ...(Array.isArray(parsed.pendingRepos)
-      ? { pendingRepos: parsed.pendingRepos }
-      : {}),
-    ...(Array.isArray(parsed.skippedRepos)
-      ? { skippedRepos: parsed.skippedRepos }
-      : {}),
+    ...(typeof parsed.indexingState === "string" ? { indexingState: parsed.indexingState } : {}),
+    ...(Array.isArray(parsed.pendingRepos) ? { pendingRepos: parsed.pendingRepos } : {}),
+    ...(Array.isArray(parsed.skippedRepos) ? { skippedRepos: parsed.skippedRepos } : {}),
   };
 }
 
-function decodeStructuredFlightMetadata<TMetadata>(
-  appMetadata: Uint8Array,
-): TMetadata {
+function decodeStructuredFlightMetadata<TMetadata>(appMetadata: Uint8Array): TMetadata {
   if (appMetadata.byteLength === 0) {
     return {} as TMetadata;
   }
@@ -618,33 +525,23 @@ function decodeStructuredFlightMetadata<TMetadata>(
 }
 
 function missingSearchHitDecoder(): never {
-  throw new Error(
-    "searchKnowledgeFlight requires a decodeSearchHits implementation",
-  );
+  throw new Error("searchKnowledgeFlight requires a decodeSearchHits implementation");
 }
 
 function missingAttachmentHitDecoder(): never {
-  throw new Error(
-    "searchAttachmentsFlight requires a decodeAttachmentHits implementation",
-  );
+  throw new Error("searchAttachmentsFlight requires a decodeAttachmentHits implementation");
 }
 
 function missingAstHitDecoder(): never {
-  throw new Error(
-    "searchAstFlight requires a decodeAstHits implementation",
-  );
+  throw new Error("searchAstFlight requires a decodeAstHits implementation");
 }
 
 function missingReferenceHitDecoder(): never {
-  throw new Error(
-    "searchReferencesFlight requires a decodeReferenceHits implementation",
-  );
+  throw new Error("searchReferencesFlight requires a decodeReferenceHits implementation");
 }
 
 function missingSymbolHitDecoder(): never {
-  throw new Error(
-    "searchSymbolsFlight requires a decodeSymbolHits implementation",
-  );
+  throw new Error("searchSymbolsFlight requires a decodeSymbolHits implementation");
 }
 
 function mapFlightSearchError(error: unknown): ApiClientError {
@@ -659,10 +556,7 @@ function mapFlightSearchError(error: unknown): ApiClientError {
     const code = inferFlightErrorCode(error.message);
     return new ApiClientError(code, error.message);
   }
-  return new ApiClientError(
-    "FLIGHT_SEARCH_ERROR",
-    "Unknown Flight search failure",
-  );
+  return new ApiClientError("FLIGHT_SEARCH_ERROR", "Unknown Flight search failure");
 }
 
 function inferFlightErrorCode(message: string): string {

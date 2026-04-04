@@ -46,7 +46,7 @@
 .repo-diagnostics-page__title {
   margin: 0;
   font-size: 28px;
-  color: #E6F3FF;
+  color: #e6f3ff;
 }
 
 .repo-diagnostics-page__summary {
@@ -68,7 +68,7 @@
   border-radius: 10px;
   border: 1px solid rgba(125, 207, 255, 0.22);
   background: rgba(10, 18, 34, 0.92);
-  color: #E6F3FF;
+  color: #e6f3ff;
   cursor: pointer;
 }
 
@@ -116,7 +116,7 @@
 
 .repo-diagnostics-page__metric-value {
   font-size: 22px;
-  color: #E6F3FF;
+  color: #e6f3ff;
 }
 
 .repo-diagnostics-page__meta {
@@ -144,7 +144,7 @@
 }
 
 .repo-diagnostics-page__operator-summary-title {
-  color: #E6F3FF;
+  color: #e6f3ff;
   font-size: 18px;
 }
 
@@ -161,7 +161,7 @@
 }
 
 .repo-diagnostics-page__operator-summary-subtitle {
-  color: #E6F3FF;
+  color: #e6f3ff;
   font-size: 13px;
 }
 
@@ -191,7 +191,7 @@
 }
 
 .repo-diagnostics-page__focused-actions-title {
-  color: #E6F3FF;
+  color: #e6f3ff;
   font-size: 18px;
 }
 
@@ -232,7 +232,7 @@
 .repo-diagnostics-page__repo-title {
   margin: 0;
   font-size: 20px;
-  color: #E6F3FF;
+  color: #e6f3ff;
 }
 
 .repo-diagnostics-page__repo-facts {
@@ -289,7 +289,7 @@
 .nav-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 210, 255, 0.3);
-  color: #E6F3FF;
+  color: #e6f3ff;
   padding: 10px 25px;
   border-radius: 4px;
   cursor: pointer;
@@ -301,7 +301,7 @@
 
 .nav-btn.active {
   background: rgba(0, 210, 255, 0.2);
-  border-color: #00D2FF;
+  border-color: #00d2ff;
   box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
 }
 
@@ -316,7 +316,7 @@
   border-radius: 8px;
   padding: 25px;
   z-index: 9500 !important;
-  box-shadow: 0 30px 100px rgba(0,0,0,1);
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 1);
   pointer-events: auto !important;
 }
 
@@ -328,20 +328,20 @@
   transition: all 0.2s;
   border: 1px solid transparent;
   margin-bottom: 8px;
-  color: #A0C4FF;
+  color: #a0c4ff;
 }
 
 .example-item:hover {
   background: rgba(0, 210, 255, 0.1);
   border-color: rgba(0, 210, 255, 0.4);
-  color: #00D2FF;
+  color: #00d2ff;
 }
 
 .system-badge {
   position: fixed;
   bottom: 25px;
   right: 25px;
-  color: #00D2FF;
+  color: #00d2ff;
   font-size: 11px;
   letter-spacing: 2px;
   opacity: 0.5;
@@ -364,23 +364,23 @@
   pointer-events: auto; /* 🚀 RE-ENABLE FOR BPMN ELEMENTS */
 }
 
-#canvas-2d svg, 
-#canvas-2d svg *, 
-.djs-container, 
-.djs-group, 
-.djs-element, 
-.djs-shape, 
+#canvas-2d svg,
+#canvas-2d svg *,
+.djs-container,
+.djs-group,
+.djs-element,
+.djs-shape,
 .djs-visual {
   overflow: visible !important;
   clip-path: none !important;
 }
 
-.djs-shape .djs-visual rect, 
-.djs-shape .djs-visual polygon, 
+.djs-shape .djs-visual rect,
+.djs-shape .djs-visual polygon,
 .djs-shape .djs-visual circle {
-  fill: #1A2333 !important;
+  fill: #1a2333 !important;
   fill-opacity: 0.85 !important;
-  stroke: #00D2FF !important;
+  stroke: #00d2ff !important;
   stroke-width: 2px !important;
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.3));
@@ -392,14 +392,16 @@
 }
 
 .djs-connection .djs-visual path {
-  stroke: #00D2FF !important;
+  stroke: #00d2ff !important;
   stroke-width: 3px !important;
 }
 
 .djs-label {
-  fill: #E6F3FF !important;
+  fill: #e6f3ff !important;
   font-weight: 900 !important;
   text-shadow: 0 0 10px #000;
 }
 
-.bjs-powered-by { display: none !important; }
+.bjs-powered-by {
+  display: none !important;
+}

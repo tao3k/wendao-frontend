@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Resizer } from './Resizer';
-import '../../styles/layout/Layout.css';
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { Resizer } from "./Resizer";
+import "../../styles/layout/Layout.css";
 
 interface AppLayoutProps {
   leftPanel: React.ReactNode;
@@ -10,8 +10,8 @@ interface AppLayoutProps {
   statusBar?: React.ReactNode;
 }
 
-const STORAGE_KEY_LEFT = 'qianji-ide-left-width';
-const STORAGE_KEY_RIGHT = 'qianji-ide-right-width';
+const STORAGE_KEY_LEFT = "qianji-ide-left-width";
+const STORAGE_KEY_RIGHT = "qianji-ide-right-width";
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
   leftPanel,
@@ -46,20 +46,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const handleRightResize = useCallback((width: number) => {
     setRightWidth(width);
   }, []);
+  const layoutStyle = useMemo(
+    () =>
+      ({
+        "--ide-sidebar-width": `${leftWidth}px`,
+        "--ide-property-width": `${rightWidth}px`,
+      }) as React.CSSProperties,
+    [leftWidth, rightWidth],
+  );
 
   return (
-    <div
-      className="ide-layout"
-      style={{
-        '--ide-sidebar-width': `${leftWidth}px`,
-        '--ide-property-width': `${rightWidth}px`,
-      } as React.CSSProperties}
-    >
-      {toolbar && (
-        <div className="ide-layout__toolbar">
-          {toolbar}
-        </div>
-      )}
+    <div className="ide-layout" style={layoutStyle}>
+      {toolbar && <div className="ide-layout__toolbar">{toolbar}</div>}
 
       <div className="ide-layout__sidebar">
         {leftPanel}
@@ -72,9 +70,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         />
       </div>
 
-      <div className="ide-layout__center">
-        {centerPanel}
-      </div>
+      <div className="ide-layout__center">{centerPanel}</div>
 
       <div className="ide-layout__properties">
         <Resizer
@@ -87,11 +83,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         {rightPanel}
       </div>
 
-      {statusBar && (
-        <div className="ide-layout__statusbar">
-          {statusBar}
-        </div>
-      )}
+      {statusBar && <div className="ide-layout__statusbar">{statusBar}</div>}
     </div>
   );
 };

@@ -4,22 +4,22 @@
 
 export interface TopologyEvents {
   // Node selection events
-  'node:selected': {
+  "node:selected": {
     id: string;
     name: string;
     type: string;
-    source: '2d' | '3d' | 'browser';
+    source: "2d" | "3d" | "browser";
   };
 
   // Node state changes (wendao_cockpit_v1.md)
-  'node:activated': {
+  "node:activated": {
     id: string;
-    state: 'active' | 'processing' | 'success' | 'wait';
+    state: "active" | "processing" | "success" | "wait";
   };
 
   // Camera focus events
-  'camera:focus': {
-    target: 'node' | 'cluster' | 'reset';
+  "camera:focus": {
+    target: "node" | "cluster" | "reset";
     position?: [number, number, number];
     centroid?: [number, number, number];
     nodeCount?: number;
@@ -27,18 +27,18 @@ export interface TopologyEvents {
   };
 
   // View mode changes
-  'view:mode-changed': {
-    mode: '2d' | '3d';
+  "view:mode-changed": {
+    mode: "2d" | "3d";
   };
 
   // Topology updates
-  'topology:updated': {
+  "topology:updated": {
     nodes: string[];
     links: string[];
   };
 
   // BPMN XML changes
-  'bpmn:imported': {
+  "bpmn:imported": {
     xml: string;
     nodeCount: number;
   };

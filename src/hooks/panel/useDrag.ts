@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 
 export interface DragState {
   isDragging: boolean;
@@ -34,12 +34,12 @@ export const useDrag = (options: UseDragOptions = {}) => {
       currentPosRef.current = { x: e.clientX, y: e.clientY };
       hasExceededThresholdRef.current = false;
 
-      document.body.style.cursor = 'grabbing';
-      document.body.style.userSelect = 'none';
+      document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
 
       onDragStart?.(e.clientX, e.clientY);
     },
-    [onDragStart]
+    [onDragStart],
   );
 
   useEffect(() => {
@@ -66,20 +66,20 @@ export const useDrag = (options: UseDragOptions = {}) => {
 
     const handleMouseUp = (e: MouseEvent) => {
       setIsDragging(false);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
 
       if (hasExceededThresholdRef.current) {
         onDragEnd?.(e.clientX, e.clientY);
       }
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging, threshold, onDragMove, onDragEnd]);
 
@@ -96,21 +96,18 @@ export const useDrag = (options: UseDragOptions = {}) => {
  */
 export const useHorizontalDrag = (
   onDrag: (deltaX: number) => void,
-  options: { invert?: boolean } = {}
+  options: { invert?: boolean } = {},
 ) => {
   const { invert = false } = options;
   const startPosRef = useRef(0);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      startPosRef.current = e.clientX;
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    startPosRef.current = e.clientX;
 
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    },
-    []
-  );
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -122,16 +119,16 @@ export const useHorizontalDrag = (
 
     const handleMouseUp = () => {
       startPosRef.current = 0;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [onDrag, invert]);
 

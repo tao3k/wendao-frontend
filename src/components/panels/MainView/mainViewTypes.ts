@@ -1,3 +1,3 @@
-export type MainViewTab = 'diagram' | 'references' | 'graph' | 'content';
+export type MainViewTab = "diagram" | "references" | "graph" | "content";
 
-export type MainViewLocale = 'en' | 'zh';
+export type MainViewLocale = "en" | "zh";

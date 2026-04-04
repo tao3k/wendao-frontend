@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import type { AutocompleteSuggestion } from '../../api';
-import { formatSuggestionType } from './searchPresentation';
-import { buildVisibleSearchSuggestions } from './searchSuggestionBudget';
-import type { UiLocale } from './types';
+import React, { useCallback, useMemo } from "react";
+import type { AutocompleteSuggestion } from "../../api";
+import { formatSuggestionType } from "./searchPresentation";
+import { buildVisibleSearchSuggestions } from "./searchSuggestionBudget";
+import type { UiLocale } from "./types";
 
 interface SearchSuggestionsPanelProps {
   showSuggestions: boolean;
@@ -33,29 +33,39 @@ const SearchSuggestionRow = React.memo(function SearchSuggestionRow({
   onSuggestionClick,
   onSuggestionHover,
 }: SearchSuggestionRowProps) {
+  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onSuggestionClick(suggestion);
+    },
+    [onSuggestionClick, suggestion],
+  );
+  const handleMouseEnter = useCallback(() => {
+    onSuggestionHover(index);
+  }, [index, onSuggestionHover]);
+
   return (
-    <div
+    <button
+      type="button"
       data-testid="search-suggestion-row"
-      className={`search-suggestion ${isSelected ? 'selected' : ''}`}
-      onMouseDown={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onSuggestionClick(suggestion);
-      }}
-      onMouseEnter={() => onSuggestionHover(index)}
+      className={`search-suggestion ${isSelected ? "selected" : ""}`}
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
     >
       {renderSuggestionIcon(suggestion)}
       <span className="suggestion-text">{suggestion.text}</span>
       <span className="suggestion-type">{formatSuggestionType(suggestion, locale)}</span>
-    </div>
+    </button>
   );
 });
 
-SearchSuggestionRow.displayName = 'SearchSuggestionRow';
+SearchSuggestionRow.displayName = "SearchSuggestionRow";
 
 export const SearchSuggestionsPanel = React.memo(function SearchSuggestionsPanel({
   showSuggestions,
@@ -93,4 +103,4 @@ export const SearchSuggestionsPanel = React.memo(function SearchSuggestionsPanel
   );
 });
 
-SearchSuggestionsPanel.displayName = 'SearchSuggestionsPanel';
+SearchSuggestionsPanel.displayName = "SearchSuggestionsPanel";

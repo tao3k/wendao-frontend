@@ -1,8 +1,8 @@
-import type { SearchResultSection } from '../../searchResultSections';
+import type { SearchResultSection } from "../../searchResultSections";
 import {
   buildVirtualizedSearchRows,
   type SearchResultsVirtualRow,
-} from './buildVirtualizedSearchRows';
+} from "./buildVirtualizedSearchRows";
 
 export interface SearchResultsListModel {
   rows: SearchResultsVirtualRow[];

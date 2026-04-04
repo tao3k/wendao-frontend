@@ -2,12 +2,12 @@ import type {
   DiagramWindowToolbarCopy,
   DiagramWindowViewModelCopy,
   DiagramWindowWorkspaceCopy,
-} from './diagramWindowTypes';
+} from "./diagramWindowTypes";
 
 export function resolveDiagramHeading(
   copy: DiagramWindowViewModelCopy,
   hasBpmn: boolean,
-  hasMermaid: boolean
+  hasMermaid: boolean,
 ): string {
   if (hasBpmn && hasMermaid) {
     return copy.headingBoth;
@@ -24,7 +24,7 @@ export function resolveNoDiagramMessage(
   copy: DiagramWindowViewModelCopy,
   isMarkdownFile: boolean,
   isCodeFile: boolean,
-  analysisLoading: boolean
+  analysisLoading: boolean,
 ): string {
   if (analysisLoading && isMarkdownFile) {
     return copy.markdownAnalysisLoading;
@@ -38,7 +38,7 @@ export function resolveNoDiagramMessage(
 }
 
 export function buildDiagramWindowToolbarCopy(
-  copy: DiagramWindowViewModelCopy
+  copy: DiagramWindowViewModelCopy,
 ): DiagramWindowToolbarCopy {
   return {
     modeTabLabel: copy.modeTabLabel,
@@ -55,7 +55,7 @@ export function buildDiagramWindowToolbarCopy(
 }
 
 export function buildDiagramWindowWorkspaceCopy(
-  copy: DiagramWindowViewModelCopy
+  copy: DiagramWindowViewModelCopy,
 ): DiagramWindowWorkspaceCopy {
   return {
     panelBpmn: copy.panelBpmn,

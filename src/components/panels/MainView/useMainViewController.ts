@@ -1,8 +1,8 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
-import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../statusBar/types';
-import type { MainViewRequestedTab } from './mainViewProps';
-import type { MainViewTab } from './mainViewTypes';
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import type { GraphSidebarSummary } from "../GraphView/types";
+import type { RuntimeStatus } from "../../statusBar/types";
+import type { MainViewRequestedTab } from "./mainViewProps";
+import type { MainViewTab } from "./mainViewTypes";
 
 interface UseMainViewControllerParams {
   requestedTab?: MainViewRequestedTab | null;
@@ -23,7 +23,7 @@ interface UseMainViewControllerResult {
 export function useMainViewController({
   requestedTab,
   graphCenterNodeId,
-  initialTab = 'diagram',
+  initialTab = "diagram",
   onSidebarSummaryChange,
   onGraphRuntimeStatusChange,
 }: UseMainViewControllerParams): UseMainViewControllerResult {
@@ -39,20 +39,20 @@ export function useMainViewController({
   }, [requestedTab]);
 
   useEffect(() => {
-    if (activeTab !== 'graph') {
+    if (activeTab !== "graph") {
       onSidebarSummaryChange?.(null);
       onGraphRuntimeStatusChange?.(null);
     }
   }, [activeTab, onGraphRuntimeStatusChange, onSidebarSummaryChange]);
 
   useEffect(() => {
-    if (activeTab === 'diagram') {
+    if (activeTab === "diagram") {
       setDiagramFocusEpoch((current) => current + 1);
     }
   }, [activeTab]);
 
-  const isGraphTabActive = activeTab === 'graph';
-  const resolvedGraphCenterNodeId = isGraphTabActive ? graphCenterNodeId ?? null : null;
+  const isGraphTabActive = activeTab === "graph";
+  const resolvedGraphCenterNodeId = isGraphTabActive ? (graphCenterNodeId ?? null) : null;
 
   return {
     activeTab,

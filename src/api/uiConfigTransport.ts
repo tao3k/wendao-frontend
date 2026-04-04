@@ -1,8 +1,8 @@
-import type { UiCapabilities } from './apiContracts';
+import type { UiCapabilities } from "./apiContracts";
 import {
   fetchControlPlaneUiCapabilities,
   postControlPlaneUiConfig,
-} from './controlPlane/transport';
+} from "./controlPlane/transport";
 
 export interface UiConfigTransportDeps {
   apiBase: string;
@@ -25,7 +25,7 @@ export interface UiConfigTransportState {
 
 export function createUiConfigTransportState(deps: UiConfigTransportDeps): UiConfigTransportState {
   const now = deps.now ?? (() => Date.now());
-  const hasWindow = deps.hasWindow ?? (() => typeof window !== 'undefined');
+  const hasWindow = deps.hasWindow ?? (() => typeof window !== "undefined");
   const prewarmIntervalMs = deps.prewarmIntervalMs ?? 5_000;
   const getFetchImpl = (): typeof fetch => deps.fetchImpl ?? fetch;
 
@@ -42,11 +42,14 @@ export function createUiConfigTransportState(deps: UiConfigTransportDeps): UiCon
         try {
           const config = await deps.getConfig();
           const uiConfig = deps.toUiConfig(config);
-          await postControlPlaneUiConfig({
-            apiBase: deps.apiBase,
-            fetchImpl: getFetchImpl(),
-            handleResponse: deps.handleResponse,
-          }, uiConfig);
+          await postControlPlaneUiConfig(
+            {
+              apiBase: deps.apiBase,
+              fetchImpl: getFetchImpl(),
+              handleResponse: deps.handleResponse,
+            },
+            uiConfig,
+          );
           return true;
         } catch {
           return false;

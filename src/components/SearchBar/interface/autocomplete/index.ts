@@ -1,2 +1,2 @@
-export { buildSearchAutocompleteSources } from './buildSearchAutocompleteSources';
-export { useSearchAutocompleteInterface } from './useSearchAutocompleteInterface';
+export { buildSearchAutocompleteSources } from "./buildSearchAutocompleteSources";
+export { useSearchAutocompleteInterface } from "./useSearchAutocompleteInterface";

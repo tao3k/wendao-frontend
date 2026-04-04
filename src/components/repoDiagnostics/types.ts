@@ -1,4 +1,4 @@
-export type RepoDiagnosticsLocale = 'en' | 'zh';
+export type RepoDiagnosticsLocale = "en" | "zh";
 
 export interface RepoDiagnosticsCopy {
   title: string;

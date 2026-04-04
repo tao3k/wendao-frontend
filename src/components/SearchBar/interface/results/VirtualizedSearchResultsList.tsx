@@ -1,12 +1,10 @@
-import React, { useMemo } from 'react';
-import { Virtuoso } from 'react-virtuoso';
-import { normalizeCodeLineLabel } from '../../codeSearchUtils';
-import { isCodeSearchResult } from '../../searchResultNormalization';
-import { SearchResultRow } from '../../SearchResultRow';
-import type { SearchBarCopy, SearchResult } from '../../types';
-import {
-  type SearchResultsVirtualRow,
-} from './buildVirtualizedSearchRows';
+import React, { useMemo } from "react";
+import { Virtuoso } from "react-virtuoso";
+import { normalizeCodeLineLabel } from "../../codeSearchUtils";
+import { isCodeSearchResult } from "../../searchResultNormalization";
+import { SearchResultRow } from "../../SearchResultRow";
+import type { SearchBarCopy, SearchResult } from "../../types";
+import { type SearchResultsVirtualRow } from "./buildVirtualizedSearchRows";
 
 interface VirtualizedSearchResultsListProps {
   query: string;
@@ -20,8 +18,14 @@ interface VirtualizedSearchResultsListProps {
   renderIcon: (docType?: string) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onSelectIndex: (index: number) => void;
-  onOpen: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  onOpen: (
+    result: SearchResult,
+    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => void;
+  onOpenDefinition: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenGraph: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onPreview: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -34,18 +38,21 @@ export const SEARCH_RESULTS_OVERSCAN = Object.freeze({
   main: 160,
   reverse: 48,
 });
+const SEARCH_RESULTS_VIRTUAL_LIST_STYLE = Object.freeze({ height: "100%" });
 
 export interface SearchResultsListBudget {
   shouldUseVirtualizedLayout: boolean;
   initialItemCount: number;
-  overscan?: number | {
-    main: number;
-    reverse: number;
-  };
+  overscan?:
+    | number
+    | {
+        main: number;
+        reverse: number;
+      };
 }
 
 function getSearchResultsUserAgent(): string {
-  return typeof navigator === 'undefined' ? '' : navigator.userAgent;
+  return typeof navigator === "undefined" ? "" : navigator.userAgent;
 }
 
 export function shouldRenderAllRowsInCurrentRuntime(
@@ -81,8 +88,14 @@ interface SearchResultsRowRendererProps {
   renderIcon: (docType?: string) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onSelectIndex: (index: number) => void;
-  onOpen: (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => void;
-  onOpenDefinition: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  onOpen: (
+    result: SearchResult,
+    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => void;
+  onOpenDefinition: (
+    result: SearchResult,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<void>;
   onOpenReferences: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenGraph: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
   onPreview: (result: SearchResult, event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -110,7 +123,7 @@ function renderSearchResultsRow(
     onTogglePreview,
   }: SearchResultsRowRendererProps,
 ): React.ReactNode {
-  if (row.type === 'section') {
+  if (row.type === "section") {
     return (
       <div className="search-section-title">
         <span>{row.title}</span>
@@ -170,45 +183,54 @@ export const VirtualizedSearchResultsList = React.memo(function VirtualizedSearc
   onPreview,
   onTogglePreview,
 }: VirtualizedSearchResultsListProps) {
-  const rowRendererProps = useMemo<SearchResultsRowRendererProps>(() => ({
-    query,
-    copy,
-    selectedIndex,
-    canOpenReferences,
-    canOpenGraph,
-    openOnSelect,
-    isResultPreviewExpanded,
-    renderIcon,
-    renderTitle,
-    onSelectIndex,
-    onOpen,
-    onOpenDefinition,
-    onOpenReferences,
-    onOpenGraph,
-    onPreview,
-    onTogglePreview,
-  }), [
-    query,
-    copy,
-    selectedIndex,
-    canOpenReferences,
-    canOpenGraph,
-    openOnSelect,
-    isResultPreviewExpanded,
-    renderIcon,
-    renderTitle,
-    onSelectIndex,
-    onOpen,
-    onOpenDefinition,
-    onOpenReferences,
-    onOpenGraph,
-    onPreview,
-    onTogglePreview,
-  ]);
-  const listBudget = useMemo(
-    () => buildSearchResultsListBudget(rows.length),
-    [rows.length],
+  const rowRendererProps = useMemo<SearchResultsRowRendererProps>(
+    () => ({
+      query,
+      copy,
+      selectedIndex,
+      canOpenReferences,
+      canOpenGraph,
+      openOnSelect,
+      isResultPreviewExpanded,
+      renderIcon,
+      renderTitle,
+      onSelectIndex,
+      onOpen,
+      onOpenDefinition,
+      onOpenReferences,
+      onOpenGraph,
+      onPreview,
+      onTogglePreview,
+    }),
+    [
+      query,
+      copy,
+      selectedIndex,
+      canOpenReferences,
+      canOpenGraph,
+      openOnSelect,
+      isResultPreviewExpanded,
+      renderIcon,
+      renderTitle,
+      onSelectIndex,
+      onOpen,
+      onOpenDefinition,
+      onOpenReferences,
+      onOpenGraph,
+      onPreview,
+      onTogglePreview,
+    ],
   );
+  const listBudget = useMemo(() => buildSearchResultsListBudget(rows.length), [rows.length]);
+  const computeItemKey = useMemo(() => {
+    return (index: number) => rows[index]?.key ?? index;
+  }, [rows]);
+  const itemContent = useMemo(() => {
+    return (index: number) => {
+      const row = rows[index];
+      return row ? renderSearchResultsRow(row, rowRendererProps) : null;
+    };
+  }, [rowRendererProps, rows]);
 
   if (rows.length === 0) {
     return null;
@@ -229,17 +251,14 @@ export const VirtualizedSearchResultsList = React.memo(function VirtualizedSearc
   return (
     <Virtuoso
       className="search-results-virtual-list"
-      style={{ height: '100%' }}
+      style={SEARCH_RESULTS_VIRTUAL_LIST_STYLE}
       totalCount={rows.length}
       initialItemCount={listBudget.initialItemCount}
       overscan={listBudget.overscan}
-      computeItemKey={(index) => rows[index]?.key ?? index}
-      itemContent={(index) => {
-        const row = rows[index];
-        return row ? renderSearchResultsRow(row, rowRendererProps) : null;
-      }}
+      computeItemKey={computeItemKey}
+      itemContent={itemContent}
     />
   );
 });
 
-VirtualizedSearchResultsList.displayName = 'VirtualizedSearchResultsList';
+VirtualizedSearchResultsList.displayName = "VirtualizedSearchResultsList";

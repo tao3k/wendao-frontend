@@ -1,6 +1,6 @@
-import React from 'react';
-import { SearchFooterHints } from '../SearchBar/SearchFooterHints';
-import type { SearchBarCopy } from '../SearchBar/types';
+import React from "react";
+import { SearchFooterHints } from "../SearchBar/SearchFooterHints";
+import type { SearchBarCopy } from "../SearchBar/types";
 
 interface ZenSearchShortcutsBarProps {
   copy: SearchBarCopy;

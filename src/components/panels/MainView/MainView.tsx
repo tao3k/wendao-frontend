@@ -1,11 +1,11 @@
-import React from 'react';
-import type { MainViewProps } from './mainViewProps';
-import { MainViewTabBar } from './MainViewTabBar';
-import { useMainViewAssembler } from './useMainViewAssembler';
-import './MainView.css';
+import React from "react";
+import type { MainViewProps } from "./mainViewProps";
+import { MainViewTabBar } from "./MainViewTabBar";
+import { useMainViewAssembler } from "./useMainViewAssembler";
+import "./MainView.css";
 
 export const MainView: React.FC<MainViewProps> = ({
-  locale = 'en',
+  locale = "en",
   isVfsLoading: _isVfsLoading,
   selectedFile,
   graphCenterNodeId,
@@ -18,20 +18,19 @@ export const MainView: React.FC<MainViewProps> = ({
   onSidebarSummaryChange,
   onGraphRuntimeStatusChange,
 }) => {
-  const { activeTab, copy, onTabChange, onPreloadTab, activePanel } =
-    useMainViewAssembler({
-      locale,
-      selectedFile,
-      graphCenterNodeId,
-      relationships,
-      requestedTab,
-      onGraphFileSelect,
-      onGraphCenterNodeInvalid,
-      onNodeClick,
-      onBiLinkClick,
-      onSidebarSummaryChange,
-      onGraphRuntimeStatusChange,
-    });
+  const { activeTab, copy, onTabChange, onPreloadTab, activePanel } = useMainViewAssembler({
+    locale,
+    selectedFile,
+    graphCenterNodeId,
+    relationships,
+    requestedTab,
+    onGraphFileSelect,
+    onGraphCenterNodeInvalid,
+    onNodeClick,
+    onBiLinkClick,
+    onSidebarSummaryChange,
+    onGraphRuntimeStatusChange,
+  });
 
   return (
     <div className="main-view">
@@ -44,9 +43,7 @@ export const MainView: React.FC<MainViewProps> = ({
       />
 
       {/* Tab Content */}
-      <div className="main-view-content">
-        {activePanel}
-      </div>
+      <div className="main-view-content">{activePanel}</div>
     </div>
   );
 };

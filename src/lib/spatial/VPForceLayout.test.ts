@@ -2,36 +2,36 @@
  * Tests for VP-FDC Layout Algorithm
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { VPForceLayout, DEFAULT_LAYOUT_CONFIG } from './VPForceLayout';
-import type { AcademicNode, AcademicLink } from '../../types';
+import { describe, it, expect, beforeEach } from "vitest";
+import { VPForceLayout, DEFAULT_LAYOUT_CONFIG } from "./VPForceLayout";
+import type { AcademicNode, AcademicLink } from "../../types";
 
-describe('VPForceLayout', () => {
+describe("VPForceLayout", () => {
   let layout: VPForceLayout;
 
   const testNodes: AcademicNode[] = [
-    { id: 'node-1', name: 'Task 1', type: 'task' },
-    { id: 'node-2', name: 'Task 2', type: 'task' },
-    { id: 'node-3', name: 'Event 1', type: 'event' },
-    { id: 'node-4', name: 'Gateway 1', type: 'gateway' },
+    { id: "node-1", name: "Task 1", type: "task" },
+    { id: "node-2", name: "Task 2", type: "task" },
+    { id: "node-3", name: "Event 1", type: "event" },
+    { id: "node-4", name: "Gateway 1", type: "gateway" },
   ];
 
   const testLinks: AcademicLink[] = [
-    { from: 'node-1', to: 'node-2' },
-    { from: 'node-2', to: 'node-3' },
-    { from: 'node-3', to: 'node-4' },
+    { from: "node-1", to: "node-2" },
+    { from: "node-2", to: "node-3" },
+    { from: "node-3", to: "node-4" },
   ];
 
   beforeEach(() => {
     layout = new VPForceLayout();
   });
 
-  describe('constructor', () => {
-    it('should create layout with default config', () => {
+  describe("constructor", () => {
+    it("should create layout with default config", () => {
       expect(layout).toBeDefined();
     });
 
-    it('should accept custom config', () => {
+    it("should accept custom config", () => {
       const customLayout = new VPForceLayout({
         iterations: 500,
         linkStrength: 0.5,
@@ -40,8 +40,8 @@ describe('VPForceLayout', () => {
     });
   });
 
-  describe('initialize', () => {
-    it('should initialize nodes with positions', () => {
+  describe("initialize", () => {
+    it("should initialize nodes with positions", () => {
       layout.initialize(testNodes, testLinks);
       const nodes = layout.getNodes();
 
@@ -50,40 +50,40 @@ describe('VPForceLayout', () => {
         expect(node.x).toBeDefined();
         expect(node.y).toBeDefined();
         expect(node.z).toBeDefined();
-        expect(typeof node.x).toBe('number');
-        expect(typeof node.y).toBe('number');
-        expect(typeof node.z).toBe('number');
+        expect(typeof node.x).toBe("number");
+        expect(typeof node.y).toBe("number");
+        expect(typeof node.z).toBe("number");
       });
     });
 
-    it('should group nodes by type in clusters', () => {
+    it("should group nodes by type in clusters", () => {
       layout.initialize(testNodes, testLinks);
       const clusters = layout.getClusters();
 
       expect(clusters.length).toBe(3); // task, event, gateway
 
-      const taskCluster = clusters.find((c) => c.id === 'cluster-task');
+      const taskCluster = clusters.find((c) => c.id === "cluster-task");
       expect(taskCluster).toBeDefined();
       expect(taskCluster!.nodeIds).toHaveLength(2);
 
-      const eventCluster = clusters.find((c) => c.id === 'cluster-event');
+      const eventCluster = clusters.find((c) => c.id === "cluster-event");
       expect(eventCluster).toBeDefined();
       expect(eventCluster!.nodeIds).toHaveLength(1);
     });
 
-    it('should calculate cluster centroids', () => {
+    it("should calculate cluster centroids", () => {
       layout.initialize(testNodes, testLinks);
       const clusters = layout.getClusters();
 
       clusters.forEach((cluster) => {
         expect(cluster.centroid).toHaveLength(3);
-        expect(typeof cluster.centroid[0]).toBe('number');
-        expect(typeof cluster.centroid[1]).toBe('number');
-        expect(typeof cluster.centroid[2]).toBe('number');
+        expect(typeof cluster.centroid[0]).toBe("number");
+        expect(typeof cluster.centroid[1]).toBe("number");
+        expect(typeof cluster.centroid[2]).toBe("number");
       });
     });
 
-    it('should assign colors to clusters', () => {
+    it("should assign colors to clusters", () => {
       layout.initialize(testNodes, testLinks);
       const clusters = layout.getClusters();
 
@@ -92,17 +92,17 @@ describe('VPForceLayout', () => {
       });
     });
 
-    it('should respect provided node positions', () => {
+    it("should respect provided node positions", () => {
       const positionedNodes: AcademicNode[] = [
-        { id: 'node-a', name: 'Node A', type: 'task', position: [10, 5, -3] },
-        { id: 'node-b', name: 'Node B', type: 'event', position: [-4, 2, 7] },
+        { id: "node-a", name: "Node A", type: "task", position: [10, 5, -3] },
+        { id: "node-b", name: "Node B", type: "event", position: [-4, 2, 7] },
       ];
 
       layout.initialize(positionedNodes, []);
       const nodes = layout.getNodes();
 
-      const nodeA = nodes.find((node) => node.id === 'node-a');
-      const nodeB = nodes.find((node) => node.id === 'node-b');
+      const nodeA = nodes.find((node) => node.id === "node-a");
+      const nodeB = nodes.find((node) => node.id === "node-b");
 
       expect(nodeA).toBeDefined();
       expect(nodeA!.x).toBe(10);
@@ -115,41 +115,41 @@ describe('VPForceLayout', () => {
       expect(nodeB!.z).toBe(7);
     });
 
-    it('should reset alpha on initialize', () => {
+    it("should reset alpha on initialize", () => {
       layout.initialize(testNodes, testLinks);
       layout.tickMany(10);
-      expect(layout['alpha']).toBeLessThan(1.0);
+      expect(layout["alpha"]).toBeLessThan(1.0);
 
       layout.initialize(testNodes, testLinks);
-      expect(layout['alpha']).toBe(1.0);
+      expect(layout["alpha"]).toBe(1.0);
     });
 
-    it('should handle empty nodes', () => {
+    it("should handle empty nodes", () => {
       layout.initialize([], []);
       const nodes = layout.getNodes();
       expect(nodes).toHaveLength(0);
     });
   });
 
-  describe('tick', () => {
-    it('should return alpha value', () => {
+  describe("tick", () => {
+    it("should return alpha value", () => {
       layout.initialize(testNodes, testLinks);
       const alpha = layout.tick();
 
-      expect(typeof alpha).toBe('number');
+      expect(typeof alpha).toBe("number");
       expect(alpha).toBeGreaterThan(0);
       expect(alpha).toBeLessThanOrEqual(1);
     });
 
-    it('should decay alpha over time', () => {
+    it("should decay alpha over time", () => {
       layout.initialize(testNodes, testLinks);
-      const initialAlpha = layout['alpha'];
+      const initialAlpha = layout["alpha"];
 
       layout.tick();
-      expect(layout['alpha']).toBeLessThan(initialAlpha);
+      expect(layout["alpha"]).toBeLessThan(initialAlpha);
     });
 
-    it('should update node positions', () => {
+    it("should update node positions", () => {
       layout.initialize(testNodes, testLinks);
       const initialNodes = layout.getNodes().map((n) => ({ id: n.id, x: n.x, y: n.y, z: n.z }));
 
@@ -161,11 +161,7 @@ describe('VPForceLayout', () => {
       for (let i = 0; i < initialNodes.length; i++) {
         const initial = initialNodes[i];
         const updated = updatedNodes[i];
-        if (
-          initial.x !== updated.x ||
-          initial.y !== updated.y ||
-          initial.z !== updated.z
-        ) {
+        if (initial.x !== updated.x || initial.y !== updated.y || initial.z !== updated.z) {
           hasMovement = true;
           break;
         }
@@ -173,15 +169,15 @@ describe('VPForceLayout', () => {
       expect(hasMovement).toBe(true);
     });
 
-    it('should return current alpha for empty graph', () => {
+    it("should return current alpha for empty graph", () => {
       layout.initialize([], []);
       const alpha = layout.tick();
       expect(alpha).toBe(1.0);
     });
   });
 
-  describe('tickMany', () => {
-    it('should run multiple ticks', () => {
+  describe("tickMany", () => {
+    it("should run multiple ticks", () => {
       layout.initialize(testNodes, testLinks);
       const alpha = layout.tickMany(10);
 
@@ -189,18 +185,18 @@ describe('VPForceLayout', () => {
     });
   });
 
-  describe('getNodes', () => {
-    it('should return all nodes', () => {
+  describe("getNodes", () => {
+    it("should return all nodes", () => {
       layout.initialize(testNodes, testLinks);
       const nodes = layout.getNodes();
 
       expect(nodes).toHaveLength(4);
-      expect(nodes.map((n) => n.id).sort()).toEqual(
-        ['node-1', 'node-2', 'node-3', 'node-4'].sort()
+      expect(nodes.map((n) => n.id).toSorted()).toEqual(
+        ["node-1", "node-2", "node-3", "node-4"].toSorted(),
       );
     });
 
-    it('should include velocity properties', () => {
+    it("should include velocity properties", () => {
       layout.initialize(testNodes, testLinks);
       const nodes = layout.getNodes();
 
@@ -212,13 +208,13 @@ describe('VPForceLayout', () => {
     });
   });
 
-  describe('updatePosition', () => {
-    it('should update node position', () => {
+  describe("updatePosition", () => {
+    it("should update node position", () => {
       layout.initialize(testNodes, testLinks);
-      layout.updatePosition('node-1', [100, 200, 300]);
+      layout.updatePosition("node-1", [100, 200, 300]);
 
       const nodes = layout.getNodes();
-      const node = nodes.find((n) => n.id === 'node-1');
+      const node = nodes.find((n) => n.id === "node-1");
 
       expect(node).toBeDefined();
       expect(node!.x).toBe(100);
@@ -226,30 +222,30 @@ describe('VPForceLayout', () => {
       expect(node!.z).toBe(300);
     });
 
-    it('should fix node position', () => {
+    it("should fix node position", () => {
       layout.initialize(testNodes, testLinks);
-      layout.updatePosition('node-1', [100, 200, 300]);
+      layout.updatePosition("node-1", [100, 200, 300]);
 
       // Run tick - fixed node should not move
       layout.tick();
 
       const nodes = layout.getNodes();
-      const node = nodes.find((n) => n.id === 'node-1');
+      const node = nodes.find((n) => n.id === "node-1");
 
       expect(node!.x).toBe(100);
       expect(node!.y).toBe(200);
       expect(node!.z).toBe(300);
     });
 
-    it('should handle non-existent node', () => {
+    it("should handle non-existent node", () => {
       layout.initialize(testNodes, testLinks);
       // Should not throw
-      expect(() => layout.updatePosition('non-existent', [0, 0, 0])).not.toThrow();
+      expect(() => layout.updatePosition("non-existent", [0, 0, 0])).not.toThrow();
     });
   });
 
-  describe('getClusters', () => {
-    it('should return cluster info', () => {
+  describe("getClusters", () => {
+    it("should return cluster info", () => {
       layout.initialize(testNodes, testLinks);
       const clusters = layout.getClusters();
 
@@ -264,19 +260,19 @@ describe('VPForceLayout', () => {
     });
   });
 
-  describe('restart', () => {
-    it('should reset alpha to 1.0', () => {
+  describe("restart", () => {
+    it("should reset alpha to 1.0", () => {
       layout.initialize(testNodes, testLinks);
       layout.tickMany(50);
-      expect(layout['alpha']).toBeLessThan(0.5);
+      expect(layout["alpha"]).toBeLessThan(0.5);
 
       layout.restart();
-      expect(layout['alpha']).toBe(1.0);
+      expect(layout["alpha"]).toBe(1.0);
     });
   });
 
-  describe('convergence', () => {
-    it('should converge over many iterations', () => {
+  describe("convergence", () => {
+    it("should converge over many iterations", () => {
       layout.initialize(testNodes, testLinks);
 
       // Run many iterations
@@ -285,10 +281,10 @@ describe('VPForceLayout', () => {
       }
 
       // Alpha should be very low
-      expect(layout['alpha']).toBeLessThan(0.1);
+      expect(layout["alpha"]).toBeLessThan(0.1);
     });
 
-    it('should push overlapping nodes apart with minDistance', () => {
+    it("should push overlapping nodes apart with minDistance", () => {
       const layoutWithMinDistance = new VPForceLayout({
         minDistance: 12,
         repulsionStrength: 1200,
@@ -296,8 +292,8 @@ describe('VPForceLayout', () => {
       });
 
       const overlappingNodes: AcademicNode[] = [
-        { id: 'overlap-1', name: 'Overlap 1', type: 'task', position: [0, 0, 0] },
-        { id: 'overlap-2', name: 'Overlap 2', type: 'task', position: [1, 0, 0] },
+        { id: "overlap-1", name: "Overlap 1", type: "task", position: [0, 0, 0] },
+        { id: "overlap-2", name: "Overlap 2", type: "task", position: [1, 0, 0] },
       ];
 
       layoutWithMinDistance.initialize(overlappingNodes, []);
@@ -312,11 +308,11 @@ describe('VPForceLayout', () => {
       expect(dist).toBeGreaterThan(6);
     });
 
-    it('should not let nodes overlap significantly', () => {
+    it("should not let nodes overlap significantly", () => {
       // Create more nodes to test repulsion
       const manyNodes: AcademicNode[] = [];
       for (let i = 0; i < 20; i++) {
-        manyNodes.push({ id: `node-${i}`, name: `Node ${i}`, type: 'task' });
+        manyNodes.push({ id: `node-${i}`, name: `Node ${i}`, type: "task" });
       }
 
       layout.initialize(manyNodes, []);
@@ -342,8 +338,8 @@ describe('VPForceLayout', () => {
   });
 });
 
-describe('DEFAULT_LAYOUT_CONFIG', () => {
-  it('should have all required properties', () => {
+describe("DEFAULT_LAYOUT_CONFIG", () => {
+  it("should have all required properties", () => {
     expect(DEFAULT_LAYOUT_CONFIG.iterations).toBeDefined();
     expect(DEFAULT_LAYOUT_CONFIG.linkStrength).toBeDefined();
     expect(DEFAULT_LAYOUT_CONFIG.repulsionStrength).toBeDefined();
@@ -354,7 +350,7 @@ describe('DEFAULT_LAYOUT_CONFIG', () => {
     expect(DEFAULT_LAYOUT_CONFIG.alphaDecay).toBeDefined();
   });
 
-  it('should have sensible defaults', () => {
+  it("should have sensible defaults", () => {
     expect(DEFAULT_LAYOUT_CONFIG.iterations).toBeGreaterThan(0);
     expect(DEFAULT_LAYOUT_CONFIG.linkStrength).toBeGreaterThan(0);
     expect(DEFAULT_LAYOUT_CONFIG.linkStrength).toBeLessThan(1);

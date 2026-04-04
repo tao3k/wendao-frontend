@@ -1,15 +1,12 @@
 import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
-} from '../../../api';
-import {
-  buildCodeAstRetrievalAtom,
-  resolveDisplayRetrievalAtom,
-} from './codeAstRetrievalHelpers';
-import { normalizeText } from './codeAstProjectionShared';
-import type { CodeAstBlockModel } from './codeAstAnatomy';
+} from "../../../api";
+import { buildCodeAstRetrievalAtom, resolveDisplayRetrievalAtom } from "./codeAstRetrievalHelpers";
+import { normalizeText } from "./codeAstProjectionShared";
+import type { CodeAstBlockModel } from "./codeAstAnatomy";
 
-export type CodeAstBlockKind = 'validation' | 'execution' | 'return';
+export type CodeAstBlockKind = "validation" | "execution" | "return";
 
 interface RawBlockSegment {
   start: number;
@@ -18,7 +15,7 @@ interface RawBlockSegment {
 }
 
 function classifyBlockKind(lines: string[]): CodeAstBlockKind {
-  const text = lines.join('\n');
+  const text = lines.join("\n");
   const lower = text.toLowerCase();
 
   if (
@@ -26,26 +23,26 @@ function classifyBlockKind(lines: string[]): CodeAstBlockKind {
     /return\s+err\b/.test(lower) ||
     /\b(?:panic!|throw|raise)\b/.test(lower)
   ) {
-    return 'validation';
+    return "validation";
   }
 
   if (/^\s*return\b/m.test(text) || /\b(?:ok|err|some|none)\s*\(/.test(lower)) {
-    return 'return';
+    return "return";
   }
 
-  return 'execution';
+  return "execution";
 }
 
 function buildBlockTitle(kind: CodeAstBlockKind, lines: string[]): string {
-  const head = lines.find((line) => line.trim().length > 0)?.trim() ?? '';
+  const head = lines.find((line) => line.trim().length > 0)?.trim() ?? "";
 
   switch (kind) {
-    case 'validation':
-      return head ? `Validation Block · ${head}` : 'Validation Block';
-    case 'return':
-      return head ? `Return Path · ${head}` : 'Return Path';
+    case "validation":
+      return head ? `Validation Block · ${head}` : "Validation Block";
+    case "return":
+      return head ? `Return Path · ${head}` : "Return Path";
     default:
-      return head ? `Execution Block · ${head}` : 'Execution Block';
+      return head ? `Execution Block · ${head}` : "Execution Block";
   }
 }
 
@@ -55,16 +52,19 @@ function buildBlockQuery(kind: CodeAstBlockKind, anchors: string[]): string {
   }
 
   switch (kind) {
-    case 'validation':
-      return 'validation';
-    case 'return':
-      return 'return';
+    case "validation":
+      return "validation";
+    case "return":
+      return "return";
     default:
-      return 'execution';
+      return "execution";
   }
 }
 
-function resolveBodyStartIndex(contentLines: string[], declarationLine: number | undefined): number {
+function resolveBodyStartIndex(
+  contentLines: string[],
+  declarationLine: number | undefined,
+): number {
   if (!declarationLine || declarationLine <= 0) {
     return 0;
   }
@@ -78,8 +78,8 @@ function resolveBodyStartIndex(contentLines: string[], declarationLine: number |
     }
 
     const hasBodyDelimiter =
-      current.includes('{') ||
-      current.includes('=>') ||
+      current.includes("{") ||
+      current.includes("=>") ||
       /^\s*(begin|algorithm|equation)\b/.test(current);
 
     if (index === declarationIndex) {
@@ -97,7 +97,10 @@ function resolveBodyStartIndex(contentLines: string[], declarationLine: number |
   return declarationLine;
 }
 
-function collectSegments(contentLines: string[], declarationLine: number | undefined): RawBlockSegment[] {
+function collectSegments(
+  contentLines: string[],
+  declarationLine: number | undefined,
+): RawBlockSegment[] {
   const bodyStartIndex = resolveBodyStartIndex(contentLines, declarationLine);
   const bodyLines = contentLines.slice(bodyStartIndex);
   const segments: RawBlockSegment[] = [];
@@ -138,7 +141,7 @@ export function buildCodeBlocks(
   declarationLine: number | undefined,
   analysis: CodeAstAnalysisResponse,
   selectedPath: string,
-  retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>
+  retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>,
 ): CodeAstBlockModel[] {
   if (contentLines.length === 0) {
     return [];
@@ -175,7 +178,7 @@ export function buildCodeBlocks(
     grouped.set(kind, current);
   });
 
-  const orderedKinds: CodeAstBlockKind[] = ['validation', 'execution', 'return'];
+  const orderedKinds: CodeAstBlockKind[] = ["validation", "execution", "return"];
   const blocks: CodeAstBlockModel[] = [];
 
   orderedKinds.forEach((kind) => {
@@ -188,14 +191,16 @@ export function buildCodeBlocks(
     const end = Math.max(...groupedSegments.map((segment) => segment.end));
     const anchors = Array.from(new Set(groupedSegments.flatMap((segment) => segment.anchors)));
     const excerpt = groupedSegments
-      .flatMap((segment) => [...segment.lines.slice(0, 6), segment.lines.length > 6 ? '…' : ''])
+      .flatMap((segment) => [...segment.lines.slice(0, 6), segment.lines.length > 6 ? "…" : ""])
       .filter((line) => line.length > 0)
-      .join('\n')
+      .join("\n")
       .trim();
     const ownerId = `block:${kind}:${start}-${end}`;
-    const backendAtom = retrievalAtomLookup.findByOwnerSurface(ownerId, 'block');
-    const resolvedTitle = backendAtom?.displayLabel ?? buildBlockTitle(kind, groupedSegments[0]?.lines ?? []);
-    const resolvedExcerpt = backendAtom?.excerpt ?? (excerpt.length > 0 ? excerpt : '(empty block)');
+    const backendAtom = retrievalAtomLookup.findByOwnerSurface(ownerId, "block");
+    const resolvedTitle =
+      backendAtom?.displayLabel ?? buildBlockTitle(kind, groupedSegments[0]?.lines ?? []);
+    const resolvedExcerpt =
+      backendAtom?.excerpt ?? (excerpt.length > 0 ? excerpt : "(empty block)");
 
     blocks.push({
       id: `${kind}-${start}-${end}`,
@@ -208,17 +213,17 @@ export function buildCodeBlocks(
       atom: resolveDisplayRetrievalAtom(
         retrievalAtomLookup,
         ownerId,
-        'block',
+        "block",
         blocks.length + 2,
         () =>
           buildCodeAstRetrievalAtom(
             selectedPath,
-            'block',
+            "block",
             kind,
             `l${start}-l${end}`,
             blocks.length + 2,
-            excerpt.length > 0 ? excerpt : groupedSegments[0]?.lines.join('\n') ?? kind
-          )
+            excerpt.length > 0 ? excerpt : (groupedSegments[0]?.lines.join("\n") ?? kind),
+          ),
       ),
     });
   });
@@ -231,32 +236,34 @@ export function buildCodeBlocks(
   return [
     {
       id: `execution-${fallback.start}-${fallback.end}`,
-      kind: 'execution',
+      kind: "execution",
       title:
-        retrievalAtomLookup.findByOwnerSurface(`block:execution:${fallback.start}-${fallback.end}`, 'block')
-          ?.displayLabel ??
-        buildBlockTitle('execution', fallback.lines),
+        retrievalAtomLookup.findByOwnerSurface(
+          `block:execution:${fallback.start}-${fallback.end}`,
+          "block",
+        )?.displayLabel ?? buildBlockTitle("execution", fallback.lines),
       lineRange: `L${fallback.start}-L${fallback.end}`,
       excerpt:
-        retrievalAtomLookup.findByOwnerSurface(`block:execution:${fallback.start}-${fallback.end}`, 'block')
-          ?.excerpt ??
-        fallback.lines.slice(0, 8).join('\n').trim(),
+        retrievalAtomLookup.findByOwnerSurface(
+          `block:execution:${fallback.start}-${fallback.end}`,
+          "block",
+        )?.excerpt ?? fallback.lines.slice(0, 8).join("\n").trim(),
       anchors: [],
-      query: 'execution',
+      query: "execution",
       atom: resolveDisplayRetrievalAtom(
         retrievalAtomLookup,
         `block:execution:${fallback.start}-${fallback.end}`,
-        'block',
+        "block",
         2,
         () =>
           buildCodeAstRetrievalAtom(
             selectedPath,
-            'block',
-            'execution',
+            "block",
+            "execution",
             `l${fallback.start}-l${fallback.end}`,
             2,
-            fallback.lines.join('\n')
-          )
+            fallback.lines.join("\n"),
+          ),
       ),
     },
   ];

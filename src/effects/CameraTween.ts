@@ -7,24 +7,27 @@
  * - requestAnimationFrame precision
  */
 
-import { useCallback, useRef, useState } from 'react';
-import * as THREE from 'three';
+import { useCallback, useRef, useState } from "react";
+import * as THREE from "three";
 
 // Easing functions
-export type EasingFunction = 'linear' | 'easeOutExpo' | 'easeInOutCubic' | 'easeOutBack' | 'easeInOutQuart';
+export type EasingFunction =
+  | "linear"
+  | "easeOutExpo"
+  | "easeInOutCubic"
+  | "easeOutBack"
+  | "easeInOutQuart";
 
 export const easingFunctions: Record<EasingFunction, (t: number) => number> = {
   linear: (t) => t,
   easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
-  easeInOutCubic: (t) =>
-    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
   easeOutBack: (t) => {
     const c1 = 1.70158;
     const c3 = c1 + 1;
     return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
   },
-  easeInOutQuart: (t) =>
-    t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2,
+  easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2),
 };
 
 export interface CameraTweenConfig {
@@ -55,7 +58,7 @@ const DEFAULT_STATE: CameraTweenState = {
   progress: 0,
   duration: 1000,
   startTime: null,
-  easing: 'easeOutExpo',
+  easing: "easeOutExpo",
   isActive: false,
   warpEffect: false,
 };
@@ -74,9 +77,9 @@ export function useCameraTween() {
       targetPosition: THREE.Vector3,
       config: CameraTweenConfig = {
         duration: 800,
-        easing: 'easeOutExpo',
+        easing: "easeOutExpo",
         warpEffect: false,
-      }
+      },
     ) => {
       // Cancel any existing animation
       if (animationFrameRef.current !== null) {
@@ -99,7 +102,7 @@ export function useCameraTween() {
         warpEffect: config.warpEffect ?? false,
       });
     },
-    []
+    [],
   );
 
   /**
@@ -151,7 +154,7 @@ export function useCameraTween() {
 
       return state.progress;
     },
-    [state.progress]
+    [state.progress],
   );
 
   /**

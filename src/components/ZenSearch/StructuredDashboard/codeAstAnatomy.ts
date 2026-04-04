@@ -1,33 +1,21 @@
-import type {
-  CodeAstAnalysisResponse,
-  CodeAstNode,
-} from '../../../api';
-import type { SearchResult } from '../../SearchBar/types';
+import type { CodeAstAnalysisResponse } from "../../../api";
+import type { SearchResult } from "../../SearchBar/types";
 import {
   buildBackendAtomLookup,
   buildCodeAstRetrievalAtom,
   type CodeAstRetrievalAtom,
   resolveDisplayRetrievalAtom,
-} from './codeAstRetrievalHelpers';
-import {
-  buildCodeBlocks,
-  type CodeAstBlockKind,
-} from './codeAstBlockHelpers';
+} from "./codeAstRetrievalHelpers";
+import { buildCodeBlocks, type CodeAstBlockKind } from "./codeAstBlockHelpers";
 import {
   normalizeKind,
   normalizeText,
   pickPrimaryNode,
   splitContentLines,
-} from './codeAstProjectionShared';
-import {
-  buildSignatureParts,
-  buildSignatureSnippet,
-} from './codeAstSignatureHelpers';
-import {
-  buildSymbolGroups,
-  buildSymbols,
-} from './codeAstSymbolHelpers';
-import type { StructuredNeighbor } from './structuredIntelligence';
+} from "./codeAstProjectionShared";
+import { buildSignatureParts, buildSignatureSnippet } from "./codeAstSignatureHelpers";
+import { buildSymbolGroups, buildSymbols } from "./codeAstSymbolHelpers";
+import type { StructuredNeighbor } from "./structuredIntelligence";
 
 export interface CodeAstTopologyModel {
   incoming: StructuredNeighbor[];
@@ -98,39 +86,35 @@ export interface CodeAstAnatomyModel {
 export function deriveCodeAstAnatomy(
   analysis: CodeAstAnalysisResponse,
   content: string | null,
-  selectedResult: SearchResult
+  selectedResult: SearchResult,
 ): CodeAstAnatomyModel {
-  const selectedPath = normalizeText(selectedResult.navigationTarget?.path ?? selectedResult.path) ?? analysis.path;
+  const selectedPath =
+    normalizeText(selectedResult.navigationTarget?.path ?? selectedResult.path) ?? analysis.path;
   const focusNode = pickPrimaryNode(analysis);
   const contentLines = splitContentLines(content);
   const declarationLine = focusNode?.line;
   const retrievalAtomLookup = buildBackendAtomLookup(analysis);
-  const declaration =
-    focusNode
-      ? {
-          id: focusNode.id,
-          label: focusNode.label,
-          kind: normalizeKind(focusNode.kind) || 'other',
-          path: normalizeText(focusNode.path) ?? selectedPath,
-          line: focusNode.line,
-          signature: buildSignatureSnippet(contentLines, declarationLine) || focusNode.label,
-          query: focusNode.label,
-          atom: resolveDisplayRetrievalAtom(
-            retrievalAtomLookup,
-            focusNode.id,
-            'declaration',
+  const declaration = focusNode
+    ? {
+        id: focusNode.id,
+        label: focusNode.label,
+        kind: normalizeKind(focusNode.kind) || "other",
+        path: normalizeText(focusNode.path) ?? selectedPath,
+        line: focusNode.line,
+        signature: buildSignatureSnippet(contentLines, declarationLine) || focusNode.label,
+        query: focusNode.label,
+        atom: resolveDisplayRetrievalAtom(retrievalAtomLookup, focusNode.id, "declaration", 1, () =>
+          buildCodeAstRetrievalAtom(
+            normalizeText(focusNode.path) ?? selectedPath,
+            "declaration",
+            normalizeKind(focusNode.kind) || "other",
+            `l${focusNode.line ?? 0}`,
             1,
-            () => buildCodeAstRetrievalAtom(
-              normalizeText(focusNode.path) ?? selectedPath,
-              'declaration',
-              normalizeKind(focusNode.kind) || 'other',
-              `l${focusNode.line ?? 0}`,
-              1,
-              buildSignatureSnippet(contentLines, declarationLine) || focusNode.label
-            )
+            buildSignatureSnippet(contentLines, declarationLine) || focusNode.label,
           ),
-        }
-      : null;
+        ),
+      }
+    : null;
   const signatureParts = declaration ? buildSignatureParts(declaration.signature) : [];
   const centerNodeId = declaration?.id ?? focusNode?.id ?? null;
   const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
@@ -146,7 +130,7 @@ export function deriveCodeAstAnatomy(
             id: edge.sourceId,
             label: node?.label ?? edge.sourceId,
             path: normalizeText(node?.path) ?? selectedPath,
-            direction: 'incoming' as const,
+            direction: "incoming" as const,
             query: node?.label ?? edge.sourceId,
           };
         })
@@ -162,7 +146,7 @@ export function deriveCodeAstAnatomy(
             id: edge.targetId,
             label: node?.label ?? edge.targetId,
             path: normalizeText(node?.path) ?? selectedPath,
-            direction: 'outgoing' as const,
+            direction: "outgoing" as const,
             query: node?.label ?? edge.targetId,
           };
         })
@@ -175,7 +159,10 @@ export function deriveCodeAstAnatomy(
       graphSummary: declaration
         ? {
             centerLabel: declaration.label,
-            centerPath: declaration.line != null ? `${declaration.path}:${declaration.line}` : declaration.path,
+            centerPath:
+              declaration.line != null
+                ? `${declaration.path}:${declaration.line}`
+                : declaration.path,
             totalNodes: analysis.nodes.length,
             totalLinks: analysis.edges.length,
           }
@@ -183,7 +170,13 @@ export function deriveCodeAstAnatomy(
     },
     declaration,
     signatureParts,
-    blocks: buildCodeBlocks(contentLines, declarationLine, analysis, selectedPath, retrievalAtomLookup),
+    blocks: buildCodeBlocks(
+      contentLines,
+      declarationLine,
+      analysis,
+      selectedPath,
+      retrievalAtomLookup,
+    ),
     symbols,
     symbolGroups: buildSymbolGroups(symbols),
   };

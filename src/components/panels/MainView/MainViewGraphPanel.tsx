@@ -1,9 +1,9 @@
-import React, { Suspense } from 'react';
-import type { GraphSidebarSummary } from '../GraphView/types';
-import type { RuntimeStatus } from '../../statusBar/types';
-import { GraphView } from './mainViewLazyPanels';
-import type { MainViewGraphOptions, MainViewGraphSelection } from './mainViewProps';
-import type { MainViewLocale } from './mainViewTypes';
+import React, { Suspense, useCallback } from "react";
+import type { GraphSidebarSummary } from "../GraphView/types";
+import type { RuntimeStatus } from "../../statusBar/types";
+import { GraphView } from "./mainViewLazyPanels";
+import type { MainViewGraphOptions, MainViewGraphSelection } from "./mainViewProps";
+import type { MainViewLocale } from "./mainViewTypes";
 
 interface MainViewGraphPanelProps {
   centerNodeId: string | null;
@@ -28,17 +28,22 @@ export function MainViewGraphPanel({
   onSidebarSummaryChange,
   onGraphRuntimeStatusChange,
 }: MainViewGraphPanelProps): React.ReactElement {
+  const handleNodeClick = useCallback(
+    (_nodeId: string, selection: MainViewGraphSelection) => {
+      if (selection.path) {
+        onGraphFileSelect?.(selection);
+      }
+    },
+    [onGraphFileSelect],
+  );
+
   return (
     <div className="main-view-graph">
       <div className="main-view-graph-shell">
         <Suspense fallback={panelLoadingFallback}>
           <GraphView
             centerNodeId={centerNodeId}
-            onNodeClick={(_nodeId, selection) => {
-              if (selection.path) {
-                onGraphFileSelect?.(selection);
-              }
-            }}
+            onNodeClick={handleNodeClick}
             enabled={enabled}
             options={options}
             locale={locale}

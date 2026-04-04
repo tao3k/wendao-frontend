@@ -1,4 +1,4 @@
-import { AcademicNode } from './index';
+import { AcademicNode } from "./index";
 
 /**
  * Panel configuration

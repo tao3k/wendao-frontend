@@ -24,9 +24,15 @@ const COPY = {
   panelMermaid: "Mermaid",
   diagramIndexPrefix: "Diagram",
   mermaidRenderFailedPrefix: "Mermaid render failed",
+  mermaidUnsupported: "Unsupported Mermaid dialect for inline render",
   noMermaidBody: "No Mermaid diagram body was found in this file.",
+  switchLayoutLabel: "Switch layout",
   resetViewLabel: "Reset view",
+  immersivePreviewLabel: "Immersive preview",
+  immersivePreviewAria: "Immersive diagram preview",
+  closePreviewLabel: "Close preview",
   bpmnLoading: "Loading BPMN runtime...",
+  mermaidLoading: "Loading Mermaid runtime...",
 };
 
 describe("diagramWindowViewModel", () => {
@@ -54,6 +60,7 @@ describe("diagramWindowViewModel", () => {
       modeMermaidAria: "Mermaid diagram",
       panelBpmn: "BPMN-js",
       panelMermaid: "Mermaid",
+      switchLayoutLabel: "Switch layout",
       resetViewLabel: "Reset view",
     });
   });
@@ -65,8 +72,13 @@ describe("diagramWindowViewModel", () => {
       diagramIndexPrefix: "Diagram",
       modeMermaidAria: "Mermaid diagram",
       mermaidRenderFailedPrefix: "Mermaid render failed",
+      mermaidUnsupported: "Unsupported Mermaid dialect for inline render",
       noMermaidBody: "No Mermaid diagram body was found in this file.",
+      immersivePreviewLabel: "Immersive preview",
+      immersivePreviewAria: "Immersive diagram preview",
+      closePreviewLabel: "Close preview",
       bpmnLoading: "Loading BPMN runtime...",
+      mermaidLoading: "Loading Mermaid runtime...",
     });
   });
 });

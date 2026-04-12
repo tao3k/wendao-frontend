@@ -13,6 +13,12 @@ export interface CodeAstRetrievalAtom {
   semanticType: string;
   fingerprint: string;
   tokenEstimate: number;
+  displayLabel?: string;
+  excerpt?: string;
+  lineStart?: number;
+  lineEnd?: number;
+  surface?: "declaration" | "block" | "symbol";
+  attributes?: Record<string, string>;
 }
 
 function slugifySegment(value: string): string {
@@ -64,6 +70,7 @@ export function buildCodeAstRetrievalAtom(
       [path, scope, semanticType, locator, content.slice(0, 240)].join("|"),
     ),
     tokenEstimate: estimateTokenCount(content),
+    surface: scope,
   };
 }
 
@@ -77,12 +84,28 @@ export function toDisplayRetrievalAtom(
   atom: ApiCodeAstRetrievalAtom,
   ordinal: number,
 ): CodeAstRetrievalAtom {
+  const attributes: Record<string, string> = {};
+  for (const [key, value] of atom.attributes ?? []) {
+    const normalizedKey = key.trim();
+    const normalizedValue = value.trim();
+    if (!normalizedKey || !normalizedValue) {
+      continue;
+    }
+    attributes[normalizedKey] = normalizedValue;
+  }
+
   return {
     id: atom.chunkId,
     displayId: `ast:${String(ordinal).padStart(2, "0")}`,
     semanticType: atom.semanticType,
     fingerprint: atom.fingerprint,
     tokenEstimate: atom.tokenEstimate,
+    displayLabel: atom.displayLabel,
+    excerpt: atom.excerpt,
+    lineStart: atom.lineStart,
+    lineEnd: atom.lineEnd,
+    surface: atom.surface,
+    attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
   };
 }
 

@@ -52,11 +52,11 @@ export type {
   ProjectedPageIndexSection,
   ProjectedPageIndexNode,
   ProjectedPageIndexTree,
-  RefineEntityDocRequest,
-  RefineEntityDocResponse,
 } from "./bindings";
 
 export type {
+  RefineEntityDocRequest,
+  RefineEntityDocResponse,
   RepoBacklinkItem,
   RepoDocCoverageDoc,
   RepoDocCoverageResponse,

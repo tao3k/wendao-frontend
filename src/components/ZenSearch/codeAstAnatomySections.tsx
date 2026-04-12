@@ -17,6 +17,7 @@ import {
   type SignatureParameterRow,
   type SignatureValueRow,
 } from "./codeAstAnatomyViewModel";
+import type { CodeAstFacetModel } from "./StructuredDashboard/language/anatomy/types";
 
 interface CodeAstWaterfallHeaderProps {
   copy: CodeAstAnatomyCopy;
@@ -88,6 +89,12 @@ interface CodeAstSignatureButtonProps {
 
 interface CodeAstAnchorChipProps {
   anchor: string;
+  chipKey: string;
+  onPivotQuery?: (query: string) => void;
+}
+
+interface CodeAstFacetChipProps {
+  facet: CodeAstFacetModel;
   chipKey: string;
   onPivotQuery?: (query: string) => void;
 }
@@ -177,6 +184,27 @@ function CodeAstAnchorChip({
   );
 }
 
+function CodeAstFacetChip({
+  facet,
+  chipKey,
+  onPivotQuery,
+}: CodeAstFacetChipProps): React.ReactNode {
+  return (
+    <CodeAstPivotButton
+      className="structured-chip"
+      label={
+        <>
+          <span className="structured-chip__label">{facet.label}</span>
+          <span className="structured-chip__value">{facet.value}</span>
+        </>
+      }
+      query={facet.query}
+      onPivotQuery={onPivotQuery}
+      key={chipKey}
+    />
+  );
+}
+
 function CodeAstAtomRow({ copy, atom, testId }: CodeAstAtomRowProps): React.ReactNode {
   return (
     <div className="code-ast-waterfall__atom-row" data-testid={testId}>
@@ -231,12 +259,29 @@ function CodeAstAnchorCard({
         {symbol.references > 0 ? ` · refs:${symbol.references}` : ""}
       </div>
       <CodeAstAtomRow copy={copy} atom={symbol.atom} testId="code-ast-anchor-atom" />
+      {symbol.facets.length > 0 && (
+        <div
+          className="structured-chip-row code-ast-waterfall__facet-row"
+          data-testid="code-ast-anchor-facets"
+          aria-label={copy.parserFacets}
+        >
+          {symbol.facets.map((facet) => (
+            <CodeAstFacetChip
+              key={`${symbol.id}-${facet.label}-${facet.value}-anchor`}
+              chipKey={`${symbol.id}-${facet.label}-${facet.value}-anchor`}
+              facet={facet}
+              onPivotQuery={onPivotQuery}
+            />
+          ))}
+        </div>
+      )}
       <div className="code-ast-waterfall__action-row">
-        <CodeAstPivotButton label={copy.pivotAnchor} query={symbol.query} onPivotQuery={onPivotQuery} />
-        <CodeAstCopyButton
-          label={copy.copyForRag}
-          payload={buildAnchorCopyPayload(symbol, rank)}
+        <CodeAstPivotButton
+          label={copy.pivotAnchor}
+          query={symbol.query}
+          onPivotQuery={onPivotQuery}
         />
+        <CodeAstCopyButton label={copy.copyForRag} payload={buildAnchorCopyPayload(symbol, rank)} />
       </div>
     </div>
   );
@@ -266,8 +311,28 @@ function CodeAstSymbolCard({
         {symbol.references > 0 ? ` · refs:${symbol.references}` : ""}
       </div>
       <CodeAstAtomRow copy={copy} atom={symbol.atom} testId="code-ast-symbol-atom" />
+      {symbol.facets.length > 0 && (
+        <div
+          className="structured-chip-row code-ast-waterfall__facet-row"
+          data-testid="code-ast-symbol-facets"
+          aria-label={copy.parserFacets}
+        >
+          {symbol.facets.map((facet) => (
+            <CodeAstFacetChip
+              key={`${symbol.id}-${facet.label}-${facet.value}`}
+              chipKey={`${symbol.id}-${facet.label}-${facet.value}`}
+              facet={facet}
+              onPivotQuery={onPivotQuery}
+            />
+          ))}
+        </div>
+      )}
       <div className="code-ast-waterfall__action-row">
-        <CodeAstPivotButton label={copy.pivotSymbol} query={symbol.query} onPivotQuery={onPivotQuery} />
+        <CodeAstPivotButton
+          label={copy.pivotSymbol}
+          query={symbol.query}
+          onPivotQuery={onPivotQuery}
+        />
         <CodeAstCopyButton label={copy.copyForRag} payload={buildSymbolCopyPayload(symbol)} />
       </div>
     </div>
@@ -345,6 +410,22 @@ export function CodeAstDeclarationStage({
             />
           </div>
           <CodeAstAtomRow copy={copy} atom={declaration.atom} testId="code-ast-declaration-atom" />
+          {declaration.facets.length > 0 && (
+            <div
+              className="structured-chip-row code-ast-waterfall__facet-row"
+              data-testid="code-ast-declaration-facets"
+              aria-label={copy.parserFacets}
+            >
+              {declaration.facets.map((facet) => (
+                <CodeAstFacetChip
+                  key={`declaration-${facet.label}-${facet.value}`}
+                  chipKey={`declaration-${facet.label}-${facet.value}`}
+                  facet={facet}
+                  onPivotQuery={onPivotQuery}
+                />
+              ))}
+            </div>
+          )}
           {(signatureRows.parameters.length > 0 || signatureRows.returnPart) && (
             <div
               className="code-ast-waterfall__signature-parts"
@@ -451,9 +532,28 @@ export function CodeAstBlocksStage({
                     title={block.query ?? block.title}
                     onPivotQuery={onPivotQuery}
                   />
-                  <CodeAstCopyButton label={copy.copyForRag} payload={buildBlockCopyPayload(block)} />
+                  <CodeAstCopyButton
+                    label={copy.copyForRag}
+                    payload={buildBlockCopyPayload(block)}
+                  />
                 </div>
                 <CodeAstAtomRow copy={copy} atom={block.atom} testId="code-ast-block-atom" />
+                {block.facets.length > 0 && (
+                  <div
+                    className="structured-chip-row code-ast-waterfall__facet-row"
+                    data-testid="code-ast-block-facets"
+                    aria-label={copy.parserFacets}
+                  >
+                    {block.facets.map((facet) => (
+                      <CodeAstFacetChip
+                        key={`${block.id}-${facet.label}-${facet.value}`}
+                        chipKey={`${block.id}-${facet.label}-${facet.value}`}
+                        facet={facet}
+                        onPivotQuery={onPivotQuery}
+                      />
+                    ))}
+                  </div>
+                )}
                 <pre className="code-ast-waterfall__block-excerpt">
                   <CodeSyntaxHighlighter
                     source={block.excerpt}

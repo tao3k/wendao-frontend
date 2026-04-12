@@ -1,4 +1,4 @@
-import type { SearchHit, StudioNavigationTarget } from "../../api";
+import type { RepoDocCoverageTarget, SearchHit, StudioNavigationTarget } from "../../api";
 
 export type SearchScope =
   | "all"
@@ -41,6 +41,7 @@ export interface SearchResult extends SearchHit {
   codeKind?: string;
   codeRepo?: string;
   searchSource?: "search-index" | "repo-intelligence";
+  docTarget?: RepoDocCoverageTarget;
   verification_state?: "verified" | "unverified" | "unknown";
 }
 

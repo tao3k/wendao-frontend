@@ -5,6 +5,7 @@ import type { CodeAstAnalysisResponse } from "../../../../api";
 import type { SearchResult } from "../../../SearchBar/types";
 import type { ZenSearchPreviewState } from "../../useZenSearchPreview";
 import { StructuredIntelligenceDashboard } from "../StructuredIntelligenceDashboard";
+import { deriveStructuredEntity } from "../structuredIntelligence";
 
 vi.mock("../../ZenSearchPreviewHeader", () => ({
   ZenSearchPreviewHeader: () => <div data-testid="mock-preview-header" />,
@@ -126,6 +127,35 @@ function buildCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildImportCodeSearchResult(): SearchResult {
+  return {
+    stem: "Init",
+    title: "Modelica.Modelica.Blocks.Types.Init.Init",
+    path: "mcl/Modelica/Blocks/package.mo",
+    line: 1,
+    docType: "import",
+    tags: ["mcl", "code", "import", "kind:import", "modelica", "lang:modelica"],
+    score: 1,
+    category: "ast",
+    projectName: "mcl",
+    rootLabel: "mcl",
+    codeLanguage: "modelica",
+    codeKind: "import",
+    codeRepo: "mcl",
+    bestSection: "Modelica.Blocks.Types.Init",
+    matchReason: "repo_import_search",
+    navigationTarget: {
+      path: "mcl/Modelica/Blocks/package.mo",
+      category: "repo_code",
+      projectName: "mcl",
+      rootLabel: "mcl",
+      line: 1,
+      lineEnd: 1,
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
 function buildCodeAstAnalysis(): CodeAstAnalysisResponse {
   return {
     repoId: "kernel",
@@ -210,12 +240,53 @@ function buildCodeAstAnalysis(): CodeAstAnalysisResponse {
         edgeCount: 2,
       },
     ],
+    retrievalAtoms: [
+      {
+        ownerId: "fn:process_data",
+        surface: "declaration",
+        chunkId: "backend:decl:process_data",
+        semanticType: "function",
+        fingerprint: "fp:backenddecl",
+        tokenEstimate: 19,
+        displayLabel: "Declaration Rail · process_data",
+        excerpt: "pub fn process_data(input: &[u8], config: &Config) -> Result<Processed> {",
+        lineStart: 1,
+        lineEnd: 4,
+      },
+      {
+        ownerId: "block:validation:5-5",
+        surface: "block",
+        chunkId: "backend:block:validation",
+        semanticType: "validation",
+        fingerprint: "fp:backendblockvalidation",
+        tokenEstimate: 7,
+        displayLabel: "Validation Rail · backend",
+        excerpt: "if input.is_empty() { return Err(Empty); }",
+        lineStart: 5,
+        lineEnd: 5,
+      },
+      {
+        ownerId: "type:Config",
+        surface: "symbol",
+        chunkId: "backend:symbol:config",
+        semanticType: "type",
+        fingerprint: "fp:backendconfig",
+        tokenEstimate: 6,
+        displayLabel: "Symbol Rail · Config",
+        excerpt: "Config",
+        lineStart: 2,
+        lineEnd: 2,
+      },
+    ],
     focusNodeId: "fn:process_data",
+    diagnostics: [],
+    nodeCount: 5,
+    edgeCount: 4,
   };
 }
 
 describe("StructuredIntelligenceDashboard", () => {
-  it("renders the four structured layers and pivots anchors back into query state", () => {
+  it("renders the structured layers with an expanded fragment waterfall", () => {
     const onPivotQuery = vi.fn();
 
     const { rerender } = render(
@@ -248,8 +319,16 @@ describe("StructuredIntelligenceDashboard", () => {
     expect(screen.getByRole("region", { name: "IV. Relational Projection" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Dashboard layers" })).toBeInTheDocument();
     expect(screen.getByTestId("mock-preview-content")).toBeInTheDocument();
+    expect(screen.getByTestId("structured-dashboard-stack")).toBeInTheDocument();
 
+    const topologyRegion = screen.getByRole("region", { name: "I. Topological Identity" });
+    expect(topologyRegion).toHaveAttribute("data-panel-order", "1");
+    expect(topologyRegion.querySelector(".structured-slot__body--flow")).toBeTruthy();
+    const anatomyRegion = screen.getByRole("region", { name: "II. Entity Anatomy" });
+    expect(anatomyRegion).toHaveAttribute("data-panel-order", "2");
+    expect(anatomyRegion.querySelector(".structured-slot__body--flow")).toBeTruthy();
     const fragmentsRegion = screen.getByRole("region", { name: "III. Multi-slot Fragments" });
+    expect(fragmentsRegion).toHaveAttribute("data-panel-order", "3");
     const scrollIntoView = vi.fn();
     Object.defineProperty(fragmentsRegion, "scrollIntoView", {
       configurable: true,
@@ -258,6 +337,20 @@ describe("StructuredIntelligenceDashboard", () => {
 
     fireEvent.click(screen.getByTestId("structured-layer-nav-structured-slot-fragments"));
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(within(fragmentsRegion).getByTestId("mock-preview-content")).toBeInTheDocument();
+    expect(fragmentsRegion.querySelector(".structured-slot__body--flow")).toBeTruthy();
+    const relationsRegion = screen.getByRole("region", { name: "IV. Relational Projection" });
+    expect(relationsRegion).toHaveAttribute("data-panel-order", "4");
+    expect(relationsRegion.querySelector(".structured-slot__body--flow")).toBeTruthy();
+    const orderedPanels = Array.from(
+      screen.getByTestId("structured-dashboard-stack").querySelectorAll(".structured-slot"),
+    ).map((panel) => panel.getAttribute("id"));
+    expect(orderedPanels).toEqual([
+      "structured-slot-topology",
+      "structured-slot-anatomy",
+      "structured-slot-fragments",
+      "structured-slot-relations",
+    ]);
 
     fireEvent.click(
       within(screen.getByTestId("structured-topology-map")).getByRole("button", { name: "Intro" }),
@@ -483,12 +576,257 @@ describe("StructuredIntelligenceDashboard", () => {
     expect(screen.getByText("Pivot Anchors")).toBeInTheDocument();
     expect(screen.queryByTestId("mock-preview-content")).toBeNull();
     expect(screen.getAllByText("process_data").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Validation Block ·/)).toBeInTheDocument();
-    expect(screen.getByText(/Execution Block ·/)).toBeInTheDocument();
-    expect(screen.getByText(/Return Path ·/)).toBeInTheDocument();
+    expect(screen.getByText(/Validation Rail · backend/)).toBeInTheDocument();
     const anchorGroup = screen.getByTestId("code-ast-symbol-group-anchors");
     expect(within(anchorGroup).getByText("Config")).toBeInTheDocument();
-    expect(within(anchorGroup).getByText("Empty")).toBeInTheDocument();
+  });
+
+  it("routes import-backed code hits into the structured code inspector", () => {
+    render(
+      <StructuredIntelligenceDashboard
+        locale="en"
+        preview={{
+          ...buildPreview({
+            contentPath: "mcl/Modelica/Blocks/package.mo",
+            content: "within Modelica.Blocks;",
+            contentType: "text/modelica",
+            graphNeighbors: null as never,
+            selectedResult: buildImportCodeSearchResult(),
+            codeAstAnalysis: null as never,
+            codeAstLoading: false,
+            codeAstError: null,
+          }),
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("structured-code-inspector")).toBeInTheDocument();
+    expect(screen.getByText("No code AST analysis available.")).toBeInTheDocument();
+    expect(screen.queryByTestId("mock-preview-content")).toBeNull();
+  });
+
+  it("builds import-backed kind metadata against the exact syntax path instead of a kind filter", () => {
+    const model = deriveStructuredEntity(
+      buildPreview({
+        contentPath: "mcl/Modelica/Blocks/package.mo",
+        content: "within Modelica.Blocks;",
+        contentType: "text/modelica",
+        graphNeighbors: null as never,
+        selectedResult: buildImportCodeSearchResult(),
+        codeAstAnalysis: null as never,
+        codeAstLoading: false,
+        codeAstError: null,
+      }),
+    );
+
+    expect(model.metadata.find((item) => item.label === "kind")).toMatchObject({
+      value: "import",
+      query: "Modelica.Blocks.Types.Init",
+    });
+  });
+
+  it("surfaces parser-backed import-backed code hits through the AST inspector", () => {
+    render(
+      <StructuredIntelligenceDashboard
+        locale="en"
+        preview={{
+          ...buildPreview({
+            contentPath: "mcl/Modelica/Blocks/package.mo",
+            content: [
+              "within Modelica.Blocks;",
+              "package Types",
+              '  constant String method = "Euler";',
+              "end Types;",
+            ].join("\n"),
+            contentType: "text/modelica",
+            graphNeighbors: null as never,
+            selectedResult: buildImportCodeSearchResult(),
+            codeAstAnalysis: {
+              repoId: "mcl",
+              path: "mcl/Modelica/Blocks/package.mo",
+              language: "modelica",
+              nodes: [
+                {
+                  id: "package:Types",
+                  label: "Types",
+                  kind: "package",
+                  path: "mcl/Modelica/Blocks/package.mo",
+                  line: 2,
+                },
+                {
+                  id: "symbol:method",
+                  label: "method",
+                  kind: "constant",
+                  path: "mcl/Modelica/Blocks/package.mo",
+                  line: 3,
+                },
+              ],
+              edges: [],
+              projections: [],
+              diagnostics: [],
+              nodeCount: 0,
+              edgeCount: 0,
+              retrievalAtoms: [
+                {
+                  ownerId: "package:Types",
+                  surface: "declaration",
+                  chunkId: "backend:decl:types",
+                  semanticType: "package",
+                  fingerprint: "fp:typesdecl",
+                  tokenEstimate: 14,
+                  displayLabel: "Declaration Rail · Types",
+                  excerpt: 'package Types\n  constant String method = "Euler";',
+                  lineStart: 2,
+                  lineEnd: 3,
+                  attributes: [
+                    ["class_name", "Types"],
+                    ["restriction", "class"],
+                  ],
+                },
+                {
+                  ownerId: "block:execution:3-3",
+                  surface: "block",
+                  chunkId: "backend:block:types-execution",
+                  semanticType: "execution",
+                  fingerprint: "fp:typesblock",
+                  tokenEstimate: 8,
+                  displayLabel: "Execution Rail · Types constants",
+                  excerpt: 'constant String method = "Euler";',
+                  lineStart: 3,
+                  lineEnd: 3,
+                },
+                {
+                  ownerId: "symbol:method",
+                  surface: "symbol",
+                  chunkId: "backend:symbol:method",
+                  semanticType: "constant",
+                  fingerprint: "fp:methodsymbol",
+                  tokenEstimate: 4,
+                  displayLabel: "Symbol Rail · method",
+                  excerpt: "method",
+                  lineStart: 3,
+                  lineEnd: 3,
+                  attributes: [["variability", "constant"]],
+                },
+              ],
+            } satisfies CodeAstAnalysisResponse,
+            codeAstLoading: false,
+            codeAstError: null,
+          }),
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("structured-code-inspector")).toBeInTheDocument();
+    expect(screen.getByText("Declaration Identity")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("code-ast-waterfall-stage-declaration")).getAllByText("Types")
+        .length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("Execution Rail · Types constants")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("code-ast-symbol-group-local")).getByText("method"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("class");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("Types");
+  });
+
+  it("derives import-backed Modelica fragment details from parser-owned attributes", () => {
+    const model = deriveStructuredEntity(
+      buildPreview({
+        contentPath: "mcl/Modelica/Blocks/package.mo",
+        content: [
+          "within Modelica.Blocks;",
+          "package Types",
+          "  import SI = Modelica.Units.SI;",
+          "  import Modelica.Math;",
+          "  import Math = Modelica.Math;",
+          "end Types;",
+        ].join("\n"),
+        contentType: "text/modelica",
+        graphNeighbors: null as never,
+        selectedResult: buildImportCodeSearchResult(),
+        codeAstAnalysis: {
+          repoId: "mcl",
+          path: "mcl/Modelica/Blocks/package.mo",
+          language: "modelica",
+          nodes: [],
+          edges: [],
+          projections: [],
+          diagnostics: [],
+          nodeCount: 3,
+          edgeCount: 0,
+          retrievalAtoms: [
+            {
+              ownerId:
+                "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Math:0",
+              surface: "symbol",
+              chunkId: "ast:modelica:imports:math-qualified",
+              semanticType: "importModule",
+              fingerprint: "fp:modelica:math-qualified",
+              tokenEstimate: 6,
+              displayLabel: "Import Rail · Math",
+              excerpt: "Modelica.Math",
+              lineStart: 4,
+              lineEnd: 4,
+              attributes: [
+                ["import_name", "Math"],
+                ["target_package", "Modelica"],
+                ["source_module", "Modelica.Math"],
+                ["import_kind", "symbol"],
+                ["dependency_form", "qualified_import"],
+                ["dependency_local_name", "Math"],
+                ["dependency_target", "Modelica.Math"],
+              ],
+            },
+            {
+              ownerId:
+                "repo:modelica-import-live:import:repo:modelica-import-live:module:Modelica.Blocks:Modelica.Units.SI:2",
+              surface: "symbol",
+              chunkId: "ast:modelica:imports:si-named",
+              semanticType: "importModule",
+              fingerprint: "fp:modelica:si-named",
+              tokenEstimate: 6,
+              displayLabel: "Import Rail · SI",
+              excerpt: "Modelica.Units.SI",
+              lineStart: 3,
+              lineEnd: 3,
+              attributes: [
+                ["import_name", "SI"],
+                ["target_package", "Modelica"],
+                ["source_module", "Modelica.Units.SI"],
+                ["import_kind", "module"],
+                ["dependency_alias", "SI"],
+                ["dependency_form", "named_import"],
+                ["dependency_local_name", "SI"],
+                ["dependency_target", "Modelica.Units.SI"],
+              ],
+            },
+          ],
+        } satisfies CodeAstAnalysisResponse,
+        codeAstLoading: false,
+        codeAstError: null,
+      }),
+    );
+
+    expect(model.outline).toEqual([
+      {
+        label: "import",
+        value: "Import Rail · Math",
+        query: "Modelica.Math",
+        semanticType: "import",
+      },
+      {
+        label: "import",
+        value: "Import Rail · SI",
+        query: "Modelica.Units.SI",
+        semanticType: "import",
+      },
+    ]);
+    expect(model.fragments.map((fragment) => fragment.detail)).toEqual([
+      "import · modelica · L4 · symbol · qualified_import · Modelica.Math · package=Modelica",
+      "import · modelica · L3 · module · named_import · alias=SI · Modelica.Units.SI · package=Modelica",
+    ]);
   });
 
   it("highlights TypeScript fragments in the structured fragment slot", async () => {

@@ -20,5 +20,5 @@ export async function executeSearchQuery(
     return executeAllModeSearch(queryToSearch, options);
   }
 
-  return executeSimpleSearchMode(queryToSearch, mode);
+  return executeSimpleSearchMode(queryToSearch, mode, options);
 }

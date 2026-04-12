@@ -102,7 +102,15 @@ Operator notes:
 
 - Keep BPMN rendering native when the selected file is BPMN XML.
 - Keep embedded Mermaid blocks as first-priority diagram sources.
-- For Markdown without embedded Mermaid, hydrate Mermaid projections from `/api/analysis/markdown` when available, and otherwise render `MarkdownWaterfall` so the panel stays structured instead of collapsing to an empty-state card; keep the identity card anchored on `Title`, `Tags`, and `Linked`, the section headers as compact index strips, the section-level atomic actions and retrieval metadata available for RAG / agent pivots, and the code/table/mermaid content inside nested slots rather than as flat prose blocks.
+- Treat `Switch layout` as a graph-based compiler affordance, not a source-text
+  variant menu: supported `flowchart` and `state` sources should surface flow
+  directions plus derived `Sequence` and `State` views, supported
+  `sequenceDiagram` sources should surface flow directions plus a derived
+  `State` view, supported `erDiagram` sources should surface flow directions,
+  and every extra option must compile from the same bounded graph model for the
+  current file. Unsupported Mermaid control flow should stay on the original
+  single-source render path when no true alternate view exists.
+- For Markdown and code without embedded Mermaid, prefer `/api/analysis/markdown` or `/api/analysis/code-ast` `nodes/edges` as the diagram input, fall back to renderable projection `source` only when the bounded graph builder cannot produce a graph, and otherwise use the local markdown outline or the empty-state card; keep `MarkdownWaterfall` on the content side instead of mirroring it into DiagramWindow.
 
 ## PropertyEditor and Status Surfaces
 

@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { executeSearchQuery, type SearchExecutionMode, type SearchMeta } from "./searchExecution";
+import { executeSearchQuery } from "./searchExecution";
 import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
+import type {
+  SearchExecutionMode,
+  SearchExecutionOutcome,
+  SearchMeta,
+} from "./searchExecutionTypes";
 import type { SearchResult } from "./types";
 
 interface UseSearchExecutionParams {
@@ -34,6 +39,7 @@ export function useSearchExecution({
   useEffect(() => {
     const requestGeneration = requestGenerationRef.current + 1;
     requestGenerationRef.current = requestGeneration;
+    const abortController = new AbortController();
 
     if (!queryToSearch.trim() || !isOpen) {
       setResults([]);
@@ -44,8 +50,20 @@ export function useSearchExecution({
     }
 
     let isActive = true;
+    let hasCommittedOutcome = false;
     const isLatestRequest = (): boolean =>
       isActive && requestGenerationRef.current === requestGeneration;
+    const commitOutcome = (outcome: SearchExecutionOutcome): void => {
+      if (!isLatestRequest()) {
+        return;
+      }
+      setResults(outcome.results);
+      setSearchMeta(outcome.meta);
+      if (!hasCommittedOutcome) {
+        setResultSelectedIndex(0);
+        hasCommittedOutcome = true;
+      }
+    };
 
     const doSearch = async () => {
       setIsLoading(true);
@@ -54,13 +72,10 @@ export function useSearchExecution({
         const outcome = await executeSearchQuery(queryToSearch, searchMode, {
           repoFilter,
           repoFacet,
+          signal: abortController.signal,
+          onProgress: commitOutcome,
         });
-        if (!isLatestRequest()) {
-          return;
-        }
-        setResults(outcome.results);
-        setSearchMeta(outcome.meta);
-        setResultSelectedIndex(0);
+        commitOutcome(outcome);
       } catch (err) {
         if (!isLatestRequest()) {
           return;
@@ -79,6 +94,7 @@ export function useSearchExecution({
 
     return () => {
       isActive = false;
+      abortController.abort();
     };
   }, [
     isOpen,

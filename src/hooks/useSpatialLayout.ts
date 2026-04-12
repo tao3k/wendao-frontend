@@ -135,10 +135,13 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
   const runAnimation = useCallback(() => {
     if (!workerRef.current || !mountedRef.current) return;
 
-    workerRef.current.postMessage({
-      type: "tick",
-      count: ticksPerFrame,
-    } as LayoutWorkerInput, []);
+    workerRef.current.postMessage(
+      {
+        type: "tick",
+        count: ticksPerFrame,
+      } as LayoutWorkerInput,
+      [],
+    );
 
     if (alpha > 0.01 && isRunning) {
       animationFrameRef.current = requestAnimationFrame(runAnimation);
@@ -165,12 +168,15 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
 
       setError(null);
       setIsReady(false);
-      workerRef.current.postMessage({
-        type: "init",
-        nodes: inputNodes,
-        links: inputLinks,
-        config,
-      } as LayoutWorkerInput, []);
+      workerRef.current.postMessage(
+        {
+          type: "init",
+          nodes: inputNodes,
+          links: inputLinks,
+          config,
+        } as LayoutWorkerInput,
+        [],
+      );
 
       if (autoTick) {
         setIsRunning(true);
@@ -184,12 +190,15 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
       if (!workerRef.current) return;
 
       setError(null);
-      workerRef.current.postMessage({
-        type: "sync",
-        nodes: inputNodes,
-        links: inputLinks,
-        config,
-      } as LayoutWorkerInput, []);
+      workerRef.current.postMessage(
+        {
+          type: "sync",
+          nodes: inputNodes,
+          links: inputLinks,
+          config,
+        } as LayoutWorkerInput,
+        [],
+      );
 
       if (autoTick) {
         setIsRunning(true);
@@ -200,10 +209,13 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
 
   const tick = useCallback((count = 1) => {
     if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: "tick",
-      count,
-    } as LayoutWorkerInput, []);
+    workerRef.current.postMessage(
+      {
+        type: "tick",
+        count,
+      } as LayoutWorkerInput,
+      [],
+    );
   }, []);
 
   const start = useCallback(() => {
@@ -219,18 +231,24 @@ export function useSpatialLayout(options: UseSpatialLayoutOptions = {}): UseSpat
 
   const updatePosition = useCallback((nodeId: string, position: [number, number, number]) => {
     if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: "update",
-      nodeId,
-      position,
-    } as LayoutWorkerInput, []);
+    workerRef.current.postMessage(
+      {
+        type: "update",
+        nodeId,
+        position,
+      } as LayoutWorkerInput,
+      [],
+    );
   }, []);
 
   const getClusters = useCallback(() => {
     if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: "getClusters",
-    } as LayoutWorkerInput, []);
+    workerRef.current.postMessage(
+      {
+        type: "getClusters",
+      } as LayoutWorkerInput,
+      [],
+    );
   }, []);
 
   return {

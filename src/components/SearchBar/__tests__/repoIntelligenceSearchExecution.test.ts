@@ -232,6 +232,13 @@ describe("repoIntelligenceSearchExecution", () => {
           title: "solve",
           path: "docs/solve.md",
           format: "md",
+          docTarget: {
+            kind: "symbol",
+            name: "solve",
+            path: "GatewaySyncPkg.solve",
+            lineStart: 18,
+            lineEnd: 24,
+          },
         },
       ],
     });
@@ -246,5 +253,6 @@ describe("repoIntelligenceSearchExecution", () => {
     expect(outcome.hitCount).toBe(1);
     expect(outcome.results[0]?.searchSource).toBe("repo-intelligence");
     expect(outcome.results[0]?.codeKind).toBe("doc");
+    expect(outcome.results[0]?.docTarget?.path).toBe("GatewaySyncPkg.solve");
   });
 });

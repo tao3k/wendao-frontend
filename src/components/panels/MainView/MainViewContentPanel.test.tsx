@@ -49,6 +49,7 @@ describe("MainViewContentPanel", () => {
       <MainViewContentPanel
         selectedFile={{
           path: "packages/rust/crates/xiuxian-wendao/src/repo.rs",
+          category: "other",
           content: "pub struct RepoScanner {}",
           line: 10,
           lineEnd: 12,

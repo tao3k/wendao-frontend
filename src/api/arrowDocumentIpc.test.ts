@@ -59,6 +59,31 @@ describe("Arrow document IPC decoder", () => {
     });
   });
 
+  it("decodes projected page-index tree payloads when Arrow materializes UInt64 columns as bigint", () => {
+    const payload = tableToIPC(
+      tableFromArrays({
+        repoId: ["gateway-sync"],
+        pageId: ["repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md"],
+        path: ["docs/solve.md"],
+        docId: ["repo:gateway-sync:doc:docs/solve.md"],
+        title: ["solve"],
+        rootCount: new BigUint64Array([1n]),
+        rootsJson: [JSON.stringify([])],
+      }),
+      "stream",
+    );
+
+    expect(decodeProjectedPageIndexTreeFromArrowIpc(payload)).toEqual({
+      repo_id: "gateway-sync",
+      page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+      path: "docs/solve.md",
+      doc_id: "repo:gateway-sync:doc:docs/solve.md",
+      title: "solve",
+      root_count: 1,
+      roots: [],
+    });
+  });
+
   it("decodes refine-doc payloads", () => {
     const payload = tableToIPC(
       tableFromArrays({

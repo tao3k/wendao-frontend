@@ -12,6 +12,7 @@ import type { SearchExecutionOutcome } from "./searchExecutionTypes";
 export interface CodeModeExecutionOptions {
   repoFilter?: string;
   repoFacet?: RepoOverviewFacet | null;
+  signal?: AbortSignal;
 }
 
 export async function executeCodeModeSearch(
@@ -25,8 +26,9 @@ export async function executeCodeModeSearch(
     const [repoIntelligenceSettled, codeIntentSettled] = await Promise.allSettled([
       executeRepoIntelligenceCodeSearch(queryToSearch, repoFilter, {
         facet: repoFacet,
+        signal: options.signal,
       }),
-      resolveCodeSearchIntentMeta(queryToSearch, repoFilter, 10),
+      resolveCodeSearchIntentMeta(queryToSearch, repoFilter, 10, options.signal),
     ]);
     return resolveRepoAwareCodeModeOutcome({
       queryToSearch,
@@ -37,6 +39,6 @@ export async function executeCodeModeSearch(
     });
   }
 
-  const codeResponse = await fetchStandaloneCodeSearchResponse(queryToSearch, 10);
+  const codeResponse = await fetchStandaloneCodeSearchResponse(queryToSearch, 10, options.signal);
   return buildStandaloneCodeModeOutcome(codeResponse);
 }

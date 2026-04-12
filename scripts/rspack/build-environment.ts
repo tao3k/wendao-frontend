@@ -1,4 +1,3 @@
-import type { Configuration } from "@rspack/core";
 import { Agent } from "node:http";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -15,11 +14,39 @@ interface WendaoConfig {
 type ReadTextFile = (filePath: string, encoding: BufferEncoding) => string;
 
 type PluginConstructor = new (options?: unknown) => unknown;
+type RspackStaticConfig = {
+  directory: string;
+  publicPath: string;
+  watch: boolean;
+};
+
+export interface GatewayProxyAgent extends Agent {
+  keepAlive: boolean;
+  keepAliveMsecs: number;
+  maxSockets: number;
+  maxFreeSockets: number;
+}
+
+export interface RspackProxyEntry {
+  context: string[];
+  target: string;
+  changeOrigin: boolean;
+  agent: GatewayProxyAgent;
+  proxyTimeout: number;
+  timeout: number;
+}
+
+export interface RspackDevServerConfig {
+  proxy: [RspackProxyEntry, RspackProxyEntry];
+  hot: true;
+  historyApiFallback: true;
+  static: RspackStaticConfig;
+}
 
 const GATEWAY_PROXY_KEEPALIVE_MSECS = 1_000;
 const GATEWAY_PROXY_MAX_SOCKETS = 32;
 const GATEWAY_PROXY_MAX_FREE_SOCKETS = 8;
-const GATEWAY_PROXY_TIMEOUT_MSECS = 15_000;
+const GATEWAY_PROXY_TIMEOUT_MSECS = 30_000;
 
 interface RspackPluginConstructors {
   HtmlRspackPlugin: PluginConstructor;
@@ -96,14 +123,14 @@ export function createRspackPlugins({
   return plugins;
 }
 
-export function createGatewayProxyAgent(): Agent {
+export function createGatewayProxyAgent(): GatewayProxyAgent {
   return new Agent({
     keepAlive: true,
     keepAliveMsecs: GATEWAY_PROXY_KEEPALIVE_MSECS,
     maxSockets: GATEWAY_PROXY_MAX_SOCKETS,
     maxFreeSockets: GATEWAY_PROXY_MAX_FREE_SOCKETS,
     scheduling: "lifo",
-  });
+  }) as GatewayProxyAgent;
 }
 
 export function createRspackDevServer({
@@ -112,7 +139,7 @@ export function createRspackDevServer({
 }: {
   isDev: boolean;
   gatewayTarget: string;
-}): Configuration["devServer"] {
+}): RspackDevServerConfig | undefined {
   if (!isDev) {
     return undefined;
   }

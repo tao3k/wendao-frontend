@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { AlertCircle, ArrowLeft, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { api } from "../api";
 import { buildRepoDiagnosticsHash, parseRepoDiagnosticsHash } from "./repoDiagnosticsLocation";
@@ -946,10 +946,12 @@ function buildCurrentOperatorSummary(input: {
         left.reasonKey.localeCompare(right.reasonKey),
     );
   const actionPresets = actionTargets.map((target) => target.preset);
-  const actionKeys = Array.from(new Set(actionPresets.map((preset) => preset.actionKey))).toSorted();
+  const actionKeys = Array.from(new Set(actionPresets.map((preset) => preset.actionKey))).toSorted(
+    (left, right) => left.localeCompare(right),
+  );
   const followUpChecks = Array.from(
     new Set(actionPresets.flatMap((preset) => preset.followUpChecks)),
-  ).toSorted();
+  ).toSorted((left, right) => left.localeCompare(right));
   const nextSteps = Array.from(
     new Set([
       ...input.failureFamilies.map((family) => family.guidance),
@@ -989,6 +991,7 @@ function buildCurrentDiagnosticsPack(input: {
   failedReason: string | null;
   selectedRepoId: string | null;
   failureFamilies: Array<{
+    count: number;
     reasonKey: string;
     category: "transient_transport" | "auth_access" | "generic";
     retryable: boolean;
@@ -1068,7 +1071,7 @@ export function RepoDiagnosticsPage({
   repoIndexStatus,
   onClose,
   onStatusChange,
-}: RepoDiagnosticsPageProps): JSX.Element {
+}: RepoDiagnosticsPageProps): ReactElement {
   const copy = REPO_DIAGNOSTICS_COPY[locale];
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRepoId, setSelectedRepoId] = useState<string | null>(null);
@@ -1197,12 +1200,7 @@ export function RepoDiagnosticsPage({
     const nextUrl = new URL(window.location.href);
     nextUrl.hash = nextHash;
     window.history.replaceState(window.history.state, "", nextUrl.toString());
-  }, [
-    repoDiagnosticsFilter,
-    selectedFailedReason,
-    selectedUnsupportedReason,
-    selectedRepoId,
-  ]);
+  }, [repoDiagnosticsFilter, selectedFailedReason, selectedUnsupportedReason, selectedRepoId]);
 
   useEffect(() => {
     if (selectedRepoId === null || repoIndexStatus === null) {
@@ -1255,13 +1253,28 @@ export function RepoDiagnosticsPage({
       : ((repoIndexStatus?.unsupportedReasons ?? []).find((reason) =>
           (reason.repoIds ?? []).includes(selectedRepoId),
         ) ?? null);
+  const selectedFailedContext = selectedFailedIssue
+    ? (() => {
+        const rawReason = selectedFailedIssue.lastError?.trim() ?? "";
+        const displayReason = rawReason.length > 0 ? rawReason : null;
+        const remediation = failureReasonRemediation(rawReason, copy);
+        return {
+          attemptCount: selectedFailedIssue.attemptCount ?? null,
+          displayReason,
+          guidance: remediation.guidance,
+          machineKey: failedReasonMachineKey(selectedFailedIssue),
+          reason: rawReason,
+          remediation,
+        };
+      })()
+    : null;
   const selectedRepoPhase = selectedFailedIssue
     ? copy.failed
     : selectedUnsupportedRepoReason
       ? copy.unsupported
       : null;
   const selectedRepoReason =
-    selectedFailedIssue?.lastError ?? selectedUnsupportedRepoReason?.reason ?? null;
+    selectedFailedContext?.displayReason ?? selectedUnsupportedRepoReason?.reason ?? null;
   const selectedRepoPhaseKey = selectedFailedIssue
     ? "failed"
     : selectedUnsupportedRepoReason
@@ -1269,15 +1282,9 @@ export function RepoDiagnosticsPage({
       : null;
   const selectedRepoGuidance = selectedUnsupportedRepoReason
     ? unsupportedReasonGuidance(selectedUnsupportedRepoReason, copy)
-    : selectedFailedIssue
-      ? failureReasonRemediation(selectedFailedIssue.lastError ?? "", copy).guidance
+    : selectedFailedContext
+      ? selectedFailedContext.guidance
       : null;
-  const selectedFailureReasonMachineKey = selectedFailedIssue
-    ? failedReasonMachineKey(selectedFailedIssue)
-    : null;
-  const selectedFailureRemediation = selectedFailedIssue
-    ? failureReasonRemediation(selectedFailedIssue.lastError ?? "", copy)
-    : null;
   const isRetryingSelectedRepo =
     selectedRepoId !== null && repoDiagnostics.retryingRepoIds.includes(selectedRepoId);
   const currentConfigPatchRepoIds = Array.from(
@@ -1362,12 +1369,15 @@ export function RepoDiagnosticsPage({
     selectedRepoReason,
   ]);
 
-  const focusFailureActionTarget = useCallback((reasonKey: string): void => {
-    repoDiagnostics.setRepoDiagnosticsFilterState("failed");
-    repoDiagnostics.setSelectedUnsupportedReasonState(null);
-    repoDiagnostics.setSelectedFailedReasonState(reasonKey);
-    setSelectedRepoId(null);
-  }, [repoDiagnostics]);
+  const focusFailureActionTarget = useCallback(
+    (reasonKey: string): void => {
+      repoDiagnostics.setRepoDiagnosticsFilterState("failed");
+      repoDiagnostics.setSelectedUnsupportedReasonState(null);
+      repoDiagnostics.setSelectedFailedReasonState(reasonKey);
+      setSelectedRepoId(null);
+    },
+    [repoDiagnostics],
+  );
 
   const focusUnsupportedSlice = useCallback((): void => {
     repoDiagnostics.setRepoDiagnosticsFilterState("unsupported");
@@ -1391,7 +1401,7 @@ export function RepoDiagnosticsPage({
       repoId: selectedRepoId,
       phase: selectedRepoPhaseKey,
       reason: selectedRepoReason,
-      attempts: selectedFailedIssue?.attemptCount ?? null,
+      attempts: selectedFailedContext?.attemptCount ?? null,
       guidance: selectedRepoGuidance,
     });
     try {
@@ -1405,7 +1415,7 @@ export function RepoDiagnosticsPage({
     selectedRepoId,
     selectedRepoPhaseKey,
     selectedRepoReason,
-    selectedFailedIssue?.attemptCount,
+    selectedFailedContext?.attemptCount,
     selectedRepoGuidance,
   ]);
 
@@ -1415,25 +1425,22 @@ export function RepoDiagnosticsPage({
     }
 
     const failurePreset =
-      selectedFailedIssue &&
-      selectedRepoReason &&
-      selectedRepoGuidance &&
-      selectedFailureRemediation
+      selectedFailedContext && selectedRepoGuidance
         ? buildSelectedRepoFailurePreset({
             repoId: selectedRepoId,
-            reason: selectedRepoReason,
-            reasonMachineKey: selectedFailureReasonMachineKey,
-            attempts: selectedFailedIssue.attemptCount ?? null,
+            reason: selectedFailedContext.reason,
+            reasonMachineKey: selectedFailedContext.machineKey,
+            attempts: selectedFailedContext.attemptCount,
             syncConcurrencyLimit: repoIndexStatus?.syncConcurrencyLimit ?? null,
             guidance: selectedRepoGuidance,
-            remediation: selectedFailureRemediation,
+            remediation: selectedFailedContext.remediation,
           })
         : null;
     const bundle = buildSelectedRepoRemediationBundle({
       repoId: selectedRepoId,
       phase: selectedRepoPhaseKey,
       reason: selectedRepoReason,
-      attempts: selectedFailedIssue?.attemptCount ?? null,
+      attempts: selectedFailedContext?.attemptCount ?? null,
       guidance: selectedRepoGuidance,
       failurePreset,
     });
@@ -1450,32 +1457,25 @@ export function RepoDiagnosticsPage({
     selectedRepoId,
     selectedRepoPhaseKey,
     selectedRepoReason,
-    selectedFailedIssue,
+    selectedFailedContext,
     selectedRepoGuidance,
-    selectedFailureRemediation,
-    selectedFailureReasonMachineKey,
     repoIndexStatus,
   ]);
 
   const copySelectedRepoFailurePreset = useCallback(async (): Promise<void> => {
-    if (
-      selectedRepoId === null ||
-      selectedRepoReason === null ||
-      selectedRepoGuidance === null ||
-      selectedFailureRemediation === null
-    ) {
+    if (selectedRepoId === null || selectedFailedContext === null) {
       return;
     }
     try {
       await navigator.clipboard.writeText(
         buildSelectedRepoFailurePreset({
           repoId: selectedRepoId,
-          reason: selectedRepoReason,
-          reasonMachineKey: selectedFailureReasonMachineKey,
-          attempts: selectedFailedIssue?.attemptCount ?? null,
+          reason: selectedFailedContext.reason,
+          reasonMachineKey: selectedFailedContext.machineKey,
+          attempts: selectedFailedContext.attemptCount,
           syncConcurrencyLimit: repoIndexStatus?.syncConcurrencyLimit ?? null,
-          guidance: selectedRepoGuidance,
-          remediation: selectedFailureRemediation,
+          guidance: selectedFailedContext.guidance,
+          remediation: selectedFailedContext.remediation,
         }),
       );
       setHasCopiedSelectedRepoFailurePreset(true);
@@ -1483,15 +1483,7 @@ export function RepoDiagnosticsPage({
       console.warn(`Failed to copy failure preset for ${selectedRepoId}`, copyError);
       setHasCopiedSelectedRepoFailurePreset(false);
     }
-  }, [
-    repoIndexStatus?.syncConcurrencyLimit,
-    selectedRepoGuidance,
-    selectedRepoId,
-    selectedRepoReason,
-    selectedFailedIssue,
-    selectedFailureReasonMachineKey,
-    selectedFailureRemediation,
-  ]);
+  }, [repoIndexStatus?.syncConcurrencyLimit, selectedRepoId, selectedFailedContext]);
 
   const copySelectedRepoRemediationCommand = useCallback(async (): Promise<void> => {
     if (
@@ -1517,7 +1509,12 @@ export function RepoDiagnosticsPage({
       console.warn(`Failed to copy remediation command for ${selectedRepoId}`, copyError);
       setHasCopiedSelectedRepoRemediationCommand(false);
     }
-  }, [repoIndexStatus?.syncConcurrencyLimit, selectedRepoGuidance, selectedRepoId, selectedRepoReason]);
+  }, [
+    repoIndexStatus?.syncConcurrencyLimit,
+    selectedRepoGuidance,
+    selectedRepoId,
+    selectedRepoReason,
+  ]);
 
   const copyCurrentFailureRemediationCommand = useCallback(async (): Promise<void> => {
     if (currentFailureFamilies.length === 0 || typeof window === "undefined") {
@@ -1628,14 +1625,7 @@ export function RepoDiagnosticsPage({
     anchor.click();
     document.body.removeChild(anchor);
     window.URL.revokeObjectURL(objectUrl);
-  }, [
-    copy,
-    diagnosticsSummary,
-    locale,
-    repoDiagnostics,
-    repoIndexStatus,
-    selectedRepoId,
-  ]);
+  }, [copy, diagnosticsSummary, locale, repoDiagnostics, repoIndexStatus, selectedRepoId]);
 
   const downloadCurrentDiagnosticsPack = useCallback((): void => {
     if (repoIndexStatus === null || typeof window === "undefined") {
@@ -1978,9 +1968,7 @@ export function RepoDiagnosticsPage({
   const downloadSelectedRepoFailurePlan = useCallback((): void => {
     if (
       selectedRepoId === null ||
-      selectedRepoReason === null ||
-      selectedRepoGuidance === null ||
-      selectedFailureRemediation === null ||
+      selectedFailedContext === null ||
       typeof window === "undefined"
     ) {
       return;
@@ -1989,17 +1977,17 @@ export function RepoDiagnosticsPage({
       repoIndexStatus,
       filter: "failed",
       unsupportedReason: null,
-      failedReason: selectedRepoReason,
+      failedReason: selectedFailedContext.reason,
       selectedRepoId,
       families: [
         {
-          reasonKey: selectedRepoReason,
-          machineKey: selectedFailureReasonMachineKey,
+          reasonKey: selectedFailedContext.reason,
+          machineKey: selectedFailedContext.machineKey,
           repoIds: [selectedRepoId],
-          sampleErrors: [selectedRepoReason],
-          category: selectedFailureRemediation.category,
-          retryable: selectedFailureRemediation.retryable,
-          guidance: selectedRepoGuidance,
+          sampleErrors: [selectedFailedContext.reason],
+          category: selectedFailedContext.remediation.category,
+          retryable: selectedFailedContext.remediation.retryable,
+          guidance: selectedFailedContext.guidance,
         },
       ],
     });
@@ -2012,27 +2000,19 @@ export function RepoDiagnosticsPage({
     anchor.click();
     document.body.removeChild(anchor);
     window.URL.revokeObjectURL(objectUrl);
-  }, [
-    repoIndexStatus,
-    selectedRepoGuidance,
-    selectedRepoId,
-    selectedRepoReason,
-    selectedFailureReasonMachineKey,
-    selectedFailureRemediation,
-  ]);
+  }, [repoIndexStatus, selectedRepoId, selectedFailedContext]);
 
   const downloadSelectedRepoRemediationCommand = useCallback((): void => {
     if (
       selectedRepoId === null ||
-      selectedRepoReason === null ||
-      selectedRepoGuidance === null ||
+      selectedFailedContext === null ||
       typeof window === "undefined"
     ) {
       return;
     }
     const generatedAt = new Date().toISOString();
     const actionPreset = failureReasonActionPreset(
-      selectedRepoReason,
+      selectedFailedContext.reason,
       repoIndexStatus?.syncConcurrencyLimit ?? null,
       "repo",
     );
@@ -2040,8 +2020,8 @@ export function RepoDiagnosticsPage({
       body: buildSelectedRepoRemediationCommand({
         origin: window.location.origin,
         repoId: selectedRepoId,
-        reason: selectedRepoReason,
-        guidance: selectedRepoGuidance,
+        reason: selectedFailedContext.reason,
+        guidance: selectedFailedContext.guidance,
         syncConcurrencyLimit: repoIndexStatus?.syncConcurrencyLimit ?? null,
       }),
       metadataLines: buildScriptMetadataLines({
@@ -2049,11 +2029,11 @@ export function RepoDiagnosticsPage({
           repoIndexStatus,
           filter: "failed",
           unsupportedReason: null,
-          failedReason: selectedRepoReason,
+          failedReason: selectedFailedContext.reason,
           selectedRepoId,
         }),
         generatedAt,
-        reasonMachineKeys: [selectedFailureReasonMachineKey],
+        reasonMachineKeys: [selectedFailedContext.machineKey],
         actionKeys: [actionPreset.actionKey],
         retryScopes: [actionPreset.retryScope],
         envOverrideSets: [actionPreset.envOverrides],
@@ -2069,21 +2049,19 @@ export function RepoDiagnosticsPage({
     anchor.click();
     document.body.removeChild(anchor);
     window.URL.revokeObjectURL(objectUrl);
-  }, [repoIndexStatus, selectedRepoGuidance, selectedRepoId, selectedRepoReason, selectedFailureReasonMachineKey]);
+  }, [repoIndexStatus, selectedRepoId, selectedFailedContext]);
 
   const downloadSelectedRepoRemediationRunbook = useCallback((): void => {
     if (
       selectedRepoId === null ||
-      selectedRepoReason === null ||
-      selectedRepoGuidance === null ||
-      selectedFailureRemediation === null ||
+      selectedFailedContext === null ||
       typeof window === "undefined"
     ) {
       return;
     }
     const generatedAt = new Date().toISOString();
     const actionPreset = failureReasonActionPreset(
-      selectedRepoReason,
+      selectedFailedContext.reason,
       repoIndexStatus?.syncConcurrencyLimit ?? null,
       "repo",
     );
@@ -2091,8 +2069,8 @@ export function RepoDiagnosticsPage({
       body: buildSelectedRepoRemediationCommand({
         origin: window.location.origin,
         repoId: selectedRepoId,
-        reason: selectedRepoReason,
-        guidance: selectedRepoGuidance,
+        reason: selectedFailedContext.reason,
+        guidance: selectedFailedContext.guidance,
         syncConcurrencyLimit: repoIndexStatus?.syncConcurrencyLimit ?? null,
       }),
       metadataLines: buildScriptMetadataLines({
@@ -2100,11 +2078,11 @@ export function RepoDiagnosticsPage({
           repoIndexStatus,
           filter: "failed",
           unsupportedReason: null,
-          failedReason: selectedRepoReason,
+          failedReason: selectedFailedContext.reason,
           selectedRepoId,
         }),
         generatedAt,
-        reasonMachineKeys: [selectedFailureReasonMachineKey],
+        reasonMachineKeys: [selectedFailedContext.machineKey],
         actionKeys: [actionPreset.actionKey],
         retryScopes: [actionPreset.retryScope],
         envOverrideSets: [actionPreset.envOverrides],
@@ -2115,17 +2093,17 @@ export function RepoDiagnosticsPage({
       repoIndexStatus,
       filter: "failed",
       unsupportedReason: null,
-      failedReason: selectedRepoReason,
+      failedReason: selectedFailedContext.reason,
       selectedRepoId,
       families: [
         {
-          reasonKey: selectedRepoReason,
-          machineKey: selectedFailureReasonMachineKey,
+          reasonKey: selectedFailedContext.reason,
+          machineKey: selectedFailedContext.machineKey,
           repoIds: [selectedRepoId],
-          sampleErrors: [selectedRepoReason],
-          category: selectedFailureRemediation.category,
-          retryable: selectedFailureRemediation.retryable,
-          guidance: selectedRepoGuidance,
+          sampleErrors: [selectedFailedContext.reason],
+          category: selectedFailedContext.remediation.category,
+          retryable: selectedFailedContext.remediation.retryable,
+          guidance: selectedFailedContext.guidance,
         },
       ],
       remediationScript,
@@ -2139,14 +2117,7 @@ export function RepoDiagnosticsPage({
     anchor.click();
     document.body.removeChild(anchor);
     window.URL.revokeObjectURL(objectUrl);
-  }, [
-    repoIndexStatus,
-    selectedRepoGuidance,
-    selectedRepoId,
-    selectedRepoReason,
-    selectedFailureReasonMachineKey,
-    selectedFailureRemediation,
-  ]);
+  }, [repoIndexStatus, selectedRepoId, selectedFailedContext]);
 
   const handleRefreshRepoIndexStatus = refreshRepoIndexStatus;
 
@@ -2174,9 +2145,12 @@ export function RepoDiagnosticsPage({
     void repoDiagnostics.copyUnsupportedManifest();
   }, [repoDiagnostics]);
 
-  const handleRetryRepoIndexIssue = useCallback((repoId: string) => {
-    void repoDiagnostics.retryRepoIndexIssue(repoId);
-  }, [repoDiagnostics]);
+  const handleRetryRepoIndexIssue = useCallback(
+    (repoId: string) => {
+      void repoDiagnostics.retryRepoIndexIssue(repoId);
+    },
+    [repoDiagnostics],
+  );
 
   const handleRetrySelectedRepo = useCallback(() => {
     if (!selectedFailedIssue) {
@@ -2197,7 +2171,7 @@ export function RepoDiagnosticsPage({
   );
 
   const renderUnsupportedGuidance = useCallback(
-    (reason: string) => unsupportedReasonGuidance(reason, copy),
+    (reason: RepoIndexUnsupportedReason) => unsupportedReasonGuidance(reason, copy),
     [copy],
   );
 

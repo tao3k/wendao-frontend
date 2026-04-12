@@ -1,46 +1,23 @@
-import type { SearchResult } from "../../SearchBar/types";
 import { isCodeSearchResult } from "../../SearchBar/searchResultNormalization";
+import type { SearchResult } from "../../SearchBar/types";
 import type { ZenSearchPreviewState } from "../useZenSearchPreview";
+import {
+  deriveLanguageStructuredProjection,
+  resolveStructuredProjectionLanguage,
+} from "./language";
+import type {
+  StructuredChip,
+  StructuredEntityModel,
+  StructuredFragment,
+  StructuredNeighbor,
+} from "./structuredIntelligenceTypes";
 
-export interface StructuredChip {
-  label: string;
-  value: string;
-  query?: string;
-}
-
-export interface StructuredFragment {
-  kind: "heading" | "code" | "math" | "excerpt";
-  label: string;
-  value: string;
-  query?: string;
-  language?: string;
-}
-
-export interface StructuredNeighbor {
-  id: string;
-  label: string;
-  path: string;
-  direction: "incoming" | "outgoing";
-  query?: string;
-}
-
-export interface StructuredEntityModel {
-  pathTrail: StructuredChip[];
-  metadata: StructuredChip[];
-  outline: StructuredChip[];
-  fragments: StructuredFragment[];
-  incoming: StructuredNeighbor[];
-  outgoing: StructuredNeighbor[];
-  backlinks: StructuredChip[];
-  projections: StructuredChip[];
-  saliencyExcerpt: string | null;
-  graphSummary: {
-    centerLabel: string;
-    centerPath: string;
-    totalNodes: number;
-    totalLinks: number;
-  } | null;
-}
+export type {
+  StructuredChip,
+  StructuredEntityModel,
+  StructuredFragment,
+  StructuredNeighbor,
+} from "./structuredIntelligenceTypes";
 
 function normalizeText(value: string | undefined | null): string | null {
   if (!value) {
@@ -71,6 +48,10 @@ function buildPathTrail(path: string | null | undefined): StructuredChip[] {
   return trail;
 }
 
+function truncateText(value: string, maxLength = 220): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+}
+
 function extractHeadings(content: string | null): StructuredChip[] {
   if (!content) {
     return [];
@@ -88,153 +69,6 @@ function extractHeadings(content: string | null): StructuredChip[] {
     }));
 }
 
-interface OutlinePattern {
-  kind: string;
-  regex: RegExp;
-}
-
-const GENERIC_CODE_OUTLINE_PATTERNS: OutlinePattern[] = [
-  { kind: "function", regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
-  { kind: "class", regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: "interface", regex: /^(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: "type", regex: /^(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: "enum", regex: /^(?:export\s+)?enum\s+([A-Za-z_$][\w$]*)\b/ },
-  { kind: "struct", regex: /^(?:pub\s+)?struct\s+([A-Za-z_][\w:]*)\b/ },
-  { kind: "trait", regex: /^(?:pub\s+)?trait\s+([A-Za-z_][\w:]*)\b/ },
-  { kind: "module", regex: /^(?:pub\s+)?mod\s+([A-Za-z_][\w:]*)\b/ },
-  { kind: "def", regex: /^(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(/ },
-  { kind: "method", regex: /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][\w]*)\s*\(/ },
-  {
-    kind: "model",
-    regex:
-      /^(?:partial\s+)?(?:encapsulated\s+)?(?:model|block|class|function|package|record|connector|operator)\s+([A-Za-z_][\w]*)\b/,
-  },
-];
-
-const LANGUAGE_CODE_OUTLINE_PATTERNS: Record<string, OutlinePattern[]> = {
-  rust: [
-    {
-      kind: "function",
-      regex: /^(?:pub\s+)?(?:async\s+)?fn\s+([A-Za-z_][\w]*)\s*(?:<[^>]*>)?\s*\(/,
-    },
-    { kind: "struct", regex: /^(?:pub\s+)?struct\s+([A-Za-z_][\w:]*)\b/ },
-    { kind: "enum", regex: /^(?:pub\s+)?enum\s+([A-Za-z_][\w:]*)\b/ },
-    { kind: "trait", regex: /^(?:pub\s+)?trait\s+([A-Za-z_][\w:]*)\b/ },
-    { kind: "impl", regex: /^impl(?:<[^>]+>)?\s+([A-Za-z_][\w:]*)/ },
-    { kind: "module", regex: /^(?:pub\s+)?mod\s+([A-Za-z_][\w:]*)\b/ },
-  ],
-  julia: [
-    { kind: "function", regex: /^(?:function\s+)?([A-Za-z_][\w!]*)\s*\(/ },
-    { kind: "struct", regex: /^(?:mutable\s+)?struct\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: "module", regex: /^module\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: "macro", regex: /^macro\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: "type", regex: /^(?:abstract|primitive)\s+type\s+([A-Za-z_][\w!]*)\b/ },
-    { kind: "constant", regex: /^const\s+([A-Za-z_][\w!]*)\b/ },
-  ],
-  python: [
-    { kind: "class", regex: /^class\s+([A-Za-z_][\w]*)\b/ },
-    { kind: "function", regex: /^(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\(/ },
-  ],
-  typescript: [
-    { kind: "class", regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: "interface", regex: /^(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: "type", regex: /^(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: "function", regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
-  ],
-  javascript: [
-    { kind: "class", regex: /^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/ },
-    { kind: "function", regex: /^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/ },
-    {
-      kind: "constant",
-      regex: /^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function|\()/,
-    },
-  ],
-  go: [
-    { kind: "function", regex: /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][\w]*)\s*\(/ },
-    { kind: "type", regex: /^type\s+([A-Za-z_][\w]*)\s+struct\b/ },
-    { kind: "interface", regex: /^type\s+([A-Za-z_][\w]*)\s+interface\b/ },
-  ],
-  modelica: [
-    {
-      kind: "model",
-      regex:
-        /^(?:partial\s+)?(?:encapsulated\s+)?(?:model|block|class|function|package|record|connector|operator)\s+([A-Za-z_][\w]*)\b/,
-    },
-    { kind: "function", regex: /^function\s+([A-Za-z_][\w]*)\b/ },
-  ],
-};
-
-function inferCodeOutlineLanguage(result: SearchResult): string | null {
-  const explicit = normalizeText(result.codeLanguage)?.toLowerCase();
-  if (explicit) {
-    return explicit;
-  }
-
-  const path = normalizeText(result.navigationTarget?.path ?? result.path);
-  if (!path) {
-    return null;
-  }
-
-  const lower = path.toLowerCase();
-  if (lower.endsWith(".jl")) return "julia";
-  if (lower.endsWith(".rs")) return "rust";
-  if (lower.endsWith(".py")) return "python";
-  if (lower.endsWith(".ts") || lower.endsWith(".tsx")) return "typescript";
-  if (lower.endsWith(".js") || lower.endsWith(".jsx")) return "javascript";
-  if (lower.endsWith(".go")) return "go";
-  if (lower.endsWith(".mo")) return "modelica";
-  return null;
-}
-
-function extractCodeOutline(content: string | null, result: SearchResult): StructuredChip[] {
-  if (!content) {
-    return [];
-  }
-
-  const language = inferCodeOutlineLanguage(result);
-  const patterns = [
-    ...(language ? (LANGUAGE_CODE_OUTLINE_PATTERNS[language] ?? []) : []),
-    ...GENERIC_CODE_OUTLINE_PATTERNS,
-  ];
-
-  const outline: StructuredChip[] = [];
-  const seen = new Set<string>();
-
-  for (const line of content.split(/\r?\n/)) {
-    const normalized = line.trim();
-    if (!normalized) {
-      continue;
-    }
-
-    for (const pattern of patterns) {
-      const match = normalized.match(pattern.regex);
-      const symbolName = match?.[1]?.trim();
-      if (!symbolName) {
-        continue;
-      }
-
-      const key = `${pattern.kind}:${symbolName}`;
-      if (seen.has(key)) {
-        continue;
-      }
-
-      seen.add(key);
-      outline.push({
-        label: pattern.kind,
-        value: symbolName,
-        query: symbolName,
-      });
-      break;
-    }
-
-    if (outline.length >= 8) {
-      break;
-    }
-  }
-
-  return outline;
-}
-
 function extractCodeFences(content: string | null): StructuredFragment[] {
   if (!content) {
     return [];
@@ -249,8 +83,8 @@ function extractCodeFences(content: string | null): StructuredFragment[] {
     const body = normalizeText(match[2]) ?? "";
     fragments.push({
       kind: "code",
-      label: language,
-      value: body.length > 180 ? `${body.slice(0, 177)}...` : body,
+      label: `code · ${language}`,
+      value: truncateText(body, 180),
       query: language,
       language,
     });
@@ -277,7 +111,7 @@ function extractMathFragments(content: string | null): StructuredFragment[] {
     fragments.push({
       kind: "math",
       label: "math",
-      value: body.length > 180 ? `${body.slice(0, 177)}...` : body,
+      value: truncateText(body, 180),
       query: "math",
     });
   }
@@ -296,7 +130,7 @@ function buildSaliencyExcerpt(result: SearchResult, content: string | null): str
       const end = Math.min(content.length, index + bestSection.length + 120);
       const excerpt = content.slice(start, end).replace(/\s+/g, " ").trim();
       if (excerpt.length > 0) {
-        return excerpt.length > 220 ? `${excerpt.slice(0, 217)}...` : excerpt;
+        return truncateText(excerpt, 220);
       }
     }
   }
@@ -314,11 +148,24 @@ function buildSaliencyExcerpt(result: SearchResult, content: string | null): str
   }
 
   const normalized = content.replace(/\s+/g, " ").trim();
-  return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
+  return truncateText(normalized, 220);
+}
+
+function resolveCodeEntityPivotQuery(result: SearchResult): string | undefined {
+  return (
+    normalizeText(result.bestSection) ??
+    normalizeText(result.title) ??
+    normalizeText(result.stem) ??
+    normalizeText(result.navigationTarget?.path ?? result.path) ??
+    undefined
+  );
 }
 
 function buildMetadata(result: SearchResult): StructuredChip[] {
   const metadata: StructuredChip[] = [];
+  const codeEntityPivotQuery = isCodeSearchResult(result)
+    ? resolveCodeEntityPivotQuery(result)
+    : undefined;
   const append = (label: string, value: string | undefined | null, query?: string) => {
     const normalized = normalizeText(value);
     if (!normalized) {
@@ -338,11 +185,7 @@ function buildMetadata(result: SearchResult): StructuredChip[] {
     result.verification_state ?? undefined,
     result.verification_state ? `verify:${result.verification_state}` : undefined,
   );
-  append(
-    "kind",
-    result.codeKind ?? result.docType ?? undefined,
-    result.codeKind ? `kind:${result.codeKind}` : undefined,
-  );
+  append("kind", result.codeKind ?? result.docType ?? undefined, codeEntityPivotQuery);
   append(
     "language",
     result.codeLanguage ?? undefined,
@@ -352,6 +195,11 @@ function buildMetadata(result: SearchResult): StructuredChip[] {
     "repo",
     result.codeRepo ?? result.projectName ?? undefined,
     result.codeRepo ? `repo:${result.codeRepo}` : undefined,
+  );
+  append(
+    "target",
+    result.docTarget ? `${result.docTarget.kind}:${result.docTarget.name}` : undefined,
+    result.docTarget?.path ?? result.docTarget?.name,
   );
   append(
     "project",
@@ -480,11 +328,26 @@ export function deriveStructuredEntity(preview: ZenSearchPreviewState): Structur
   }
 
   const content = preview.content;
-  const codeOutline = isCodeSearchResult(selected) ? extractCodeOutline(content, selected) : [];
-  const headings = codeOutline.length > 0 ? codeOutline : extractHeadings(content);
-  const codeFragments = extractCodeFences(content);
-  const mathFragments = extractMathFragments(content);
-  const saliencyExcerpt = buildSaliencyExcerpt(selected, content);
+  const isCodeResult = isCodeSearchResult(selected);
+  const codeProjection = isCodeResult
+    ? deriveLanguageStructuredProjection({
+        analysis: preview.codeAstAnalysis,
+        content,
+        language: resolveStructuredProjectionLanguage(
+          selected.codeLanguage ?? preview.codeAstAnalysis?.language ?? null,
+          preview.contentPath ?? selected.navigationTarget?.path ?? selected.path,
+        ),
+        path: preview.contentPath ?? selected.navigationTarget?.path ?? selected.path,
+      })
+    : null;
+  const headings = isCodeResult ? (codeProjection?.outline ?? []) : extractHeadings(content);
+  const codeFragments = isCodeResult
+    ? (codeProjection?.fragments ?? [])
+    : extractCodeFences(content);
+  const mathFragments = isCodeResult ? [] : extractMathFragments(content);
+  const saliencyExcerpt = isCodeResult
+    ? (codeProjection?.saliencyExcerpt ?? null)
+    : buildSaliencyExcerpt(selected, content);
   const metadata = buildMetadata(selected);
   const backlinks = buildBacklinks(selected);
   const projections = buildProjectionAnchors(selected);
@@ -499,7 +362,7 @@ export function deriveStructuredEntity(preview: ZenSearchPreviewState): Structur
     fragments: [
       ...codeFragments,
       ...mathFragments,
-      ...(saliencyExcerpt
+      ...(codeFragments.length === 0 && saliencyExcerpt
         ? [
             {
               kind: "excerpt" as const,

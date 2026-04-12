@@ -5,7 +5,7 @@
  * Implements wendao_vfs_explorer_v1.md specification.
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, type ReactElement } from "react";
 import { api } from "../../../api/clientRuntime";
 import "./VfsSidebar.css";
 
@@ -75,7 +75,7 @@ function VfsNode({
   selectedPath,
   onToggle,
   onSelect,
-}: VfsNodeProps): React.ReactElement {
+}: VfsNodeProps): ReactElement {
   const isExpanded = expandedDirs.has(entry.path);
   const isSelected = selectedPath === entry.path;
   const color = CATEGORY_COLORS[entry.category] || CATEGORY_COLORS.other;
@@ -99,7 +99,9 @@ function VfsNode({
     }
     onSelect(entry);
   }, [entry, onSelect, onToggle]);
-  const sortedChildren = children.toSorted((a, b) => a.name.localeCompare(b.name));
+  const sortedChildren: VfsEntry[] = children.toSorted((left: VfsEntry, right: VfsEntry) =>
+    left.name.localeCompare(right.name),
+  );
 
   return (
     <div className="vfs-node">
@@ -128,7 +130,7 @@ function VfsNode({
       </button>
       {entry.isDir && isExpanded && hasChildren && (
         <div className="vfs-node__children">
-          {sortedChildren.map((child) => (
+          {sortedChildren.map((child: VfsEntry) => (
             <VfsNode
               key={child.path}
               entry={child}
@@ -151,7 +153,7 @@ export function VfsSidebar({
   onToggleDir,
   selectedPath,
   className = "",
-}: VfsSidebarProps): React.ReactElement {
+}: VfsSidebarProps): ReactElement {
   const [entries, setEntries] = useState<VfsEntry[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
     new Set(["skills", "knowledge", "internal_skills", "docs"]),
@@ -253,8 +255,8 @@ export function VfsSidebar({
         {!loading && !error && (
           <div className="vfs-tree">
             {rootEntries
-              .toSorted((a, b) => a.name.localeCompare(b.name))
-              .map((entry) => (
+              .toSorted((left: VfsEntry, right: VfsEntry) => left.name.localeCompare(right.name))
+              .map((entry: VfsEntry) => (
                 <VfsNode
                   key={entry.path}
                   entry={entry}

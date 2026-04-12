@@ -13,6 +13,7 @@ describe("mermaidRenderResults", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.svg).toContain("Empty Mermaid diagram source");
+    expect(result[0]?.renderMode).toBe("sync-svg");
   });
 
   it("renders loading placeholder when runtime is not ready", () => {
@@ -27,6 +28,7 @@ describe("mermaidRenderResults", () => {
     expect(result).toHaveLength(1);
     expect(result[0]?.source).toBe("graph TD\nA --> B");
     expect(result[0]?.svg).toContain("Loading Mermaid runtime...");
+    expect(result[0]?.renderMode).toBe("sync-svg");
   });
 
   it("delegates to renderMermaid with trimmed source and returns svg", () => {
@@ -50,6 +52,7 @@ describe("mermaidRenderResults", () => {
       }),
     );
     expect(result[0]?.svg).toBe('<svg class="ok"></svg>');
+    expect(result[0]?.renderMode).toBe("sync-svg");
   });
 
   it("captures render errors into result payload", () => {
@@ -68,9 +71,10 @@ describe("mermaidRenderResults", () => {
     expect(result).toHaveLength(1);
     expect(result[0]?.svg).toBeNull();
     expect(result[0]?.error).toBe("boom");
+    expect(result[0]?.renderMode).toBe("error");
   });
 
-  it("falls back immediately for unsupported explicit mermaid dialects", () => {
+  it("routes sequence diagrams to the official mermaid runtime path", () => {
     const renderMermaid = vi.fn();
 
     const result = buildRenderedMermaidBlocks({
@@ -84,6 +88,8 @@ describe("mermaidRenderResults", () => {
     expect(renderMermaid).not.toHaveBeenCalled();
     expect(result).toHaveLength(1);
     expect(result[0]?.svg).toBeNull();
-    expect(result[0]?.error).toBe("unsupported: sequence");
+    expect(result[0]?.error).toBeUndefined();
+    expect(result[0]?.dialect).toBe("sequence");
+    expect(result[0]?.renderMode).toBe("official-runtime");
   });
 });

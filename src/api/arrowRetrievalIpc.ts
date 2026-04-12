@@ -52,6 +52,33 @@ function toOptionalSurface(value: unknown): RetrievalChunkSurface | undefined {
     : undefined;
 }
 
+function toOptionalAttributes(value: unknown): [string, string][] | undefined {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) {
+      return undefined;
+    }
+    const attributes = parsed.flatMap((entry) => {
+      if (
+        Array.isArray(entry) &&
+        entry.length === 2 &&
+        typeof entry[0] === "string" &&
+        typeof entry[1] === "string"
+      ) {
+        return [[entry[0], entry[1]] as [string, string]];
+      }
+      return [];
+    });
+    return attributes.length > 0 ? attributes : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function decodeRetrievalChunksFromArrowIpc(payload: ArrayBuffer): RetrievalChunk[] {
   if (payload.byteLength === 0) {
     return [];
@@ -71,6 +98,7 @@ export function decodeRetrievalChunksFromArrowIpc(payload: ArrayBuffer): Retriev
     };
     const displayLabel = toOptionalString(record.displayLabel);
     const excerpt = toOptionalString(record.excerpt);
+    const attributes = toOptionalAttributes(record.attributesJson);
     if (displayLabel) {
       chunk.displayLabel = displayLabel;
     }
@@ -85,6 +113,9 @@ export function decodeRetrievalChunksFromArrowIpc(payload: ArrayBuffer): Retriev
     }
     if (surface) {
       chunk.surface = surface;
+    }
+    if (attributes) {
+      chunk.attributes = attributes;
     }
     return chunk;
   });

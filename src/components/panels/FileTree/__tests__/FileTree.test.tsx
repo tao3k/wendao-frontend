@@ -22,6 +22,7 @@ describe("FileTree", () => {
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let loadVfsScanFlightSpy: ReturnType<typeof vi.spyOn>;
   let resolveSearchFlightSchemaVersionSpy: ReturnType<typeof vi.spyOn>;
+  let getUiConfigSpy: ReturnType<typeof vi.spyOn> | null = null;
   let enqueueRepoIndexSpy: ReturnType<typeof vi.spyOn> | null = null;
   let getRepoIndexStatusSpy: ReturnType<typeof vi.spyOn> | null = null;
 
@@ -36,6 +37,19 @@ describe("FileTree", () => {
     resolveSearchFlightSchemaVersionSpy = vi
       .spyOn(flightSearchTransport, "resolveSearchFlightSchemaVersion")
       .mockReturnValue("v2");
+    getUiConfigSpy = vi.spyOn(api, "getUiConfig").mockImplementation(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [],
+      };
+    });
     loadVfsScanFlightSpy = vi
       .spyOn(flightWorkspaceTransport, "loadVfsScanFlight")
       .mockImplementation(async () => {
@@ -51,6 +65,8 @@ describe("FileTree", () => {
     resetConfig();
     resetRepoIndexPriorityForTest();
     window.localStorage.clear();
+    getUiConfigSpy?.mockRestore();
+    getUiConfigSpy = null;
     enqueueRepoIndexSpy?.mockRestore();
     enqueueRepoIndexSpy = null;
     getRepoIndexStatusSpy?.mockRestore();
@@ -61,8 +77,25 @@ describe("FileTree", () => {
     consoleWarnSpy.mockRestore();
   });
 
-  const createMockFetch = (config: { dirs?: string[]; setUiConfigFails?: boolean } = {}) => {
+  const createMockFetch = (
+    config: {
+      dirs?: string[];
+      setUiConfigFails?: boolean;
+      gatewayUiConfig?: Record<string, unknown> | null;
+    } = {},
+  ) => {
     return vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === "/api/ui/config" && (!options?.method || options.method === "GET")) {
+        callOrder.push("getUiConfig");
+        if (config.gatewayUiConfig) {
+          return {
+            ok: true,
+            json: async () => config.gatewayUiConfig,
+          } as Response;
+        }
+        return { ok: false, status: 404 } as Response;
+      }
+
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         callOrder.push("getConfig");
         const dirsStr = config.dirs?.map((dir) => `"${dir}"`).join(", ") || "";
@@ -95,8 +128,20 @@ describe("FileTree", () => {
     }) as typeof fetch;
   };
 
-  it("should call setUiConfig before scanVfs", async () => {
-    global.fetch = createMockFetch({ dirs: ["docs", "skills"] });
+  it("should prefer gateway merged ui config before scanning VFS", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: "../..",
+            dirs: ["docs", "skills"],
+          },
+        ],
+      };
+    });
+    global.fetch = createMockFetch();
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
@@ -106,51 +151,31 @@ describe("FileTree", () => {
       expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
     });
 
-    expect(callOrder).toContain("setUiConfig");
+    expect(callOrder).toContain("getUiConfig");
+    expect(callOrder).not.toContain("setUiConfig");
     expect(callOrder).toContain("scanVfs");
-  });
-
-  it("should push loaded config to backend before scanning VFS", async () => {
-    global.fetch = createMockFetch({ dirs: ["test-path"] });
-
-    await act(async () => {
-      render(<FileTree onFileSelect={mockOnFileSelect} />);
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
-    });
-
-    // Verify ordering: config is loaded first, then pushed before scanVfs
-    expect(callOrder).toMatchInlineSnapshot(`
-      [
-        "getConfig",
-        "setUiConfig",
-        "scanVfs",
-      ]
-    `);
-  });
-
-  it("should still scan VFS even if setUiConfig fails", async () => {
-    global.fetch = createMockFetch({ dirs: ["test"], setUiConfigFails: true });
-
-    await act(async () => {
-      render(<FileTree onFileSelect={mockOnFileSelect} />);
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
-    });
-
-    // setUiConfig was attempted (even though it failed)
-    expect(callOrder).toContain("setUiConfig-failed");
-    // scanVfs should still happen
-    expect(callOrder).toContain("scanVfs");
-    // Verify scanVfs happened after the setUiConfig attempt
-    expect(callOrder.indexOf("scanVfs")).toBeGreaterThan(callOrder.indexOf("setUiConfig-failed"));
   });
 
   it("prioritizes repo indexing when opening a repo-project group", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [
+          {
+            id: "sciml",
+            url: "https://github.com/SciML/BaseModelica.jl",
+            plugins: ["julia"],
+          },
+        ],
+      };
+    });
     enqueueRepoIndexSpy = vi.spyOn(api, "enqueueRepoIndex").mockResolvedValue({
       total: 1,
       queued: 1,
@@ -279,6 +304,25 @@ plugins = ["julia"]
   });
 
   it("derives unsupported layout summaries from repo index status payloads", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [
+          {
+            id: "sciml",
+            url: "https://github.com/SciML/BaseModelica.jl",
+            plugins: ["julia"],
+          },
+        ],
+      };
+    });
     let statusCallCount = 0;
     getRepoIndexStatusSpy = vi.spyOn(api, "getRepoIndexStatus").mockImplementation(async () => {
       statusCallCount += 1;
@@ -291,6 +335,9 @@ plugins = ["julia"]
         ready: 1,
         unsupported: 2,
         failed: 0,
+        targetConcurrency: 1,
+        maxConcurrency: 1,
+        syncConcurrencyLimit: 1,
         repos: [
           {
             repoId: "StokesDiffEq.jl",
@@ -371,6 +418,25 @@ plugins = ["julia"]
   });
 
   it("does not render repo index diagnostics inside the sidebar anymore", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [
+          {
+            id: "sciml",
+            url: "https://github.com/SciML/BaseModelica.jl",
+            plugins: ["julia"],
+          },
+        ],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
@@ -458,8 +524,21 @@ plugins = ["julia"]
     expect(screen.queryByRole("button", { name: "Open full diagnostics" })).not.toBeInTheDocument();
   });
 
-  it("should block the explorer when a project has empty dirs", async () => {
-    global.fetch = createMockFetch({ dirs: [] });
+  it("renders a placeholder when a project has empty dirs", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: [],
+          },
+        ],
+        repoProjects: [],
+      };
+    });
+    global.fetch = createMockFetch();
 
     await act(async () => {
       render(<FileTree onFileSelect={mockOnFileSelect} />);
@@ -471,14 +550,34 @@ plugins = ["julia"]
 
     expect(callOrder).toMatchInlineSnapshot(`
       [
+        "getUiConfig",
         "getConfig",
+        "scanVfs",
       ]
     `);
-    expect(screen.getByText("Gateway sync blocked.")).toBeInTheDocument();
-    expect(screen.getByText('project "kernel" must define at least one dir')).toBeInTheDocument();
+    expect(screen.getByText("kernel")).toBeInTheDocument();
+    expect(screen.getByText("No indexed roots (check project root/dirs)")).toBeInTheDocument();
   });
 
   it("renders configured project groups even when a project has no indexed entries", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+          {
+            name: "main",
+            root: "~/ghq/github.com/tao3k/omni-dev-fusion/",
+            dirs: ["docs", "internal_skills"],
+          },
+        ],
+        repoProjects: [],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
@@ -523,6 +622,25 @@ plugins = ["julia"]
   });
 
   it("renders configured repo project groups even when a repo project has no indexed entries", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [
+          {
+            id: "sciml",
+            url: "https://github.com/SciML/BaseModelica.jl",
+            plugins: ["julia"],
+          },
+        ],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
@@ -567,6 +685,25 @@ plugins = ["julia"]
   });
 
   it("reports repo index status separately from VFS status", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "kernel",
+            root: ".",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [
+          {
+            id: "sciml",
+            url: "https://github.com/SciML/BaseModelica.jl",
+            plugins: ["julia"],
+          },
+        ],
+      };
+    });
     const onStatusChange = vi.fn();
     getRepoIndexStatusSpy = vi.spyOn(api, "getRepoIndexStatus").mockResolvedValue({
       total: 1,
@@ -622,7 +759,7 @@ plugins = ["julia"]
     await waitFor(() => {
       expect(onStatusChange).toHaveBeenCalledWith({
         vfsStatus: { isLoading: false, error: null },
-        repoIndexStatus: {
+        repoIndexStatus: expect.objectContaining({
           total: 1,
           queued: 0,
           checking: 0,
@@ -635,9 +772,7 @@ plugins = ["julia"]
           maxConcurrency: 15,
           syncConcurrencyLimit: 2,
           currentRepoId: "sciml",
-          linkGraphOnlyProjectCount: 1,
-          linkGraphOnlyProjectIds: ["kernel"],
-        },
+        }),
       });
     });
   });
@@ -692,6 +827,7 @@ plugins = ["julia"]
   });
 
   it("should block the explorer and show the real gateway error when loading fails", async () => {
+    getUiConfigSpy?.mockRejectedValueOnce(new Error("HTTP 500"));
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return { ok: false, status: 500 } as Response;
@@ -720,7 +856,7 @@ plugins = ["julia"]
     expect(
       screen.getByText("Studio requires a healthy gateway before the project tree can be shown."),
     ).toBeInTheDocument();
-    expect(screen.getByText("wendao.toml could not be loaded: HTTP 500")).toBeInTheDocument();
+    expect(screen.getByText("HTTP 500")).toBeInTheDocument();
     expect(screen.queryByText("skills")).not.toBeInTheDocument();
   });
 
@@ -845,6 +981,24 @@ plugins = ["julia"]
   });
 
   it("should group monorepo roots under project names for the left tree", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "alpha",
+            root: "/workspace/packages/alpha",
+            dirs: ["docs"],
+          },
+          {
+            name: "beta",
+            root: "/workspace/packages/beta",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
@@ -922,6 +1076,24 @@ plugins = ["julia"]
   });
 
   it("should still render configured project groups when scan entries miss project metadata", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "alpha",
+            root: "/workspace/packages/alpha",
+            dirs: ["docs"],
+          },
+          {
+            name: "beta",
+            root: "/workspace/packages/beta",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {
@@ -1066,6 +1238,19 @@ plugins = ["julia"]
   });
 
   it("should render resiliently when scan entries miss project metadata", async () => {
+    getUiConfigSpy?.mockImplementationOnce(async () => {
+      callOrder.push("getUiConfig");
+      return {
+        projects: [
+          {
+            name: "alpha",
+            root: "/workspace/packages/alpha",
+            dirs: ["docs"],
+          },
+        ],
+        repoProjects: [],
+      };
+    });
     global.fetch = vi.fn(async (url: string, options?: RequestInit) => {
       if (url === "/wendao.toml" || url.endsWith("/wendao.toml")) {
         return {

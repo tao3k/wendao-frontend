@@ -6,6 +6,7 @@ import type {
   VfsScanEntry,
   VfsScanResult,
 } from "./bindings";
+import { isArrowIpcPayloadEmpty, type ArrowIpcPayload } from "./arrowIpcPayload";
 
 type ArrowRowRecord = Record<string, unknown>;
 
@@ -29,9 +30,9 @@ function toOptionalNumber(value: unknown): number | undefined {
 }
 
 export function decodeStudioNavigationTargetFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): StudioNavigationTarget | undefined {
-  if (payload.byteLength === 0) {
+  if (isArrowIpcPayloadEmpty(payload)) {
     return undefined;
   }
   const table = tableFromIPC(payload);
@@ -61,9 +62,9 @@ export function decodeStudioNavigationTargetFromArrowIpc(
 }
 
 export function decodeVfsContentResponseFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): VfsContentResponse | undefined {
-  if (payload.byteLength === 0) {
+  if (isArrowIpcPayloadEmpty(payload)) {
     return undefined;
   }
   const table = tableFromIPC(payload);
@@ -116,13 +117,12 @@ function decodeVfsScanEntry(row: ArrowRowRecord): VfsScanEntry {
 }
 
 export function decodeVfsScanResultFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
   appMetadata?: Uint8Array,
 ): VfsScanResult {
-  const entries =
-    payload.byteLength === 0
-      ? []
-      : (tableFromIPC(payload).toArray() as ArrowRowRecord[]).map(decodeVfsScanEntry);
+  const entries = isArrowIpcPayloadEmpty(payload)
+    ? []
+    : (tableFromIPC(payload).toArray() as ArrowRowRecord[]).map(decodeVfsScanEntry);
   const metadata =
     appMetadata && appMetadata.byteLength > 0
       ? (JSON.parse(new TextDecoder().decode(appMetadata)) as {

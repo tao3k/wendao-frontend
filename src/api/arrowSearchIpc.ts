@@ -4,16 +4,19 @@ import type {
   AutocompleteSuggestion,
   AttachmentSearchHit,
   AstSearchHit,
-  RepoDocCoverageDoc,
-  RepoIndexStatusResponse,
-  RepoOverviewResponse,
-  RepoSyncResponse,
   ReferenceSearchHit,
   SearchBacklinkItem,
   SearchHit,
   StudioNavigationTarget,
   SymbolSearchHit,
 } from "./bindings";
+import type {
+  RepoDocCoverageDoc,
+  RepoIndexStatusResponse,
+  RepoOverviewResponse,
+  RepoSyncResponse,
+} from "./apiContracts";
+import { isArrowIpcPayloadEmpty, type ArrowIpcPayload } from "./arrowIpcPayload";
 
 type ArrowRowRecord = Record<string, unknown>;
 
@@ -65,15 +68,15 @@ function toStringArray(value: unknown): string[] {
   return [];
 }
 
-function decodeArrowRows<T>(payload: ArrayBuffer, mapRow: (record: ArrowRowRecord) => T): T[] {
-  if (payload.byteLength === 0) {
+function decodeArrowRows<T>(payload: ArrowIpcPayload, mapRow: (record: ArrowRowRecord) => T): T[] {
+  if (isArrowIpcPayloadEmpty(payload)) {
     return [];
   }
   const table = tableFromIPC(payload);
   return table.toArray().map((row) => mapRow(row as ArrowRowRecord));
 }
 
-export function decodeSearchHitsFromArrowIpc(payload: ArrayBuffer): SearchHit[] {
+export function decodeSearchHitsFromArrowIpc(payload: ArrowIpcPayload): SearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const title = toOptionalString(record.title);
     const docType = toOptionalString(record.docType);
@@ -114,7 +117,7 @@ export function decodeSearchHitsFromArrowIpc(payload: ArrayBuffer): SearchHit[] 
 }
 
 export function decodeRepoSearchHitsFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
   fallbackRepoId: string,
 ): SearchHit[] {
   return decodeArrowRows(payload, (record) => {
@@ -157,20 +160,39 @@ export function decodeRepoSearchHitsFromArrowIpc(
 }
 
 export function decodeRepoDocCoverageDocsFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
   fallbackRepoId: string,
 ): RepoDocCoverageDoc[] {
-  return decodeArrowRows(payload, (record) => ({
-    repoId: toOptionalString(record.repoId) ?? fallbackRepoId,
-    docId: requireString(record, "docId"),
-    title: requireString(record, "title"),
-    path: requireString(record, "path"),
-    format: toOptionalString(record.format) ?? "unknown",
-  }));
+  return decodeArrowRows(payload, (record) => {
+    const targetKind = toOptionalString(record.targetKind);
+    const targetName = toOptionalString(record.targetName);
+    const targetPath = toOptionalString(record.targetPath);
+    const targetLineStart = toOptionalNumber(record.targetLineStart);
+    const targetLineEnd = toOptionalNumber(record.targetLineEnd);
+
+    return {
+      repoId: toOptionalString(record.repoId) ?? fallbackRepoId,
+      docId: requireString(record, "docId"),
+      title: requireString(record, "title"),
+      path: requireString(record, "path"),
+      format: toOptionalString(record.format) ?? "unknown",
+      ...(targetKind && targetName
+        ? {
+            docTarget: {
+              kind: targetKind,
+              name: targetName,
+              ...(targetPath ? { path: targetPath } : {}),
+              ...(typeof targetLineStart === "number" ? { lineStart: targetLineStart } : {}),
+              ...(typeof targetLineEnd === "number" ? { lineEnd: targetLineEnd } : {}),
+            },
+          }
+        : {}),
+    };
+  });
 }
 
 export function decodeRepoOverviewResponseFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
   fallbackRepoId: string,
 ): RepoOverviewResponse {
   const [overview] = decodeArrowRows(payload, (record) => ({
@@ -194,7 +216,7 @@ export function decodeRepoOverviewResponseFromArrowIpc(
 }
 
 export function decodeRepoIndexStatusResponseFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): RepoIndexStatusResponse {
   const [status] = decodeArrowRows(payload, (record) => ({
     total: toOptionalNumber(record.total) ?? 0,
@@ -221,7 +243,7 @@ export function decodeRepoIndexStatusResponseFromArrowIpc(
   return status;
 }
 
-export function decodeRepoSyncResponseFromArrowIpc(payload: ArrayBuffer): RepoSyncResponse {
+export function decodeRepoSyncResponseFromArrowIpc(payload: ArrowIpcPayload): RepoSyncResponse {
   const [status] = decodeArrowRows(payload, (record) => ({
     repoId: requireString(record, "repoId"),
     mode: requireString(record, "mode"),
@@ -272,7 +294,7 @@ export function decodeRepoSyncResponseFromArrowIpc(payload: ArrayBuffer): RepoSy
 }
 
 export function decodeAttachmentSearchHitsFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): AttachmentSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const name = toOptionalString(record.name);
@@ -300,7 +322,7 @@ export function decodeAttachmentSearchHitsFromArrowIpc(
 }
 
 export function decodeAutocompleteSuggestionsFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): AutocompleteSuggestion[] {
   return decodeArrowRows(payload, (record) => ({
     text: requireString(record, "text"),
@@ -311,7 +333,7 @@ export function decodeAutocompleteSuggestionsFromArrowIpc(
   }));
 }
 
-export function decodeSymbolSearchHitsFromArrowIpc(payload: ArrayBuffer): SymbolSearchHit[] {
+export function decodeSymbolSearchHitsFromArrowIpc(payload: ArrowIpcPayload): SymbolSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const projectName = toOptionalString(record.projectName);
     const rootLabel = toOptionalString(record.rootLabel);
@@ -324,7 +346,7 @@ export function decodeSymbolSearchHitsFromArrowIpc(payload: ArrayBuffer): Symbol
       line: toOptionalNumber(record.line) ?? 1,
       location: requireString(record, "location"),
       language: requireString(record, "language"),
-      source: requireString(record, "source"),
+      source: requireString(record, "source") as SymbolSearchHit["source"],
       crateName: requireString(record, "crateName"),
       ...(projectName ? { projectName } : {}),
       ...(rootLabel ? { rootLabel } : {}),
@@ -337,7 +359,9 @@ export function decodeSymbolSearchHitsFromArrowIpc(payload: ArrayBuffer): Symbol
   });
 }
 
-export function decodeReferenceSearchHitsFromArrowIpc(payload: ArrayBuffer): ReferenceSearchHit[] {
+export function decodeReferenceSearchHitsFromArrowIpc(
+  payload: ArrowIpcPayload,
+): ReferenceSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const projectName = toOptionalString(record.projectName);
     const rootLabel = toOptionalString(record.rootLabel);
@@ -362,7 +386,7 @@ export function decodeReferenceSearchHitsFromArrowIpc(payload: ArrayBuffer): Ref
   });
 }
 
-export function decodeAstSearchHitsFromArrowIpc(payload: ArrayBuffer): AstSearchHit[] {
+export function decodeAstSearchHitsFromArrowIpc(payload: ArrowIpcPayload): AstSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const projectName = toOptionalString(record.projectName);
     const rootLabel = toOptionalString(record.rootLabel);
@@ -391,7 +415,7 @@ export function decodeAstSearchHitsFromArrowIpc(payload: ArrayBuffer): AstSearch
   });
 }
 
-export function decodeDefinitionHitsFromArrowIpc(payload: ArrayBuffer): AstSearchHit[] {
+export function decodeDefinitionHitsFromArrowIpc(payload: ArrowIpcPayload): AstSearchHit[] {
   return decodeArrowRows(payload, (record) => {
     const projectName = toOptionalString(record.projectName);
     const rootLabel = toOptionalString(record.rootLabel);

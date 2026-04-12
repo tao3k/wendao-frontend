@@ -416,9 +416,7 @@ export function buildMarkdownComponents({
               );
 
           return (
-            <Suspense
-              fallback={MARKDOWN_WATERFALL_MERMAID_LOADING(copy.mermaidLabel)}
-            >
+            <Suspense fallback={MARKDOWN_WATERFALL_MERMAID_LOADING(copy.mermaidLabel)}>
               <MarkdownWaterfallMermaidSlot
                 chunk={chunk}
                 copy={copy}
@@ -452,9 +450,7 @@ export function buildMarkdownComponents({
         const slotLabel = `${copy.codeLabel}${language !== "plaintext" ? ` · ${language}` : ""}`;
 
         return (
-          <Suspense
-            fallback={MARKDOWN_WATERFALL_MERMAID_LOADING(slotLabel)}
-          >
+          <Suspense fallback={MARKDOWN_WATERFALL_MERMAID_LOADING(slotLabel)}>
             <MarkdownWaterfallCodeSlot
               chunk={chunk}
               codeClassName={className}

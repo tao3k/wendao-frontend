@@ -3,7 +3,13 @@ import { createClient, ConnectError } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
 import { decodeRetrievalChunksFromArrowIpc } from "./arrowRetrievalIpc";
-import type { CodeAstAnalysisResponse, MarkdownAnalysisResponse, RetrievalChunk } from "./bindings";
+import type {
+  CodeAstAnalysisResponse,
+  CodeAstRetrievalAtom,
+  MarkdownAnalysisResponse,
+  MarkdownRetrievalAtom,
+  RetrievalChunk,
+} from "./bindings";
 import {
   FlightData,
   FlightDescriptor,
@@ -31,6 +37,7 @@ export interface MarkdownAnalysisFlightRequest {
   baseUrl: string;
   schemaVersion: string;
   path: string;
+  signal?: AbortSignal;
 }
 
 export interface CodeAstAnalysisFlightRequest {
@@ -39,14 +46,18 @@ export interface CodeAstAnalysisFlightRequest {
   path: string;
   repo?: string;
   line?: number;
+  signal?: AbortSignal;
 }
 
 export interface FlightServiceClientLike {
   getFlightInfo(
     descriptor: FlightDescriptor,
-    options?: { headers?: HeadersInit },
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
   ): Promise<FlightInfo>;
-  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
+  doGet(
+    ticket: Ticket,
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
+  ): AsyncIterable<FlightData>;
 }
 
 export interface FlightAnalysisTransportDeps {
@@ -57,6 +68,41 @@ export interface FlightAnalysisTransportDeps {
 interface FlightAnalysisPayload<TMetadata> {
   metadata: TMetadata;
   retrievalAtoms: RetrievalChunk[];
+}
+
+function normalizeMarkdownRetrievalAtoms(chunks: RetrievalChunk[]): MarkdownRetrievalAtom[] {
+  return chunks.flatMap((chunk) => {
+    if (
+      typeof chunk.lineStart !== "number" ||
+      typeof chunk.lineEnd !== "number" ||
+      !chunk.surface ||
+      !["document", "section", "codeblock", "table", "math", "observation"].includes(chunk.surface)
+    ) {
+      return [];
+    }
+    return [
+      {
+        ...chunk,
+        lineStart: chunk.lineStart,
+        lineEnd: chunk.lineEnd,
+        surface: chunk.surface as MarkdownRetrievalAtom["surface"],
+      },
+    ];
+  });
+}
+
+function normalizeCodeAstRetrievalAtoms(chunks: RetrievalChunk[]): CodeAstRetrievalAtom[] {
+  return chunks.flatMap((chunk) => {
+    if (!chunk.surface || !["declaration", "block", "symbol"].includes(chunk.surface)) {
+      return [];
+    }
+    return [
+      {
+        ...chunk,
+        surface: chunk.surface as CodeAstRetrievalAtom["surface"],
+      },
+    ];
+  });
 }
 
 export async function loadMarkdownAnalysisFlight(
@@ -87,7 +133,7 @@ export async function loadMarkdownAnalysisFlight(
     nodes: Array.isArray(response.metadata.nodes) ? response.metadata.nodes : [],
     edges: Array.isArray(response.metadata.edges) ? response.metadata.edges : [],
     projections: Array.isArray(response.metadata.projections) ? response.metadata.projections : [],
-    retrievalAtoms: response.retrievalAtoms,
+    retrievalAtoms: normalizeMarkdownRetrievalAtoms(response.retrievalAtoms),
     diagnostics: Array.isArray(response.metadata.diagnostics) ? response.metadata.diagnostics : [],
   };
 }
@@ -129,7 +175,7 @@ export async function loadCodeAstAnalysisFlight(
     nodes,
     edges,
     projections: Array.isArray(response.metadata.projections) ? response.metadata.projections : [],
-    retrievalAtoms: response.retrievalAtoms,
+    retrievalAtoms: normalizeCodeAstRetrievalAtoms(response.retrievalAtoms),
     ...(typeof response.metadata.focusNodeId === "string"
       ? { focusNodeId: response.metadata.focusNodeId }
       : {}),
@@ -158,11 +204,17 @@ async function loadAnalysisFlight<TMetadata>(
   const client = (deps.createClient ?? createFlightServiceClient)(request.baseUrl);
   const descriptor = buildFlightDescriptor(route);
   try {
-    const flightInfo = await client.getFlightInfo(descriptor, { headers });
+    const flightInfo = await client.getFlightInfo(descriptor, {
+      headers,
+      signal: request.signal,
+    });
     const metadata = decodeAnalysisMetadata<TMetadata>(flightInfo.appMetadata);
     const ticket = readFlightTicket(flightInfo);
     const frames: FlightData[] = [];
-    for await (const frame of client.doGet(ticket, { headers })) {
+    for await (const frame of client.doGet(ticket, {
+      headers,
+      signal: request.signal,
+    })) {
       frames.push(frame);
     }
     const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);

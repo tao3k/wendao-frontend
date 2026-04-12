@@ -20,9 +20,12 @@ const runLiveGateway =
 const liveDescribe = runLiveGateway ? describe : describe.skip;
 
 const DEFAULT_QUERIES = ["diffeq", "solver", "optimization"];
+const DEFAULT_DISCOVERY_QUERIES = ["topology", "graph", "runtime", "contract", "studio"];
 const DEFAULT_LIMIT = 20;
 const DEFAULT_WARMUP_RUNS = 1;
 const DEFAULT_MEASURED_RUNS = 3;
+const AUTO_DISCOVERY_QUERY_COUNT = 3;
+const MAX_AUTO_DISCOVERY_CANDIDATES = 24;
 const GATEWAY_BOOT_RETRY_COUNT = 45;
 const GATEWAY_BOOT_RETRY_DELAY_MS = 1000;
 const GATEWAY_REQUEST_RETRY_COUNT = 6;
@@ -36,6 +39,7 @@ let gatewayOrigin = "";
 let flightSchemaVersion = "";
 let configuredRepoCount = 0;
 let uiProjectCount = 0;
+let perfQueryPlan: PerfQueryPlan | null = null;
 
 type PerfMeasurement = {
   query: string;
@@ -58,6 +62,8 @@ type PerfSummary = {
   configuredRepoCount: number;
   uiProjectCount: number;
   queries: string[];
+  searchIntent?: string;
+  queryPlanSource: "env" | "knowledge" | "code_search";
   limit: number;
   warmupRuns: number;
   measuredRuns: number;
@@ -84,6 +90,14 @@ type PerfSummary = {
   optimizationCandidates: string[];
   hotspotTraceArtifactPath?: string;
   hotspotTraceRecordCount?: number;
+};
+
+type LiveUiConfig = ReturnType<typeof toUiConfig>;
+
+type PerfQueryPlan = {
+  queries: string[];
+  intent?: string;
+  source: "env" | "knowledge" | "code_search";
 };
 
 type SearchIndexStatusEnvelope = {
@@ -149,6 +163,89 @@ function parseQueries(value: string | undefined): string[] {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   return queries.length > 0 ? queries : DEFAULT_QUERIES;
+}
+
+function hasExplicitQueries(value: string | undefined): boolean {
+  return (value ?? "")
+    .split(",")
+    .some((part) => part.trim().length > 0);
+}
+
+function parseSearchIntent(value: string | undefined): string | undefined {
+  const intent = value?.trim();
+  return intent ? intent : undefined;
+}
+
+function buildRepoQueryCandidates(repoId: string): string[] {
+  const trimmed = repoId.trim();
+  if (!trimmed) {
+    return [];
+  }
+  const withoutJl = trimmed.replace(/\.jl$/i, "");
+  return withoutJl === trimmed ? [trimmed] : [trimmed, withoutJl];
+}
+
+function buildAutoDiscoveryQueries(uiConfig: LiveUiConfig): string[] {
+  return [
+    ...new Set([
+      ...DEFAULT_QUERIES,
+      ...DEFAULT_DISCOVERY_QUERIES,
+      ...(uiConfig.repoProjects ?? []).flatMap((repo) => buildRepoQueryCandidates(repo.id)),
+    ]),
+  ].slice(0, MAX_AUTO_DISCOVERY_CANDIDATES);
+}
+
+async function discoverLivePerfQueryPlan(options: {
+  explicitQueries: string | undefined;
+  explicitIntent: string | undefined;
+  limit: number;
+  uiConfig: LiveUiConfig;
+  runSearch: (request: { query: string; limit: number; intent?: string }) => Promise<number>;
+}): Promise<PerfQueryPlan> {
+  const explicitIntent = parseSearchIntent(options.explicitIntent);
+  if (hasExplicitQueries(options.explicitQueries)) {
+    return {
+      queries: parseQueries(options.explicitQueries),
+      intent: explicitIntent,
+      source: "env",
+    };
+  }
+
+  const candidates = buildAutoDiscoveryQueries(options.uiConfig);
+  const discoveryStrategies = explicitIntent ? [explicitIntent] : [undefined, "code_search"];
+  for (const intent of discoveryStrategies) {
+    const queries: string[] = [];
+    for (const query of candidates) {
+      const hitCount = await options.runSearch({
+        query,
+        limit: options.limit,
+        intent,
+      });
+      if (hitCount <= 0) {
+        continue;
+      }
+      queries.push(query);
+      if (queries.length >= AUTO_DISCOVERY_QUERY_COUNT) {
+        break;
+      }
+    }
+    if (queries.length > 0) {
+      return {
+        queries,
+        intent,
+        source: intent ? "code_search" : "knowledge",
+      };
+    }
+  }
+
+  throw new Error(
+    `live Flight perf harness could not discover any hit-bearing query for the current UI surface: ${JSON.stringify({
+      uiProjects: options.uiConfig.projects.map((project) => project.name),
+      configuredRepoCount: options.uiConfig.repoProjects?.length ?? 0,
+      candidateQueries: candidates.slice(0, 12),
+      explicitIntent: explicitIntent ?? null,
+    })}`,
+  );
 }
 
 function resolvePerfArtifactStem(): string {
@@ -375,8 +472,8 @@ async function waitForStableGatewayState(): Promise<void> {
         GATEWAY_REQUEST_RETRY_DELAY_MS,
       );
       lastRepoStatus = await fetchWithRetry(
-        () =>
-          loadRepoIndexStatusFlight(
+        async () => {
+          const status = await loadRepoIndexStatusFlight(
             {
               baseUrl: gatewayOrigin,
               schemaVersion: flightSchemaVersion,
@@ -384,7 +481,19 @@ async function waitForStableGatewayState(): Promise<void> {
             {
               decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
             },
-          ) as Promise<RepoIndexStatusEnvelope>,
+          );
+          return {
+            total: status.total,
+            active: status.checking + status.syncing + status.indexing,
+            queued: status.queued,
+            checking: status.checking,
+            syncing: status.syncing,
+            indexing: status.indexing,
+            ready: status.ready,
+            unsupported: status.unsupported,
+            failed: status.failed,
+          } satisfies RepoIndexStatusEnvelope;
+        },
         GATEWAY_REQUEST_RETRY_COUNT,
         GATEWAY_REQUEST_RETRY_DELAY_MS,
       );
@@ -485,10 +594,69 @@ describe("live Flight perf gateway state helpers", () => {
   });
 });
 
+describe("live Flight perf query discovery helpers", () => {
+  const uiConfig = {
+    projects: [
+      {
+        name: "frontend",
+        root: ".",
+        dirs: ["docs"],
+      },
+    ],
+    repoProjects: [{ id: "SimpleOptimization.jl" }, { id: "mcl" }],
+  } as unknown as LiveUiConfig;
+
+  it("adds repo-aware query candidates to auto discovery", () => {
+    const queries = buildAutoDiscoveryQueries(uiConfig);
+    expect(queries).toContain("SimpleOptimization.jl");
+    expect(queries).toContain("SimpleOptimization");
+    expect(queries).toContain("mcl");
+    expect(queries).toContain("topology");
+  });
+
+  it("falls back to code_search discovery when generic knowledge queries are empty", async () => {
+    const plan = await discoverLivePerfQueryPlan({
+      explicitQueries: undefined,
+      explicitIntent: undefined,
+      limit: 10,
+      uiConfig,
+      runSearch: async ({ query, intent }) => {
+        if (intent !== "code_search") {
+          return 0;
+        }
+        return query === "SimpleOptimization.jl" || query === "mcl" ? 4 : 0;
+      },
+    });
+
+    expect(plan.intent).toBe("code_search");
+    expect(plan.source).toBe("code_search");
+    expect(plan.queries).toEqual(["SimpleOptimization.jl", "mcl"]);
+  });
+
+  it("honors explicit query and intent overrides without discovery", async () => {
+    const plan = await discoverLivePerfQueryPlan({
+      explicitQueries: "alpha,beta",
+      explicitIntent: "code_search",
+      limit: 10,
+      uiConfig,
+      runSearch: async () => {
+        throw new Error("discovery should be bypassed for explicit queries");
+      },
+    });
+
+    expect(plan).toEqual({
+      queries: ["alpha", "beta"],
+      intent: "code_search",
+      source: "env",
+    });
+  });
+});
+
 liveDescribe("live Flight knowledge search performance", () => {
   beforeAll(async () => {
     const uiConfig = await readLocalUiConfig();
     uiProjectCount = uiConfig.projects.length;
+    const limit = parsePositiveInt(process.env.STUDIO_LIVE_FLIGHT_PERF_LIMIT, DEFAULT_LIMIT);
     await fetchJsonWithRetry<string>(
       "/health",
       undefined,
@@ -516,12 +684,38 @@ liveDescribe("live Flight knowledge search performance", () => {
       );
     }
     await waitForStableGatewayState();
+    perfQueryPlan = await discoverLivePerfQueryPlan({
+      explicitQueries: process.env.STUDIO_LIVE_FLIGHT_PERF_QUERIES,
+      explicitIntent: process.env.STUDIO_LIVE_FLIGHT_PERF_INTENT,
+      limit,
+      uiConfig,
+      runSearch: async ({ query, limit: requestLimit, intent }) => {
+        const response = await searchKnowledgeFlight(
+          {
+            baseUrl: gatewayOrigin,
+            schemaVersion: flightSchemaVersion,
+            query,
+            limit: requestLimit,
+            intent,
+          },
+          {
+            decodeSearchHits: decodeSearchHitsFromArrowIpc,
+          },
+        );
+        return response.hits.length;
+      },
+    });
   }, LIVE_PERF_HOOK_TIMEOUT_MS);
 
   it(
     "reports latency across the configured multi-repo Flight search surface",
     async () => {
-      const queries = parseQueries(process.env.STUDIO_LIVE_FLIGHT_PERF_QUERIES);
+      const queryPlan = perfQueryPlan;
+      if (!queryPlan) {
+        throw new Error("expected live Flight perf query plan to be resolved during beforeAll");
+      }
+      const queries = queryPlan.queries;
+      const searchIntent = queryPlan.intent;
       const limit = parsePositiveInt(process.env.STUDIO_LIVE_FLIGHT_PERF_LIMIT, DEFAULT_LIMIT);
       const warmupRuns = parsePositiveInt(
         process.env.STUDIO_LIVE_FLIGHT_PERF_WARMUP_RUNS,
@@ -542,6 +736,7 @@ liveDescribe("live Flight knowledge search performance", () => {
               schemaVersion: flightSchemaVersion,
               query,
               limit,
+              intent: searchIntent,
             },
             {
               decodeSearchHits: decodeSearchHitsFromArrowIpc,
@@ -565,7 +760,7 @@ liveDescribe("live Flight knowledge search performance", () => {
           latestMeasurement.durationMs = durationMs;
           expect(
             response.hits.length,
-            `expected live Flight hits for query "${query}"`,
+            `expected live Flight hits for query "${query}" on intent "${searchIntent ?? "knowledge"}"`,
           ).toBeGreaterThan(0);
         }
         await waitForStableGatewayState();
@@ -581,6 +776,7 @@ liveDescribe("live Flight knowledge search performance", () => {
               schemaVersion: flightSchemaVersion,
               query,
               limit,
+              intent: searchIntent,
             },
             {
               decodeSearchHits: decodeSearchHitsFromArrowIpc,
@@ -604,7 +800,7 @@ liveDescribe("live Flight knowledge search performance", () => {
           latestMeasurement.durationMs = durationMs;
           expect(
             response.hits.length,
-            `expected live Flight hits for query "${query}"`,
+            `expected live Flight hits for query "${query}" on intent "${searchIntent ?? "knowledge"}"`,
           ).toBeGreaterThan(0);
         }
       }
@@ -638,6 +834,8 @@ liveDescribe("live Flight knowledge search performance", () => {
         configuredRepoCount,
         uiProjectCount,
         queries,
+        searchIntent,
+        queryPlanSource: queryPlan.source,
         limit,
         warmupRuns,
         measuredRuns,

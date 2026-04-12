@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import { useCallback, type ReactElement } from "react";
 import type { RepoIndexIssue, RepoIndexUnsupportedReason } from "../statusBar/types";
 import {
   failedReasonKey,
@@ -53,7 +53,7 @@ function RepoDiagnosticsFilterButton({
   label,
   isActive,
   onClick,
-}: RepoDiagnosticsFilterButtonProps): JSX.Element {
+}: RepoDiagnosticsFilterButtonProps): ReactElement {
   return (
     <button
       type="button"
@@ -75,7 +75,7 @@ function UnsupportedReasonFilterButton({
   reason,
   isActive,
   onSetUnsupportedReason,
-}: UnsupportedReasonFilterButtonProps): JSX.Element {
+}: UnsupportedReasonFilterButtonProps): ReactElement {
   const handleClick = useCallback(() => {
     onSetUnsupportedReason(reason.reason);
   }, [onSetUnsupportedReason, reason.reason]);
@@ -99,7 +99,7 @@ function FailureReasonFilterButton({
   reason,
   isActive,
   onSetFailedReason,
-}: FailureReasonFilterButtonProps): JSX.Element {
+}: FailureReasonFilterButtonProps): ReactElement {
   const handleClick = useCallback(() => {
     onSetFailedReason(reason.reasonKey);
   }, [onSetFailedReason, reason.reasonKey]);
@@ -131,7 +131,7 @@ function RepoDiagnosticsRepoLink({
   className,
   label,
   onSelectRepo,
-}: RepoDiagnosticsRepoLinkProps): JSX.Element {
+}: RepoDiagnosticsRepoLinkProps): ReactElement {
   const handleClick = useCallback(() => {
     onSelectRepo?.(repoId, { phase, reason });
   }, [onSelectRepo, phase, reason, repoId]);
@@ -159,7 +159,7 @@ function RetryIssueButton({
   disabled,
   label,
   onRetryIssue,
-}: RetryIssueButtonProps): JSX.Element {
+}: RetryIssueButtonProps): ReactElement {
   const handleClick = useCallback(() => {
     onRetryIssue(repoId);
   }, [onRetryIssue, repoId]);
@@ -203,7 +203,7 @@ export function RepoDiagnosticsDrawer({
   onSelectRepo,
   selectedRepoId = null,
   renderUnsupportedGuidance,
-}: RepoDiagnosticsDrawerProps): JSX.Element {
+}: RepoDiagnosticsDrawerProps): ReactElement {
   const handleFilterAll = useCallback(() => {
     onSetFilter("all");
   }, [onSetFilter]);

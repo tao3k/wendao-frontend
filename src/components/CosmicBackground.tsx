@@ -25,7 +25,7 @@ const COSMIC_BACKGROUND_WRAPPER_STYLE = {
 } as const;
 const COSMIC_CANVAS_CAMERA = { position: DEFAULT_CAMERA_POSITION, fov: 60 } as const;
 const COSMIC_CANVAS_GL = { antialias: false, alpha: false } as const;
-const COSMIC_CANVAS_DPR = [1, 1.5] as const;
+const COSMIC_CANVAS_DPR: [number, number] = [1, 1.5];
 const COSMIC_BACKGROUND_COLOR_ARGS = ["#0d1117"] as const;
 const COSMIC_FOG_ARGS = ["#0d1117", 50, 150] as const;
 const COSMIC_CORE_GEOMETRY_ARGS = [2, 1] as const;
@@ -288,11 +288,7 @@ export const CosmicBackground: React.FC<CosmicBackgroundProps> = (props) => {
 
   return (
     <div style={COSMIC_BACKGROUND_WRAPPER_STYLE}>
-      <Canvas
-        camera={COSMIC_CANVAS_CAMERA}
-        gl={COSMIC_CANVAS_GL}
-        dpr={COSMIC_CANVAS_DPR}
-      >
+      <Canvas camera={COSMIC_CANVAS_CAMERA} gl={COSMIC_CANVAS_GL} dpr={COSMIC_CANVAS_DPR}>
         <HyperspaceTransitionProvider chromaticAberrationRef={chromaticRef}>
           <color attach="background" args={COSMIC_BACKGROUND_COLOR_ARGS} />
           <fog attach="fog" args={COSMIC_FOG_ARGS} />

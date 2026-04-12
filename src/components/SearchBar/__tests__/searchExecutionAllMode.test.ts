@@ -3,6 +3,22 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../../api";
 import { executeAllModeSearch } from "../searchExecutionAllMode";
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return {
+    promise,
+    resolve,
+    reject,
+  };
+}
+
 describe("searchExecutionAllMode", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -86,6 +102,115 @@ describe("searchExecutionAllMode", () => {
     expect(outcome.meta.selectedMode).toBe("Hybrid + Code + AST");
     expect(outcome.meta.runtimeWarning).toContain("reference lane offline");
     expect(outcome.meta.intent).toBe("hybrid_search");
+  });
+
+  it("emits progressive results before slow supplemental lanes settle", async () => {
+    const deferredAst = createDeferred<Awaited<ReturnType<typeof api.searchAst>>>();
+    const deferredReferences = createDeferred<Awaited<ReturnType<typeof api.searchReferences>>>();
+    const deferredSymbols = createDeferred<Awaited<ReturnType<typeof api.searchSymbols>>>();
+    const deferredAttachments = createDeferred<Awaited<ReturnType<typeof api.searchAttachments>>>();
+    const onProgress = vi.fn();
+
+    vi.spyOn(api, "searchKnowledge")
+      .mockResolvedValueOnce({
+        query: "solver",
+        hitCount: 1,
+        hits: [
+          {
+            stem: "solver",
+            title: "solver",
+            path: "docs/solver.md",
+            docType: "note",
+            tags: ["docs"],
+            score: 0.8,
+            bestSection: "Overview",
+            matchReason: "hybrid",
+          },
+        ],
+        selectedMode: "hybrid",
+        searchMode: "hybrid",
+        intent: "hybrid_search",
+        intentConfidence: 0.9,
+      })
+      .mockResolvedValueOnce({
+        query: "solver",
+        hitCount: 1,
+        hits: [
+          {
+            stem: "solve",
+            title: "solve",
+            path: "src/solver.jl",
+            docType: "symbol",
+            tags: ["code", "kind:function"],
+            score: 0.88,
+            bestSection: "solve()",
+            matchReason: "repo_symbol_search",
+          },
+        ],
+        selectedMode: "code_search",
+        searchMode: "code_search",
+        intent: "code_search",
+        intentConfidence: 1,
+      });
+    vi.spyOn(api, "searchAst").mockReturnValue(deferredAst.promise as never);
+    vi.spyOn(api, "searchReferences").mockReturnValue(deferredReferences.promise as never);
+    vi.spyOn(api, "searchSymbols").mockReturnValue(deferredSymbols.promise as never);
+    vi.spyOn(api, "searchAttachments").mockReturnValue(deferredAttachments.promise as never);
+
+    let resolved = false;
+    const outcomePromise = executeAllModeSearch("solver", { onProgress }).then((outcome) => {
+      resolved = true;
+      return outcome;
+    });
+
+    await vi.waitFor(() => {
+      expect(onProgress).toHaveBeenCalled();
+    });
+
+    const progressiveOutcome = onProgress.mock.calls.at(-1)?.[0];
+    expect(progressiveOutcome.results).toHaveLength(2);
+    expect(progressiveOutcome.meta.selectedMode).toBe("Hybrid + Code");
+    expect(resolved).toBe(false);
+
+    deferredAst.resolve({
+      query: "solver",
+      hitCount: 1,
+      selectedScope: "definitions",
+      hits: [
+        {
+          kind: "Function",
+          name: "solve",
+          path: "src/solver.jl",
+          language: "julia",
+          lineStart: 10,
+          lineEnd: 20,
+          score: 0.77,
+        },
+      ],
+    } as never);
+    deferredReferences.resolve({
+      query: "solver",
+      hitCount: 0,
+      selectedScope: "references",
+      hits: [],
+    });
+    deferredSymbols.resolve({
+      query: "solver",
+      hitCount: 0,
+      selectedScope: "project",
+      hits: [],
+    });
+    deferredAttachments.resolve({
+      query: "solver",
+      hitCount: 0,
+      selectedScope: "attachments",
+      hits: [],
+    });
+
+    const outcome = await outcomePromise;
+
+    expect(outcome.results).toHaveLength(3);
+    expect(outcome.meta.selectedMode).toBe("Hybrid + Code + AST");
   });
 
   it("uses repo-intelligence code search inside all mode when repo filter is present", async () => {
@@ -178,25 +303,15 @@ describe("searchExecutionAllMode", () => {
   });
 
   it("routes repo-aware module facets through repo-search Flight inside all mode", async () => {
-    vi.spyOn(api, "searchKnowledge")
-      .mockResolvedValueOnce({
-        query: "module",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "hybrid",
-        searchMode: "hybrid",
-        intent: "hybrid_search",
-        intentConfidence: 0.88,
-      })
-      .mockResolvedValueOnce({
-        query: "module",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "code_search",
-        searchMode: "graph_only",
-        intent: "code_search",
-        intentConfidence: 0.81,
-      });
+    const knowledgeSpy = vi.spyOn(api, "searchKnowledge").mockResolvedValueOnce({
+      query: "module",
+      hitCount: 0,
+      hits: [],
+      selectedMode: "hybrid",
+      searchMode: "hybrid",
+      intent: "hybrid_search",
+      intentConfidence: 0.88,
+    });
     vi.spyOn(api, "searchRepoContentFlight").mockResolvedValue({
       query: "module",
       hitCount: 1,
@@ -250,36 +365,34 @@ describe("searchExecutionAllMode", () => {
       repoFacet: "module",
     });
 
+    expect(knowledgeSpy).toHaveBeenCalledTimes(1);
+    expect(knowledgeSpy).toHaveBeenCalledWith("module", 10, {
+      intent: "hybrid_search",
+    });
     expect(api.searchRepoContentFlight).toHaveBeenCalledWith("gateway-sync", "module", 10, {
       languageFilters: [],
       pathPrefixes: [],
       tagFilters: ["kind:module"],
     });
+    expect(api.searchAst).not.toHaveBeenCalled();
+    expect(api.searchReferences).not.toHaveBeenCalled();
+    expect(api.searchSymbols).not.toHaveBeenCalled();
+    expect(api.searchAttachments).not.toHaveBeenCalled();
     expect(outcome.results).toHaveLength(1);
     expect(outcome.results[0]?.codeKind).toBe("module");
     expect(outcome.meta.selectedMode).toBe("Hybrid + Code");
   });
 
   it("routes repo-aware example facets through repo-search Flight inside all mode", async () => {
-    vi.spyOn(api, "searchKnowledge")
-      .mockResolvedValueOnce({
-        query: "example",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "hybrid",
-        searchMode: "hybrid",
-        intent: "hybrid_search",
-        intentConfidence: 0.86,
-      })
-      .mockResolvedValueOnce({
-        query: "example",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "code_search",
-        searchMode: "graph_only",
-        intent: "code_search",
-        intentConfidence: 0.8,
-      });
+    const knowledgeSpy = vi.spyOn(api, "searchKnowledge").mockResolvedValueOnce({
+      query: "example",
+      hitCount: 0,
+      hits: [],
+      selectedMode: "hybrid",
+      searchMode: "hybrid",
+      intent: "hybrid_search",
+      intentConfidence: 0.86,
+    });
     vi.spyOn(api, "searchRepoContentFlight").mockResolvedValue({
       query: "example",
       hitCount: 1,
@@ -333,17 +446,94 @@ describe("searchExecutionAllMode", () => {
       repoFacet: "example",
     });
 
+    expect(knowledgeSpy).toHaveBeenCalledTimes(1);
+    expect(knowledgeSpy).toHaveBeenCalledWith("example", 10, {
+      intent: "hybrid_search",
+    });
     expect(api.searchRepoContentFlight).toHaveBeenCalledWith("gateway-sync", "example", 10, {
       languageFilters: [],
       pathPrefixes: [],
       tagFilters: ["kind:example"],
     });
+    expect(api.searchAst).not.toHaveBeenCalled();
+    expect(api.searchReferences).not.toHaveBeenCalled();
+    expect(api.searchSymbols).not.toHaveBeenCalled();
+    expect(api.searchAttachments).not.toHaveBeenCalled();
     expect(outcome.results).toHaveLength(1);
     expect(outcome.results[0]?.codeKind).toBe("example");
     expect(outcome.meta.selectedMode).toBe("Hybrid + Code");
   });
 
-  it("keeps raw filter tokens on the all-mode code_search lane while stripping non-code lanes", async () => {
+  it("routes repo-aware doc facets through repo doc coverage inside all mode without backend code metadata", async () => {
+    const knowledgeSpy = vi.spyOn(api, "searchKnowledge").mockResolvedValueOnce({
+      query: "solve",
+      hitCount: 0,
+      hits: [],
+      selectedMode: "hybrid",
+      searchMode: "hybrid",
+      intent: "hybrid_search",
+      intentConfidence: 0.9,
+    });
+    vi.spyOn(api, "getRepoDocCoverage").mockResolvedValue({
+      repoId: "gateway-sync",
+      moduleId: "repo:gateway-sync:module:GatewaySyncPkg",
+      coveredSymbols: 2,
+      uncoveredSymbols: 0,
+      docs: [
+        {
+          repoId: "gateway-sync",
+          docId: "repo:gateway-sync:doc:docs/solve.md",
+          title: "solve",
+          path: "docs/solve.md",
+          format: "md",
+        },
+      ],
+    });
+    vi.spyOn(api, "searchAst").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "definitions",
+      hits: [],
+    } as never);
+    vi.spyOn(api, "searchReferences").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "references",
+      hits: [],
+    });
+    vi.spyOn(api, "searchSymbols").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "project",
+      hits: [],
+    });
+    vi.spyOn(api, "searchAttachments").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "attachments",
+      hits: [],
+    });
+
+    const outcome = await executeAllModeSearch("repo:gateway-sync kind:doc solve", {
+      repoFilter: "gateway-sync",
+      repoFacet: "doc",
+    });
+
+    expect(knowledgeSpy).toHaveBeenCalledTimes(1);
+    expect(knowledgeSpy).toHaveBeenCalledWith("solve", 10, {
+      intent: "hybrid_search",
+    });
+    expect(api.getRepoDocCoverage).toHaveBeenCalledWith("gateway-sync");
+    expect(api.searchAst).not.toHaveBeenCalled();
+    expect(api.searchReferences).not.toHaveBeenCalled();
+    expect(api.searchSymbols).not.toHaveBeenCalled();
+    expect(api.searchAttachments).not.toHaveBeenCalled();
+    expect(outcome.results).toHaveLength(1);
+    expect(outcome.results[0]?.codeKind).toBe("doc");
+    expect(outcome.meta.selectedMode).toBe("Hybrid + Code");
+  });
+
+  it("keeps raw filter tokens on the all-mode code_search lane while pruning stripped supplemental lanes", async () => {
     const knowledgeSpy = vi
       .spyOn(api, "searchKnowledge")
       .mockResolvedValueOnce({
@@ -420,10 +610,10 @@ describe("searchExecutionAllMode", () => {
         ],
       ]
     `);
-    expect(astSpy).toHaveBeenCalledWith("sec", 10);
-    expect(referenceSpy).toHaveBeenCalledWith("sec", 10);
-    expect(symbolSpy).toHaveBeenCalledWith("sec", 10);
-    expect(attachmentSpy).toHaveBeenCalledWith("sec", 10);
+    expect(astSpy).not.toHaveBeenCalled();
+    expect(referenceSpy).not.toHaveBeenCalled();
+    expect(symbolSpy).not.toHaveBeenCalled();
+    expect(attachmentSpy).not.toHaveBeenCalled();
     expect(outcome.results[0]?.codeLanguage).toBe("julia");
     expect(outcome.results[0]?.codeKind).toBe("function");
   });

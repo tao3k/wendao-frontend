@@ -20,6 +20,16 @@ import type {
   MarkdownWaterfallModel,
 } from "./markdownWaterfallShared";
 
+type MarkdownFrontmatterAstNode = MarkdownAstNode & {
+  type: "yaml" | "toml";
+  value?: string;
+};
+
+type MarkdownHeadingAstNode = MarkdownAstNode & {
+  type: "heading";
+  depth: number;
+};
+
 function extractMarkdownText(node: MarkdownAstNode | null | undefined): string {
   if (!node) {
     return "";
@@ -435,15 +445,17 @@ export function buildMarkdownWaterfallModel(
   const root = unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ["yaml", "toml"])
-    .parse(content) as Root & { children: MarkdownAstNode[] };
+    .parse(content) as Root;
+  const rootChildren = root.children as MarkdownAstNode[];
 
-  const frontmatterNode = root.children.find(
-    (node) => node.type === "yaml" || node.type === "toml",
+  const frontmatterNode = rootChildren.find(
+    (node): node is MarkdownFrontmatterAstNode => node.type === "yaml" || node.type === "toml",
   );
   const frontmatter = parseDelimitedFrontmatter(frontmatterNode?.value);
   const frontmatterEnd = frontmatterNode?.position?.end?.offset ?? 0;
-  const headingNodes = root.children.filter(
-    (node) => node.type === "heading" && typeof node.depth === "number" && node.depth <= 2,
+  const headingNodes = rootChildren.filter(
+    (node): node is MarkdownHeadingAstNode =>
+      node.type === "heading" && typeof node.depth === "number" && node.depth <= 2,
   );
   const atomLookup = buildMarkdownAtomLookup(analysis);
   const totalLines = content.split(/\r?\n/).length || 1;

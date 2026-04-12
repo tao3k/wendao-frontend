@@ -68,10 +68,7 @@ const NodeTreeNode: React.FC<{
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedNodes.has(node.id);
   const isSelected = selectedNodeId === node.id;
-  const depthStyle = React.useMemo(
-    () => ({ "--depth": depth } as React.CSSProperties),
-    [depth],
-  );
+  const depthStyle = React.useMemo(() => ({ "--depth": depth }) as React.CSSProperties, [depth]);
   const handleSelect = React.useCallback(() => {
     onSelect(node);
   }, [node, onSelect]);
@@ -95,11 +92,7 @@ const NodeTreeNode: React.FC<{
     >
       <div className="node-tree__content">
         {hasChildren ? (
-          <button
-            type="button"
-            className="node-tree__toggle"
-            onClick={handleToggle}
-          >
+          <button type="button" className="node-tree__toggle" onClick={handleToggle}>
             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         ) : (

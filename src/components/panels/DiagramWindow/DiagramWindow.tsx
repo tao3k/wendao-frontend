@@ -11,7 +11,6 @@ import {
 import { useDiagramWindowViewModel } from "./useDiagramWindowViewModel";
 import { DiagramWindowToolbar } from "./DiagramWindowToolbar";
 import { DiagramWindowWorkspace, preloadDiagramWindowTopology } from "./DiagramWindowWorkspace";
-import { MarkdownWaterfall } from "../DirectReader/MarkdownWaterfall";
 import "./DiagramWindow.css";
 
 interface DiagramWindowProps {
@@ -41,6 +40,9 @@ export function DiagramWindow({
     mermaidResetToken,
     resetMermaidView,
     renderedMermaid,
+    activeMermaidIndex,
+    setActiveMermaidIndex,
+    mermaidModeOptions,
     showBpmn,
     showMermaid,
     isSplitMode,
@@ -50,6 +52,7 @@ export function DiagramWindow({
     copy: {
       emptyMermaidSource: copy.emptyMermaidSource,
       mermaidLoading: copy.mermaidLoading,
+      mermaidUnsupported: copy.mermaidUnsupported,
     },
   });
 
@@ -68,16 +71,6 @@ export function DiagramWindow({
   }
 
   if (kind === "none") {
-    if (isMarkdownPath(path)) {
-      return (
-        <div className="diagram-window diagram-window--markdown">
-          <div className="diagram-window__markdown-waterfall">
-            <MarkdownWaterfall content={content} path={path} locale={locale} />
-          </div>
-        </div>
-      );
-    }
-
     const noDiagramMessage = resolveNoDiagramMessage(
       copy,
       isMarkdownPath(path),
@@ -101,8 +94,11 @@ export function DiagramWindow({
         hasMermaid={hasMermaid}
         canSplitView={canSplitView}
         displayMode={displayMode}
+        mermaidModeOptions={mermaidModeOptions}
+        activeMermaidIndex={activeMermaidIndex}
         copy={buildDiagramWindowToolbarCopy(copy)}
         onModeChange={setDisplayMode}
+        onMermaidModeChange={setActiveMermaidIndex}
         onResetView={resetMermaidView}
       />
 
@@ -121,6 +117,7 @@ export function DiagramWindow({
         isSplitMode={isSplitMode}
         mermaidResetToken={mermaidResetToken}
         renderedMermaid={renderedMermaid}
+        activeMermaidIndex={activeMermaidIndex}
         copy={buildDiagramWindowWorkspaceCopy(copy)}
         onNodeClick={onNodeClick}
       />

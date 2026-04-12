@@ -19,19 +19,22 @@ describe("api client facade", () => {
   });
 
   it("re-exports repo and ui contracts through the facade", () => {
-    expectTypeOf<RepoSyncResponse>().toMatchTypeOf<{
-      repoId: string;
-      mode: string;
-      healthState: string;
-    }>();
+    expectTypeOf<RepoSyncResponse["repoId"]>().toEqualTypeOf<string>();
+    expectTypeOf<RepoSyncResponse["mode"]>().toEqualTypeOf<string>();
+    expectTypeOf<RepoSyncResponse["healthState"]>().toEqualTypeOf<string | undefined>();
     expectTypeOf<UiCapabilities>().toEqualTypeOf<{
       supportedLanguages: string[];
       supportedRepositories: string[];
       supportedKinds: string[];
     }>();
-    expectTypeOf<UiJuliaDeploymentArtifact>().toEqualTypeOf<{
+    expectTypeOf<UiJuliaDeploymentArtifact>().toMatchTypeOf<{
       artifactSchemaVersion: string;
       generatedAt: string;
+      baseUrl?: string;
+      schemaVersion?: string;
+      route?: string;
+      healthRoute?: string;
+      timeoutSecs?: number;
       launch: {
         launcherPath: string;
         args: string[];

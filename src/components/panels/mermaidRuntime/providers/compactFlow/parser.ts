@@ -9,6 +9,7 @@ export interface CompactFlowNode {
 export interface CompactFlowEdge {
   readonly source: string;
   readonly target: string;
+  readonly label?: string;
 }
 
 export interface CompactFlowGroup {
@@ -24,6 +25,8 @@ export interface CompactFlowDiagram {
   readonly edges: readonly CompactFlowEdge[];
   readonly groups: readonly CompactFlowGroup[];
 }
+
+export type { CompactFlowDirection };
 
 function mergeCompactFlowNode(
   nodes: Map<string, CompactFlowNode>,
@@ -50,6 +53,18 @@ function mergeCompactFlowNode(
   nodes.set(candidate.id, candidate);
 }
 
+function normalizeCompactFlowLabel(label: string): string {
+  const trimmed = label.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
 function normalizeNodeToken(token: string): CompactFlowNode {
   const trimmed = token.trim();
 
@@ -65,7 +80,7 @@ function normalizeNodeToken(token: string): CompactFlowNode {
   if (decisionMatch) {
     return {
       id: decisionMatch[1]!,
-      label: decisionMatch[2]!.trim(),
+      label: normalizeCompactFlowLabel(decisionMatch[2]!),
       shape: "diamond",
     };
   }
@@ -74,7 +89,7 @@ function normalizeNodeToken(token: string): CompactFlowNode {
   if (bracketMatch) {
     return {
       id: bracketMatch[1]!,
-      label: bracketMatch[2]!.trim(),
+      label: normalizeCompactFlowLabel(bracketMatch[2]!),
       shape: "rect",
     };
   }
@@ -104,6 +119,10 @@ function normalizeStateLine(line: string): string {
   return `${aliasMatch[1]}[${aliasMatch[2]}]`;
 }
 
+function normalizeCompactFlowGroupLabel(token: string): string {
+  return normalizeNodeToken(token).label;
+}
+
 function assertCompactFlowSupportedLine(line: string, dialect: "flowchart" | "state"): void {
   const isStateCompositeStart =
     dialect === "state" && /^state\s+[A-Za-z0-9_-]+\s*\{$/i.test(line.trim());
@@ -112,6 +131,39 @@ function assertCompactFlowSupportedLine(line: string, dialect: "flowchart" | "st
   if (dialect === "state" && /[{}]/.test(line) && !isStateCompositeStart && !isStateCompositeEnd) {
     throw new Error("compact-flow does not support decision or composite-state syntax");
   }
+}
+
+function parseCompactFlowEdge(line: string): CompactFlowEdge | null {
+  const arrowIndex = line.indexOf("-->");
+  if (arrowIndex < 0) {
+    return null;
+  }
+
+  const sourceToken = line.slice(0, arrowIndex).trim();
+  if (!sourceToken) {
+    return null;
+  }
+
+  let rest = line.slice(arrowIndex + 3).trim();
+  let label = "";
+
+  if (rest.startsWith("|")) {
+    const closingPipeIndex = rest.indexOf("|", 1);
+    if (closingPipeIndex > 0) {
+      label = rest.slice(1, closingPipeIndex).trim();
+      rest = rest.slice(closingPipeIndex + 1).trim();
+    }
+  }
+
+  if (!rest) {
+    return null;
+  }
+
+  return {
+    source: sourceToken,
+    target: rest,
+    label,
+  };
 }
 
 export function parseCompactFlow(source: string): CompactFlowDiagram {
@@ -175,7 +227,7 @@ export function parseCompactFlow(source: string): CompactFlowDiagram {
         throw new Error("compact-flow only supports single-layer composite syntax");
       }
 
-      const label = subgraphMatch[1]!.trim();
+      const label = normalizeCompactFlowGroupLabel(subgraphMatch[1]!);
       activeGroup = {
         id: `compact_group_${groupSequence}`,
         label,
@@ -201,13 +253,13 @@ export function parseCompactFlow(source: string): CompactFlowDiagram {
       continue;
     }
 
-    const edgeMatch = line.match(/^(.+?)\s*-->\s*(.+)$/);
-    if (!edgeMatch) {
+    const parsedEdge = parseCompactFlowEdge(line);
+    if (!parsedEdge) {
       continue;
     }
 
-    const sourceNode = normalizeNodeToken(edgeMatch[1]!);
-    const targetNode = normalizeNodeToken(edgeMatch[2]!);
+    const sourceNode = normalizeNodeToken(parsedEdge.source);
+    const targetNode = normalizeNodeToken(parsedEdge.target);
 
     mergeCompactFlowNode(nodes, sourceNode);
     mergeCompactFlowNode(nodes, targetNode);
@@ -222,6 +274,7 @@ export function parseCompactFlow(source: string): CompactFlowDiagram {
     edges.push({
       source: sourceNode.id,
       target: targetNode.id,
+      label: parsedEdge.label,
     });
   }
 

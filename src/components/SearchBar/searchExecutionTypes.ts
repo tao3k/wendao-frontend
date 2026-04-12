@@ -36,4 +36,6 @@ export interface SearchExecutionOutcome {
 export interface SearchExecutionOptions {
   repoFilter?: string;
   repoFacet?: RepoOverviewFacet | null;
+  signal?: AbortSignal;
+  onProgress?: (outcome: SearchExecutionOutcome) => void;
 }

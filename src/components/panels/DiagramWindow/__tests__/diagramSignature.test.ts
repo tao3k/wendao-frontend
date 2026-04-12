@@ -5,6 +5,7 @@ import {
   isMarkdownPath,
   selectPreferredCodeProjectionSource,
   selectPreferredProjectionSource,
+  selectPreferredRenderableProjectionSource,
 } from "../diagramSignature";
 
 describe("diagramSignature", () => {
@@ -73,6 +74,30 @@ describe("diagramSignature", () => {
     });
 
     expect(source).toBe("flowchart TD\nX-->Y");
+  });
+
+  it("ignores markdown mindmap projections for inline-renderable selection", () => {
+    const source = selectPreferredRenderableProjectionSource({
+      path: "docs/index.md",
+      documentHash: "hm",
+      nodeCount: 0,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      diagnostics: [],
+      projections: [
+        {
+          kind: "mindmap",
+          source: "mindmap\n  root((Doc))",
+          nodeCount: 1,
+          edgeCount: 0,
+          complexityScore: 0.1,
+          diagnostics: [],
+        },
+      ],
+    });
+
+    expect(source).toBeNull();
   });
 
   it("prefers structure projection for code ast source selection", () => {

@@ -9,6 +9,7 @@ import type {
 import {
   normalizeSelectionPathForGraph,
   normalizeSelectionPathForVfs,
+  preferMoreCanonicalSelectionPath,
 } from "../../utils/selectionPath";
 import type { ResultCategory, SearchResult, SearchSelection } from "./types";
 
@@ -16,9 +17,15 @@ function isNonEmptyString(value: string | undefined): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
+function stripPathFragment(path: string): string {
+  const fragmentIndex = path.indexOf("#");
+  return fragmentIndex >= 0 ? path.slice(0, fragmentIndex) : path;
+}
+
 function inferCodeLanguageFromPath(path: string): string | undefined {
-  const lower = path.toLowerCase();
+  const lower = stripPathFragment(path).toLowerCase();
   if (lower.endsWith(".jl")) return "julia";
+  if (lower.endsWith(".mo")) return "modelica";
   if (lower.endsWith(".rs")) return "rust";
   if (lower.endsWith(".py")) return "python";
   if (lower.endsWith(".ts") || lower.endsWith(".tsx")) return "typescript";
@@ -280,14 +287,19 @@ export function canOpenGraphForSearchResult(result: SearchResult): boolean {
 
 export function toSearchSelection(result: SearchResult): SearchSelection {
   if (result.navigationTarget) {
+    const canonicalPathSource = preferMoreCanonicalSelectionPath(
+      result.path,
+      result.navigationTarget.path,
+    );
     return canonicalizeSearchSelection({
       ...result.navigationTarget,
+      path: canonicalPathSource,
       projectName: result.navigationTarget.projectName ?? result.projectName,
       rootLabel: result.navigationTarget.rootLabel ?? result.rootLabel,
       line: result.navigationTarget.line ?? result.line,
       lineEnd: result.navigationTarget.lineEnd ?? result.lineEnd,
       column: result.navigationTarget.column ?? result.column,
-      graphPath: result.navigationTarget.graphPath ?? result.navigationTarget.path ?? result.path,
+      graphPath: result.navigationTarget.graphPath ?? canonicalPathSource,
     });
   }
 
@@ -363,11 +375,29 @@ export function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
 }
 
 export function normalizeRepoDocCoverageHit(hit: RepoDocCoverageDoc): SearchResult {
-  const navigationTarget: SearchSelection = {
+  const targetPath = hit.docTarget?.path?.trim();
+  const lineStart = hit.docTarget?.lineStart;
+  const lineEnd = hit.docTarget?.lineEnd;
+  const lineLabel =
+    typeof lineStart === "number"
+      ? typeof lineEnd === "number" && lineEnd !== lineStart
+        ? `lines ${lineStart}-${lineEnd}`
+        : `line ${lineStart}`
+      : null;
+  const bestSectionParts = (
+    hit.docTarget
+      ? ["doc", hit.docTarget.kind, hit.docTarget.name, lineLabel ?? undefined]
+      : ["doc", hit.repoId]
+  ).filter((part): part is string => typeof part === "string" && part.length > 0);
+  const bestSection = bestSectionParts.join(" · ");
+  const navigationTarget: SearchSelection = canonicalizeSearchSelection({
     path: hit.path,
-    category: "doc",
+    category: hit.docTarget ? "repo_code" : "doc",
     projectName: hit.repoId,
-  };
+    ...(typeof lineStart === "number" ? { line: lineStart } : {}),
+    ...(typeof lineEnd === "number" ? { lineEnd } : {}),
+    graphPath: hit.path,
+  });
 
   return {
     stem: hit.title || hit.path,
@@ -376,14 +406,17 @@ export function normalizeRepoDocCoverageHit(hit: RepoDocCoverageDoc): SearchResu
     docType: "ast",
     tags: ["doc", hit.format, hit.repoId].filter(isNonEmptyString),
     score: 0.95,
-    bestSection: `doc · ${hit.repoId}`,
-    matchReason: hit.docId,
+    bestSection,
+    matchReason: targetPath || hit.docId,
     category: "ast",
     projectName: hit.repoId,
     codeLanguage: inferCodeLanguageFromPath(hit.path) ?? "markdown",
     codeKind: "doc",
     codeRepo: hit.repoId,
     searchSource: "repo-intelligence",
+    ...(typeof lineStart === "number" ? { line: lineStart } : {}),
+    ...(typeof lineEnd === "number" ? { lineEnd } : {}),
+    ...(hit.docTarget ? { docTarget: hit.docTarget } : {}),
     navigationTarget,
   };
 }

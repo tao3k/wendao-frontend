@@ -31,7 +31,7 @@ function looksLikePathOrSemanticTarget(candidate: string): boolean {
   );
 }
 
-function parseBiLink(raw: string): { target: string; label: string } | null {
+export function parseBiLink(raw: string): { target: string; label: string } | null {
   const trimmed = raw.trim();
   if (!trimmed) {
     return null;

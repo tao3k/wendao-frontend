@@ -16,6 +16,13 @@ import {
 import { buildSignatureParts, buildSignatureSnippet } from "./codeAstSignatureHelpers";
 import { buildSymbolGroups, buildSymbols } from "./codeAstSymbolHelpers";
 import type { StructuredNeighbor } from "./structuredIntelligence";
+import type { CodeAstFacetModel } from "./language/anatomy/types";
+import {
+  buildCodeAstBlockFacets,
+  buildCodeAstDeclarationFacets,
+  buildCodeAstSymbolFacets,
+  resolveCodeAstAnatomyLanguage,
+} from "./language/anatomy";
 
 export interface CodeAstTopologyModel {
   incoming: StructuredNeighbor[];
@@ -37,6 +44,7 @@ export interface CodeAstDeclarationModel {
   signature: string;
   query: string;
   atom: CodeAstRetrievalAtom;
+  facets: CodeAstFacetModel[];
 }
 
 export interface CodeAstSignaturePart {
@@ -55,6 +63,7 @@ export interface CodeAstBlockModel {
   anchors: string[];
   query?: string;
   atom: CodeAstRetrievalAtom;
+  facets: CodeAstFacetModel[];
 }
 
 export interface CodeAstSymbolModel {
@@ -66,6 +75,7 @@ export interface CodeAstSymbolModel {
   references: number;
   query: string;
   atom: CodeAstRetrievalAtom;
+  facets: CodeAstFacetModel[];
 }
 
 export interface CodeAstSymbolGroup {
@@ -90,35 +100,54 @@ export function deriveCodeAstAnatomy(
 ): CodeAstAnatomyModel {
   const selectedPath =
     normalizeText(selectedResult.navigationTarget?.path ?? selectedResult.path) ?? analysis.path;
+  const language = resolveCodeAstAnatomyLanguage(
+    selectedResult.codeLanguage ?? analysis.language ?? null,
+    selectedPath,
+  );
   const focusNode = pickPrimaryNode(analysis);
   const contentLines = splitContentLines(content);
   const declarationLine = focusNode?.line;
   const retrievalAtomLookup = buildBackendAtomLookup(analysis);
-  const declaration = focusNode
-    ? {
-        id: focusNode.id,
-        label: focusNode.label,
-        kind: normalizeKind(focusNode.kind) || "other",
-        path: normalizeText(focusNode.path) ?? selectedPath,
-        line: focusNode.line,
-        signature: buildSignatureSnippet(contentLines, declarationLine) || focusNode.label,
-        query: focusNode.label,
-        atom: resolveDisplayRetrievalAtom(retrievalAtomLookup, focusNode.id, "declaration", 1, () =>
-          buildCodeAstRetrievalAtom(
-            normalizeText(focusNode.path) ?? selectedPath,
-            "declaration",
-            normalizeKind(focusNode.kind) || "other",
-            `l${focusNode.line ?? 0}`,
-            1,
-            buildSignatureSnippet(contentLines, declarationLine) || focusNode.label,
-          ),
+  const declarationAtom = focusNode
+    ? resolveDisplayRetrievalAtom(retrievalAtomLookup, focusNode.id, "declaration", 1, () =>
+        buildCodeAstRetrievalAtom(
+          normalizeText(focusNode.path) ?? selectedPath,
+          "declaration",
+          normalizeKind(focusNode.kind) || "other",
+          `l${focusNode.line ?? 0}`,
+          1,
+          buildSignatureSnippet(contentLines, declarationLine) || focusNode.label,
         ),
-      }
+      )
     : null;
-  const signatureParts = declaration ? buildSignatureParts(declaration.signature) : [];
+  const declaration =
+    focusNode && declarationAtom
+      ? {
+          id: focusNode.id,
+          label: focusNode.label,
+          kind: normalizeKind(focusNode.kind) || "other",
+          path: normalizeText(focusNode.path) ?? selectedPath,
+          line: focusNode.line,
+          signature:
+            normalizeText(declarationAtom.excerpt) ??
+            (buildSignatureSnippet(contentLines, declarationLine) || focusNode.label),
+          query: focusNode.label,
+          atom: declarationAtom,
+          facets: buildCodeAstDeclarationFacets(language, selectedPath, declarationAtom),
+        }
+      : null;
+  const signatureParts =
+    declaration && declaration.facets.length === 0
+      ? buildSignatureParts(declaration.signature)
+      : [];
   const centerNodeId = declaration?.id ?? focusNode?.id ?? null;
   const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
-  const symbols = buildSymbols(analysis, selectedPath, centerNodeId, retrievalAtomLookup);
+  const symbols = buildSymbols(analysis, selectedPath, centerNodeId, retrievalAtomLookup).map(
+    (symbol) => ({
+      ...symbol,
+      facets: buildCodeAstSymbolFacets(language, symbol.path, symbol.atom),
+    }),
+  );
 
   const incoming = centerNodeId
     ? analysis.edges
@@ -176,7 +205,10 @@ export function deriveCodeAstAnatomy(
       analysis,
       selectedPath,
       retrievalAtomLookup,
-    ),
+    ).map((block) => ({
+      ...block,
+      facets: buildCodeAstBlockFacets(language, selectedPath, block.atom),
+    })),
     symbols,
     symbolGroups: buildSymbolGroups(symbols),
   };

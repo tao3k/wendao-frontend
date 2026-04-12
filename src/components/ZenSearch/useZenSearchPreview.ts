@@ -10,8 +10,10 @@ import {
   buildZenSearchPreviewLoadPlan,
   isMeaningfulSelection,
   loadZenSearchPreviewBaseData,
+  type ZenSearchPreviewCodeAstLoadResult,
   loadZenSearchPreviewCodeAstData,
   loadZenSearchPreviewMarkdownData,
+  resolveZenSearchPreviewLoadPlan,
 } from "./zenSearchPreviewLoaders";
 
 export interface ZenSearchPreviewState {
@@ -34,15 +36,62 @@ interface BuildPreviewSnapshotOptions {
   includeCodeAst?: boolean;
 }
 
+export const ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS = 25_000;
+
+function buildCodeAstTimeoutResult(): ZenSearchPreviewCodeAstLoadResult {
+  return {
+    codeAstAnalysis: null,
+    codeAstError: "Code AST analysis timed out",
+  };
+}
+
+interface PendingCodeAstPreview {
+  promise: Promise<ZenSearchPreviewCodeAstLoadResult>;
+  cancelTimeout: () => void;
+}
+
+function loadCodeAstPreviewWithTimeout(
+  resolvedLoadPlanPromise: Promise<Awaited<ReturnType<typeof resolveZenSearchPreviewLoadPlan>>>,
+  abortController: AbortController,
+): PendingCodeAstPreview {
+  let timeoutId = 0;
+  const promise = new Promise<ZenSearchPreviewCodeAstLoadResult>((resolve) => {
+    timeoutId = globalThis.setTimeout(() => {
+      // Use a soft timeout so the preview can stop waiting without forcing the
+      // underlying Flight request to tear down the dev-proxy socket.
+      resolve(buildCodeAstTimeoutResult());
+    }, ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS);
+
+    void resolvedLoadPlanPromise
+      .then((resolvedLoadPlan) =>
+        loadZenSearchPreviewCodeAstData(resolvedLoadPlan, {
+          signal: abortController.signal,
+        }),
+      )
+      .then(resolve)
+      .catch((error) =>
+        resolve({
+          codeAstAnalysis: null,
+          codeAstError: error instanceof Error ? error.message : "Code AST analysis failed",
+        }),
+      )
+      .finally(() => {
+        globalThis.clearTimeout(timeoutId);
+      });
+  });
+  return {
+    promise,
+    cancelTimeout: () => {
+      globalThis.clearTimeout(timeoutId);
+    },
+  };
+}
+
 function needsCodeAstLoad(
   cachedPreview: ZenSearchPreviewState | undefined,
   codeAstEligible: boolean,
 ): boolean {
-  return Boolean(
-    codeAstEligible &&
-    (!cachedPreview ||
-      (cachedPreview.codeAstAnalysis == null && cachedPreview.codeAstError == null)),
-  );
+  return Boolean(codeAstEligible && (!cachedPreview || cachedPreview.codeAstAnalysis == null));
 }
 
 function needsMarkdownLoad(
@@ -60,7 +109,10 @@ async function buildPreviewSnapshot(
   result: SearchResult,
   options: BuildPreviewSnapshotOptions = {},
 ): Promise<ZenSearchPreviewState> {
-  const loadPlan = buildZenSearchPreviewLoadPlan(result);
+  const loadPlan = await resolveZenSearchPreviewLoadPlan(
+    result,
+    buildZenSearchPreviewLoadPlan(result),
+  );
   const shouldLoadCodeAst = loadPlan.codeAstEligible && options.includeCodeAst !== false;
   const [base, markdown, codeAstBase] = await Promise.all([
     loadZenSearchPreviewBaseData(loadPlan),
@@ -127,6 +179,7 @@ export function useZenSearchPreview(
     }
 
     const loadPlan = buildZenSearchPreviewLoadPlan(selectedResult);
+    const resolvedLoadPlanPromise = resolveZenSearchPreviewLoadPlan(selectedResult, loadPlan);
     const cachedPreview = previewIdentity
       ? previewCacheRef.current.get(previewIdentity)
       : undefined;
@@ -137,10 +190,12 @@ export function useZenSearchPreview(
       setState({
         ...cachedPreview,
         loading: false,
-        contentPath: loadPlan.contentPath,
+        contentPath: cachedPreview.contentPath ?? loadPlan.contentPath,
         selectedResult,
         markdownAnalysisLoading: shouldLoadMarkdown,
+        markdownAnalysisError: shouldLoadMarkdown ? null : cachedPreview.markdownAnalysisError,
         codeAstLoading: shouldLoadCodeAst,
+        codeAstError: shouldLoadCodeAst ? null : cachedPreview.codeAstError,
       });
 
       if (!shouldLoadCodeAst && !shouldLoadMarkdown) {
@@ -153,6 +208,10 @@ export function useZenSearchPreview(
     }
 
     let cancelled = false;
+    const codeAstAbortController = shouldLoadCodeAst ? new AbortController() : null;
+    const codeAstPreview = codeAstAbortController
+      ? loadCodeAstPreviewWithTimeout(resolvedLoadPlanPromise, codeAstAbortController)
+      : null;
 
     if (!cachedPreview) {
       setState((current) => ({
@@ -172,7 +231,8 @@ export function useZenSearchPreview(
 
     if (!cachedPreview) {
       void (async () => {
-        const base = await loadZenSearchPreviewBaseData(loadPlan);
+        const resolvedLoadPlan = await resolvedLoadPlanPromise;
+        const base = await loadZenSearchPreviewBaseData(resolvedLoadPlan);
 
         if (cancelled) {
           return;
@@ -183,7 +243,7 @@ export function useZenSearchPreview(
             ...current,
             loading: false,
             error: base.error,
-            contentPath: loadPlan.contentPath,
+            contentPath: resolvedLoadPlan.contentPath,
             content: base.content,
             contentType: base.contentType,
             graphNeighbors: base.graphNeighbors,
@@ -201,7 +261,7 @@ export function useZenSearchPreview(
 
     if (shouldLoadCodeAst) {
       void (async () => {
-        const codeAst = await loadZenSearchPreviewCodeAstData(loadPlan);
+        const codeAst = await codeAstPreview!.promise;
 
         if (cancelled) {
           return;
@@ -226,7 +286,8 @@ export function useZenSearchPreview(
 
     if (shouldLoadMarkdown) {
       void (async () => {
-        const markdown = await loadZenSearchPreviewMarkdownData(loadPlan);
+        const resolvedLoadPlan = await resolvedLoadPlanPromise;
+        const markdown = await loadZenSearchPreviewMarkdownData(resolvedLoadPlan);
 
         if (cancelled) {
           return;
@@ -251,6 +312,8 @@ export function useZenSearchPreview(
 
     return () => {
       cancelled = true;
+      codeAstPreview?.cancelTimeout();
+      codeAstAbortController?.abort();
     };
   }, [previewIdentity, selectedResult]);
 

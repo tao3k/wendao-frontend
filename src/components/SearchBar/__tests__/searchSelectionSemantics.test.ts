@@ -116,4 +116,22 @@ describe("searchSelection semantics", () => {
       line: 42,
     });
   });
+
+  it("prefers the result display path when the navigation target drops a scoped knowledge prefix", () => {
+    expect(
+      toSearchSelection(
+        buildSearchResult({
+          path: "kernel/docs/developer/knowledge-search-improvements.md",
+          navigationTarget: {
+            path: "docs/developer/knowledge-search-improvements.md",
+            category: "knowledge",
+          },
+        }),
+      ),
+    ).toEqual({
+      path: "kernel/docs/developer/knowledge-search-improvements.md",
+      graphPath: "kernel/docs/developer/knowledge-search-improvements.md",
+      category: "knowledge",
+    });
+  });
 });

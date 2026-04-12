@@ -60,6 +60,8 @@ describe("flightAnalysisTransport", () => {
               semanticType: "section",
               fingerprint: "fp:intro",
               tokenEstimate: 19,
+              lineStart: 1,
+              lineEnd: 3,
               surface: "section",
             },
           ];
@@ -76,6 +78,8 @@ describe("flightAnalysisTransport", () => {
         semanticType: "section",
         fingerprint: "fp:intro",
         tokenEstimate: 19,
+        lineStart: 1,
+        lineEnd: 3,
         surface: "section",
       },
     ]);
@@ -154,5 +158,59 @@ describe("flightAnalysisTransport", () => {
     expect(response.edgeCount).toBe(0);
     expect(response.focusNodeId).toBe("fn:solve");
     expect(response.retrievalAtoms?.[0]?.chunkId).toBe("ast:solve:declaration");
+  });
+
+  it("forwards abort signals to analysis Flight discovery and stream reads", async () => {
+    const signal = new AbortController().signal;
+    let getFlightInfoSignal: AbortSignal | undefined;
+    let doGetSignal: AbortSignal | undefined;
+
+    await loadCodeAstAnalysisFlight(
+      {
+        baseUrl: "http://127.0.0.1:9517",
+        schemaVersion: "v2",
+        path: "kernel/src/lib.rs",
+        repo: "kernel",
+        line: 12,
+        signal,
+      },
+      {
+        createClient: () => ({
+          async getFlightInfo(_descriptor, options) {
+            getFlightInfoSignal = options?.signal;
+            return create(FlightInfoSchema, {
+              schema: new Uint8Array([9, 9, 9]),
+              endpoint: [
+                {
+                  ticket: create(TicketSchema, { ticket: new Uint8Array([7, 7]) }),
+                },
+              ],
+              appMetadata: new TextEncoder().encode(
+                JSON.stringify({
+                  repoId: "kernel",
+                  path: "kernel/src/lib.rs",
+                  language: "rust",
+                  nodes: [],
+                  edges: [],
+                  projections: [],
+                  diagnostics: [],
+                }),
+              ),
+            });
+          },
+          async *doGet(_ticket, options) {
+            doGetSignal = options?.signal;
+            yield create(FlightDataSchema, {
+              dataHeader: new Uint8Array([10, 11, 12]),
+              dataBody: new Uint8Array([13, 14]),
+            });
+          },
+        }),
+        decodeRetrievalChunks: () => [],
+      },
+    );
+
+    expect(getFlightInfoSignal).toBe(signal);
+    expect(doGetSignal).toBe(signal);
   });
 });

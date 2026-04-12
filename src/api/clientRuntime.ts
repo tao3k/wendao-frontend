@@ -54,8 +54,6 @@ import type {
   ProjectedPageIndexSection,
   ProjectedPageIndexNode,
   ProjectedPageIndexTree,
-  RefineEntityDocRequest,
-  RefineEntityDocResponse,
 } from "./bindings";
 
 // Re-export types for convenience
@@ -106,8 +104,6 @@ export type {
   ProjectedPageIndexSection,
   ProjectedPageIndexNode,
   ProjectedPageIndexTree,
-  RefineEntityDocRequest,
-  RefineEntityDocResponse,
   RepoBacklinkItem,
   RepoDocCoverageDoc,
   RepoDocCoverageResponse,
@@ -160,6 +156,8 @@ import {
 } from "./controlPlane/transport";
 import { fetchHealthResponse } from "./workspaceTransport";
 import type {
+  RefineEntityDocRequest,
+  RefineEntityDocResponse,
   RepoBacklinkItem,
   RepoDocCoverageDoc,
   RepoDocCoverageResponse,
@@ -171,22 +169,13 @@ import type {
   UiCapabilities,
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
-import { getConfig, toUiConfig } from "../config/loader";
+import { getConfig } from "../config/loader";
 
 const API_BASE = "/api";
-
-const UI_CONFIG_RETRY_CODES = new Set(["UNKNOWN_REPOSITORY", "UI_CONFIG_REQUIRED"]);
-
-function shouldRetryWithUiConfigSync(error: unknown): error is ApiClientError {
-  return error instanceof ApiClientError && UI_CONFIG_RETRY_CODES.has(error.code);
-}
 
 const uiConfigTransportState = createUiConfigTransportState({
   apiBase: API_BASE,
   handleResponse,
-  getConfig,
-  toUiConfig,
-  shouldRetryWithUiConfigSync,
 });
 
 export function getUiCapabilitiesSync(): UiCapabilities | null {
@@ -323,7 +312,7 @@ export const api = {
   async searchKnowledge(
     query: string,
     limit: number = 10,
-    options?: { intent?: string; repo?: string },
+    options?: { intent?: string; repo?: string; signal?: AbortSignal },
   ): Promise<SearchResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
@@ -335,6 +324,7 @@ export const api = {
           limit,
           intent: options?.intent,
           repo: options?.repo,
+          signal: options?.signal,
         },
         {
           decodeSearchHits: decodeSearchHitsFromArrowIpc,
@@ -356,6 +346,7 @@ export const api = {
       titleFilters?: string[];
       tagFilters?: string[];
       filenameFilters?: string[];
+      signal?: AbortSignal;
     },
   ): Promise<SearchResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
@@ -372,6 +363,7 @@ export const api = {
           titleFilters: options?.titleFilters,
           tagFilters: options?.tagFilters,
           filenameFilters: options?.filenameFilters,
+          signal: options?.signal,
         },
         {
           decodeRepoSearchHits: decodeRepoSearchHitsFromArrowIpc,
@@ -386,7 +378,12 @@ export const api = {
   async searchAttachments(
     query: string,
     limit: number = 10,
-    options?: { ext?: string[]; kind?: string[]; caseSensitive?: boolean },
+    options?: {
+      ext?: string[];
+      kind?: string[];
+      caseSensitive?: boolean;
+      signal?: AbortSignal;
+    },
   ): Promise<AttachmentSearchResponse> {
     const config = await getConfig();
     return flightSearchTransport.searchAttachmentsFlight(
@@ -398,6 +395,7 @@ export const api = {
         ext: options?.ext,
         kind: options?.kind,
         caseSensitive: options?.caseSensitive,
+        signal: options?.signal,
       },
       {
         decodeAttachmentHits: decodeAttachmentSearchHitsFromArrowIpc,
@@ -408,7 +406,11 @@ export const api = {
   /**
    * Search AST-derived definitions from source files and structured Markdown docs
    */
-  async searchAst(query: string, limit: number = 10): Promise<AstSearchResponse> {
+  async searchAst(
+    query: string,
+    limit: number = 10,
+    options?: { signal?: AbortSignal },
+  ): Promise<AstSearchResponse> {
     const config = await getConfig();
     return flightSearchTransport.searchAstFlight(
       {
@@ -416,6 +418,7 @@ export const api = {
         schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
         query,
         limit,
+        signal: options?.signal,
       },
       {
         decodeAstHits: decodeAstSearchHitsFromArrowIpc,
@@ -450,7 +453,11 @@ export const api = {
   /**
    * Search source references and usages for a symbol
    */
-  async searchReferences(query: string, limit: number = 10): Promise<ReferenceSearchResponse> {
+  async searchReferences(
+    query: string,
+    limit: number = 10,
+    options?: { signal?: AbortSignal },
+  ): Promise<ReferenceSearchResponse> {
     const config = await getConfig();
     return flightSearchTransport.searchReferencesFlight(
       {
@@ -458,6 +465,7 @@ export const api = {
         schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
         query,
         limit,
+        signal: options?.signal,
       },
       {
         decodeReferenceHits: decodeReferenceSearchHitsFromArrowIpc,
@@ -468,7 +476,11 @@ export const api = {
   /**
    * Search extracted project symbols from source files
    */
-  async searchSymbols(query: string, limit: number = 10): Promise<SymbolSearchResponse> {
+  async searchSymbols(
+    query: string,
+    limit: number = 10,
+    options?: { signal?: AbortSignal },
+  ): Promise<SymbolSearchResponse> {
     const config = await getConfig();
     return flightSearchTransport.searchSymbolsFlight(
       {
@@ -476,6 +488,7 @@ export const api = {
         schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
         query,
         limit,
+        signal: options?.signal,
       },
       {
         decodeSymbolHits: decodeSymbolSearchHitsFromArrowIpc,
@@ -486,7 +499,10 @@ export const api = {
   /**
    * Inspect normalized repo overview counts from repo-intelligence.
    */
-  async getRepoOverview(repo: string): Promise<RepoOverviewResponse> {
+  async getRepoOverview(
+    repo: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<RepoOverviewResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
       return flightRepoOverviewTransport.loadRepoOverviewFlight(
@@ -494,6 +510,7 @@ export const api = {
           baseUrl: resolveBrowserFlightBaseUrl(),
           schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
           repo,
+          signal: options?.signal,
         },
         {
           decodeRepoOverviewResponse: decodeRepoOverviewResponseFromArrowIpc,
@@ -508,6 +525,7 @@ export const api = {
   async getRepoDocCoverage(
     repo: string,
     moduleQualifiedName?: string,
+    options?: { signal?: AbortSignal },
   ): Promise<RepoDocCoverageResponse> {
     return uiConfigTransportState.withUiConfigSyncRetry(async () => {
       const config = await getConfig();
@@ -517,6 +535,7 @@ export const api = {
           schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
           repo,
           moduleQualifiedName,
+          signal: options?.signal,
         },
         {
           decodeRepoDocCoverageDocs: decodeRepoDocCoverageDocsFromArrowIpc,
@@ -684,6 +703,7 @@ export const api = {
     options?: {
       repo?: string;
       line?: number;
+      signal?: AbortSignal;
     },
   ): Promise<CodeAstAnalysisResponse> {
     const config = await getConfig();
@@ -693,6 +713,7 @@ export const api = {
       path,
       repo: options?.repo,
       line: options?.line,
+      signal: options?.signal,
     });
   },
 
@@ -704,6 +725,7 @@ export const api = {
     options?: {
       repo?: string;
       line?: number;
+      signal?: AbortSignal;
     },
   ): Promise<RetrievalChunk[]> {
     const config = await getConfig();
@@ -713,6 +735,7 @@ export const api = {
       path,
       repo: options?.repo,
       line: options?.line,
+      signal: options?.signal,
     });
   },
 

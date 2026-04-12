@@ -30,6 +30,26 @@ Qianji Studio frontend against the live Wendao gateway.
 - Warmup runs per query: `1`
 - Measured runs per query: `3`
 
+## 2026-04-12 Cold-Start Live Result
+
+- Gateway start mode: fresh `wendao gateway start` after local Valkey startup
+- Local corpus readiness: `set_ui_config` triggered deferred local indexing,
+  and the local corpora published readable empty epochs before prewarm
+- Query selection: auto-discovered from the current surface with
+  `queryPlanSource="code_search"`
+- Intent used: `code_search`
+- Queries used: `diffeq`, `solver`, `optimization`
+- Cold-start measured average: `2.23ms`
+- Cold-start P95: `2.25ms`
+- Cold-start max: `2.25ms`
+
+This matters because the earlier live failure mode was not request latency. The
+fresh gateway could return `[INDEX_NOT_READY]` while local corpus builds were
+still waiting on prewarm. That cold-start stall is now off the critical path:
+the gateway can publish readable local epochs immediately, and the harness no
+longer fails just because the active surface changed away from one historical
+query list.
+
 ## Validation Commands
 
 ```bash
@@ -108,7 +128,19 @@ single-digit milliseconds for the sampled search queries.
    longer waits for the entire background repo queue to drain after restart.
 5. The remaining production-line risk is restart and corpus recovery behavior,
    not Arrow Flight request latency.
-6. Hotspot unit traces are now part of the same performance workflow.
+6. Local search cold start is now bounded by readable publication, not by
+   prewarm completion. Empty local corpora still publish explicit zero-row
+   epochs, and `set_ui_config` now activates the local search plane early
+   enough for a fresh live gateway to answer the first search without waiting
+   on prewarm.
+7. The live perf harness now adapts to the active UI surface. When no explicit
+   query override is provided, it probes the current surface, keeps the first
+   hit-bearing query set, and records both `searchIntent` and
+   `queryPlanSource` in the artifact. On the current repo-heavy surface, the
+   harness selected the historical `diffeq` / `solver` / `optimization` terms
+   through `code_search` intent instead of failing with a zero-hit generic
+   knowledge query.
+8. Hotspot unit traces are now part of the same performance workflow.
    `npm run test:hotspot-perf` records render-count and interaction-count
    snapshots for SearchBar typing, visible-result derivation, stable result-list
    rerendering, and ZenSearch preview/prefetch behavior, plus scenario-level
@@ -119,49 +151,49 @@ single-digit milliseconds for the sampled search queries.
    budgeted list path, then writes one JSON artifact that the live Flight perf
    harness can reference in its own report. The current hotspot artifact
    contains `18` scenario records.
-7. The `all`-scope code-filter contract is now verified at three layers.
+9. The `all`-scope code-filter contract is now verified at three layers.
    Search execution strips code filters down to the base query before hitting
    the gateway, pure filter-only queries stay local and only expose filter
    suggestions, and the visible-result layer now distinguishes between
    `matching code hits exist` and `no code hit matches so fall back to non-code
 results`.
-8. The left result pane now has an explicit virtualization budget. The static
+10. The left result pane now has an explicit virtualization budget. The static
    list threshold, initial virtual window, and overscan are locked in
    `VirtualizedSearchResultsList`, and the hotspot trace suite now includes a
    large code-result typing scenario so render-pressure drift shows up as JSON
    artifact changes instead of subjective typing lag.
-9. The suggestion dropdown now follows the same budgeted-contract pattern. The
+11. The suggestion dropdown now follows the same budgeted-contract pattern. The
    visible suggestion slice is capped at `12` items inside the autocomplete
    state source, and the hotspot trace suite now records dropdown
    selection-shift paint drift so keyboard browsing regressions are visible in
    the shared JSON artifact.
-10. Suggestion hover now has its own controller-level stability contract. The
+12. Suggestion hover now has its own controller-level stability contract. The
     SearchBar controller keeps suggestion highlight separate from result
     selection, reuses a stable toggle callback, and the hotspot suite records a
     trace proving suggestion-hover rerenders reuse both shell and results-panel
     props.
-11. Keyboard navigation no longer falls back to a legacy linear
+13. Keyboard navigation no longer falls back to a legacy linear
     `suggestionCount + resultCount` selection model. Suggestions and results now
     navigate their own slices independently, and result `Enter` behavior clamps
     only within the visible result slice.
-12. Autocomplete projection is now idempotent. Repeated identical
+14. Autocomplete projection is now idempotent. Repeated identical
     `autocomplete-core` collections no longer trigger redundant suggestion-state
     writes, and the hotspot suite records a mocked `same projection is a no-op`
     trace so duplicate dropdown-state pushes cannot silently add render churn.
-13. Autocomplete refresh is now keyed by semantic query/filter/catalog state.
+15. Autocomplete refresh is now keyed by semantic query/filter/catalog state.
     Rebuilt filter objects with the same effective values no longer trigger
     another `autocomplete.refresh()`, and the hotspot suite records this as a
     separate `semantic refresh key suppresses duplicate refresh` trace.
-14. The typing path now has a combined input-plus-autocomplete contract. A real
+16. The typing path now has a combined input-plus-autocomplete contract. A real
     one-character input change must trigger exactly one semantic autocomplete
     refresh, and the hotspot suite records that joint `SearchInputHeader ->
 autocomplete refresh` trace explicitly.
-15. The end-to-end one-character refinement path is now locked as a SearchBar
+17. The end-to-end one-character refinement path is now locked as a SearchBar
     scenario. After one more typed character, autocomplete may refresh once,
     Flight search may issue the expected hybrid-plus-code pair, and the visible
     results must settle on the refined result set without old hits flashing back
     in.
-16. Keyboard browsing inside the suggestion dropdown is now locked as its own
+18. Keyboard browsing inside the suggestion dropdown is now locked as its own
     SearchBar scenario. Moving from a typed query into a highlighted suggestion
     must update the query, keep stale result opens at zero, and settle the
     visible result set onto the selected suggestion target without flashing the
@@ -169,75 +201,75 @@ autocomplete refresh` trace explicitly.
     the dropdown immediately, so the same scenario proves the autocomplete call
     budget stays at one refresh instead of keeping post-accept suggestion churn
     alive. The current hotspot artifact now contains `19` scenario records.
-17. The repo-aware code lane is now partially Flight-first too. Repo-content
+19. The repo-aware code lane is now partially Flight-first too. Repo-content
     search in `all` and `code` mode now goes through the same-origin Flight
     repo-search route, and that route no longer depends on one synthetic
     gateway-mounted repo id. This does not yet make the whole repo-facing UI
     Flight-only: repo-intelligence `doc` still rides its existing JSON
     endpoint.
-18. The default repo-aware interface is now narrower and more Flight-first as
+20. The default repo-aware interface is now narrower and more Flight-first as
     well. When there is no explicit repo facet, the frontend no longer fans out
     to repo-intelligence `module`, `symbol`, or `example` JSON endpoints; the
     default repo-aware `all` / `code` path now stays on repo-content Flight plus
     Flight-backed references. Explicit `doc` still marks the remaining JSON
     retirement boundary.
-19. The explicit `symbol` facet is now on that same Flight surface too.
+21. The explicit `symbol` facet is now on that same Flight surface too.
     Parsed `kind:` filters are projected into repo-search `tagFilters`, so
     repo-aware symbol queries no longer depend on the repo-intelligence symbol
     endpoint.
-20. The explicit `module` facet now also stays on repo-search Flight.
+22. The explicit `module` facet now also stays on repo-search Flight.
     Repo-aware module queries project `kind:module` into repo-search
     `tagFilters`, and the repo-overview display-name fallback now retries the
     same Flight route instead of calling `/api/repo/module-search`. The
     remaining repo-facing JSON retirement debt is now reduced to `doc`.
-21. The explicit `example` facet now also stays on repo-search Flight.
+23. The explicit `example` facet now also stays on repo-search Flight.
     Repo-aware example queries project `kind:example` into repo-search
     `tagFilters`, and the repo-overview display-name fallback now retries the
     same Flight route instead of calling `/api/repo/example-search`.
-22. The explicit `doc` facet is now Flight-backed too, but on its own
+24. The explicit `doc` facet is now Flight-backed too, but on its own
     repo-doc-coverage contract rather than repo-search hits. The frontend now
     calls `/analysis/repo-doc-coverage`, which returns coverage rows plus
     summary metadata and the optional `module` filter without falling back to
     `/api/repo/doc-coverage`.
-23. Zen preview and file-open raw content now also consume same-origin Flight.
+25. Zen preview and file-open raw content now also consume same-origin Flight.
     The frontend `api.getVfsContent(...)` path now uses `/vfs/content`, the
     old `/api/vfs/cat` helper is retired from the active client runtime, and
     the shared workspace route snapshot now locks canonical `project/path`
     inputs for both `/vfs/resolve` and `/vfs/content`.
-24. The refine-doc command surface now also consumes same-origin Flight.
+26. The refine-doc command surface now also consumes same-origin Flight.
     The frontend `api.refineEntityDoc(...)` path now uses `/analysis/refine-doc`
     with explicit repo/entity metadata plus Base64-encoded user hints, and the
     old `/api/repo/refine-entity-doc` helper is retired from the active client
     runtime. After this slice, the remaining `/api/` debt is primarily
     control-plane and non-hot-path utility surfaces rather than the active
     search/preview/refine lane.
-25. The remaining non-Flight control-plane surface is now centralized in the
+27. The remaining non-Flight control-plane surface is now centralized in the
     API layer. `VfsSidebar` no longer bypasses the transport facade with a
     direct `fetch('/api/vfs/scan')`; it now consumes `api.scanVfs()`, so
     production components no longer own raw `/api/` calls on the active
     frontend surface.
-26. Repo overview is now Flight-backed too. The frontend
+28. Repo overview is now Flight-backed too. The frontend
     `api.getRepoOverview(...)` path now uses `/analysis/repo-overview` instead
     of `/api/repo/overview`, which removes the last active repo-aware JSON
     status/fallback seam from the SearchBar lane.
-27. Repo index status is now Flight-backed too. The frontend
+29. Repo index status is now Flight-backed too. The frontend
     `api.getRepoIndexStatus(...)` path now uses `/analysis/repo-index-status`
     instead of `/api/repo/index/status`, so the active repo-aware query/status
     lane no longer depends on the JSON repo-index status surface.
-28. Repo sync is now Flight-backed too. The frontend `api.getRepoSync(...)`
+30. Repo sync is now Flight-backed too. The frontend `api.getRepoSync(...)`
     path now uses `/analysis/repo-sync` instead of `/api/repo/sync`, so the
     active repo-aware query/status lane no longer depends on the JSON sync
     surface either.
-29. Workspace scan and topology are now Flight-backed too. The frontend
+31. Workspace scan and topology are now Flight-backed too. The frontend
     `api.scanVfs()` path now uses `/vfs/scan`, `api.get3DTopology()` now uses
     `/topology/3d`, and the FileTree/VfsSidebar tests now pin repo-index status
     expectations against the decoded `api.getRepoIndexStatus()` contract rather
     than the retired `/api/repo/index/status` fetch assumption.
-30. Repo index mutation is now Flight-backed too. The frontend
+32. Repo index mutation is now Flight-backed too. The frontend
     `api.enqueueRepoIndex(...)` path now uses `/analysis/repo-index` instead of
     `POST /api/repo/index`, and the command contract now carries an explicit
     request id so repeated repo-index actions do not reuse cached route payloads.
-31. After the repo-index cut, the remaining non-Flight `/api/` surface is
+33. After the repo-index cut, the remaining non-Flight `/api/` surface is
     intentionally limited to control-plane routes such as health, UI
     config/capabilities, and Julia deployment artifact inspection. Those routes
     are now grouped under `src/api/controlPlane/*` instead of being tracked as
@@ -274,10 +306,106 @@ perf harness successfully against the freshly restarted binary.
 - the same gateway later converged to `ready=152`, `failed=9`,
   `unsupported=16`, `queued=0`, `active=0`
 
+## 2026-04-05 Restarted Gateway Contract Rerun
+
+After a later local restart of the default `127.0.0.1:9517` gateway, the
+frontend live contract initially exposed two bounded regressions:
+
+1. projected page-index tree decoding failed with
+   `Arrow document payload is missing required numeric field "rootCount"`
+2. refine-doc timed out while trying to discover a suitable live symbol id
+
+The first issue was not a missing route field on the gateway. The live Flight
+payload still carried `rootCount`, but the frontend document IPC decoder only
+accepted JavaScript `number` values. On the live path, Arrow materialized the
+`UInt64` column as a safe `bigint`, so the frontend rejected a valid payload.
+
+The second issue was contract noise in the live test itself. The route under
+test is `/analysis/refine-doc`, but the proof first spent its time budget on a
+heavier repo-search plus knowledge-search chain to find one symbol id. The
+contract is more precise and more stable when it resolves `symbol_id` through
+`/api/repo/symbol-search` first, then sends that id to the refine-doc Flight
+route.
+
+With those two bounded fixes in place, the restarted default gateway now
+passes the full live contract again:
+
+```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm run test:live-gateway'
+```
+
+Result:
+
+- `11/11` tests passed
+- projected page-index tree same-origin Flight proof passed in `627ms`
+- refine-doc same-origin Flight proof passed in `609ms`
+
+## 2026-04-05 Restarted Gateway Perf and Hotspot Rerun
+
+After the same local `127.0.0.1:9517` gateway restart, the frontend reran the
+hotspot artifact, the live gateway contract, the live repo/code gateway
+contracts, and the live Flight perf harness without any new code changes.
+
+### Validation Commands
+
+```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test:hotspot-perf'
+direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm run test:live-gateway'
+direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 ./node_modules/.bin/vitest run src/api/liveRepoSearchGateway.test.ts src/api/liveCodeSearchGateway.test.ts'
+direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm run test:live-flight-perf'
+```
+
+### Contract Outcome
+
+- hotspot suite: `10/10` files and `65/65` tests passed
+- studio live gateway suite: `11/11` tests passed
+- live repo/code gateway suites: `4/4` tests passed
+- live Flight perf suite: `3/3` tests passed
+
+### Latest Warm-Steady Perf Summary
+
+- Overall average: `1.95ms`
+- P50: `1.87ms`
+- P95: `2.39ms`
+- Max: `2.39ms`
+
+### Latest Warm-Steady Phase Breakdown
+
+- `GetFlightInfo`: average `0.72ms`, P95 `1.03ms`
+- `DoGet`: average `0.65ms`, P95 `0.82ms`
+- Hit decoding: average `0.50ms`, P95 `0.67ms`
+- Arrow IPC reassembly: average `0.01ms`, P95 `0.02ms`
+- Metadata decoding: average `0.01ms`, P95 `0.03ms`
+- Ticket read: average `0.01ms`, P95 `0.01ms`
+
+### Latest Per-Query Summary
+
+| Query          |      Avg |      P95 | Avg Hits | GetFlightInfo Avg | DoGet Avg |
+| -------------- | -------: | -------: | -------: | ----------------: | --------: |
+| `diffeq`       | `2.19ms` | `2.39ms` |      `4` |          `0.90ms` |  `0.74ms` |
+| `solver`       | `2.00ms` | `2.19ms` |     `20` |          `0.66ms` |  `0.67ms` |
+| `optimization` | `1.67ms` | `1.87ms` |     `19` |          `0.61ms` |  `0.55ms` |
+
+### Latest Hotspot Artifact
+
+- generated at: `2026-04-05T20:13:45.938Z`
+- scenario records: `19`
+- `SearchBarHotspotPerf.sec-lang-julia`: `227.10ms`
+- `SearchBarHotspotPerf.repo-backed-open`: `674.11ms`
+- `SearchBarHotspotPerf.one-char-refinement`: `219.38ms`
+- `SearchBarHotspotPerf.suggestion-keyboard-browse`: `434.48ms`
+- `AppHotspotPerf.repo-backed-code-selection`: `1.63ms`
+
+This rerun matters because it shows the local gateway stays healthy after a
+manual restart across both request-path validation and frontend hotspot
+instrumentation. The current bottleneck is still not the same-origin Flight
+search path; the slight rise from the earlier `1.67ms` warm checkpoint is
+still comfortably inside low single-digit latency.
+
 ## Optimization Candidates
 
-- `GetFlightInfo`: average `0.86ms`, P95 `1.42ms`
-- `DoGet`: average `0.79ms`, P95 `1.20ms`
+- `GetFlightInfo`: average `0.72ms`, P95 `1.03ms`
+- `DoGet`: average `0.65ms`, P95 `0.82ms`
 
 ## No-Major-Issue Assessment
 

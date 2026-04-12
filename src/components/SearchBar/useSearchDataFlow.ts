@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { SearchFilters } from "./codeSearchUtils";
 import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
-import type { SearchMeta } from "./searchExecution";
+import type { SearchMeta } from "./searchExecutionTypes";
 import { getRuntimeWarningMessage } from "./searchStateUtils";
 import type { SearchResult, SearchScope, SearchSort, UiLocale } from "./types";
 import { useRuntimeSearchStatus } from "./useRuntimeSearchStatus";
@@ -103,7 +103,7 @@ export function useSearchDataFlow({
     queryToSearch: derivedState.queryToSearch,
     searchMode: derivedState.searchMode,
     repoFilter: repoAwareSearchMode ? primaryRepoFilter : undefined,
-    repoFacet: derivedState.searchMode === "code" ? repoFacet : null,
+    repoFacet: repoAwareSearchMode ? repoFacet : null,
     setResults,
     setSearchMeta,
     setIsLoading,

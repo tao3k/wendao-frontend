@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../../api";
-import type { UiProjectConfig, UiRepoProjectConfig } from "../../../api/bindings";
-import { getConfig, toUiConfig } from "../../../config/loader";
+import type { UiConfig, UiProjectConfig, UiRepoProjectConfig } from "../../../api/bindings";
 import type { RepoIndexStatus } from "../../statusBar/types";
 import {
   linkGraphOnlyRepoProjectIds,
@@ -43,8 +42,8 @@ export function useFileTreeRuntime({ locale, emptyProjectHint }: UseFileTreeRunt
       setRepoIndexStatus(null);
       setLinkGraphOnlyProjectIds([]);
       try {
-        const config = await getConfig();
-        const uiConfig = toUiConfig(config);
+        const uiConfig: UiConfig = await api.getUiConfig();
+
         const repoProjects = uiConfig.repoProjects ?? [];
         const repoIndexProjects = repoProjects.filter((project) => project.plugins.length > 0);
         const linkGraphOnlyProjects = linkGraphOnlyRepoProjectIds(repoProjects);
@@ -65,13 +64,6 @@ export function useFileTreeRuntime({ locale, emptyProjectHint }: UseFileTreeRunt
             isRepoProject: true,
           })),
         ];
-
-        try {
-          await api.setUiConfig(uiConfig);
-          console.log("Pushed runtime UI config to backend:", uiConfig);
-        } catch (pushErr) {
-          console.warn("Failed to push config to backend:", pushErr);
-        }
 
         if (repoIndexProjects.length > 0) {
           stopRepoIndexPolling = startRepoIndexStatusPolling(

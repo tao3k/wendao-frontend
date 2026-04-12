@@ -20,9 +20,7 @@ const detectCircularRef = (jsx: string): boolean => {
 
 const detectEffectLoop = (code: string): string[] => {
   const issues: string[] = [];
-  const effectMatch = code.match(
-    /useEffect\s*\(\s*\(\)\s*=>\s*\{([^}]+)\},\s*\[([^\]]+)\]\s*\)/g,
-  );
+  const effectMatch = code.match(/useEffect\s*\(\s*\(\)\s*=>\s*\{([^}]+)\},\s*\[([^\]]+)\]\s*\)/g);
   if (effectMatch) {
     effectMatch.forEach((effect) => {
       const stateInDeps = effect.match(/\[\s*(\w+)\s*\]/)?.[1];

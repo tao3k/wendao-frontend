@@ -95,7 +95,15 @@ Responsibilities:
 
 - Render diagram-centric projections for BPMN and Mermaid-oriented navigation.
 - Keep embedded Mermaid blocks as the first-priority diagram source.
-- Render markdown-backed files through `MarkdownWaterfall` when no embedded diagram body is available and markdown projection does not produce Mermaid, so the panel stays structured instead of falling back to a plain empty-state card; the fallback should preserve the same `Title`, `Tags`, and `Linked` identity order as the reader waterfall and keep the same section-level atomic actions and retrieval metadata available for retrieval-oriented pivots.
+- Only advertise Mermaid layout switches when the active source can first normalize
+  into the bounded frontend graph model; supported `flowchart` and `state`
+  sources can then compile alternate flow directions plus derived `Sequence`
+  and `State` views from that shared graph, supported `sequenceDiagram`
+  sources can compile flowchart directions plus a derived `State` view,
+  supported `erDiagram` sources can compile flowchart directions, and
+  unsupported Mermaid control flow stays on the original single-source render
+  path.
+- For markdown-backed and code-backed files without embedded Mermaid, prefer `/api/analysis/markdown` or `/api/analysis/code-ast` `nodes/edges` as the diagram input, fall back to renderable projection `source` only when no bounded graph can be built, and otherwise use the local markdown outline fallback or the empty-state card; do not mirror `MarkdownWaterfall` into the diagram tab.
 
 Gateway dependencies:
 

@@ -1,6 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import { getConfig, resetConfig, toUiConfig } from "./config/loader";
 
 const App = lazy(() => import("./App"));
 
@@ -144,15 +143,9 @@ export function StudioBootstrap(): React.ReactElement {
     let cancelled = false;
 
     const bootstrap = async () => {
-      let gatewayBind: string | undefined;
       try {
-        resetConfig();
-        const config = await getConfig();
-        gatewayBind = config.gateway?.bind?.trim();
-
-        const uiConfig = toUiConfig(config);
         await api.health();
-        await api.setUiConfig(uiConfig);
+        await api.getUiConfig();
         try {
           await api.getUiCapabilities();
         } catch (error) {
@@ -169,7 +162,6 @@ export function StudioBootstrap(): React.ReactElement {
         if (!cancelled) {
           setBootstrapState({
             status: "blocked",
-            gatewayBind,
             error: toErrorMessage(error, copy.errorFallback),
           });
         }

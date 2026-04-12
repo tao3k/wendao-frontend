@@ -1,11 +1,15 @@
-import { renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
 import { createPerfTrace } from "../../../lib/testPerfTrace";
 import type { SearchResult } from "../../SearchBar/types";
-import { useZenSearchPreview } from "../useZenSearchPreview";
+import {
+  useZenSearchPreview,
+  ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS,
+} from "../useZenSearchPreview";
 
 const mocks = vi.hoisted(() => ({
+  resolveStudioPath: vi.fn(),
   getVfsContent: vi.fn(),
   getGraphNeighbors: vi.fn(),
   getCodeAstAnalysis: vi.fn(),
@@ -14,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../../api", () => ({
   api: {
+    resolveStudioPath: mocks.resolveStudioPath,
     getVfsContent: mocks.getVfsContent,
     getGraphNeighbors: mocks.getGraphNeighbors,
     getCodeAstAnalysis: mocks.getCodeAstAnalysis,
@@ -77,6 +82,42 @@ function buildCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildGatewayResolvedMarkdownSearchResult(): SearchResult {
+  return {
+    stem: "Workspace Guide",
+    title: "Workspace Guide",
+    path: "docs/index.md",
+    docType: "knowledge",
+    tags: [],
+    score: 0.88,
+    category: "knowledge",
+    navigationTarget: {
+      path: "docs/index.md",
+      category: "knowledge",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
+function buildGatewayResolvedCodeSearchResult(): SearchResult {
+  return {
+    stem: "continuous",
+    title: "continuous",
+    path: "src/Blocks/continuous.jl",
+    docType: "symbol",
+    tags: ["code", "julia", "kind:function"],
+    score: 0.91,
+    category: "symbol",
+    codeLanguage: "julia",
+    codeKind: "function",
+    navigationTarget: {
+      path: "src/Blocks/continuous.jl",
+      category: "repo_code",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
 function buildSecondCodeSearchResult(): SearchResult {
   return {
     ...buildCodeSearchResult(),
@@ -91,12 +132,51 @@ function buildSecondCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildImportCodeSearchResult(): SearchResult {
+  return {
+    stem: "Init",
+    title: "Modelica.Modelica.Blocks.Types.Init.Init",
+    path: "mcl/Modelica/Blocks/package.mo",
+    line: 1,
+    lineEnd: 1,
+    docType: "import",
+    tags: ["mcl", "code", "import", "kind:import", "modelica", "lang:modelica"],
+    score: 1,
+    category: "ast",
+    projectName: "mcl",
+    rootLabel: "mcl",
+    codeLanguage: "modelica",
+    codeKind: "import",
+    codeRepo: "mcl",
+    bestSection: "Modelica.Blocks.Types.Init",
+    matchReason: "repo_import_search",
+    navigationTarget: {
+      path: "mcl/Modelica/Blocks/package.mo",
+      category: "repo_code",
+      projectName: "mcl",
+      rootLabel: "mcl",
+      line: 1,
+      lineEnd: 1,
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
 describe("useZenSearchPreview", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
+    mocks.resolveStudioPath.mockReset();
     mocks.getVfsContent.mockReset();
     mocks.getGraphNeighbors.mockReset();
     mocks.getCodeAstAnalysis.mockReset();
     mocks.getMarkdownAnalysis.mockReset();
+    mocks.resolveStudioPath.mockImplementation(async (path: string) => ({
+      path,
+      category: "knowledge",
+    }));
     mocks.getVfsContent.mockResolvedValue({
       content: "# Documentation Index",
       contentType: "markdown",
@@ -156,6 +236,90 @@ describe("useZenSearchPreview", () => {
     });
   });
 
+  it("resolves markdown preview paths through the gateway when search metadata omits project context", async () => {
+    const selectedResult = buildGatewayResolvedMarkdownSearchResult();
+
+    mocks.resolveStudioPath.mockResolvedValueOnce({
+      path: "main/docs/index.md",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
+    });
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.contentPath).toBe("main/docs/index.md");
+    });
+
+    expect(mocks.resolveStudioPath).toHaveBeenCalledWith("docs/index.md");
+    expect(mocks.getVfsContent).toHaveBeenCalledWith("main/docs/index.md");
+    expect(mocks.getGraphNeighbors).toHaveBeenCalledWith("main/docs/index.md", {
+      direction: "both",
+      hops: 1,
+      limit: 20,
+    });
+    expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith("main/docs/index.md");
+  });
+
+  it("normalizes graph totals from the neighbor payload when totals are stale", async () => {
+    const selectedResult = buildSearchResult();
+
+    mocks.getGraphNeighbors.mockResolvedValueOnce({
+      center: {
+        id: "main/docs/index.md",
+        label: "Documentation Index",
+        path: "main/docs/index.md",
+        nodeType: "knowledge",
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [
+        {
+          id: "main/docs/intro.md",
+          label: "Intro",
+          path: "main/docs/intro.md",
+          nodeType: "knowledge",
+          isCenter: false,
+          distance: 1,
+        },
+        {
+          id: "main/docs/appendix.md",
+          label: "Appendix",
+          path: "main/docs/appendix.md",
+          nodeType: "knowledge",
+          isCenter: false,
+          distance: 1,
+        },
+      ],
+      links: [
+        {
+          source: "main/docs/index.md",
+          target: "main/docs/intro.md",
+          direction: "outgoing",
+          distance: 1,
+        },
+        {
+          source: "main/docs/appendix.md",
+          target: "main/docs/index.md",
+          direction: "incoming",
+          distance: 1,
+        },
+      ],
+      totalNodes: 0,
+      totalLinks: 0,
+    });
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.graphNeighbors?.totalNodes).toBe(3);
+      expect(result.current.graphNeighbors?.totalLinks).toBe(2);
+    });
+  });
+
   it("strips internal workspace prefixes for VFS while using graphPath for neighbors", async () => {
     const selectedResult = buildSearchResult();
 
@@ -205,10 +369,13 @@ describe("useZenSearchPreview", () => {
       expect(result.current.codeAstLoading).toBe(false);
     });
 
-    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith("kernel/src/lib.rs", {
-      repo: "kernel",
-      line: 12,
-    });
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith(
+      "kernel/src/lib.rs",
+      expect.objectContaining({
+        repo: "kernel",
+        line: 12,
+      }),
+    );
     expect(mocks.getGraphNeighbors).not.toHaveBeenCalled();
     expect(result.current.codeAstAnalysis).toEqual({
       repoId: "kernel",
@@ -229,6 +396,240 @@ describe("useZenSearchPreview", () => {
         },
       ],
     });
+  });
+
+  it("loads code AST analysis for import-backed code hits while still loading content", async () => {
+    const selectedResult = buildImportCodeSearchResult();
+    mocks.getVfsContent.mockResolvedValueOnce({
+      content: "within Init = enumeration(...)",
+      contentType: "text/modelica",
+    });
+    mocks.getCodeAstAnalysis.mockResolvedValueOnce({
+      repoId: "mcl",
+      path: "mcl/Modelica/Blocks/package.mo",
+      language: "modelica",
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [
+        {
+          ownerId: "package:Types",
+          chunkId: "ast:modelica:types:decl",
+          semanticType: "package",
+          fingerprint: "fp:types",
+          tokenEstimate: 8,
+          surface: "declaration",
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.contentPath).toBe("mcl/Modelica/Blocks/package.mo");
+    });
+
+    expect(mocks.getVfsContent).toHaveBeenCalledWith("mcl/Modelica/Blocks/package.mo");
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith(
+      "mcl/Modelica/Blocks/package.mo",
+      expect.objectContaining({
+        repo: "mcl",
+        line: 1,
+      }),
+    );
+    expect(result.current.codeAstLoading).toBe(false);
+    expect(result.current.codeAstAnalysis).toEqual({
+      repoId: "mcl",
+      path: "mcl/Modelica/Blocks/package.mo",
+      language: "modelica",
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [
+        {
+          ownerId: "package:Types",
+          chunkId: "ast:modelica:types:decl",
+          semanticType: "package",
+          fingerprint: "fp:types",
+          tokenEstimate: 8,
+          surface: "declaration",
+        },
+      ],
+    });
+    expect(result.current.codeAstError).toBeNull();
+  });
+
+  it("resolves code preview paths and repo hints through the gateway when repo metadata is missing", async () => {
+    const selectedResult = buildGatewayResolvedCodeSearchResult();
+
+    mocks.resolveStudioPath.mockResolvedValueOnce({
+      path: "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      category: "repo_code",
+      projectName: "ModelingToolkitStandardLibrary.jl",
+      line: 42,
+    });
+    mocks.getVfsContent.mockResolvedValueOnce({
+      content: "continuous(x) = x",
+      contentType: "text/julia",
+    });
+    mocks.getCodeAstAnalysis.mockResolvedValueOnce({
+      repoId: "ModelingToolkitStandardLibrary.jl",
+      path: "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      language: "julia",
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    });
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.codeAstLoading).toBe(false);
+      expect(result.current.contentPath).toBe(
+        "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      );
+    });
+
+    expect(mocks.resolveStudioPath).toHaveBeenCalledWith("src/Blocks/continuous.jl");
+    expect(mocks.getVfsContent).toHaveBeenCalledWith(
+      "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+    );
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith(
+      "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      expect.objectContaining({
+        repo: "ModelingToolkitStandardLibrary.jl",
+        line: 42,
+      }),
+    );
+  });
+
+  it("times out a stuck AST lane instead of leaving the preview in loading state", async () => {
+    vi.useFakeTimers();
+    const selectedResult = buildCodeSearchResult();
+    const deferredAnalysis = createDeferred<{
+      repoId: string;
+      path: string;
+      language: string;
+      nodes: [];
+      edges: [];
+      projections: [];
+      diagnostics: [];
+      retrievalAtoms: [];
+    }>();
+    let capturedSignal: AbortSignal | undefined;
+
+    mocks.getCodeAstAnalysis.mockImplementationOnce(
+      (_path: string, options?: { signal?: AbortSignal }) => {
+        capturedSignal = options?.signal;
+        expect(capturedSignal).toBeInstanceOf(AbortSignal);
+        return deferredAnalysis.promise;
+      },
+    );
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.codeAstLoading).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS);
+      await Promise.resolve();
+    });
+
+    expect(result.current.codeAstLoading).toBe(false);
+    expect(result.current.codeAstError).toBe("Code AST analysis timed out");
+    expect(capturedSignal?.aborted).toBe(false);
+
+    deferredAnalysis.resolve({
+      repoId: "kernel",
+      path: "kernel/src/lib.rs",
+      language: "rust",
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.codeAstError).toBe("Code AST analysis timed out");
+    expect(result.current.codeAstAnalysis).toBeNull();
+  });
+
+  it("retries AST analysis after a cached timeout when the same result is revisited", async () => {
+    vi.useFakeTimers();
+    const selectedResult = buildCodeSearchResult();
+
+    mocks.getCodeAstAnalysis
+      .mockImplementationOnce((_path: string, options?: { signal?: AbortSignal }) => {
+        expect(options?.signal).toBeInstanceOf(AbortSignal);
+        return new Promise(() => {});
+      })
+      .mockResolvedValueOnce({
+        repoId: "kernel",
+        path: "kernel/src/lib.rs",
+        language: "rust",
+        nodes: [],
+        edges: [],
+        projections: [],
+        diagnostics: [],
+        retrievalAtoms: [
+          {
+            ownerId: "symbol:solve",
+            chunkId: "ast:solve:declaration",
+            semanticType: "function",
+            fingerprint: "fp:solve",
+            tokenEstimate: 12,
+            surface: "declaration",
+          },
+        ],
+      });
+
+    const { result, rerender } = renderHook(({ selected }) => useZenSearchPreview(selected), {
+      initialProps: { selected: selectedResult as SearchResult | null },
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS);
+      await Promise.resolve();
+    });
+
+    expect(result.current.codeAstLoading).toBe(false);
+    expect(result.current.codeAstError).toBe("Code AST analysis timed out");
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
+
+    rerender({ selected: null });
+
+    await waitFor(() => {
+      expect(result.current.selectedResult).toBeNull();
+    });
+
+    rerender({ selected: selectedResult });
+
+    await waitFor(() => {
+      expect(result.current.codeAstLoading).toBe(false);
+      expect(result.current.codeAstError).toBeNull();
+      expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/lib.rs");
+    });
+
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
   });
 
   it("publishes AST lane completion before the broader preview batch finishes", async () => {
@@ -275,6 +676,47 @@ describe("useZenSearchPreview", () => {
       expect(result.current.loading).toBe(false);
       expect(result.current.content).toBe("pub fn solve() {}");
     });
+  });
+
+  it("aborts an in-flight AST request when the selected result is cleared", async () => {
+    const selectedResult = buildCodeSearchResult();
+    const deferredAnalysis = createDeferred<{
+      repoId: string;
+      path: string;
+      language: string;
+      nodes: [];
+      edges: [];
+      projections: [];
+      diagnostics: [];
+      retrievalAtoms: [];
+    }>();
+    let capturedSignal: AbortSignal | undefined;
+
+    mocks.getCodeAstAnalysis.mockImplementationOnce(
+      (_path: string, options?: { signal?: AbortSignal }) => {
+        capturedSignal = options?.signal;
+        return deferredAnalysis.promise;
+      },
+    );
+
+    const { result, rerender } = renderHook(({ selected }) => useZenSearchPreview(selected), {
+      initialProps: { selected: selectedResult as SearchResult | null },
+    });
+
+    await waitFor(() => {
+      expect(result.current.codeAstLoading).toBe(true);
+    });
+
+    expect(capturedSignal).toBeInstanceOf(AbortSignal);
+    expect(capturedSignal?.aborted).toBe(false);
+
+    rerender({ selected: null });
+
+    await waitFor(() => {
+      expect(result.current.selectedResult).toBeNull();
+    });
+
+    expect(capturedSignal?.aborted).toBe(true);
   });
 
   it("keeps retrieval atoms on the AST analysis payload returned by Flight", async () => {
@@ -393,6 +835,52 @@ describe("useZenSearchPreview", () => {
     expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/lib.rs");
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
     expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the resolved canonical path when revisiting a cached result without project metadata", async () => {
+    const selectedResult = buildGatewayResolvedMarkdownSearchResult();
+
+    mocks.resolveStudioPath.mockResolvedValue({
+      path: "main/docs/index.md",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
+    });
+    mocks.getVfsContent.mockImplementation(async (path: string) => ({
+      content: `content:${path}`,
+      contentType: "text/plain",
+    }));
+    mocks.getMarkdownAnalysis.mockImplementation(async (path: string) => ({
+      path,
+      documentHash: `hash:${path}`,
+      nodeCount: 1,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      projections: [],
+      retrievalAtoms: [],
+      diagnostics: [],
+    }));
+
+    const { result, rerender } = renderHook(({ selected }) => useZenSearchPreview(selected), {
+      initialProps: { selected: selectedResult as SearchResult | null },
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.contentPath).toBe("main/docs/index.md");
+    });
+
+    rerender({ selected: null });
+
+    await waitFor(() => {
+      expect(result.current.selectedResult).toBeNull();
+    });
+
+    rerender({ selected: selectedResult });
+
+    expect(result.current.contentPath).toBe("main/docs/index.md");
+    expect(mocks.getVfsContent).toHaveBeenCalledTimes(1);
   });
 
   it("prefetches adjacent results without eagerly triggering code AST analysis", async () => {

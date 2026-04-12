@@ -59,6 +59,8 @@ export interface UseSearchBarControllerParams {
   onRuntimeStatusChange?: (
     status: { tone: "warning" | "error"; message: string; source: "search" } | null,
   ) => void;
+  queryDebounceMs?: number;
+  autocompleteDebounceMs?: number;
 }
 
 export interface SearchBarControllerModalProps {

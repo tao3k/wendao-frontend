@@ -42,12 +42,14 @@ function collectUnsupportedReasons(issues: RepoIndexIssue[]): RepoIndexUnsupport
       repoIds: [issue.repoId],
     });
   }
-  return Array.from(groupedReasons.values()).toSorted((left, right) => {
-    if (right.count !== left.count) {
-      return right.count - left.count;
-    }
-    return left.reason.localeCompare(right.reason);
-  });
+  return Array.from(groupedReasons.values()).toSorted(
+    (left: RepoIndexUnsupportedReason, right: RepoIndexUnsupportedReason) => {
+      if (right.count !== left.count) {
+        return right.count - left.count;
+      }
+      return left.reason.localeCompare(right.reason);
+    },
+  );
 }
 
 function toRepoIndexStatusSnapshot(
@@ -80,12 +82,15 @@ function toRepoIndexStatusSnapshot(
   const queuedRepos = (status.repos ?? [])
     .filter((repo) => repo.phase === "queued" && typeof repo.queuePosition === "number")
     .toSorted(
-      (left, right) =>
+      (
+        left: NonNullable<typeof status.repos>[number],
+        right: NonNullable<typeof status.repos>[number],
+      ) =>
         (left.queuePosition ?? Number.MAX_SAFE_INTEGER) -
         (right.queuePosition ?? Number.MAX_SAFE_INTEGER),
     )
     .slice(0, 3)
-    .map((repo) => ({
+    .map((repo: NonNullable<typeof status.repos>[number]) => ({
       repoId: repo.repoId,
       queuePosition: repo.queuePosition as number,
     }));

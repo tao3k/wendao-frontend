@@ -229,6 +229,10 @@
   gap: 6px;
 }
 
+.code-ast-waterfall__facet-row {
+  align-items: flex-start;
+}
+
 .code-ast-waterfall__atom-pill {
   display: inline-flex;
   align-items: center;

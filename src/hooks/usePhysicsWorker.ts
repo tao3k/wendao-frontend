@@ -59,10 +59,9 @@ export function usePhysicsWorker(options: UsePhysicsWorkerOptions = {}) {
       return;
     }
 
-    const worker = new Worker(
-      new URL("../workers/topology_physics.worker.ts", import.meta.url),
-      { type: "module" },
-    );
+    const worker = new Worker(new URL("../workers/topology_physics.worker.ts", import.meta.url), {
+      type: "module",
+    });
     workerRef.current = worker;
 
     const handleWorkerMessage = (e: MessageEvent) => {

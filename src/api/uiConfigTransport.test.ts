@@ -23,10 +23,6 @@ describe("uiConfigTransport", () => {
       apiBase: "/api",
       fetchImpl: fetchSpy,
       handleResponse: async <T>(response: Response) => response.json() as Promise<T>,
-      getConfig: async () => ({}),
-      toUiConfig: (config) => config,
-      shouldRetryWithUiConfigSync: () => false,
-      hasWindow: () => true,
     });
 
     const capabilities = await state.loadUiCapabilities();
@@ -38,44 +34,27 @@ describe("uiConfigTransport", () => {
     expect(state.getUiCapabilitiesSync()).toBeNull();
   });
 
-  it("re-syncs ui config and retries once for retryable errors", async () => {
-    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url === "/api/ui/config") {
-        return new Response("null", {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`unexpected fetch: ${url} ${String(init?.method ?? "GET")}`);
-    }) as unknown as typeof fetch;
-
+  it("passes successful requests through without gateway-side config sync", async () => {
     const state = createUiConfigTransportState({
       apiBase: "/api",
-      fetchImpl: fetchSpy,
       handleResponse: async <T>(response: Response) => response.json() as Promise<T>,
-      getConfig: async () => ({ gateway: { bind: "127.0.0.1:9517" } }),
-      toUiConfig: (config) => config,
-      shouldRetryWithUiConfigSync: (error) =>
-        (error as { code?: string })?.code === "UNKNOWN_REPOSITORY",
-      hasWindow: () => true,
-      now: () => 10_000,
     });
 
-    let calls = 0;
-    const result = await state.withUiConfigSyncRetry(async () => {
-      calls += 1;
-      if (calls === 1) {
-        throw { code: "UNKNOWN_REPOSITORY" };
-      }
-      return "ok";
-    });
+    const result = await state.withUiConfigSyncRetry(async () => "ok");
 
     expect(result).toBe("ok");
-    expect(calls).toBe(2);
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/ui/config",
-      expect.objectContaining({ method: "POST" }),
-    );
+  });
+
+  it("does not retry failed requests by posting local ui config", async () => {
+    const state = createUiConfigTransportState({
+      apiBase: "/api",
+      handleResponse: async <T>(response: Response) => response.json() as Promise<T>,
+    });
+
+    await expect(
+      state.withUiConfigSyncRetry(async () => {
+        throw new Error("UNKNOWN_REPOSITORY");
+      }),
+    ).rejects.toThrow("UNKNOWN_REPOSITORY");
   });
 });

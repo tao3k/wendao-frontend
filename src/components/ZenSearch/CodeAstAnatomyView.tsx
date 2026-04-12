@@ -5,6 +5,7 @@ import {
   buildDisplayedLineRange,
   buildSignatureParameterRows,
   copyForLocale,
+  resolveEmptyCodeAstMessage,
 } from "./codeAstAnatomyViewModel";
 import {
   CodeAstBlocksStage,
@@ -51,7 +52,11 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
   }
 
   if (!model || !analysis) {
-    return <div className="code-ast-waterfall__status">{copy.empty}</div>;
+    return (
+      <div className="code-ast-waterfall__status">
+        {resolveEmptyCodeAstMessage(locale, selectedResult)}
+      </div>
+    );
   }
 
   const declaration = model.declaration;

@@ -2,6 +2,7 @@ import type { Configuration } from "@rspack/core";
 import { BUILD_SIZE_BUDGETS } from "./build-size-budgets.mjs";
 
 type PluginConstructor = new (options?: unknown) => unknown;
+type RspackPerformanceConfig = Exclude<NonNullable<Configuration["performance"]>, false>;
 
 interface RspackMinimizerConstructors {
   SwcJsMinimizerRspackPlugin: PluginConstructor;
@@ -34,7 +35,7 @@ export function isCountedPerformanceAsset(assetFilename: string): boolean {
   return !assetFilename.endsWith(".map");
 }
 
-export function createRspackPerformanceConfig(): NonNullable<Configuration["performance"]> {
+export function createRspackPerformanceConfig(): RspackPerformanceConfig {
   return {
     hints: "warning",
     maxAssetSize: BUILD_SIZE_BUDGETS.maxAssetSize,

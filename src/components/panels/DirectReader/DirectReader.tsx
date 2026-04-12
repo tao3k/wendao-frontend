@@ -7,6 +7,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeSyntaxHighlighter, normalizeCodeLanguage } from "../../code-syntax";
 import { scrollSourceLineIntoView } from "./directReaderScroll";
+import { parseBiLink } from "./markdownWaterfallBiLinks";
 import "./DirectReader.css";
 
 const DirectReaderRichContent = lazy(async () => {
@@ -187,7 +188,11 @@ interface DirectReaderSourceLineProps {
   isPrimaryTarget: boolean;
   syntaxLanguage: string | null;
   lineRefs: React.MutableRefObject<Record<number, HTMLDivElement | null>>;
-  renderSourceLine: (sourceLine: string, lineNumber: number, syntaxLanguage: string | null) => React.ReactNode;
+  renderSourceLine: (
+    sourceLine: string,
+    lineNumber: number,
+    syntaxLanguage: string | null,
+  ) => React.ReactNode;
 }
 
 const DirectReaderSourceLine = React.memo(function DirectReaderSourceLine({
@@ -451,7 +456,7 @@ export function DirectReader({
     }
 
     const targetLine = lineRefs.current[line];
-    scrollSourceLineIntoView(targetLine);
+    scrollSourceLineIntoView(targetLine ?? undefined);
   }, [content, hasSourceFocus, line, focusedLineEnd]);
 
   const renderSourceLine = useCallback(

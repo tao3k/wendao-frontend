@@ -29,7 +29,17 @@ export function pickPrimaryNode(analysis: CodeAstAnalysisResponse): CodeAstNode 
     return focusNode;
   }
 
-  const prioritizedKinds = ["function", "type", "module", "constant", "externalsymbol"];
+  const prioritizedKinds = [
+    "package",
+    "model",
+    "block",
+    "connector",
+    "type",
+    "module",
+    "function",
+    "constant",
+    "externalsymbol",
+  ];
   for (const kind of prioritizedKinds) {
     const node = analysis.nodes.find((candidate) => normalizeKind(candidate.kind) === kind);
     if (node) {

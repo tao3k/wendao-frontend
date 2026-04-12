@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   loadMermaidRuntimeProviderByName,
   MERMAID_BAKEOFF_FIXTURES,
-  type MermaidRuntimeProviderName,
 } from "../components/panels/mermaidRuntime";
 
 const BAKEOFF_THEME = {
@@ -14,7 +13,6 @@ const BAKEOFF_THEME = {
 } as const;
 
 function runFixture(
-  providerName: MermaidRuntimeProviderName,
   source: string,
   renderMermaid: (source: string, theme: typeof BAKEOFF_THEME) => string,
 ): "pass" | "fail" {
@@ -32,7 +30,7 @@ describe("Mermaid provider bakeoff corpus", () => {
 
     const outcomes = MERMAID_BAKEOFF_FIXTURES.map((fixture) => ({
       id: fixture.id,
-      outcome: runFixture(provider.providerName, fixture.source, provider.renderMermaid),
+      outcome: runFixture(fixture.source, provider.renderMermaid),
     }));
 
     expect(outcomes).toEqual(
@@ -48,7 +46,7 @@ describe("Mermaid provider bakeoff corpus", () => {
 
     const outcomes = MERMAID_BAKEOFF_FIXTURES.map((fixture) => ({
       id: fixture.id,
-      outcome: runFixture(provider.providerName, fixture.source, provider.renderMermaid),
+      outcome: runFixture(fixture.source, provider.renderMermaid),
     }));
 
     expect(outcomes).toEqual(

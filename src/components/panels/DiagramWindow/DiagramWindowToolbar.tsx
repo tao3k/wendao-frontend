@@ -1,14 +1,17 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { DiagramDisplayMode } from "./diagramWindowState";
-import type { DiagramWindowToolbarCopy } from "./diagramWindowTypes";
+import type { DiagramWindowToolbarCopy, MermaidModeOption } from "./diagramWindowTypes";
 
 interface DiagramWindowToolbarProps {
   hasBpmn: boolean;
   hasMermaid: boolean;
   canSplitView: boolean;
   displayMode: DiagramDisplayMode;
+  mermaidModeOptions: MermaidModeOption[];
+  activeMermaidIndex: number;
   copy: DiagramWindowToolbarCopy;
   onModeChange: (mode: DiagramDisplayMode) => void;
+  onMermaidModeChange: (index: number) => void;
   onResetView: () => void;
 }
 
@@ -53,10 +56,33 @@ export function DiagramWindowToolbar({
   hasMermaid,
   canSplitView,
   displayMode,
+  mermaidModeOptions,
+  activeMermaidIndex,
   copy,
   onModeChange,
+  onMermaidModeChange,
   onResetView,
 }: DiagramWindowToolbarProps): React.ReactElement {
+  const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
+  const layoutMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isLayoutMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!layoutMenuRef.current?.contains(event.target as Node)) {
+        setIsLayoutMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isLayoutMenuOpen]);
+
   return (
     <div className="diagram-window__toolbar">
       <span className="diagram-window__chip-group">
@@ -69,6 +95,50 @@ export function DiagramWindowToolbar({
           </span>
         ) : null}
       </span>
+
+      {hasMermaid && mermaidModeOptions.length > 1 ? (
+        <div className="diagram-window__layout-menu" ref={layoutMenuRef}>
+          <button
+            type="button"
+            className={`diagram-window__layout-trigger ${
+              isLayoutMenuOpen ? "diagram-window__layout-trigger--active" : ""
+            }`}
+            aria-expanded={isLayoutMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => {
+              setIsLayoutMenuOpen((current) => !current);
+            }}
+          >
+            {copy.switchLayoutLabel}
+          </button>
+
+          {isLayoutMenuOpen ? (
+            <div className="diagram-window__layout-popover" role="menu">
+              {mermaidModeOptions.map((option) => {
+                const isActive = activeMermaidIndex === option.index;
+                return (
+                  <button
+                    key={`toolbar-mermaid-mode-${option.index}`}
+                    type="button"
+                    className={`diagram-window__layout-option ${
+                      isActive ? "diagram-window__layout-option--active" : ""
+                    }`}
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    disabled={isActive}
+                    onClick={() => {
+                      onMermaidModeChange(option.index);
+                      setIsLayoutMenuOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {canSplitView ? (
         <div className="diagram-window__mode-switch" role="tablist" aria-label={copy.modeTabLabel}>

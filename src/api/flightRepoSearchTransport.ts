@@ -7,15 +7,14 @@ import { ApiClientError } from "./responseTransport";
 import {
   FlightData,
   FlightDescriptor,
+  FlightDescriptor_DescriptorType,
+  FlightDescriptorSchema,
   FlightInfo,
   FlightService,
   Ticket,
   TicketSchema,
 } from "./flight/generated/Flight_pb";
-import {
-  buildSearchFlightDescriptor,
-  reassembleArrowIpcStreamFromFlight,
-} from "./flightSearchTransport";
+import { reassembleArrowIpcStreamFromFlight } from "./flightSearchTransport";
 
 const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
 const WENDAO_REPO_SEARCH_QUERY_HEADER = "x-wendao-repo-search-query";
@@ -34,6 +33,7 @@ export interface RepoSearchFlightRequest {
   repo: string;
   query: string;
   limit: number;
+  signal?: AbortSignal;
   languageFilters?: string[];
   pathPrefixes?: string[];
   titleFilters?: string[];
@@ -44,9 +44,12 @@ export interface RepoSearchFlightRequest {
 interface FlightServiceClientLike {
   getFlightInfo(
     descriptor: FlightDescriptor,
-    options?: { headers?: HeadersInit },
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
   ): Promise<FlightInfo>;
-  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
+  doGet(
+    ticket: Ticket,
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
+  ): AsyncIterable<FlightData>;
 }
 
 export interface FlightRepoSearchTransportDeps {
@@ -74,13 +77,22 @@ export async function searchRepoContentFlight(
 ): Promise<SearchResponse> {
   const client = (deps.createClient ?? createFlightServiceClient)(request.baseUrl);
   const headers = buildRepoSearchFlightHeaders(request);
-  const descriptor = buildSearchFlightDescriptor(REPO_SEARCH_ROUTE);
+  const descriptor = create(FlightDescriptorSchema, {
+    type: FlightDescriptor_DescriptorType.PATH,
+    path: REPO_SEARCH_ROUTE.slice(1).split("/"),
+  });
 
   try {
-    const flightInfo = await client.getFlightInfo(descriptor, { headers });
+    const flightInfo = await client.getFlightInfo(descriptor, {
+      headers,
+      signal: request.signal,
+    });
     const ticket = readFlightTicket(flightInfo);
     const frames: FlightData[] = [];
-    for await (const frame of client.doGet(ticket, { headers })) {
+    for await (const frame of client.doGet(ticket, {
+      headers,
+      signal: request.signal,
+    })) {
       frames.push(frame);
     }
     const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);

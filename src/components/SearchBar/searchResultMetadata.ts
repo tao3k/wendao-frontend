@@ -7,6 +7,7 @@ export interface SearchResultMetaPill {
     | "kind"
     | "line"
     | "repo"
+    | "target"
     | "audit"
     | "verification"
     | "backlinks"
@@ -64,6 +65,7 @@ export function buildCodeMetaPills(
   appendPill(pills, "kind", asNonEmptyText(result.codeKind));
   appendPill(pills, "line", asNonEmptyText(lineRange ?? undefined));
   appendPill(pills, "repo", asNonEmptyText(result.codeRepo));
+  appendPill(pills, "target", result.docTarget ? `target:${result.docTarget.kind}` : null);
 
   const auditStatus = asNonEmptyText(result.auditStatus);
   const verificationState = asNonEmptyText(result.verificationState);

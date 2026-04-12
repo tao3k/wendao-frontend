@@ -1,7 +1,6 @@
 .structured-dashboard {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: auto repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
   min-height: 0;
@@ -11,11 +10,19 @@
 }
 
 .structured-dashboard__header {
-  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: 5px;
   padding: 0 2px 2px;
+}
+
+.structured-dashboard__stack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
 }
 
 .structured-dashboard__header-row {
@@ -215,11 +222,18 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  align-self: stretch;
+  width: 100%;
   border: 1px solid rgba(125, 207, 255, 0.12);
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(13, 17, 23, 0.94), rgba(13, 17, 23, 0.76));
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
   overflow: hidden;
+}
+
+.structured-slot__body--flow {
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .structured-slot__header {
@@ -648,8 +662,13 @@
 .structured-fragment-card__header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 8px;
+}
+
+.structured-fragment-card__heading {
+  min-width: 0;
 }
 
 .structured-fragment-card__title {
@@ -658,6 +677,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.structured-fragment-card__meta {
+  margin-top: 4px;
+  color: var(--tokyo-comment);
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .structured-fragment-card__query {
@@ -705,10 +731,6 @@
 }
 
 @media (max-width: 1280px) {
-  .structured-dashboard {
-    grid-template-columns: 1fr;
-  }
-
   .structured-dashboard__header-row {
     flex-direction: column;
     align-items: stretch;

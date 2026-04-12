@@ -199,6 +199,73 @@ function buildResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildImportResult(): SearchResult {
+  return {
+    stem: "Init",
+    title: "Modelica.Modelica.Blocks.Types.Init.Init",
+    path: "mcl/Modelica/Blocks/package.mo",
+    line: 1,
+    docType: "import",
+    tags: ["mcl", "code", "import", "kind:import", "modelica", "lang:modelica"],
+    score: 1,
+    category: "ast",
+    projectName: "mcl",
+    rootLabel: "mcl",
+    codeLanguage: "modelica",
+    codeKind: "import",
+    codeRepo: "mcl",
+    bestSection: "Modelica.Blocks.Types.Init",
+    matchReason: "repo_import_search",
+    navigationTarget: {
+      path: "mcl/Modelica/Blocks/package.mo",
+      category: "repo_code",
+      projectName: "mcl",
+      rootLabel: "mcl",
+      line: 1,
+      lineEnd: 1,
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
+function buildJuliaResult(): SearchResult {
+  return {
+    ...buildResult(),
+    path: "solver/src/CodeAstJulia.jl",
+    title: "solve",
+    stem: "solve",
+    codeLanguage: "julia",
+    codeKind: "function",
+    codeRepo: "solver",
+    projectName: "solver",
+    navigationTarget: {
+      path: "solver/src/CodeAstJulia.jl",
+      category: "repo_code",
+      projectName: "solver",
+      line: 1,
+    },
+  } as SearchResult;
+}
+
+function buildModelicaResult(): SearchResult {
+  return {
+    ...buildResult(),
+    path: "mcl/Modelica/Blocks/PI.mo",
+    title: "PI",
+    stem: "PI",
+    codeLanguage: "modelica",
+    codeKind: "model",
+    codeRepo: "mcl",
+    projectName: "mcl",
+    navigationTarget: {
+      path: "mcl/Modelica/Blocks/PI.mo",
+      category: "repo_code",
+      projectName: "mcl",
+      line: 1,
+    },
+  } as SearchResult;
+}
+
 describe("CodeAstAnatomyView", () => {
   it("renders declaration identity, logic blocks, and symbol overlay", () => {
     const onPivotQuery = vi.fn();
@@ -537,5 +604,211 @@ describe("CodeAstAnatomyView", () => {
     await waitFor(() => {
       expect(excerpt?.querySelector(".code-syntax-highlighter__token")).toBeTruthy();
     });
+  });
+
+  it("shows a generic empty state when AST analysis is unavailable", () => {
+    render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildImportResult()}
+        analysis={null}
+        content={"within Init = enumeration(...)"}
+        loading={false}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByText("No code AST analysis available.")).toBeInTheDocument();
+  });
+
+  it("renders parser-backed Julia declaration facets", () => {
+    render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildJuliaResult()}
+        analysis={{
+          repoId: "solver",
+          path: "solver/src/CodeAstJulia.jl",
+          language: "julia",
+          nodeCount: 2,
+          edgeCount: 0,
+          nodes: [
+            {
+              id: "fn:solve",
+              label: "solve",
+              kind: "function",
+              path: "solver/src/CodeAstJulia.jl",
+              line: 1,
+            },
+            {
+              id: "binding:problem",
+              label: "problem",
+              kind: "binding",
+              path: "solver/src/CodeAstJulia.jl",
+              line: 1,
+            },
+          ],
+          edges: [],
+          projections: [],
+          focusNodeId: "fn:solve",
+          diagnostics: [],
+          retrievalAtoms: [
+            {
+              ownerId: "fn:solve",
+              surface: "declaration",
+              chunkId: "ast:julia:solve:decl",
+              semanticType: "function",
+              fingerprint: "fp:julia:solve",
+              tokenEstimate: 8,
+              displayLabel: "Declaration Rail · solve",
+              excerpt: "function solve(problem::Problem)::Processed",
+              lineStart: 1,
+              lineEnd: 1,
+              attributes: [
+                ["function_return_type", "Processed"],
+                ["owner_path", "Solver.solve"],
+                ["top_level", "true"],
+              ],
+            },
+            {
+              ownerId: "binding:problem",
+              surface: "symbol",
+              chunkId: "ast:julia:problem:symbol",
+              semanticType: "binding",
+              fingerprint: "fp:julia:problem",
+              tokenEstimate: 3,
+              displayLabel: "Symbol Rail · problem",
+              excerpt: "problem",
+              lineStart: 1,
+              lineEnd: 1,
+              attributes: [["parameter_kind", "positional"]],
+            },
+          ],
+        }}
+        content={"function solve(problem::Problem)::Processed\n  problem\nend"}
+        loading={false}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("return");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("Processed");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("owner");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("Solver.solve");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("scope");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("top-level");
+    expect(screen.queryByTestId("code-ast-signature-parts")).not.toBeInTheDocument();
+  });
+
+  it("renders parser-backed Modelica block and symbol facets", () => {
+    render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildModelicaResult()}
+        analysis={{
+          repoId: "mcl",
+          path: "mcl/Modelica/Blocks/PI.mo",
+          language: "modelica",
+          nodeCount: 2,
+          edgeCount: 1,
+          nodes: [
+            {
+              id: "model:PI",
+              label: "PI",
+              kind: "model",
+              path: "mcl/Modelica/Blocks/PI.mo",
+              line: 1,
+            },
+            {
+              id: "symbol:k",
+              label: "k",
+              kind: "parameter",
+              path: "mcl/Modelica/Blocks/PI.mo",
+              line: 2,
+            },
+          ],
+          edges: [
+            {
+              id: "edge:model-parameter",
+              sourceId: "model:PI",
+              targetId: "symbol:k",
+              kind: "contains",
+            },
+          ],
+          projections: [],
+          focusNodeId: "model:PI",
+          diagnostics: [],
+          retrievalAtoms: [
+            {
+              ownerId: "model:PI",
+              surface: "declaration",
+              chunkId: "ast:modelica:pi:decl",
+              semanticType: "model",
+              fingerprint: "fp:modelica:pi",
+              tokenEstimate: 9,
+              displayLabel: "Declaration Rail · PI",
+              excerpt: "model PI\n  parameter Real k = 1;\nend PI;",
+              lineStart: 1,
+              lineEnd: 3,
+              attributes: [
+                ["class_name", "PI"],
+                ["restriction", "model"],
+                ["top_level", "true"],
+              ],
+            },
+            {
+              ownerId: "block:execution:2-2",
+              surface: "block",
+              chunkId: "ast:modelica:pi:block",
+              semanticType: "execution",
+              fingerprint: "fp:modelica:block",
+              tokenEstimate: 4,
+              displayLabel: "Execution Rail · PI equation",
+              excerpt: "y = k;",
+              lineStart: 4,
+              lineEnd: 4,
+              attributes: [
+                ["restriction", "model"],
+                ["owner_path", "PI"],
+              ],
+            },
+            {
+              ownerId: "symbol:k",
+              surface: "symbol",
+              chunkId: "ast:modelica:k:symbol",
+              semanticType: "parameter",
+              fingerprint: "fp:modelica:k",
+              tokenEstimate: 4,
+              displayLabel: "Symbol Rail · k",
+              excerpt: "k",
+              lineStart: 2,
+              lineEnd: 2,
+              attributes: [
+                ["visibility", "public"],
+                ["variability", "parameter"],
+                ["type_name", "Real"],
+                ["owner_path", "PI"],
+              ],
+            },
+          ],
+        }}
+        content={"model PI\n  parameter Real k = 1;\nequation\n  y = k;\nend PI;"}
+        loading={false}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("class");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("PI");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("restriction");
+    expect(screen.getByTestId("code-ast-declaration-facets")).toHaveTextContent("model");
+    expect(screen.getByTestId("code-ast-block-facets")).toHaveTextContent("owner");
+    expect(screen.getByTestId("code-ast-block-facets")).toHaveTextContent("PI");
+    expect(screen.getByTestId("code-ast-symbol-facets")).toHaveTextContent("visibility");
+    expect(screen.getByTestId("code-ast-symbol-facets")).toHaveTextContent("public");
+    expect(screen.getByTestId("code-ast-symbol-facets")).toHaveTextContent("variability");
+    expect(screen.getByTestId("code-ast-symbol-facets")).toHaveTextContent("parameter");
+    expect(screen.getByTestId("code-ast-symbol-facets")).toHaveTextContent("type");
+    expect(screen.getByTestId("code-ast-symbol-facets")).toHaveTextContent("Real");
   });
 });

@@ -29,11 +29,13 @@ export async function resolveCodeSearchIntentMeta(
   query: string,
   repo?: string,
   limit: number = 10,
+  signal?: AbortSignal,
 ): Promise<SearchResponse | null> {
   try {
     return await api.searchKnowledge(query, limit, {
       intent: "code_search",
       repo,
+      ...(signal ? { signal } : {}),
     });
   } catch {
     return null;
@@ -43,9 +45,11 @@ export async function resolveCodeSearchIntentMeta(
 export function fetchStandaloneCodeSearchResponse(
   query: string,
   limit: number = 10,
+  signal?: AbortSignal,
 ): Promise<SearchResponse> {
   return api.searchKnowledge(query, limit, {
     intent: "code_search",
+    ...(signal ? { signal } : {}),
   });
 }
 

@@ -29,6 +29,7 @@ function buildDerivedState(searchMode: SearchDataFlowState["searchMode"]): Searc
     searchMode,
     visibleResults: [],
     visibleSections: [],
+    resultsQuery: "repo:gateway-sync solve",
     suggestionCount: 0,
     resultCount: 0,
     queryToSearch: "repo:gateway-sync solve",
@@ -165,7 +166,7 @@ describe("useSearchDataFlow", () => {
     );
   });
 
-  it("keeps repo filter for all mode so repo-aware code search can run inside ZenSearch default scope", () => {
+  it("keeps repo filter and facet for all mode so repo-aware code search can run inside ZenSearch default scope", () => {
     const derived = buildDerivedState("all");
     useSearchDerivedStateMock.mockReturnValue(derived);
 
@@ -212,7 +213,7 @@ describe("useSearchDataFlow", () => {
       expect.objectContaining({
         searchMode: "all",
         repoFilter: "gateway-sync",
-        repoFacet: null,
+        repoFacet: "module",
       }),
     );
   });

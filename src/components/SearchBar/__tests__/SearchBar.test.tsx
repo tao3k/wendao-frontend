@@ -72,35 +72,38 @@ const createMockSearchResponse = (
       column?: number;
     };
   }>,
-) => ({
-  query,
-  hits: hits.map((h) => ({
-    stem: h.stem,
-    title: h.title,
-    path: h.path,
-    docType: h.docType,
-    tags: h.tags || [],
-    score: h.score,
-    bestSection: h.bestSection,
-    matchReason: h.matchReason,
-    codeRepo: h.codeRepo,
-    projectionPageIds: h.projectionPageIds,
-    navigationTarget: h.navigationTarget || {
+  meta: Record<string, unknown> = {},
+) =>
+  ({
+    query,
+    hits: hits.map((h) => ({
+      stem: h.stem,
+      title: h.title,
       path: h.path,
-      category:
-        h.docType === "knowledge"
-          ? "knowledge"
-          : h.docType === "skill"
-            ? "skill"
-            : h.docType === "tag" || (h.tags || []).length > 0
-              ? "tag"
-              : "doc",
-    },
-  })),
-  hitCount: hits.length,
-  graphConfidenceScore: 0.8,
-  selectedMode: "hybrid",
-});
+      docType: h.docType,
+      tags: h.tags || [],
+      score: h.score,
+      bestSection: h.bestSection,
+      matchReason: h.matchReason,
+      codeRepo: h.codeRepo,
+      projectionPageIds: h.projectionPageIds,
+      navigationTarget: h.navigationTarget || {
+        path: h.path,
+        category:
+          h.docType === "knowledge"
+            ? "knowledge"
+            : h.docType === "skill"
+              ? "skill"
+              : h.docType === "tag" || (h.tags || []).length > 0
+                ? "tag"
+                : "doc",
+      },
+    })),
+    hitCount: hits.length,
+    graphConfidenceScore: 0.8,
+    selectedMode: "hybrid",
+    ...meta,
+  }) as any;
 
 const createMockAutocompleteResponse = (
   suggestions: Array<{
@@ -108,10 +111,11 @@ const createMockAutocompleteResponse = (
     suggestionType: "title" | "tag" | "stem" | "heading" | "symbol" | "metadata";
     target?: string;
   }>,
-) => ({
-  prefix: "q",
-  suggestions,
-});
+) =>
+  ({
+    prefix: "q",
+    suggestions,
+  }) as any;
 
 const createDeferred = <T,>() => {
   let resolve!: (value: T) => void;
@@ -128,6 +132,12 @@ const createDeferred = <T,>() => {
     reject,
   };
 };
+
+const expectSignalOptions = (extra: Record<string, unknown> = {}) =>
+  expect.objectContaining({
+    ...extra,
+    signal: expect.any(Object),
+  });
 
 const createMockSymbolResponse = (
   query: string,
@@ -395,7 +405,7 @@ describe("SearchBar", () => {
     mockedApi.getVfsContent.mockResolvedValue({
       content: "# Documentation Index",
       contentType: "markdown",
-    });
+    } as never);
     mockedApi.getGraphNeighbors.mockResolvedValue({
       center: {
         id: "main/docs/index.md",
@@ -418,14 +428,14 @@ describe("SearchBar", () => {
       edges: [],
       projections: [],
       diagnostics: [],
-    });
+    } as never);
     mockedApi.getCodeAstRetrievalChunksArrow.mockResolvedValue([]);
     mockedApi.getMarkdownAnalysis.mockResolvedValue({
       path: "main/docs/index.md",
       title: "Documentation Index",
       nodes: [],
       retrievalAtoms: [],
-    });
+    } as never);
     mockedApi.getMarkdownRetrievalChunksArrow.mockResolvedValue([]);
   });
 
@@ -473,12 +483,18 @@ describe("SearchBar", () => {
     // Wait for debounce (200ms) + API call
     await waitFor(
       () => {
-        expect(mockedApi.searchKnowledge).toHaveBeenCalledWith("noresults", 10, {
-          intent: "hybrid_search",
-        });
-        expect(mockedApi.searchKnowledge).toHaveBeenCalledWith("noresults", 10, {
-          intent: "code_search",
-        });
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          1,
+          "noresults",
+          10,
+          expectSignalOptions({ intent: "hybrid_search" }),
+        );
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          2,
+          "noresults",
+          10,
+          expectSignalOptions({ intent: "code_search" }),
+        );
       },
       { timeout: 1000 },
     );
@@ -906,7 +922,7 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchSymbols).toHaveBeenCalledWith("repo", 10);
+        expect(mockedApi.searchSymbols).toHaveBeenCalledWith("repo", 10, expectSignalOptions());
       },
       { timeout: 1000 },
     );
@@ -960,7 +976,11 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchAttachments).toHaveBeenCalledWith("topology", 10);
+        expect(mockedApi.searchAttachments).toHaveBeenCalledWith(
+          "topology",
+          10,
+          expectSignalOptions(),
+        );
       },
       { timeout: 1000 },
     );
@@ -1119,7 +1139,7 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchAst).toHaveBeenCalledWith("repo", 10);
+        expect(mockedApi.searchAst).toHaveBeenCalledWith("repo", 10, expectSignalOptions());
       },
       { timeout: 1000 },
     );
@@ -1169,7 +1189,7 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchAst).toHaveBeenCalledWith("ast", 10);
+        expect(mockedApi.searchAst).toHaveBeenCalledWith("ast", 10, expectSignalOptions());
       },
       { timeout: 1000 },
     );
@@ -1234,7 +1254,7 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchAst).toHaveBeenCalledWith("SearchBar", 10);
+        expect(mockedApi.searchAst).toHaveBeenCalledWith("SearchBar", 10, expectSignalOptions());
       },
       { timeout: 1000 },
     );
@@ -1298,7 +1318,7 @@ describe("SearchBar", () => {
         "}",
       ].join("\n"),
       contentType: "rust",
-    });
+    } as never);
     mockedApi.getCodeAstAnalysis.mockResolvedValue({
       repoId: "kernel",
       path: "kernel/packages/rust/crates/xiuxian-wendao/src/repo.rs",
@@ -1315,7 +1335,7 @@ describe("SearchBar", () => {
       edges: [],
       projections: [],
       diagnostics: [],
-    });
+    } as never);
 
     render(<SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />);
 
@@ -1327,9 +1347,11 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchKnowledge).toHaveBeenCalledWith("RepoScanner", 10, {
-          intent: "code_search",
-        });
+        expect(mockedApi.searchKnowledge).toHaveBeenCalledWith(
+          "RepoScanner",
+          10,
+          expectSignalOptions({ intent: "code_search" }),
+        );
       },
       { timeout: 1000 },
     );
@@ -1412,22 +1434,22 @@ describe("SearchBar", () => {
           "gateway-sync",
           "solve",
           10,
-          {
+          expectSignalOptions({
             languageFilters: [],
             pathPrefixes: [],
-          },
+          }),
         );
-        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, "solve", 10, {
-          intent: "hybrid_search",
-        });
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          1,
+          "solve",
+          10,
+          expectSignalOptions({ intent: "hybrid_search" }),
+        );
         expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
           2,
           "repo:gateway-sync solve",
           10,
-          {
-            intent: "code_search",
-            repo: "gateway-sync",
-          },
+          expectSignalOptions({ intent: "code_search", repo: "gateway-sync" }),
         );
       },
       { timeout: 1000 },
@@ -1528,16 +1550,22 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, "sec", 10, {
-          intent: "hybrid_search",
-        });
-        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(2, "sec lang:julia", 10, {
-          intent: "code_search",
-        });
-        expect(mockedApi.searchAst).toHaveBeenCalledWith("sec", 10);
-        expect(mockedApi.searchReferences).toHaveBeenCalledWith("sec", 10);
-        expect(mockedApi.searchSymbols).toHaveBeenCalledWith("sec", 10);
-        expect(mockedApi.searchAttachments).toHaveBeenCalledWith("sec", 10);
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          1,
+          "sec",
+          10,
+          expectSignalOptions({ intent: "hybrid_search" }),
+        );
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          2,
+          "sec lang:julia",
+          10,
+          expectSignalOptions({ intent: "code_search" }),
+        );
+        expect(mockedApi.searchAst).not.toHaveBeenCalled();
+        expect(mockedApi.searchReferences).not.toHaveBeenCalled();
+        expect(mockedApi.searchSymbols).not.toHaveBeenCalled();
+        expect(mockedApi.searchAttachments).not.toHaveBeenCalled();
       },
       { timeout: 1000 },
     );
@@ -1657,16 +1685,17 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, "sec", 10, {
-          intent: "hybrid_search",
-        });
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          1,
+          "sec",
+          10,
+          expectSignalOptions({ intent: "hybrid_search" }),
+        );
         expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
           2,
           "sec lang:julia kind:function",
           10,
-          {
-            intent: "code_search",
-          },
+          expectSignalOptions({ intent: "code_search" }),
         );
         expect(screen.getByText("solve")).toBeInTheDocument();
       },
@@ -1775,16 +1804,17 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(1, "sec", 10, {
-          intent: "hybrid_search",
-        });
+        expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+          1,
+          "sec",
+          10,
+          expectSignalOptions({ intent: "hybrid_search" }),
+        );
         expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
           2,
           "sec lang:julia kind:function",
           10,
-          {
-            intent: "code_search",
-          },
+          expectSignalOptions({ intent: "code_search" }),
         );
       },
       { timeout: 1000 },
@@ -1885,9 +1915,11 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchKnowledge).toHaveBeenCalledWith("sec lang:julia kind:function", 10, {
-          intent: "code_search",
-        });
+        expect(mockedApi.searchKnowledge).toHaveBeenCalledWith(
+          "sec lang:julia kind:function",
+          10,
+          expectSignalOptions({ intent: "code_search" }),
+        );
         expect(screen.getByText("SectionModule")).toBeInTheDocument();
         expect(
           screen.queryByText('No results found for "sec lang:julia kind:function"'),
@@ -1994,24 +2026,18 @@ describe("SearchBar", () => {
       { timeout: 1000 },
     );
 
-    expect(mockedApi.searchKnowledge.mock.calls.slice(0, 2)).toMatchInlineSnapshot(`
-      [
-        [
-          "sec",
-          10,
-          {
-            "intent": "hybrid_search",
-          },
-        ],
-        [
-          "sec lang:julia kind:function",
-          10,
-          {
-            "intent": "code_search",
-          },
-        ],
-      ]
-    `);
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      1,
+      "sec",
+      10,
+      expectSignalOptions({ intent: "hybrid_search" }),
+    );
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      2,
+      "sec lang:julia kind:function",
+      10,
+      expectSignalOptions({ intent: "code_search" }),
+    );
   });
 
   it("should provide all-scope code filter suggestions while still using autocomplete for plain queries", async () => {
@@ -2191,7 +2217,11 @@ describe("SearchBar", () => {
 
     await waitFor(
       () => {
-        expect(mockedApi.searchReferences).toHaveBeenCalledWith("AlphaService", 10);
+        expect(mockedApi.searchReferences).toHaveBeenCalledWith(
+          "AlphaService",
+          10,
+          expectSignalOptions(),
+        );
       },
       { timeout: 1000 },
     );
@@ -2571,9 +2601,7 @@ describe("SearchBar", () => {
         expect(mockedApi.searchKnowledge).toHaveBeenCalledWith(
           "lang:rust kind:struct RepoScanner",
           10,
-          {
-            intent: "code_search",
-          },
+          expectSignalOptions({ intent: "code_search" }),
         );
       },
       { timeout: 1000 },

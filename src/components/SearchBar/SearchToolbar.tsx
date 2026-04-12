@@ -89,15 +89,21 @@ export const SearchToolbar: React.FC<SearchToolbarProps> = ({
   const closeLabel = locale === "zh" ? "收起筛选" : "Hide filters";
   const summaryLabel = isOpen ? closeLabel : openLabel;
 
-  const handleScopeChange = React.useCallback((nextScope: SearchScope) => {
-    onScopeChange(nextScope);
-    setIsOpen(false);
-  }, [onScopeChange]);
+  const handleScopeChange = React.useCallback(
+    (nextScope: SearchScope) => {
+      onScopeChange(nextScope);
+      setIsOpen(false);
+    },
+    [onScopeChange],
+  );
 
-  const handleSortChange = React.useCallback((nextSort: SearchSort) => {
-    onSortModeChange(nextSort);
-    setIsOpen(false);
-  }, [onSortModeChange]);
+  const handleSortChange = React.useCallback(
+    (nextSort: SearchSort) => {
+      onSortModeChange(nextSort);
+      setIsOpen(false);
+    },
+    [onSortModeChange],
+  );
   const handleToggleOpen = React.useCallback(() => {
     setIsOpen((value) => !value);
   }, []);

@@ -74,6 +74,13 @@ describe("flightRepoDocCoverageTransport", () => {
               title: "README",
               path: "README.md",
               format: "markdown",
+              docTarget: {
+                kind: "symbol",
+                name: "solve",
+                path: "GatewaySyncPkg.solve",
+                lineStart: 18,
+                lineEnd: 24,
+              },
             },
           ];
         },
@@ -85,5 +92,51 @@ describe("flightRepoDocCoverageTransport", () => {
     expect(response.coveredSymbols).toBe(3);
     expect(response.uncoveredSymbols).toBe(1);
     expect(response.docs[0]?.path).toBe("README.md");
+    expect(response.docs[0]?.docTarget?.path).toBe("GatewaySyncPkg.solve");
+  });
+
+  it("forwards abort signals to repo doc-coverage Flight calls", async () => {
+    const signal = new AbortController().signal;
+    let getFlightInfoSignal: AbortSignal | undefined;
+    let doGetSignal: AbortSignal | undefined;
+
+    await loadRepoDocCoverageFlight(
+      {
+        baseUrl: "http://127.0.0.1:9517",
+        schemaVersion: "v2",
+        repo: "gateway-sync",
+        moduleQualifiedName: "GatewaySyncPkg",
+        signal,
+      },
+      {
+        createClient: () => ({
+          async getFlightInfo(_descriptor, options) {
+            getFlightInfoSignal = options?.signal;
+            return create(FlightInfoSchema, {
+              schema: new Uint8Array([1, 2, 3]),
+              appMetadata: new Uint8Array(),
+              endpoint: [
+                {
+                  ticket: create(TicketSchema, {
+                    ticket: new Uint8Array([4]),
+                  }),
+                },
+              ],
+            });
+          },
+          async *doGet(_ticket, options) {
+            doGetSignal = options?.signal;
+            yield create(FlightDataSchema, {
+              dataHeader: new Uint8Array([5, 6]),
+              dataBody: new Uint8Array([7]),
+            });
+          },
+        }),
+        decodeRepoDocCoverageDocs: () => [],
+      },
+    );
+
+    expect(getFlightInfoSignal).toBe(signal);
+    expect(doGetSignal).toBe(signal);
   });
 });

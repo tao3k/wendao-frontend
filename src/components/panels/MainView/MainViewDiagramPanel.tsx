@@ -20,22 +20,29 @@ export function MainViewDiagramPanel({
   panelLoadingFallback,
   onNodeClick,
 }: MainViewDiagramPanelProps): React.ReactElement {
-  const hasSelectedContent = selectedFile?.content !== undefined;
-  const isLoadingSelectedFile = Boolean(selectedFile && selectedFile.content === undefined);
+  const selectedContent = selectedFile?.content;
+  const hasSelectedContent = typeof selectedContent === "string";
+  const isLoadingSelectedFile = Boolean(selectedFile && selectedContent === undefined);
 
-  return (
-    <div className="main-view-diagram">
-      {hasSelectedContent ? (
+  if (hasSelectedContent && selectedFile) {
+    return (
+      <div className="main-view-diagram">
         <Suspense fallback={panelLoadingFallback}>
           <DiagramWindow
             path={selectedFile.path}
-            content={selectedFile.content}
+            content={selectedContent}
             locale={locale}
             focusEpoch={focusEpoch}
             onNodeClick={onNodeClick}
           />
         </Suspense>
-      ) : isLoadingSelectedFile ? (
+      </div>
+    );
+  }
+
+  return (
+    <div className="main-view-diagram">
+      {isLoadingSelectedFile ? (
         panelLoadingFallback
       ) : (
         <div className="no-file-selected">{noDiagramFile}</div>

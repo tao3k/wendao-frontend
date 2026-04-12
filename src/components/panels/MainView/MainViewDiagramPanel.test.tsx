@@ -33,7 +33,7 @@ describe("MainViewDiagramPanel", () => {
   it("shows loading fallback while a selected file is still hydrating", () => {
     render(
       <MainViewDiagramPanel
-        selectedFile={{ path: "docs/empty.md", content: undefined }}
+        selectedFile={{ path: "docs/empty.md", category: "doc", content: undefined }}
         locale="en"
         focusEpoch={1}
         noDiagramFile="unused"
@@ -50,7 +50,7 @@ describe("MainViewDiagramPanel", () => {
   it("renders DiagramWindow and forwards required props", () => {
     render(
       <MainViewDiagramPanel
-        selectedFile={{ path: "docs/empty.md", content: "" }}
+        selectedFile={{ path: "docs/empty.md", category: "doc", content: "" }}
         locale="zh"
         focusEpoch={3}
         noDiagramFile="unused"

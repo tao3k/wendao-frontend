@@ -5,7 +5,12 @@ import {
   resolveInitialDisplayMode,
   type DiagramDisplayMode,
 } from "./diagramWindowState";
+import {
+  buildMermaidLayoutVariants,
+  buildMermaidLayoutVariantsFromGraphs,
+} from "./mermaidLayoutVariants";
 import { buildRenderedMermaidBlocks, type MermaidRenderResult } from "./mermaidRenderResults";
+import type { MermaidModeOption } from "./diagramWindowTypes";
 import { useMarkdownProjectionMermaid } from "./useMarkdownProjectionMermaid";
 import { useMermaidRenderer } from "./useMermaidRenderer";
 
@@ -32,6 +37,9 @@ interface UseDiagramWindowViewModelResult {
   mermaidResetToken: number;
   resetMermaidView: () => void;
   renderedMermaid: MermaidRenderResult[];
+  activeMermaidIndex: number;
+  setActiveMermaidIndex: Dispatch<SetStateAction<number>>;
+  mermaidModeOptions: MermaidModeOption[];
   showBpmn: boolean;
   showMermaid: boolean;
   isSplitMode: boolean;
@@ -43,18 +51,20 @@ export function useDiagramWindowViewModel({
   copy,
 }: UseDiagramWindowViewModelParams): UseDiagramWindowViewModelResult {
   const baseSignature = useMemo(() => getDiagramSignature(path, content), [path, content]);
-  const { analysisMermaidSources, analysisLoading } = useMarkdownProjectionMermaid({
-    path,
-    content,
-    baseKind: baseSignature.kind,
-  });
-
-  const mermaidSources =
-    baseSignature.mermaidSources.length > 0 ? baseSignature.mermaidSources : analysisMermaidSources;
+  const { analysisMermaidSources, analysisLayoutGraphs, analysisLoading } =
+    useMarkdownProjectionMermaid({
+      path,
+      content,
+      baseKind: baseSignature.kind,
+    });
 
   const hasBpmn = baseSignature.kind === "bpmn" || baseSignature.kind === "both";
   const hasMermaid =
-    baseSignature.kind === "mermaid" || baseSignature.kind === "both" || mermaidSources.length > 0;
+    baseSignature.kind === "mermaid" ||
+    baseSignature.kind === "both" ||
+    baseSignature.mermaidSources.length > 0 ||
+    analysisLayoutGraphs.length > 0 ||
+    analysisMermaidSources.length > 0;
 
   const kind = resolveDiagramKind(hasBpmn, hasMermaid);
   const canSplitView = hasBpmn && hasMermaid;
@@ -62,7 +72,23 @@ export function useDiagramWindowViewModel({
     resolveInitialDisplayMode(hasBpmn, hasMermaid),
   );
   const [mermaidResetToken, setMermaidResetToken] = useState(0);
-  const renderMermaid = useMermaidRenderer({ hasMermaid, displayMode, mermaidSources });
+  const [activeMermaidIndex, setActiveMermaidIndex] = useState(0);
+  const mermaidLayoutVariants = useMemo(() => {
+    if (baseSignature.mermaidSources.length > 0) {
+      return buildMermaidLayoutVariants(baseSignature.mermaidSources);
+    }
+
+    if (analysisLayoutGraphs.length > 0) {
+      return buildMermaidLayoutVariantsFromGraphs(analysisLayoutGraphs);
+    }
+
+    return buildMermaidLayoutVariants(analysisMermaidSources);
+  }, [analysisLayoutGraphs, analysisMermaidSources, baseSignature.mermaidSources]);
+  const renderMermaid = useMermaidRenderer({
+    hasMermaid,
+    displayMode,
+    mermaidSources: mermaidLayoutVariants.map((variant) => variant.source),
+  });
 
   useEffect(() => {
     if (!hasBpmn) {
@@ -79,7 +105,7 @@ export function useDiagramWindowViewModel({
   const renderedMermaid = useMemo(
     () =>
       buildRenderedMermaidBlocks({
-        mermaidSources,
+        mermaidSources: mermaidLayoutVariants.map((variant) => variant.source),
         renderMermaid,
         emptyMermaidSourceLabel: copy.emptyMermaidSource,
         mermaidLoadingLabel: copy.mermaidLoading,
@@ -89,9 +115,33 @@ export function useDiagramWindowViewModel({
       copy.emptyMermaidSource,
       copy.mermaidLoading,
       copy.mermaidUnsupported,
-      mermaidSources,
+      mermaidLayoutVariants,
       renderMermaid,
     ],
+  );
+
+  useEffect(() => {
+    setActiveMermaidIndex(0);
+  }, [path]);
+
+  useEffect(() => {
+    if (renderedMermaid.length === 0) {
+      setActiveMermaidIndex(0);
+      return;
+    }
+
+    if (activeMermaidIndex >= renderedMermaid.length) {
+      setActiveMermaidIndex(0);
+    }
+  }, [activeMermaidIndex, renderedMermaid.length]);
+
+  const mermaidModeOptions = useMemo(
+    () =>
+      mermaidLayoutVariants.map((variant, index) => ({
+        index,
+        label: variant.label,
+      })),
+    [mermaidLayoutVariants],
   );
 
   const showBpmn = displayMode === "bpmn" || displayMode === "split";
@@ -109,6 +159,9 @@ export function useDiagramWindowViewModel({
     mermaidResetToken,
     resetMermaidView: () => setMermaidResetToken((current) => current + 1),
     renderedMermaid,
+    activeMermaidIndex,
+    setActiveMermaidIndex,
+    mermaidModeOptions,
     showBpmn,
     showMermaid,
     isSplitMode,

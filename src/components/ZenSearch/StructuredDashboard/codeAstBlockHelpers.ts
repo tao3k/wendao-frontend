@@ -2,8 +2,12 @@ import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
 } from "../../../api";
-import { buildCodeAstRetrievalAtom, resolveDisplayRetrievalAtom } from "./codeAstRetrievalHelpers";
-import { normalizeText } from "./codeAstProjectionShared";
+import {
+  buildCodeAstRetrievalAtom,
+  resolveDisplayRetrievalAtom,
+  toDisplayRetrievalAtom,
+} from "./codeAstRetrievalHelpers";
+import { normalizeKind, normalizeText } from "./codeAstProjectionShared";
 import type { CodeAstBlockModel } from "./codeAstAnatomy";
 
 export type CodeAstBlockKind = "validation" | "execution" | "return";
@@ -12,6 +16,71 @@ interface RawBlockSegment {
   start: number;
   end: number;
   lines: string[];
+}
+
+function formatLineRange(start: number | undefined, end: number | undefined): string {
+  if (!start || start <= 0) {
+    return "L?";
+  }
+
+  if (!end || end <= 0) {
+    return `L${start}`;
+  }
+
+  return `L${start}-L${end}`;
+}
+
+function parseOwnerLineRange(ownerId: string): { start: number; end: number } | null {
+  const match = /^block:[^:]+:(\d+)-(\d+)$/.exec(ownerId);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    start: Number(match[1]),
+    end: Number(match[2]),
+  };
+}
+
+function buildExcerptFromContentLines(
+  contentLines: string[],
+  lineStart: number | undefined,
+  lineEnd: number | undefined,
+): string | null {
+  if (!lineStart || lineStart <= 0 || contentLines.length === 0) {
+    return null;
+  }
+
+  const startIndex = Math.max(0, lineStart - 1);
+  const endIndex = Math.min(contentLines.length, Math.max(lineStart, lineEnd ?? lineStart));
+  const excerpt = contentLines.slice(startIndex, endIndex).join("\n").trim();
+  return excerpt.length > 0 ? excerpt : null;
+}
+
+function normalizeBlockKind(semanticType: string): CodeAstBlockKind {
+  const normalizedSemanticType = normalizeKind(semanticType);
+  if (
+    normalizedSemanticType === "validation" ||
+    normalizedSemanticType === "execution" ||
+    normalizedSemanticType === "return"
+  ) {
+    return normalizedSemanticType;
+  }
+
+  return "execution";
+}
+
+function blockPriority(kind: CodeAstBlockKind): number {
+  switch (kind) {
+    case "validation":
+      return 0;
+    case "execution":
+      return 1;
+    case "return":
+      return 2;
+    default:
+      return 99;
+  }
 }
 
 function classifyBlockKind(lines: string[]): CodeAstBlockKind {
@@ -144,7 +213,86 @@ export function buildCodeBlocks(
   retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>,
 ): CodeAstBlockModel[] {
   if (contentLines.length === 0) {
-    return [];
+    return (
+      analysis.retrievalAtoms
+        ?.filter((atom) => atom.surface === "block")
+        .slice(0, 6)
+        .map((atom, index) => ({
+          id: atom.chunkId,
+          kind: normalizeBlockKind(atom.semanticType),
+          title: atom.displayLabel ?? atom.semanticType,
+          lineRange: formatLineRange(atom.lineStart, atom.lineEnd),
+          excerpt: atom.excerpt ?? "(empty block)",
+          anchors: [],
+          query: atom.displayLabel ?? atom.semanticType,
+          atom: toDisplayRetrievalAtom(atom, index + 2),
+          facets: [],
+        })) ?? []
+    );
+  }
+
+  const backendBlocks = (analysis.retrievalAtoms ?? [])
+    .filter((atom) => atom.surface === "block")
+    .toSorted((left, right) => {
+      const leftKind = normalizeBlockKind(left.semanticType);
+      const rightKind = normalizeBlockKind(right.semanticType);
+      const priorityDelta = blockPriority(leftKind) - blockPriority(rightKind);
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+
+      const leftRange = parseOwnerLineRange(left.ownerId);
+      const rightRange = parseOwnerLineRange(right.ownerId);
+      const leftLine = left.lineStart ?? leftRange?.start ?? Number.MAX_SAFE_INTEGER;
+      const rightLine = right.lineStart ?? rightRange?.start ?? Number.MAX_SAFE_INTEGER;
+      if (leftLine !== rightLine) {
+        return leftLine - rightLine;
+      }
+
+      return left.chunkId.localeCompare(right.chunkId);
+    })
+    .slice(0, 6)
+    .map((atom, index) => {
+      const ownerRange = parseOwnerLineRange(atom.ownerId);
+      const start = atom.lineStart ?? ownerRange?.start;
+      const end = atom.lineEnd ?? ownerRange?.end ?? atom.lineStart;
+      const anchors =
+        typeof start === "number" && typeof end === "number"
+          ? analysis.nodes
+              .filter((node) => {
+                const nodePath = normalizeText(node.path);
+                const selected = normalizeText(selectedPath);
+                const sameFile =
+                  nodePath === selected ||
+                  nodePath?.endsWith(`/${selectedPath}`) === true ||
+                  selected?.endsWith(`/${nodePath}`) === true;
+                const nodeLine = node.line ?? node.lineStart;
+                return (
+                  sameFile && typeof nodeLine === "number" && nodeLine >= start && nodeLine <= end
+                );
+              })
+              .map((node) => node.label)
+              .filter((label) => label.trim().length > 0)
+          : [];
+      const excerpt =
+        atom.excerpt ?? buildExcerptFromContentLines(contentLines, start, end) ?? "(empty block)";
+
+      return {
+        id: atom.chunkId,
+        kind: normalizeBlockKind(atom.semanticType),
+        title:
+          atom.displayLabel ?? buildBlockTitle(normalizeBlockKind(atom.semanticType), [excerpt]),
+        lineRange: formatLineRange(start, end),
+        excerpt,
+        anchors,
+        query: anchors[0] ?? atom.displayLabel ?? atom.semanticType,
+        atom: toDisplayRetrievalAtom(atom, index + 2),
+        facets: [],
+      };
+    });
+
+  if (backendBlocks.length > 0) {
+    return backendBlocks;
   }
 
   const segments = collectSegments(contentLines, declarationLine);
@@ -225,6 +373,7 @@ export function buildCodeBlocks(
             excerpt.length > 0 ? excerpt : (groupedSegments[0]?.lines.join("\n") ?? kind),
           ),
       ),
+      facets: [],
     });
   });
 
@@ -265,6 +414,7 @@ export function buildCodeBlocks(
             fallback.lines.join("\n"),
           ),
       ),
+      facets: [],
     },
   ];
 }

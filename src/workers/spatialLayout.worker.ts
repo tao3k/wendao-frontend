@@ -251,20 +251,26 @@ function handleSpatialLayoutWorkerMessage(e: MessageEvent<LayoutWorkerInput>): v
           config = { ...config, ...msg.config };
         }
         initialize(msg.nodes, msg.links);
-        postMessage({
-          type: "nodes",
-          nodes: Array.from(nodes.values()),
-          alpha,
-        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
+        postMessage(
+          {
+            type: "nodes",
+            nodes: Array.from(nodes.values()),
+            alpha,
+          } as LayoutWorkerOutput,
+          LAYOUT_WORKER_TARGET_ORIGIN,
+        );
         break;
 
       case "tick":
         const resultNodes = tick(msg.count || 1);
-        postMessage({
-          type: "tick",
-          nodes: resultNodes,
-          alpha,
-        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
+        postMessage(
+          {
+            type: "tick",
+            nodes: resultNodes,
+            alpha,
+          } as LayoutWorkerOutput,
+          LAYOUT_WORKER_TARGET_ORIGIN,
+        );
         break;
 
       case "sync":
@@ -272,26 +278,35 @@ function handleSpatialLayoutWorkerMessage(e: MessageEvent<LayoutWorkerInput>): v
           config = { ...config, ...msg.config };
         }
         synchronize(msg.nodes, msg.links);
-        postMessage({
-          type: "nodes",
-          nodes: Array.from(nodes.values()),
-          alpha,
-        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
+        postMessage(
+          {
+            type: "nodes",
+            nodes: Array.from(nodes.values()),
+            alpha,
+          } as LayoutWorkerOutput,
+          LAYOUT_WORKER_TARGET_ORIGIN,
+        );
         break;
 
       case "getNodes":
-        postMessage({
-          type: "nodes",
-          nodes: Array.from(nodes.values()),
-          alpha,
-        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
+        postMessage(
+          {
+            type: "nodes",
+            nodes: Array.from(nodes.values()),
+            alpha,
+          } as LayoutWorkerOutput,
+          LAYOUT_WORKER_TARGET_ORIGIN,
+        );
         break;
 
       case "getClusters":
-        postMessage({
-          type: "clusters",
-          clusters: getClusters(),
-        } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
+        postMessage(
+          {
+            type: "clusters",
+            clusters: getClusters(),
+          } as LayoutWorkerOutput,
+          LAYOUT_WORKER_TARGET_ORIGIN,
+        );
         break;
 
       case "update":
@@ -305,10 +320,13 @@ function handleSpatialLayoutWorkerMessage(e: MessageEvent<LayoutWorkerInput>): v
         break;
     }
   } catch (error) {
-    postMessage({
-      type: "error",
-      error: String(error),
-    } as LayoutWorkerOutput, LAYOUT_WORKER_TARGET_ORIGIN);
+    postMessage(
+      {
+        type: "error",
+        error: String(error),
+      } as LayoutWorkerOutput,
+      LAYOUT_WORKER_TARGET_ORIGIN,
+    );
   }
 }
 

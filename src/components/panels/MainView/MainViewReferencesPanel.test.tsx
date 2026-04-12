@@ -25,6 +25,7 @@ describe("MainViewReferencesPanel", () => {
       <MainViewReferencesPanel
         selectedFile={{
           path: "knowledge/context.md",
+          category: "knowledge",
           projectName: "kernel",
           rootLabel: "knowledge",
         }}

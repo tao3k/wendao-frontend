@@ -1,6 +1,8 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { MainViewGraphSelection } from "./components/panels/MainView/mainViewProps";
+import type { SearchSelection } from "./components/SearchBar/types";
 import App from "./App";
 import { recordPerfTraceSnapshot } from "./lib/testPerfRegistry";
 import { createPerfTrace } from "./lib/testPerfTrace";
@@ -718,25 +720,13 @@ describe("App topology wiring", () => {
 
     await waitFor(() => {
       const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-        | {
-            onGraphResultSelect: (selection: {
-              path: string;
-              category: string;
-              graphPath?: string;
-            }) => Promise<void>;
-          }
+        | { onGraphResultSelect: (selection: SearchSelection) => Promise<void> }
         | undefined;
       expect(searchBarProps?.onGraphResultSelect).toBeDefined();
     });
 
     const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-      | {
-          onGraphResultSelect: (selection: {
-            path: string;
-            category: string;
-            graphPath?: string;
-          }) => Promise<void>;
-        }
+      | { onGraphResultSelect: (selection: SearchSelection) => Promise<void> }
       | undefined;
 
     await act(async () => {
@@ -1040,32 +1030,20 @@ describe("App topology wiring", () => {
 
     await waitFor(() => {
       const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-        | { onGraphResultSelect: (selection: { path: string; category: string }) => Promise<void> }
+        | { onGraphResultSelect: (selection: SearchSelection) => Promise<void> }
         | undefined;
       expect(searchBarProps?.onGraphResultSelect).toBeDefined();
       const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-        | {
-            onGraphFileSelect: (selection: {
-              path: string;
-              category: string;
-              graphPath?: string;
-            }) => void;
-          }
+        | { onGraphFileSelect: (selection: MainViewGraphSelection) => void }
         | undefined;
       expect(mainViewProps?.onGraphFileSelect).toBeDefined();
     });
 
     const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
-      | { onGraphResultSelect: (selection: { path: string; category: string }) => Promise<void> }
+      | { onGraphResultSelect: (selection: SearchSelection) => Promise<void> }
       | undefined;
     const mainViewProps = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
-      | {
-          onGraphFileSelect: (selection: {
-            path: string;
-            category: string;
-            graphPath?: string;
-          }) => void;
-        }
+      | { onGraphFileSelect: (selection: MainViewGraphSelection) => void }
       | undefined;
 
     await act(async () => {

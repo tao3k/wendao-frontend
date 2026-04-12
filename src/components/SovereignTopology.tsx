@@ -7,6 +7,7 @@ interface Props {
   xml?: string;
   onNodeClick: (name: string, type: string, id: string) => void;
   containerClassName?: string;
+  fitViewportScale?: number;
 }
 
 interface BpmnCanvas {
@@ -44,7 +45,7 @@ export interface TopologyRef {
 }
 
 export const SovereignTopology = forwardRef<TopologyRef, Props>(
-  ({ xml, onNodeClick, containerClassName }, ref) => {
+  ({ xml, onNodeClick, containerClassName, fitViewportScale = 1.35 }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewerRef = useRef<BpmnViewer | null>(null);
     const mainRootRef = useRef<unknown>(null);
@@ -58,13 +59,13 @@ export const SovereignTopology = forwardRef<TopologyRef, Props>(
             canvas.resized();
             canvas.zoom("fit-viewport", "auto");
             const z = canvas.zoom();
-            canvas.zoom(z * 1.35);
+            canvas.zoom(z * fitViewportScale);
           }
         } catch {
           // Silently ignore errors if viewer is being destroyed
         }
       }
-    }, []);
+    }, [fitViewportScale]);
 
     useImperativeHandle(ref, () => ({ center }), [center]);
 

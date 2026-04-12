@@ -140,6 +140,51 @@ describe("flightSearchTransport", () => {
     expect(response.selectedMode).toBe("semantic_lookup");
   });
 
+  it("forwards abort signals to both Flight discovery and stream reads", async () => {
+    const signal = new AbortController().signal;
+    let getFlightInfoSignal: AbortSignal | undefined;
+    let doGetSignal: AbortSignal | undefined;
+
+    await searchKnowledgeFlight(
+      {
+        baseUrl: "http://127.0.0.1:9517",
+        schemaVersion: "v2",
+        query: "topology",
+        limit: 5,
+        signal,
+      },
+      {
+        createClient: () => ({
+          async getFlightInfo(_descriptor, options) {
+            getFlightInfoSignal = options?.signal;
+            return create(FlightInfoSchema, {
+              schema: new Uint8Array([1, 2, 3]),
+              endpoint: [
+                {
+                  ticket: create(TicketSchema, {
+                    ticket: new Uint8Array([9, 9]),
+                  }),
+                },
+              ],
+              appMetadata: new Uint8Array(),
+            });
+          },
+          async *doGet(_ticket, options) {
+            doGetSignal = options?.signal;
+            yield create(FlightDataSchema, {
+              dataHeader: new Uint8Array([4, 5, 6]),
+              dataBody: new Uint8Array([7, 8]),
+            });
+          },
+        }),
+        decodeSearchHits: () => [],
+      },
+    );
+
+    expect(getFlightInfoSignal).toBe(signal);
+    expect(doGetSignal).toBe(signal);
+  });
+
   it("materializes attachment responses through the canonical Flight route", async () => {
     const response = await searchAttachmentsFlight(
       {

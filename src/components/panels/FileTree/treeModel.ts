@@ -3,13 +3,13 @@ import type { ConfiguredProjectGroup, FileNode, FileTreeLocale } from "./types";
 
 function sortFileNodes(nodes: FileNode[]): FileNode[] {
   return nodes
-    .toSorted((left, right) => {
+    .toSorted((left: FileNode, right: FileNode) => {
       if (left.isDir !== right.isDir) {
         return left.isDir ? -1 : 1;
       }
       return left.name.localeCompare(right.name);
     })
-    .map((node) => {
+    .map((node: FileNode) => {
       const sortedNode: FileNode = {
         name: node.name,
         path: node.path,

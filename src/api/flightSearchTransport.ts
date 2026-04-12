@@ -57,6 +57,7 @@ interface BaseSearchFlightRequest {
   schemaVersion: string;
   query: string;
   limit: number;
+  signal?: AbortSignal;
 }
 
 export interface KnowledgeSearchFlightRequest extends BaseSearchFlightRequest {
@@ -79,9 +80,12 @@ export interface SymbolSearchFlightRequest extends BaseSearchFlightRequest {}
 export interface FlightServiceClientLike {
   getFlightInfo(
     descriptor: FlightDescriptor,
-    options?: { headers?: HeadersInit },
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
   ): Promise<FlightInfo>;
-  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
+  doGet(
+    ticket: Ticket,
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
+  ): AsyncIterable<FlightData>;
 }
 
 export interface FlightSearchTransportDeps {
@@ -394,7 +398,10 @@ async function loadSearchFlightRoute(
 
   try {
     const getFlightInfoStartMs = nowMs();
-    const flightInfo = await client.getFlightInfo(descriptor, { headers });
+    const flightInfo = await client.getFlightInfo(descriptor, {
+      headers,
+      signal: request.signal,
+    });
     const getFlightInfoMs = nowMs() - getFlightInfoStartMs;
 
     const readTicketStartMs = nowMs();
@@ -405,7 +412,10 @@ async function loadSearchFlightRoute(
     const frames: FlightData[] = [];
     let recordBatchHeaderBytes = 0;
     let recordBatchBodyBytes = 0;
-    for await (const frame of client.doGet(ticket, { headers })) {
+    for await (const frame of client.doGet(ticket, {
+      headers,
+      signal: request.signal,
+    })) {
       recordBatchHeaderBytes += frame.dataHeader.byteLength;
       recordBatchBodyBytes += frame.dataBody.byteLength;
       frames.push(frame);

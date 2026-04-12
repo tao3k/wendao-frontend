@@ -3,7 +3,7 @@ import { Activity, FileText, GitBranch, Layers, Orbit, Settings2 } from "lucide-
 import { PropertyGroup } from "./PropertyGroup";
 import { PropertyField } from "./PropertyField";
 import { AcademicNode } from "../../../types";
-import type { GraphSidebarSummary } from "../GraphView/types";
+import type { GraphLayerSummary, GraphSidebarSummary } from "../GraphView/types";
 import "../../../styles/ide/PropertyEditor.css";
 
 interface Relationship {
@@ -336,21 +336,27 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const [selectedGraphLayer, setSelectedGraphLayer] = useState<number | null>(null);
   const copy = PROPERTY_EDITOR_COPY[locale];
 
-  const handleNameChange = useCallback((name: string) => {
-    onUpdate?.({ name });
-  }, [onUpdate]);
+  const handleNameChange = useCallback(
+    (name: string) => {
+      onUpdate?.({ name });
+    },
+    [onUpdate],
+  );
 
-  const handlePositionChange = useCallback((axis: 0 | 1 | 2, value: string) => {
-    if (!node) return;
-    const numValue = parseFloat(value) || 0;
-    const position: [number, number, number] = [
-      node.position?.[0] ?? 0,
-      node.position?.[1] ?? 0,
-      node.position?.[2] ?? 0,
-    ];
-    position[axis] = numValue;
-    onUpdate?.({ position });
-  }, [node, onUpdate]);
+  const handlePositionChange = useCallback(
+    (axis: 0 | 1 | 2, value: string) => {
+      if (!node) return;
+      const numValue = parseFloat(value) || 0;
+      const position: [number, number, number] = [
+        node.position?.[0] ?? 0,
+        node.position?.[1] ?? 0,
+        node.position?.[2] ?? 0,
+      ];
+      position[axis] = numValue;
+      onUpdate?.({ position });
+    },
+    [node, onUpdate],
+  );
 
   const handlePropertiesTabClick = useCallback(() => {
     setActiveTab("properties");
@@ -360,13 +366,19 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
     setActiveTab("relationships");
   }, []);
 
-  const handlePositionXChange = useCallback((value: string) => {
-    handlePositionChange(0, value);
-  }, [handlePositionChange]);
+  const handlePositionXChange = useCallback(
+    (value: string) => {
+      handlePositionChange(0, value);
+    },
+    [handlePositionChange],
+  );
 
-  const handlePositionYChange = useCallback((value: string) => {
-    handlePositionChange(1, value);
-  }, [handlePositionChange]);
+  const handlePositionYChange = useCallback(
+    (value: string) => {
+      handlePositionChange(1, value);
+    },
+    [handlePositionChange],
+  );
 
   const handleToggleGraphLayer = useCallback((layer: number) => {
     setSelectedGraphLayer((current) => (current === layer ? null : layer));
@@ -374,16 +386,25 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
 
   const hasContent = Boolean(node || selectedFile || relationships.length > 0);
   const hasGraphSummary = Boolean(graphSummary);
-  const stageLayerSummaries = (graphSummary?.layerSummaries ?? [])
-    .toSorted((a, b) => a.layer - b.layer);
-  const nonCoreLayerSummaries = stageLayerSummaries.filter((layer) => layer.layer > 0);
-  const maxStageCount = Math.max(1, ...stageLayerSummaries.map((layer) => layer.count));
-  const layerSummaryNodeTotal = stageLayerSummaries.reduce((sum, layer) => sum + layer.count, 0);
+  const stageLayerSummaries: GraphLayerSummary[] = (graphSummary?.layerSummaries ?? []).toSorted(
+    (left: GraphLayerSummary, right: GraphLayerSummary) => left.layer - right.layer,
+  );
+  const nonCoreLayerSummaries = stageLayerSummaries.filter(
+    (layer: GraphLayerSummary) => layer.layer > 0,
+  );
+  const maxStageCount = Math.max(
+    1,
+    ...stageLayerSummaries.map((layer: GraphLayerSummary) => layer.count),
+  );
+  const layerSummaryNodeTotal = stageLayerSummaries.reduce(
+    (sum: number, layer: GraphLayerSummary) => sum + layer.count,
+    0,
+  );
   const totalNodes = Math.max(graphSummary?.totalNodes ?? 0, layerSummaryNodeTotal);
   const totalLinks = graphSummary?.totalLinks ?? 0;
   const defaultFocusedLayer =
     (nonCoreLayerSummaries.length > 0
-      ? nonCoreLayerSummaries.reduce((best, layer) => {
+      ? nonCoreLayerSummaries.reduce((best: GraphLayerSummary, layer: GraphLayerSummary) => {
           if (layer.count > best.count) {
             return layer;
           }
@@ -392,16 +413,16 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
           }
           return best;
         }).layer
-      : stageLayerSummaries.find((item) => item.layer === 0)?.layer) ?? 0;
+      : stageLayerSummaries.find((item: GraphLayerSummary) => item.layer === 0)?.layer) ?? 0;
   const manualFocusedLayer =
     selectedGraphLayer !== null &&
-    stageLayerSummaries.some((layer) => layer.layer === selectedGraphLayer)
+    stageLayerSummaries.some((layer: GraphLayerSummary) => layer.layer === selectedGraphLayer)
       ? selectedGraphLayer
       : null;
   const focusedLayer = graphSummary?.hoveredLayer ?? manualFocusedLayer ?? defaultFocusedLayer;
   const focusedLayerNodes =
-    stageLayerSummaries.find((item) => item.layer === focusedLayer)?.count ??
-    stageLayerSummaries.find((item) => item.layer === 0)?.count ??
+    stageLayerSummaries.find((item: GraphLayerSummary) => item.layer === focusedLayer)?.count ??
+    stageLayerSummaries.find((item: GraphLayerSummary) => item.layer === 0)?.count ??
     0;
   const activeLayerPercent = asSafePercent(focusedLayerNodes, maxStageCount);
   const activeLayerShare = asSafePercent(focusedLayerNodes, totalNodes);

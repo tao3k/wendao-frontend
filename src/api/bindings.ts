@@ -314,6 +314,7 @@ export type AnalysisNodeKind =
   | "codeblock"
   | "table"
   | "math"
+  | "observation"
   | "reference";
 
 export type AnalysisEdgeKind = "contains" | "references" | "next_step";
@@ -389,6 +390,7 @@ export interface RetrievalChunk {
   lineStart?: number;
   lineEnd?: number;
   surface?: RetrievalChunkSurface;
+  attributes?: [string, string][];
 }
 
 export interface MarkdownRetrievalAtom extends RetrievalChunk {

@@ -17,6 +17,9 @@ describe("searchExecution repo intelligence routing", () => {
       ready: 0,
       unsupported: 0,
       failed: 0,
+      targetConcurrency: 0,
+      maxConcurrency: 0,
+      syncConcurrencyLimit: 0,
       repos: [],
     });
   });
@@ -229,6 +232,64 @@ describe("searchExecution repo intelligence routing", () => {
     expect(result.results[0]?.codeLanguage).toBe("julia");
     expect(result.results[0]?.codeKind).toBe("symbol");
     expect(result.results[0]?.codeRepo).toBe("pkg");
+  });
+
+  it("passes abort signals through repo-aware code mode searches", async () => {
+    const signal = new AbortController().signal;
+    vi.spyOn(api, "searchKnowledge").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      hits: [],
+      selectedMode: "graph_only",
+      searchMode: "graph_only",
+      intent: "code_search",
+      intentConfidence: 0.87,
+    });
+    vi.spyOn(api, "searchRepoContentFlight").mockResolvedValue({
+      query: "solve",
+      hitCount: 1,
+      hits: [
+        {
+          stem: "solve",
+          title: "solve",
+          path: "src/GatewaySyncPkg.jl",
+          docType: "symbol",
+          tags: ["code", "lang:julia", "kind:function"],
+          score: 0.94,
+          bestSection: "solve() = nothing",
+          navigationTarget: {
+            path: "src/GatewaySyncPkg.jl",
+            category: "repo_code",
+            projectName: "gateway-sync",
+          },
+        },
+      ],
+      selectedMode: "repo_search",
+      searchMode: "repo_search",
+    });
+    vi.spyOn(api, "searchReferences").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "references",
+      hits: [],
+    });
+
+    await executeSearchQuery("solve", "code", {
+      repoFilter: "gateway-sync",
+      signal,
+    });
+
+    expect(api.searchRepoContentFlight).toHaveBeenCalledWith("gateway-sync", "solve", 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+      signal,
+    });
+    expect(api.searchKnowledge).toHaveBeenCalledWith("solve", 10, {
+      intent: "code_search",
+      repo: "gateway-sync",
+      signal,
+    });
+    expect(api.searchReferences).toHaveBeenCalledWith("solve", 10, { signal });
   });
 
   it("surfaces pending studio symbol index without throwing", async () => {
@@ -532,6 +593,26 @@ describe("searchExecution repo intelligence routing", () => {
     expect(result.meta.intentConfidence).toBe(0.91);
   });
 
+  it("passes abort signals through knowledge mode searches", async () => {
+    const signal = new AbortController().signal;
+    const knowledgeSpy = vi.spyOn(api, "searchKnowledge").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      hits: [],
+      selectedMode: "hybrid",
+      searchMode: "hybrid",
+      intent: "knowledge_lookup",
+      intentConfidence: 0.6,
+    });
+
+    await executeSearchQuery("solve", "knowledge", { signal });
+
+    expect(knowledgeSpy).toHaveBeenCalledWith("solve", 10, {
+      intent: "knowledge_lookup",
+      signal,
+    });
+  });
+
   it("uses intent-aware endpoint hints when running all mode", async () => {
     const knowledgeSpy = vi
       .spyOn(api, "searchKnowledge")
@@ -716,9 +797,191 @@ describe("searchExecution repo intelligence routing", () => {
       languageFilters: [],
       pathPrefixes: [],
     });
+    expect(api.searchAst).not.toHaveBeenCalled();
+    expect(api.searchReferences).toHaveBeenCalledTimes(1);
+    expect(api.searchReferences).toHaveBeenCalledWith("solve", 10);
+    expect(api.searchSymbols).not.toHaveBeenCalled();
+    expect(api.searchAttachments).not.toHaveBeenCalled();
     expect(result.results).toHaveLength(1);
     expect(result.results[0]?.codeRepo).toBe("gateway-sync");
     expect(result.meta.hitCount).toBe(1);
+  });
+
+  it("passes abort signals through all mode fanout", async () => {
+    const signal = new AbortController().signal;
+    const knowledgeSpy = vi
+      .spyOn(api, "searchKnowledge")
+      .mockImplementation(async (_query, _limit, options) => {
+        return {
+          query: "solve",
+          hitCount: 0,
+          hits: [],
+          selectedMode: options?.intent === "code_search" ? "code_search" : "hybrid",
+          searchMode: options?.intent === "code_search" ? "code_search" : "hybrid",
+          intent: options?.intent ?? "hybrid_search",
+          intentConfidence: 0.9,
+        };
+      });
+    const astSpy = vi.spyOn(api, "searchAst").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "definitions",
+      hits: [],
+    });
+    const referenceSpy = vi.spyOn(api, "searchReferences").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "references",
+      hits: [],
+    });
+    const symbolSpy = vi.spyOn(api, "searchSymbols").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "project",
+      hits: [],
+    });
+    const attachmentSpy = vi.spyOn(api, "searchAttachments").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "attachments",
+      hits: [],
+    });
+
+    await executeSearchQuery("solve", "all", { signal });
+
+    expect(knowledgeSpy).toHaveBeenCalledWith("solve", 10, {
+      intent: "hybrid_search",
+      signal,
+    });
+    expect(knowledgeSpy).toHaveBeenCalledWith("solve", 10, {
+      intent: "code_search",
+      signal,
+    });
+    expect(astSpy).toHaveBeenCalledWith("solve", 10, { signal });
+    expect(referenceSpy).toHaveBeenCalledWith("solve", 10, { signal });
+    expect(symbolSpy).toHaveBeenCalledWith("solve", 10, { signal });
+    expect(attachmentSpy).toHaveBeenCalledWith("solve", 10, { signal });
+  });
+
+  it("passes abort signals through repo-aware all mode core lanes when the query is code-scoped", async () => {
+    const signal = new AbortController().signal;
+    const knowledgeSpy = vi
+      .spyOn(api, "searchKnowledge")
+      .mockImplementation(async (query, _limit, options) => {
+        if (options?.intent === "code_search") {
+          expect(query).toBe("repo:gateway-sync solve");
+          return {
+            query,
+            hitCount: 1,
+            hits: [
+              {
+                stem: "solve",
+                title: "solve",
+                path: "src/GatewaySyncPkg.jl",
+                docType: "symbol",
+                tags: ["code", "kind:function", "repo:gateway-sync"],
+                score: 0.91,
+                bestSection: "solve()",
+                matchReason: "repo_symbol_search",
+                navigationTarget: {
+                  path: "src/GatewaySyncPkg.jl",
+                  category: "repo_code",
+                  projectName: "gateway-sync",
+                  rootLabel: "gateway-sync",
+                },
+              },
+            ],
+            selectedMode: "code_search",
+            searchMode: "code_search",
+            intent: "code_search",
+            intentConfidence: 1.0,
+          };
+        }
+
+        expect(query).toBe("solve");
+        return {
+          query,
+          hitCount: 0,
+          hits: [],
+          graphConfidenceScore: 0.22,
+          selectedMode: "hybrid",
+          searchMode: "hybrid",
+          intent: "hybrid_search",
+          intentConfidence: 0.52,
+        };
+      });
+    const repoSearchSpy = vi.spyOn(api, "searchRepoContentFlight").mockResolvedValue({
+      query: "solve",
+      hitCount: 1,
+      hits: [
+        {
+          stem: "solve",
+          title: "solve",
+          path: "src/GatewaySyncPkg.jl",
+          docType: "symbol",
+          tags: ["code", "lang:julia", "kind:function"],
+          score: 0.94,
+          bestSection: "solve()",
+          navigationTarget: {
+            path: "src/GatewaySyncPkg.jl",
+            category: "repo_code",
+            projectName: "gateway-sync",
+            rootLabel: "gateway-sync",
+          },
+        },
+      ],
+      selectedMode: "repo_search",
+      searchMode: "repo_search",
+    });
+    const astSpy = vi.spyOn(api, "searchAst").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "definitions",
+      hits: [],
+    });
+    const referenceSpy = vi.spyOn(api, "searchReferences").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "references",
+      hits: [],
+    });
+    const symbolSpy = vi.spyOn(api, "searchSymbols").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "project",
+      hits: [],
+    });
+    const attachmentSpy = vi.spyOn(api, "searchAttachments").mockResolvedValue({
+      query: "solve",
+      hitCount: 0,
+      selectedScope: "attachments",
+      hits: [],
+    });
+
+    await executeSearchQuery("repo:gateway-sync solve", "all", {
+      repoFilter: "gateway-sync",
+      signal,
+    });
+
+    expect(knowledgeSpy).toHaveBeenCalledWith("solve", 10, {
+      intent: "hybrid_search",
+      signal,
+    });
+    expect(knowledgeSpy).toHaveBeenCalledWith("repo:gateway-sync solve", 10, {
+      intent: "code_search",
+      repo: "gateway-sync",
+      signal,
+    });
+    expect(repoSearchSpy).toHaveBeenCalledWith("gateway-sync", "solve", 10, {
+      languageFilters: [],
+      pathPrefixes: [],
+      signal,
+    });
+    expect(astSpy).not.toHaveBeenCalled();
+    expect(referenceSpy).toHaveBeenCalledTimes(1);
+    expect(referenceSpy).toHaveBeenCalledWith("solve", 10, { signal });
+    expect(symbolSpy).not.toHaveBeenCalled();
+    expect(attachmentSpy).not.toHaveBeenCalled();
   });
 
   it("deduplicates equivalent search results by navigation target and label", () => {

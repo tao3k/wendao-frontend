@@ -201,9 +201,7 @@ export const KnowledgePanel: React.FC<Props> = ({ state, onClose }) => {
 
               <p style={BODY_COPY_STYLE}>
                 This entity serves as a critical epistemic anchor within the PaperBanana evolution
-                loop. Reference:{" "}
-                <span style={ENTITY_LINK_STYLE}>[[Academic_Integrity]]</span>
-                .
+                loop. Reference: <span style={ENTITY_LINK_STYLE}>[[Academic_Integrity]]</span>.
               </p>
 
               <div style={FORMULA_SECTION_STYLE}>

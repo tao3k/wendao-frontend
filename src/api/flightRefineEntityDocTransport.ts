@@ -2,7 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, ConnectError } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-import type { RefineEntityDocRequest, RefineEntityDocResponse } from "./bindings";
+import type { RefineEntityDocRequest, RefineEntityDocResponse } from "./apiContracts";
 import { decodeRefineEntityDocResponseFromArrowIpc } from "./arrowDocumentIpc";
 import {
   FlightData,

@@ -178,12 +178,9 @@ export const NodeBrowser: React.FC<NodeBrowserProps> = ({
     [nodes, onNodeDoubleClick],
   );
 
-  const handleSearchQueryChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchQuery(event.target.value);
-    },
-    [],
-  );
+  const handleSearchQueryChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  }, []);
 
   return (
     <div className="node-browser">

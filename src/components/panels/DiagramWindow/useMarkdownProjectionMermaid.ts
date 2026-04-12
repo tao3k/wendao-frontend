@@ -4,9 +4,15 @@ import {
   isCodeDiagramPath,
   isMarkdownPath,
   selectPreferredCodeProjectionSource,
-  selectPreferredProjectionSource,
+  selectPreferredRenderableProjectionSource,
   type DiagramKind,
 } from "./diagramSignature";
+import { buildMarkdownProjectionMermaid } from "./markdownProjectionMermaid";
+import {
+  createMermaidLayoutGraphFromCodeAstAnalysis,
+  createMermaidLayoutGraphFromMarkdownAnalysis,
+  type MermaidLayoutGraph,
+} from "./mermaidLayoutGraph";
 
 interface UseMarkdownProjectionMermaidParams {
   path: string;
@@ -16,6 +22,7 @@ interface UseMarkdownProjectionMermaidParams {
 
 interface UseMarkdownProjectionMermaidResult {
   analysisMermaidSources: string[];
+  analysisLayoutGraphs: MermaidLayoutGraph[];
   analysisLoading: boolean;
 }
 
@@ -25,6 +32,7 @@ export function useMarkdownProjectionMermaid({
   baseKind,
 }: UseMarkdownProjectionMermaidParams): UseMarkdownProjectionMermaidResult {
   const [analysisMermaidSources, setAnalysisMermaidSources] = useState<string[]>([]);
+  const [analysisLayoutGraphs, setAnalysisLayoutGraphs] = useState<MermaidLayoutGraph[]>([]);
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
   useEffect(() => {
@@ -36,31 +44,59 @@ export function useMarkdownProjectionMermaid({
 
     if (!shouldAnalyzeProjection) {
       setAnalysisMermaidSources([]);
+      setAnalysisLayoutGraphs([]);
       setAnalysisLoading(false);
       return () => {
         cancelled = true;
       };
     }
 
+    const localMarkdownProjection =
+      markdownFile && baseKind === "none" ? buildMarkdownProjectionMermaid(content, path) : null;
+
+    setAnalysisMermaidSources(localMarkdownProjection ? [localMarkdownProjection] : []);
+    setAnalysisLayoutGraphs([]);
+
     setAnalysisLoading(true);
     const request = markdownFile
-      ? api.getMarkdownAnalysis(path).then((analysis) => selectPreferredProjectionSource(analysis))
-      : api
-          .getCodeAstAnalysis(path)
-          .then((analysis) => selectPreferredCodeProjectionSource(analysis));
+      ? api.getMarkdownAnalysis(path).then((analysis) => {
+          const layoutGraph = createMermaidLayoutGraphFromMarkdownAnalysis(
+            analysis.nodes,
+            analysis.edges,
+          );
+          const projectionSource =
+            selectPreferredRenderableProjectionSource(analysis) ?? localMarkdownProjection;
+          return {
+            analysisLayoutGraphs: layoutGraph ? [layoutGraph] : [],
+            analysisMermaidSources: projectionSource ? [projectionSource] : [],
+          };
+        })
+      : api.getCodeAstAnalysis(path).then((analysis) => {
+          const layoutGraph = createMermaidLayoutGraphFromCodeAstAnalysis(
+            analysis.nodes,
+            analysis.edges,
+          );
+          const projectionSource = selectPreferredCodeProjectionSource(analysis);
+          return {
+            analysisLayoutGraphs: layoutGraph ? [layoutGraph] : [],
+            analysisMermaidSources: projectionSource ? [projectionSource] : [],
+          };
+        });
     request
       .then((analysis) => {
         if (cancelled) {
           return undefined;
         }
-        setAnalysisMermaidSources(analysis ? [analysis] : []);
+        setAnalysisLayoutGraphs(analysis.analysisLayoutGraphs);
+        setAnalysisMermaidSources(analysis.analysisMermaidSources);
         return undefined;
       })
       .catch(() => {
         if (cancelled) {
           return undefined;
         }
-        setAnalysisMermaidSources([]);
+        setAnalysisLayoutGraphs([]);
+        setAnalysisMermaidSources(localMarkdownProjection ? [localMarkdownProjection] : []);
         return undefined;
       })
       .finally(() => {
@@ -76,6 +112,7 @@ export function useMarkdownProjectionMermaid({
 
   return {
     analysisMermaidSources,
+    analysisLayoutGraphs,
     analysisLoading,
   };
 }

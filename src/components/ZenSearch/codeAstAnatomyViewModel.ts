@@ -1,13 +1,16 @@
 import type { UiLocale } from "../SearchBar/types";
+import type { SearchResult } from "../SearchBar/types";
 import type {
   CodeAstBlockModel,
   CodeAstDeclarationModel,
   CodeAstSignaturePart,
   CodeAstSymbolModel,
 } from "./StructuredDashboard/codeAstAnatomy";
+import type { CodeAstFacetModel } from "./StructuredDashboard/language/anatomy/types";
 
 export interface CodeAstAnatomyCopy {
   empty: string;
+  importOnly: string;
   loading: string;
   waterfall: string;
   filePath: string;
@@ -23,6 +26,7 @@ export interface CodeAstAnatomyCopy {
   pivotBlock: string;
   pivotSymbol: string;
   pivotAnchor: string;
+  parserFacets: string;
 }
 
 export interface SignatureValueRow {
@@ -48,6 +52,10 @@ export interface SignatureParameterRow {
 export function copyForLocale(locale: UiLocale): CodeAstAnatomyCopy {
   return {
     empty: locale === "zh" ? "暂无 AST 分析。" : "No code AST analysis available.",
+    importOnly:
+      locale === "zh"
+        ? "当前命中仅是 import 引用，前端已跳过 AST 解析。请改选声明或符号结果查看 AST。"
+        : "This hit is import-only, so the frontend skipped AST analysis. Select a declaration or symbol result to inspect the AST.",
     loading: locale === "zh" ? "正在加载 AST 分析..." : "Loading AST analysis...",
     waterfall: locale === "zh" ? "代码 AST 瀑布流" : "Code AST Waterfall",
     filePath: locale === "zh" ? "文件路径" : "File Path",
@@ -63,7 +71,14 @@ export function copyForLocale(locale: UiLocale): CodeAstAnatomyCopy {
     pivotBlock: locale === "zh" ? "聚焦逻辑块" : "Pivot block",
     pivotSymbol: locale === "zh" ? "聚焦符号" : "Pivot symbol",
     pivotAnchor: locale === "zh" ? "聚焦锚点" : "Pivot anchor",
+    parserFacets: locale === "zh" ? "解析语义" : "Parser facets",
   };
+}
+
+export function resolveEmptyCodeAstMessage(locale: UiLocale, selectedResult: SearchResult): string {
+  const copy = copyForLocale(locale);
+  void selectedResult;
+  return copy.empty;
 }
 
 export function buildSignatureParameterRows(signatureParts: CodeAstSignaturePart[]) {
@@ -174,6 +189,14 @@ export async function copyToClipboard(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 
+function buildFacetPayloadLines(facets: CodeAstFacetModel[]): string[] {
+  if (facets.length === 0) {
+    return [];
+  }
+
+  return ["Facets:", ...facets.map((facet) => `- ${facet.label}: ${facet.value}`)];
+}
+
 export function buildDeclarationCopyPayload(declaration: CodeAstDeclarationModel): string {
   return [
     `Declaration: ${declaration.label}`,
@@ -183,6 +206,7 @@ export function buildDeclarationCopyPayload(declaration: CodeAstDeclarationModel
     `Tokens: ~${declaration.atom.tokenEstimate}`,
     `Path: ${declaration.path}`,
     declaration.line ? `Line: L${declaration.line}` : null,
+    ...buildFacetPayloadLines(declaration.facets),
     "",
     declaration.signature,
   ]
@@ -200,6 +224,7 @@ export function buildBlockCopyPayload(block: CodeAstBlockModel): string {
     `Tokens: ~${block.atom.tokenEstimate}`,
     `Range: ${block.lineRange}`,
     block.anchors.length > 0 ? `Anchors: ${block.anchors.join(", ")}` : null,
+    ...buildFacetPayloadLines(block.facets),
     "",
     block.excerpt,
   ]
@@ -218,6 +243,7 @@ export function buildSymbolCopyPayload(symbol: CodeAstSymbolModel): string {
     `Path: ${symbol.path}`,
     symbol.line ? `Line: L${symbol.line}` : null,
     `References: ${symbol.references}`,
+    ...buildFacetPayloadLines(symbol.facets),
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n")

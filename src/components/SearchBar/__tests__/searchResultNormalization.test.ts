@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canOpenGraphForSearchResult,
   normalizeCodeSearchHit,
+  normalizeRepoDocCoverageHit,
   resolveDefinitionSelection,
   toSearchSelection,
 } from "../searchResultNormalization";
@@ -77,6 +78,39 @@ describe("searchResultNormalization repo hit metadata", () => {
     expect(result.codeRepo).toBe("sciml");
     expect(result.codeKind).toBe("module");
     expect(result.codeLanguage).toBe("julia");
+  });
+
+  it("projects repo doc coverage targets into code-facing navigation metadata", () => {
+    const result = normalizeRepoDocCoverageHit({
+      repoId: "ModelingToolkitStandardLibrary.jl",
+      docId:
+        "repo:ModelingToolkitStandardLibrary.jl:doc:src/Blocks/continuous.jl#symbol-id:repo:demo:symbol:Demo.solve@10",
+      title: "solve",
+      path: "src/Blocks/continuous.jl#symbol-id:repo:demo:symbol:Demo.solve@10",
+      format: "julia_docstring",
+      docTarget: {
+        kind: "symbol",
+        name: "solve",
+        path: "Demo.solve",
+        lineStart: 10,
+        lineEnd: 12,
+      },
+    });
+
+    expect(result.codeLanguage).toBe("julia");
+    expect(result.bestSection).toBe("doc · symbol · solve · lines 10-12");
+    expect(result.matchReason).toBe("Demo.solve");
+    expect(result.line).toBe(10);
+    expect(result.lineEnd).toBe(12);
+    expect(result.navigationTarget).toEqual({
+      path: "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl#symbol-id:repo:demo:symbol:Demo.solve@10",
+      category: "repo_code",
+      projectName: "ModelingToolkitStandardLibrary.jl",
+      line: 10,
+      lineEnd: 12,
+      graphPath:
+        "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl#symbol-id:repo:demo:symbol:Demo.solve@10",
+    });
   });
 
   it("preserves mixed-case repo tags for repo-backed code hits and selection paths", () => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SearchExecutionOutcome, SearchMeta } from "../searchExecutionTypes";
@@ -68,6 +68,20 @@ function createOutcome(query: string, stem: string): SearchExecutionOutcome {
   };
 }
 
+function createMultiResultOutcome(query: string, stems: string[]): SearchExecutionOutcome {
+  return {
+    results: stems.map(createSearchResult),
+    meta: {
+      query,
+      hitCount: stems.length,
+      selectedMode: "code_search",
+      searchMode: "code_search",
+      intent: "code_search",
+      intentConfidence: 0.97,
+    },
+  };
+}
+
 interface HarnessProps {
   isOpen?: boolean;
   queryToSearch: string;
@@ -98,6 +112,9 @@ function Harness({ isOpen = true, queryToSearch }: HarnessProps) {
       <div data-testid="loading">{isLoading ? "loading" : "idle"}</div>
       <div data-testid="error">{error ?? ""}</div>
       <div data-testid="selected-index">{String(resultSelectedIndex)}</div>
+      <button type="button" onClick={() => setResultSelectedIndex(1)}>
+        select-1
+      </button>
     </div>
   );
 }
@@ -110,15 +127,31 @@ describe("useSearchExecution", () => {
   it("keeps the latest all-scope code-filtered query results when an older response resolves later", async () => {
     const firstQuery = createDeferred<SearchExecutionOutcome>();
     const secondQuery = createDeferred<SearchExecutionOutcome>();
+    const receivedSignals: AbortSignal[] = [];
 
     mocks.executeSearchQuery
-      .mockImplementationOnce(() => firstQuery.promise)
-      .mockImplementationOnce(() => secondQuery.promise);
+      .mockImplementationOnce((_, __, options?: { signal?: AbortSignal }) => {
+        if (options?.signal) {
+          receivedSignals.push(options.signal);
+        }
+        return firstQuery.promise;
+      })
+      .mockImplementationOnce((_, __, options?: { signal?: AbortSignal }) => {
+        if (options?.signal) {
+          receivedSignals.push(options.signal);
+        }
+        return secondQuery.promise;
+      });
 
     const { rerender } = render(<Harness queryToSearch="sec lang:julia" />);
 
     await waitFor(() => {
-      expect(mocks.executeSearchQuery).toHaveBeenNthCalledWith(1, "sec lang:julia", "all", {});
+      expect(mocks.executeSearchQuery).toHaveBeenNthCalledWith(
+        1,
+        "sec lang:julia",
+        "all",
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
 
     rerender(<Harness queryToSearch="sec lang:julia kind:function" />);
@@ -128,9 +161,13 @@ describe("useSearchExecution", () => {
         2,
         "sec lang:julia kind:function",
         "all",
-        {},
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
+
+    expect(receivedSignals).toHaveLength(2);
+    expect(receivedSignals[0]?.aborted).toBe(true);
+    expect(receivedSignals[1]?.aborted).toBe(false);
 
     await act(async () => {
       secondQuery.resolve(createOutcome("sec lang:julia kind:function", "solve"));
@@ -154,6 +191,47 @@ describe("useSearchExecution", () => {
       expect(screen.getByTestId("results")).not.toHaveTextContent("sectionize");
       expect(screen.getByTestId("meta-query")).toHaveTextContent("sec lang:julia kind:function");
       expect(screen.getByTestId("error")).toHaveTextContent("");
+    });
+  });
+
+  it("commits progressive all-mode outcomes before the final merge and keeps the current selection", async () => {
+    const finalOutcome = createDeferred<SearchExecutionOutcome>();
+
+    mocks.executeSearchQuery.mockImplementation(
+      async (
+        _query,
+        _mode,
+        options?: { onProgress?: (outcome: SearchExecutionOutcome) => void },
+      ) => {
+        options?.onProgress?.(createOutcome("solver", "solve"));
+        return finalOutcome.promise;
+      },
+    );
+
+    render(<Harness queryToSearch="solver" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("results")).toHaveTextContent("solve");
+      expect(screen.getByTestId("meta-query")).toHaveTextContent("solver");
+      expect(screen.getByTestId("loading")).toHaveTextContent("loading");
+      expect(screen.getByTestId("selected-index")).toHaveTextContent("0");
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "select-1" }).click();
+    });
+
+    expect(screen.getByTestId("selected-index")).toHaveTextContent("1");
+
+    await act(async () => {
+      finalOutcome.resolve(createMultiResultOutcome("solver", ["solve", "sectionize"]));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("results")).toHaveTextContent("solve,sectionize");
+      expect(screen.getByTestId("loading")).toHaveTextContent("idle");
+      expect(screen.getByTestId("selected-index")).toHaveTextContent("1");
     });
   });
 });

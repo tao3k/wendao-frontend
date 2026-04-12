@@ -90,15 +90,15 @@ describe("createRspackDevServer", () => {
       context: ["/api"],
       target: "http://127.0.0.1:9517",
       changeOrigin: true,
-      proxyTimeout: 15_000,
-      timeout: 15_000,
+      proxyTimeout: 30_000,
+      timeout: 30_000,
     });
     expect(flightProxy).toMatchObject({
       context: ["/arrow.flight.protocol.FlightService"],
       target: "http://127.0.0.1:9517",
       changeOrigin: true,
-      proxyTimeout: 15_000,
-      timeout: 15_000,
+      proxyTimeout: 30_000,
+      timeout: 30_000,
     });
     expect(gatewayProxy?.agent).toBeInstanceOf(Object);
     expect(devServer).toMatchObject({

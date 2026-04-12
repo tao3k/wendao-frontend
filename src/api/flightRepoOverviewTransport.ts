@@ -24,14 +24,18 @@ export interface RepoOverviewFlightRequest {
   baseUrl: string;
   schemaVersion: string;
   repo: string;
+  signal?: AbortSignal;
 }
 
 interface FlightServiceClientLike {
   getFlightInfo(
     descriptor: FlightDescriptor,
-    options?: { headers?: HeadersInit },
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
   ): Promise<FlightInfo>;
-  doGet(ticket: Ticket, options?: { headers?: HeadersInit }): AsyncIterable<FlightData>;
+  doGet(
+    ticket: Ticket,
+    options?: { headers?: HeadersInit; signal?: AbortSignal },
+  ): AsyncIterable<FlightData>;
 }
 
 export interface FlightRepoOverviewTransportDeps {
@@ -65,10 +69,16 @@ export async function loadRepoOverviewFlight(
   const headers = buildRepoOverviewFlightHeaders(request);
 
   try {
-    const flightInfo = await client.getFlightInfo(descriptor, { headers });
+    const flightInfo = await client.getFlightInfo(descriptor, {
+      headers,
+      signal: request.signal,
+    });
     const ticket = readFlightTicket(flightInfo);
     const frames: FlightData[] = [];
-    for await (const frame of client.doGet(ticket, { headers })) {
+    for await (const frame of client.doGet(ticket, {
+      headers,
+      signal: request.signal,
+    })) {
       frames.push(frame);
     }
     const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);

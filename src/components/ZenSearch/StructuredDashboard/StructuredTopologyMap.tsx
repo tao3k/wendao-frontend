@@ -249,11 +249,14 @@ export const StructuredTopologyMap: React.FC<StructuredTopologyMapProps> = ({
     onFocusChange?.(null);
   }, [centerFocusKey, totalNodes, totalLinks, onFocusChange]);
 
-  const handleActivate = useCallback((query?: string) => {
-    if (query) {
-      onPivotQuery?.(query);
-    }
-  }, [onPivotQuery]);
+  const handleActivate = useCallback(
+    (query?: string) => {
+      if (query) {
+        onPivotQuery?.(query);
+      }
+    },
+    [onPivotQuery],
+  );
   const handleToggleIncoming = useCallback(() => {
     setVisibleSides((current) => ({ ...current, incoming: !current.incoming }));
   }, []);
@@ -347,91 +350,97 @@ export const StructuredTopologyMap: React.FC<StructuredTopologyMapProps> = ({
           role="img"
           aria-label={locale === "zh" ? "局部连通图" : "Local Connectome"}
         >
-        <defs>
-          <linearGradient id="structured-topology-center-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(125, 207, 255, 0.85)" />
-            <stop offset="100%" stopColor="rgba(125, 207, 255, 0.42)" />
-          </linearGradient>
-        </defs>
+          <defs>
+            <linearGradient
+              id="structured-topology-center-fill"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="rgba(125, 207, 255, 0.85)" />
+              <stop offset="100%" stopColor="rgba(125, 207, 255, 0.42)" />
+            </linearGradient>
+          </defs>
 
-        <g className="structured-topology-map__links">
-          {visibleInboundNodes.map((node) => {
-            const { x, y } = getNodePosition(node);
-            const isActive = focusedAnchorId === node.id;
-            const isDimmed = focusedAnchorId !== null && !isActive;
-            return (
-              <line
-                key={`incoming-${node.id}`}
-                className={`structured-topology-map__link structured-topology-map__link--incoming${
-                  isDimmed ? " structured-topology-map__link--dimmed" : ""
-                }`}
-                x1={x + NODE_RADIUS}
-                y1={y}
-                x2={CENTER_X - CENTER_RADIUS}
-                y2={CENTER_Y}
-              />
-            );
-          })}
-          {visibleOutboundNodes.map((node) => {
-            const { x, y } = getNodePosition(node);
-            const isActive = focusedAnchorId === node.id;
-            const isDimmed = focusedAnchorId !== null && !isActive;
-            return (
-              <line
-                key={`outgoing-${node.id}`}
-                className={`structured-topology-map__link structured-topology-map__link--outgoing${
-                  isDimmed ? " structured-topology-map__link--dimmed" : ""
-                }`}
-                x1={CENTER_X + CENTER_RADIUS}
-                y1={CENTER_Y}
-                x2={x - NODE_RADIUS}
-                y2={y}
-              />
-            );
-          })}
-        </g>
+          <g className="structured-topology-map__links">
+            {visibleInboundNodes.map((node) => {
+              const { x, y } = getNodePosition(node);
+              const isActive = focusedAnchorId === node.id;
+              const isDimmed = focusedAnchorId !== null && !isActive;
+              return (
+                <line
+                  key={`incoming-${node.id}`}
+                  className={`structured-topology-map__link structured-topology-map__link--incoming${
+                    isDimmed ? " structured-topology-map__link--dimmed" : ""
+                  }`}
+                  x1={x + NODE_RADIUS}
+                  y1={y}
+                  x2={CENTER_X - CENTER_RADIUS}
+                  y2={CENTER_Y}
+                />
+              );
+            })}
+            {visibleOutboundNodes.map((node) => {
+              const { x, y } = getNodePosition(node);
+              const isActive = focusedAnchorId === node.id;
+              const isDimmed = focusedAnchorId !== null && !isActive;
+              return (
+                <line
+                  key={`outgoing-${node.id}`}
+                  className={`structured-topology-map__link structured-topology-map__link--outgoing${
+                    isDimmed ? " structured-topology-map__link--dimmed" : ""
+                  }`}
+                  x1={CENTER_X + CENTER_RADIUS}
+                  y1={CENTER_Y}
+                  x2={x - NODE_RADIUS}
+                  y2={y}
+                />
+              );
+            })}
+          </g>
 
-        <g
-          className={`structured-topology-map__node structured-topology-map__node--center${
-            focusedAnchorId !== null && focusedAnchorId !== centerFocusKey
-              ? " structured-topology-map__node--dimmed"
-              : ""
-          }${focusedAnchorId === centerFocusKey ? " structured-topology-map__node--active" : ""}`}
-          tabIndex={0}
-          aria-label={centerLabel}
-          transform={`translate(${CENTER_X}, ${CENTER_Y})`}
-          onClick={handleCenterClick}
-          onKeyDown={handleCenterKeyDown}
-        >
-          <title>{centerPath || centerLabel}</title>
-          <circle r={CENTER_RADIUS} />
-          <text className="structured-topology-map__node-label" textAnchor="middle" dy="-4">
-            {centerLabel}
-          </text>
-          {centerPath && (
-            <text className="structured-topology-map__node-path" textAnchor="middle" dy="14">
-              {centerPath}
+          <g
+            className={`structured-topology-map__node structured-topology-map__node--center${
+              focusedAnchorId !== null && focusedAnchorId !== centerFocusKey
+                ? " structured-topology-map__node--dimmed"
+                : ""
+            }${focusedAnchorId === centerFocusKey ? " structured-topology-map__node--active" : ""}`}
+            tabIndex={0}
+            aria-label={centerLabel}
+            transform={`translate(${CENTER_X}, ${CENTER_Y})`}
+            onClick={handleCenterClick}
+            onKeyDown={handleCenterKeyDown}
+          >
+            <title>{centerPath || centerLabel}</title>
+            <circle r={CENTER_RADIUS} />
+            <text className="structured-topology-map__node-label" textAnchor="middle" dy="-4">
+              {centerLabel}
             </text>
-          )}
-        </g>
+            {centerPath && (
+              <text className="structured-topology-map__node-path" textAnchor="middle" dy="14">
+                {centerPath}
+              </text>
+            )}
+          </g>
 
-        {visibleInboundNodes.map((node) => (
-          <StructuredTopologyMapNode
-            key={`incoming-node-${node.id}`}
-            node={node}
-            side="incoming"
-            focusedAnchorId={focusedAnchorId}
-          />
-        ))}
+          {visibleInboundNodes.map((node) => (
+            <StructuredTopologyMapNode
+              key={`incoming-node-${node.id}`}
+              node={node}
+              side="incoming"
+              focusedAnchorId={focusedAnchorId}
+            />
+          ))}
 
-        {visibleOutboundNodes.map((node) => (
-          <StructuredTopologyMapNode
-            key={`outgoing-node-${node.id}`}
-            node={node}
-            side="outgoing"
-            focusedAnchorId={focusedAnchorId}
-          />
-        ))}
+          {visibleOutboundNodes.map((node) => (
+            <StructuredTopologyMapNode
+              key={`outgoing-node-${node.id}`}
+              node={node}
+              side="outgoing"
+              focusedAnchorId={focusedAnchorId}
+            />
+          ))}
         </svg>
         <div style={TOPOLOGY_MAP_OVERLAY_STYLE} aria-hidden="false">
           <StructuredTopologyOverlayButton

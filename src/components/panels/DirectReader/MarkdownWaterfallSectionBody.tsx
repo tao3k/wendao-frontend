@@ -4,18 +4,19 @@ import rehypeKatex from "rehype-katex";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import type { PluggableList } from "unified";
 import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from "../../../api";
 import { remarkBiLinks } from "./markdownWaterfallBiLinks";
 import { buildMarkdownComponents, directReaderUrlTransform } from "./markdownWaterfallComponents";
 import type { MarkdownSection, MarkdownWaterfallCopy } from "./markdownWaterfallShared";
 
-const MARKDOWN_WATERFALL_REMARK_PLUGINS = Object.freeze([
+const MARKDOWN_WATERFALL_REMARK_PLUGINS: PluggableList = [
   remarkFrontmatter,
   remarkGfm,
   remarkMath,
   remarkBiLinks,
-]);
-const MARKDOWN_WATERFALL_REHYPE_PLUGINS = Object.freeze([rehypeKatex]);
+];
+const MARKDOWN_WATERFALL_REHYPE_PLUGINS: PluggableList = [rehypeKatex];
 
 interface MarkdownWaterfallSectionBodyProps {
   activeSection: MarkdownSection;

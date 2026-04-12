@@ -65,6 +65,22 @@ export function selectPreferredProjectionSource(analysis: MarkdownAnalysisRespon
   return source.length > 0 ? source : null;
 }
 
+export function selectPreferredRenderableProjectionSource(
+  analysis: MarkdownAnalysisResponse,
+): string | null {
+  const projection =
+    analysis.projections.find((item) => item.kind === "flowchart") ??
+    analysis.projections.find((item) => item.kind === "graph") ??
+    null;
+
+  if (!projection) {
+    return null;
+  }
+
+  const source = projection.source.trim();
+  return source.length > 0 ? source : null;
+}
+
 export function selectPreferredCodeProjectionSource(
   analysis: CodeAstAnalysisResponse,
 ): string | null {

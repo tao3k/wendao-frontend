@@ -590,14 +590,12 @@ describe("api client Julia deployment artifact contract", () => {
   });
 
   it("loads the Studio Julia deployment artifact as TOML text", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response('artifact_schema_version = "v1"\nroute = "/rerank"\n', {
-          status: 200,
-          headers: { "Content-Type": "text/plain" },
-        }),
-      );
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response('artifact_schema_version = "v1"\nroute = "/rerank"\n', {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      }),
+    );
 
     const toml = await api.getJuliaDeploymentArtifactToml();
 

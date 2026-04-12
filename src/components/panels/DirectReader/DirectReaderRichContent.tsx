@@ -5,6 +5,7 @@ import rehypeKatex from "rehype-katex";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import type { PluggableList } from "unified";
 import "katex/dist/katex.min.css";
 import { CodeSyntaxHighlighter } from "../../code-syntax";
 import { MarkdownWaterfall } from "./MarkdownWaterfall";
@@ -16,13 +17,13 @@ import {
 } from "../mermaidRuntime";
 import { decodeBiLinkHref, hasInternalUriPrefix, remarkBiLinks } from "./markdownWaterfallBiLinks";
 
-const DIRECT_READER_RICH_REMARK_PLUGINS = [
+const DIRECT_READER_RICH_REMARK_PLUGINS: PluggableList = [
   remarkFrontmatter,
   remarkGfm,
   remarkMath,
   remarkBiLinks,
-] as const;
-const DIRECT_READER_RICH_REHYPE_PLUGINS = [rehypeKatex] as const;
+];
+const DIRECT_READER_RICH_REHYPE_PLUGINS: PluggableList = [rehypeKatex];
 const DIRECT_READER_MERMAID_INNER_HTML = (svg: string) => ({ __html: svg });
 
 interface DirectReaderRichContentCopy {
@@ -57,12 +58,7 @@ const DirectReaderBiLinkButton = React.memo(function DirectReaderBiLinkButton({
   }, [link, onBiLinkClick]);
 
   return (
-    <button
-      type="button"
-      className="direct-reader__bilink"
-      data-link={link}
-      onClick={handleClick}
-    >
+    <button type="button" className="direct-reader__bilink" data-link={link} onClick={handleClick}>
       {children}
     </button>
   );

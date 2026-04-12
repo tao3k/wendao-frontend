@@ -1,8 +1,8 @@
-import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { RepoDiagnosticsPage } from "./RepoDiagnosticsPage";
 import { api } from "../api";
+import type { RepoIndexStatusResponse } from "../api/apiContracts";
 import type { RepoIndexStatus } from "./statusBar/types";
 
 vi.mock("../api", () => ({
@@ -53,7 +53,7 @@ const baseRepoIndexStatus: RepoIndexStatus = {
   ],
 };
 
-const refreshedRepoIndexResponse = {
+const refreshedRepoIndexResponse: RepoIndexStatusResponse = {
   total: 6,
   queued: 1,
   checking: 0,
@@ -62,6 +62,9 @@ const refreshedRepoIndexResponse = {
   ready: 2,
   unsupported: 2,
   failed: 1,
+  targetConcurrency: 3,
+  maxConcurrency: 15,
+  syncConcurrencyLimit: 2,
   repos: [
     {
       repoId: "RetryLater.jl",
@@ -144,7 +147,9 @@ describe("RepoDiagnosticsPage", () => {
       configurable: true,
       value: revokeObjectUrlMock,
     });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(anchorClickMock);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
+      anchorClickMock as unknown as () => void,
+    );
   });
 
   afterEach(() => {
@@ -228,7 +233,7 @@ describe("RepoDiagnosticsPage", () => {
 
   it("retries the selected failed repo from the detail pane", async () => {
     window.location.hash = "#repo-diagnostics?filter=failed&failedReason=socket%20timeout";
-    vi.mocked(api.enqueueRepoIndex).mockResolvedValue(undefined);
+    vi.mocked(api.enqueueRepoIndex).mockResolvedValue(refreshedRepoIndexResponse);
     vi.mocked(api.getRepoIndexStatus).mockResolvedValue(refreshedRepoIndexResponse);
     const onStatusChange = vi.fn();
 

@@ -1,5 +1,8 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { AsyncMermaidViewport } from "./AsyncMermaidViewport";
+import { DiagramPreviewDialog } from "./DiagramPreviewDialog";
 import { MermaidViewport } from "./MermaidViewport";
+import { resolveMermaidViewportTuning } from "./mermaidViewportTuning";
 import type { MermaidRenderResult } from "./mermaidRenderResults";
 import type { DiagramWindowWorkspaceCopy } from "./diagramWindowTypes";
 
@@ -23,9 +26,12 @@ interface DiagramWindowWorkspaceProps {
   isSplitMode: boolean;
   mermaidResetToken: number;
   renderedMermaid: MermaidRenderResult[];
+  activeMermaidIndex: number;
   copy: DiagramWindowWorkspaceCopy;
   onNodeClick: (name: string, type: string, id: string) => void;
 }
+
+type DiagramPreviewState = { kind: "bpmn" } | { kind: "mermaid"; index: number };
 
 export function DiagramWindowWorkspace({
   path,
@@ -36,63 +42,185 @@ export function DiagramWindowWorkspace({
   isSplitMode,
   mermaidResetToken,
   renderedMermaid,
+  activeMermaidIndex,
   copy,
   onNodeClick,
 }: DiagramWindowWorkspaceProps): React.ReactElement {
-  return (
-    <div
-      className={`diagram-window__workspace ${
-        isSplitMode ? "diagram-window__workspace--split" : "diagram-window__workspace--single"
-      }`}
-    >
-      {showBpmn ? (
-        <section className="diagram-window__diagram diagram-window__diagram--bpmn">
-          <div className="diagram-window__panel-title">{copy.panelBpmn}</div>
-          <div className="diagram-window__frame diagram-window__frame--bpmn">
-            <Suspense fallback={renderDiagramWindowBpmnFallback(copy.bpmnLoading)}>
-              <LazySovereignTopology
-                xml={content}
-                onNodeClick={onNodeClick}
-                containerClassName="diagram-window__topology-canvas"
-              />
-            </Suspense>
-          </div>
-        </section>
-      ) : null}
+  const [preview, setPreview] = useState<DiagramPreviewState | null>(null);
 
-      {showMermaid ? (
-        <section className="diagram-window__diagram diagram-window__diagram--mermaid">
-          <div className="diagram-window__panel-title">{copy.panelMermaid}</div>
-          {renderedMermaid.length > 0 ? (
-            <div className="diagram-window__mermaid-stack">
-              {renderedMermaid.map((block, index) => (
-                <div key={`mermaid-${index}`} className="diagram-window__mermaid-card">
-                  <div className="diagram-window__block-title">
-                    {copy.diagramIndexPrefix} {index + 1}
-                  </div>
-                  {block.svg ? (
-                    <MermaidViewport
-                      svg={block.svg}
-                      ariaLabel={`${copy.modeMermaidAria} ${index + 1}`}
-                      resetToken={mermaidResetToken}
-                      focusKey={`${path}:${focusEpoch}`}
-                    />
-                  ) : (
-                    <>
-                      <div className="diagram-window__mermaid-error">
-                        {copy.mermaidRenderFailedPrefix}: {block.error}
-                      </div>
-                      <pre className="diagram-window__mermaid-source">{block.source}</pre>
-                    </>
-                  )}
-                </div>
-              ))}
+  useEffect(() => {
+    setPreview(null);
+  }, [path]);
+  const activeMermaidBlock = renderedMermaid[activeMermaidIndex] ?? null;
+  const activeMermaidViewportTuning = useMemo(
+    () => (activeMermaidBlock ? resolveMermaidViewportTuning(activeMermaidBlock, false) : null),
+    [activeMermaidBlock],
+  );
+
+  const previewMermaidBlock = useMemo(() => {
+    if (!preview || preview.kind !== "mermaid") {
+      return null;
+    }
+
+    return renderedMermaid[preview.index] ?? null;
+  }, [preview, renderedMermaid]);
+  const previewMermaidViewportTuning = useMemo(
+    () => (previewMermaidBlock ? resolveMermaidViewportTuning(previewMermaidBlock, true) : null),
+    [previewMermaidBlock],
+  );
+
+  useEffect(() => {
+    if (preview?.kind === "bpmn" && !showBpmn) {
+      setPreview(null);
+      return;
+    }
+
+    if (preview?.kind === "mermaid" && !previewMermaidBlock) {
+      setPreview(null);
+    }
+  }, [preview, previewMermaidBlock, showBpmn]);
+
+  const previewTitle =
+    preview?.kind === "bpmn"
+      ? copy.panelBpmn
+      : `${copy.panelMermaid} ${copy.diagramIndexPrefix} ${(preview?.kind === "mermaid" ? preview.index : 0) + 1}`;
+
+  return (
+    <>
+      <div
+        className={`diagram-window__workspace ${
+          isSplitMode ? "diagram-window__workspace--split" : "diagram-window__workspace--single"
+        }`}
+      >
+        {showBpmn ? (
+          <section className="diagram-window__diagram diagram-window__diagram--bpmn">
+            <div className="diagram-window__panel-title">{copy.panelBpmn}</div>
+            <div
+              className="diagram-window__frame diagram-window__frame--bpmn"
+              onDoubleClick={() => {
+                setPreview({ kind: "bpmn" });
+              }}
+            >
+              <Suspense fallback={renderDiagramWindowBpmnFallback(copy.bpmnLoading)}>
+                <LazySovereignTopology
+                  xml={content}
+                  onNodeClick={onNodeClick}
+                  containerClassName="diagram-window__topology-canvas"
+                  fitViewportScale={1.68}
+                />
+              </Suspense>
             </div>
-          ) : (
-            <p className="diagram-window__message">{copy.noMermaidBody}</p>
-          )}
-        </section>
+          </section>
+        ) : null}
+
+        {showMermaid ? (
+          <section className="diagram-window__diagram diagram-window__diagram--mermaid">
+            <div className="diagram-window__panel-title">{copy.panelMermaid}</div>
+            {renderedMermaid.length > 0 ? (
+              <div className="diagram-window__mermaid-stack">
+                {activeMermaidBlock ? (
+                  <div
+                    key={`mermaid-${activeMermaidIndex}`}
+                    className="diagram-window__mermaid-card"
+                  >
+                    {activeMermaidBlock.svg ? (
+                      <MermaidViewport
+                        svg={activeMermaidBlock.svg}
+                        ariaLabel={`${copy.modeMermaidAria} ${activeMermaidIndex + 1}`}
+                        resetToken={mermaidResetToken}
+                        focusKey={`${path}:${focusEpoch}`}
+                        fitPadding={activeMermaidViewportTuning?.fitPadding}
+                        fitScaleBoost={activeMermaidViewportTuning?.fitScaleBoost}
+                        nodeGlyphScale={activeMermaidViewportTuning?.nodeGlyphScale}
+                        onOpenPreview={() => {
+                          setPreview({ kind: "mermaid", index: activeMermaidIndex });
+                        }}
+                      />
+                    ) : activeMermaidBlock.renderMode === "official-runtime" ? (
+                      <AsyncMermaidViewport
+                        source={activeMermaidBlock.source}
+                        ariaLabel={`${copy.modeMermaidAria} ${activeMermaidIndex + 1}`}
+                        resetToken={mermaidResetToken}
+                        focusKey={`${path}:${focusEpoch}`}
+                        loadingLabel={copy.mermaidLoading}
+                        renderFailedPrefix={copy.mermaidRenderFailedPrefix}
+                        fitPadding={activeMermaidViewportTuning?.fitPadding}
+                        fitScaleBoost={activeMermaidViewportTuning?.fitScaleBoost}
+                        nodeGlyphScale={activeMermaidViewportTuning?.nodeGlyphScale}
+                        onOpenPreview={() => {
+                          setPreview({ kind: "mermaid", index: activeMermaidIndex });
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <div className="diagram-window__mermaid-error">
+                          {copy.mermaidRenderFailedPrefix}: {activeMermaidBlock.error}
+                        </div>
+                        <pre className="diagram-window__mermaid-source">
+                          {activeMermaidBlock.source}
+                        </pre>
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="diagram-window__message">{copy.noMermaidBody}</p>
+            )}
+          </section>
+        ) : null}
+      </div>
+
+      {preview ? (
+        <DiagramPreviewDialog
+          ariaLabel={copy.immersivePreviewAria}
+          title={previewTitle}
+          kicker={copy.immersivePreviewLabel}
+          closeLabel={copy.closePreviewLabel}
+          onClose={() => {
+            setPreview(null);
+          }}
+        >
+          {preview.kind === "bpmn" ? (
+            <div className="diagram-window__preview-stage diagram-window__preview-stage--bpmn">
+              <Suspense fallback={renderDiagramWindowBpmnFallback(copy.bpmnLoading)}>
+                <LazySovereignTopology
+                  xml={content}
+                  onNodeClick={onNodeClick}
+                  containerClassName="diagram-window__topology-canvas"
+                  fitViewportScale={2.05}
+                />
+              </Suspense>
+            </div>
+          ) : previewMermaidBlock ? (
+            <div className="diagram-window__preview-stage diagram-window__preview-stage--mermaid">
+              {previewMermaidBlock.renderMode === "official-runtime" ? (
+                <AsyncMermaidViewport
+                  source={previewMermaidBlock.source}
+                  ariaLabel={`${copy.modeMermaidAria} ${preview.index + 1}`}
+                  resetToken={0}
+                  focusKey={`${path}:${focusEpoch}:preview:${preview.index}`}
+                  loadingLabel={copy.mermaidLoading}
+                  renderFailedPrefix={copy.mermaidRenderFailedPrefix}
+                  fitPadding={previewMermaidViewportTuning?.fitPadding}
+                  fitScaleBoost={previewMermaidViewportTuning?.fitScaleBoost}
+                  nodeGlyphScale={previewMermaidViewportTuning?.nodeGlyphScale}
+                />
+              ) : (
+                <MermaidViewport
+                  svg={previewMermaidBlock.svg ?? ""}
+                  ariaLabel={`${copy.modeMermaidAria} ${preview.index + 1}`}
+                  resetToken={0}
+                  focusKey={`${path}:${focusEpoch}:preview:${preview.index}`}
+                  fitPadding={previewMermaidViewportTuning?.fitPadding}
+                  fitScaleBoost={previewMermaidViewportTuning?.fitScaleBoost}
+                  nodeGlyphScale={previewMermaidViewportTuning?.nodeGlyphScale}
+                />
+              )}
+            </div>
+          ) : null}
+        </DiagramPreviewDialog>
       ) : null}
-    </div>
+    </>
   );
 }

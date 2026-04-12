@@ -187,6 +187,7 @@ export function renderFragmentCards(
     value: string;
     query?: string;
     language?: string;
+    detail?: string;
   }>,
   syntaxLanguage: string | null,
   sourcePath: string | null,
@@ -201,9 +202,11 @@ export function renderFragmentCards(
       {items.map((item, index) => (
         <div key={`${item.kind}-${item.label}-${index}`} className="structured-fragment-card">
           <div className="structured-fragment-card__header">
-            <div className="structured-fragment-card__title">
-              {item.kind}
-              {item.language ? ` · ${item.language}` : ""}
+            <div className="structured-fragment-card__heading">
+              <div className="structured-fragment-card__title">{item.label}</div>
+              {item.detail ? (
+                <div className="structured-fragment-card__meta">{item.detail}</div>
+              ) : null}
             </div>
             {item.query && (
               <StructuredFragmentQueryButton query={item.query} onPivotQuery={onPivotQuery} />

@@ -11,7 +11,12 @@ interface ToolbarProps {
 }
 
 function getButtonClassName(active = false): string {
-  return ["btn", "toolbar-btn", "neon-glow--blue", active ? "toolbar-btn--active animate-breathe" : ""]
+  return [
+    "btn",
+    "toolbar-btn",
+    "neon-glow--blue",
+    active ? "toolbar-btn--active animate-breathe" : "",
+  ]
     .filter(Boolean)
     .join(" ");
 }

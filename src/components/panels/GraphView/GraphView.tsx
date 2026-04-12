@@ -718,9 +718,9 @@ export const GraphView: React.FC<GraphViewProps> = ({
       layerBuckets.set(layer, (layerBuckets.get(layer) || 0) + 1);
     });
 
-    return [...layerBuckets.entries()]
-      .toSorted((a, b) => a[0] - b[0])
-      .map(([layer, count]) => ({ layer, count }));
+    return Array.from(layerBuckets.entries())
+      .toSorted((left: [number, number], right: [number, number]) => left[0] - right[0])
+      .map(([layer, count]: [number, number]) => ({ layer, count }));
   }, [graphData]);
 
   const hoveredLayer = hoveredNode ? Math.max(0, Math.round(hoveredNode.distance ?? 0)) : null;
@@ -880,9 +880,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
             className="graph-view-stage-panel graph-view-stage-panel--3d"
             aria-label={copy.aria3dMap}
           >
-            <Suspense
-              fallback={GRAPH_VIEW_3D_FALLBACK(copy.runtimePreparing)}
-            >
+            <Suspense fallback={GRAPH_VIEW_3D_FALLBACK(copy.runtimePreparing)}>
               <GraphView3DStage
                 nodes={nebulaNodes}
                 links={nebulaLinks}

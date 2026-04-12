@@ -7,6 +7,7 @@ import type {
   StudioNavigationTarget,
   Topology3D,
 } from "./bindings";
+import { isArrowIpcPayloadEmpty, type ArrowIpcPayload } from "./arrowIpcPayload";
 
 type ArrowRowRecord = Record<string, unknown>;
 
@@ -81,8 +82,8 @@ function decodeLink(row: ArrowRowRecord): GraphLink {
   };
 }
 
-export function decodeGraphNeighborsFromArrowIpc(payload: ArrayBuffer): GraphNeighborsResponse {
-  if (payload.byteLength === 0) {
+export function decodeGraphNeighborsFromArrowIpc(payload: ArrowIpcPayload): GraphNeighborsResponse {
+  if (isArrowIpcPayloadEmpty(payload)) {
     throw new Error("Arrow graph payload is empty");
   }
 
@@ -118,8 +119,8 @@ export function decodeGraphNeighborsFromArrowIpc(payload: ArrayBuffer): GraphNei
   };
 }
 
-export function decodeTopology3DFromArrowIpc(payload: ArrayBuffer): Topology3D {
-  if (payload.byteLength === 0) {
+export function decodeTopology3DFromArrowIpc(payload: ArrowIpcPayload): Topology3D {
+  if (isArrowIpcPayloadEmpty(payload)) {
     return { nodes: [], links: [], clusters: [] };
   }
 

@@ -117,6 +117,11 @@ describe("Arrow attachment search IPC decoder", () => {
         title: ["README"],
         path: ["README.md"],
         format: ["markdown"],
+        targetKind: ["symbol"],
+        targetName: ["solve"],
+        targetPath: ["GatewaySyncPkg.solve"],
+        targetLineStart: [18],
+        targetLineEnd: [24],
       }),
       "stream",
     );
@@ -128,6 +133,13 @@ describe("Arrow attachment search IPC decoder", () => {
         title: "README",
         path: "README.md",
         format: "markdown",
+        docTarget: {
+          kind: "symbol",
+          name: "solve",
+          path: "GatewaySyncPkg.solve",
+          lineStart: 18,
+          lineEnd: 24,
+        },
       },
     ]);
   });

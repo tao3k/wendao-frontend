@@ -19,6 +19,8 @@ export function useSearchBarController({
   onReferencesResultSelect,
   onGraphResultSelect,
   onRuntimeStatusChange,
+  queryDebounceMs,
+  autocompleteDebounceMs,
 }: UseSearchBarControllerParams): SearchBarControllerResult {
   const {
     query,
@@ -43,7 +45,10 @@ export function useSearchBarController({
     setIsComposing,
     debouncedQuery,
     debouncedAutocomplete,
-  } = useSearchBarControllerState();
+  } = useSearchBarControllerState({
+    queryDebounceMs,
+    autocompleteDebounceMs,
+  });
 
   const copy = SEARCH_BAR_COPY[locale];
   const inputRef = useRef<HTMLInputElement>(null);

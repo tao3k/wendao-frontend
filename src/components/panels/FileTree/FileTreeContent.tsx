@@ -1,11 +1,11 @@
-import React from "react";
+import type { ReactElement, ReactNode } from "react";
 import type { FileTreeCopy } from "./types";
 
 interface FileTreeContentProps {
   copy: FileTreeCopy;
   error: string | null;
   onRetryGatewaySync: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function FileTreeContent({
@@ -13,7 +13,7 @@ export function FileTreeContent({
   error,
   onRetryGatewaySync,
   children,
-}: FileTreeContentProps): JSX.Element {
+}: FileTreeContentProps): ReactElement {
   return (
     <div className="file-tree-content">
       {error ? (

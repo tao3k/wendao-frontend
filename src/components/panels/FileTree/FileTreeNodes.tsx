@@ -1,4 +1,4 @@
-import React from "react";
+import type { ReactElement } from "react";
 import { TreeNode } from "./TreeNode";
 import type { FileNode, FileTreeLocale, OnFileSelect } from "./types";
 
@@ -18,7 +18,7 @@ export function FileTreeNodes({
   selectedPath,
   expandedPaths,
   toggleExpand,
-}: FileTreeNodesProps): JSX.Element {
+}: FileTreeNodesProps): ReactElement {
   return (
     <>
       {nodes.map((node) => (

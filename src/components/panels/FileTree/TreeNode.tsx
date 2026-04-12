@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import { useCallback, useMemo, type CSSProperties, type ReactElement } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -13,8 +13,8 @@ import {
 import { requestRepoIndexPriority } from "../../repoIndexPriority";
 import type { FileNode, FileTreeLocale, OnFileSelect } from "./types";
 
-const FILE_TREE_EMPTY_CHEVRON_STYLE = Object.freeze({ width: 14 });
-const FILE_TREE_HIDDEN_CHEVRON_STYLE = Object.freeze({ opacity: 0 });
+const FILE_TREE_EMPTY_CHEVRON_STYLE: CSSProperties = Object.freeze({ width: 14 });
+const FILE_TREE_HIDDEN_CHEVRON_STYLE: CSSProperties = Object.freeze({ opacity: 0 });
 
 interface TreeNodeProps {
   node: FileNode;
@@ -62,14 +62,14 @@ export function TreeNode({
   selectedPath,
   expandedPaths,
   toggleExpand,
-}: TreeNodeProps): JSX.Element {
+}: TreeNodeProps): ReactElement {
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
   const hasChildren = node.children && node.children.length > 0;
   const isProjectPlaceholder = node.isProjectPlaceholder === true;
   const groupSummary =
     node.rootLabel && node.rootLabel !== node.name && !node.isProjectGroup ? node.rootLabel : null;
-  const itemPaddingStyle = React.useMemo(
+  const itemPaddingStyle = useMemo(
     () => ({ paddingLeft: `${Math.min(node.level, 8) * 8 + 6}px` }),
     [node.level],
   );

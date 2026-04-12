@@ -25,6 +25,41 @@ function isSemanticGraphNodeId(path: string): boolean {
   return /^[a-z][a-z0-9+.-]*:/i.test(path);
 }
 
+function normalizeComparableSelectionPath(path: string): string {
+  return stripInternalWorkspacePrefix(path).trim();
+}
+
+export function preferMoreCanonicalSelectionPath(
+  resultPath: string,
+  navigationPath?: string,
+): string {
+  const trimmedResultPath = resultPath.trim();
+  const trimmedNavigationPath = navigationPath?.trim() ?? "";
+  if (!trimmedNavigationPath) {
+    return trimmedResultPath;
+  }
+  if (!trimmedResultPath) {
+    return trimmedNavigationPath;
+  }
+
+  const normalizedResultPath = normalizeComparableSelectionPath(trimmedResultPath);
+  const normalizedNavigationPath = normalizeComparableSelectionPath(trimmedNavigationPath);
+  if (!normalizedResultPath) {
+    return trimmedNavigationPath;
+  }
+  if (!normalizedNavigationPath || normalizedNavigationPath === normalizedResultPath) {
+    return trimmedNavigationPath;
+  }
+  if (isSemanticGraphNodeId(normalizedNavigationPath)) {
+    return trimmedNavigationPath;
+  }
+  if (normalizedResultPath.endsWith(`/${normalizedNavigationPath}`)) {
+    return trimmedResultPath;
+  }
+
+  return trimmedNavigationPath;
+}
+
 export function normalizeSelectionPathForVfs(selection: SelectionPathLike): string {
   const normalizedPath = stripInternalWorkspacePrefix(selection.path);
   if (normalizedPath.length === 0) {

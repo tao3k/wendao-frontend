@@ -4,12 +4,9 @@ import { StudioBootstrap } from "./StudioBootstrap";
 
 const mocks = vi.hoisted(() => ({
   health: vi.fn(),
-  setUiConfig: vi.fn(),
+  getUiConfig: vi.fn(),
   getUiCapabilities: vi.fn(),
   scanVfs: vi.fn(),
-  getConfig: vi.fn(),
-  resetConfig: vi.fn(),
-  toUiConfig: vi.fn(),
   appSpy: vi.fn(),
 }));
 
@@ -23,16 +20,10 @@ vi.mock("./App", () => ({
 vi.mock("./api", () => ({
   api: {
     health: mocks.health,
-    setUiConfig: mocks.setUiConfig,
+    getUiConfig: mocks.getUiConfig,
     getUiCapabilities: mocks.getUiCapabilities,
     scanVfs: mocks.scanVfs,
   },
-}));
-
-vi.mock("./config/loader", () => ({
-  getConfig: mocks.getConfig,
-  resetConfig: mocks.resetConfig,
-  toUiConfig: mocks.toUiConfig,
 }));
 
 describe("StudioBootstrap", () => {
@@ -40,33 +31,19 @@ describe("StudioBootstrap", () => {
     vi.clearAllMocks();
     vi.useRealTimers();
     window.localStorage.setItem("qianji-ui-locale", "en");
-    mocks.getConfig.mockResolvedValue({
-      gateway: {
-        bind: "127.0.0.1:9517",
-      },
-      link_graph: {
-        projects: {
-          kernel: {
-            root: ".",
-            dirs: ["docs"],
-          },
-        },
-      },
-    });
-    mocks.toUiConfig.mockReturnValue({
+    mocks.health.mockResolvedValue("ok");
+    mocks.getUiConfig.mockResolvedValue({
       projects: [
         {
-          name: "kernel",
+          name: "main",
           root: ".",
           dirs: ["docs"],
         },
       ],
     });
-    mocks.health.mockResolvedValue("ok");
-    mocks.setUiConfig.mockResolvedValue(undefined);
     mocks.getUiCapabilities.mockResolvedValue({
       supportedLanguages: ["julia", "modelica"],
-      supportedRepositories: ["kernel", "sciml"],
+      supportedRepositories: ["main", "sciml"],
       supportedKinds: ["function", "module", "struct"],
     });
   });
@@ -75,24 +52,15 @@ describe("StudioBootstrap", () => {
     vi.useRealTimers();
   });
 
-  it("renders the studio app after gateway health and config sync succeed", async () => {
+  it("renders the studio app after gateway health and ui-config load succeed", async () => {
     render(<StudioBootstrap />);
 
     await waitFor(() => {
       expect(screen.getByTestId("studio-app")).toBeInTheDocument();
     });
 
-    expect(mocks.resetConfig).toHaveBeenCalledTimes(1);
     expect(mocks.health).toHaveBeenCalledTimes(1);
-    expect(mocks.setUiConfig).toHaveBeenCalledWith({
-      projects: [
-        {
-          name: "kernel",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-    });
+    expect(mocks.getUiConfig).toHaveBeenCalledTimes(1);
     expect(mocks.getUiCapabilities).toHaveBeenCalledTimes(1);
     expect(mocks.scanVfs).not.toHaveBeenCalled();
   });
@@ -106,13 +74,12 @@ describe("StudioBootstrap", () => {
       expect(screen.getByText("Studio startup blocked")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("gateway.bind = 127.0.0.1:9517")).toBeInTheDocument();
     expect(screen.getByText("connect ECONNREFUSED")).toBeInTheDocument();
     expect(screen.queryByTestId("studio-app")).not.toBeInTheDocument();
   });
 
-  it("blocks studio startup when wendao.toml loading fails", async () => {
-    mocks.getConfig.mockRejectedValue(new Error("wendao.toml must define [gateway].bind"));
+  it("blocks studio startup when gateway ui config loading fails", async () => {
+    mocks.getUiConfig.mockRejectedValue(new Error("HTTP 404: Not Found"));
 
     render(<StudioBootstrap />);
 
@@ -120,9 +87,9 @@ describe("StudioBootstrap", () => {
       expect(screen.getByText("Studio startup blocked")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("wendao.toml must define [gateway].bind")).toBeInTheDocument();
-    expect(mocks.health).not.toHaveBeenCalled();
-    expect(mocks.setUiConfig).not.toHaveBeenCalled();
+    expect(screen.getByText("HTTP 404: Not Found")).toBeInTheDocument();
+    expect(mocks.health).toHaveBeenCalledTimes(1);
+    expect(mocks.getUiCapabilities).not.toHaveBeenCalled();
   });
 
   it("retries the studio bootstrap after a blocked startup", async () => {
@@ -147,11 +114,20 @@ describe("StudioBootstrap", () => {
   });
 
   it("keeps the bootstrap surface blank while loading so startup does not flash a panel", async () => {
-    let releaseConfigSync: (() => void) | null = null;
-    mocks.setUiConfig.mockImplementation(
+    let releaseUiConfig: (() => void) | null = null;
+    mocks.getUiConfig.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          releaseConfigSync = resolve;
+        new Promise((resolve) => {
+          releaseUiConfig = () =>
+            resolve({
+              projects: [
+                {
+                  name: "main",
+                  root: ".",
+                  dirs: ["docs"],
+                },
+              ],
+            });
         }),
     );
 
@@ -165,7 +141,7 @@ describe("StudioBootstrap", () => {
     expect(screen.queryByText("Studio bootstrap")).not.toBeInTheDocument();
     expect(screen.queryByText("Studio startup blocked")).not.toBeInTheDocument();
 
-    releaseConfigSync?.();
+    releaseUiConfig?.();
 
     await waitFor(() => {
       expect(screen.getByTestId("studio-app")).toBeInTheDocument();

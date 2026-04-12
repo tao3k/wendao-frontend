@@ -64,12 +64,7 @@
       }
     },
     {
-      "files": [
-        "scripts/**/*.mjs",
-        "scripts/**/*.ts",
-        "rspack.config.ts",
-        "vitest.config.ts"
-      ],
+      "files": ["scripts/**/*.mjs", "scripts/**/*.ts", "rspack.config.ts", "vitest.config.ts"],
       "env": {
         "node": true,
         "es2022": true

@@ -31,6 +31,7 @@
     "framer-motion": "^12.35.0",
     "katex": "^0.16.35",
     "lucide-react": "^0.577.0",
+    "mermaid": "^11.14.0",
     "postprocessing": "^6.38.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

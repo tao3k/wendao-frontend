@@ -1,6 +1,9 @@
 [gateway]
 bind = "127.0.0.1:9517"
 
+[search.cache]
+valkey_url = "redis://127.0.0.1:6379/0"
+
 [link_graph.projects."ADTypes.jl"]
 dirs = []
 url = "https://github.com/SciML/ADTypes.jl.git"
@@ -1057,15 +1060,12 @@ url = "https://github.com/SciML/deSolveDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.kernel]
+
+[link_graph.projects.frontend]
 root = "."
 dirs = ["docs"]
 plugins = []
 
-[link_graph.projects.main]
-root = "~/ghq/github.com/tao3k/xiuxian-artisan-workshop"
-dirs = ["docs", "internal_skills"]
-plugins = []
 
 [link_graph.projects.mcl]
 dirs = []

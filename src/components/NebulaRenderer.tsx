@@ -978,10 +978,7 @@ export const NebulaRenderer: React.FC<NebulaRendererProps> = ({
       {links.length > 0 && (
         <lineSegments ref={lineMeshRef}>
           <bufferGeometry>
-            <bufferAttribute
-              attach="attributes-position"
-              args={lineBufferAttributeArgs}
-            />
+            <bufferAttribute attach="attributes-position" args={lineBufferAttributeArgs} />
           </bufferGeometry>
           <lineBasicMaterial color="#7dcfff" transparent opacity={0.3} />
         </lineSegments>

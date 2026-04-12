@@ -458,12 +458,14 @@ export function collectFailureReasons(
       sampleErrors: rawReason && rawReason.length > 0 ? [rawReason] : [],
     });
   }
-  return Array.from(groupedReasons.values()).toSorted((left, right) => {
-    if (right.count !== left.count) {
-      return right.count - left.count;
-    }
-    return left.label.localeCompare(right.label);
-  });
+  return Array.from(groupedReasons.values()).toSorted(
+    (left: RepoIndexFailureReasonSummary, right: RepoIndexFailureReasonSummary) => {
+      if (right.count !== left.count) {
+        return right.count - left.count;
+      }
+      return left.label.localeCompare(right.label);
+    },
+  );
 }
 
 export function buildUnsupportedManifest(reasons: RepoIndexUnsupportedReason[]): string {

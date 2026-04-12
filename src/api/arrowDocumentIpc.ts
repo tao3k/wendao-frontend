@@ -1,12 +1,23 @@
 import { tableFromIPC } from "apache-arrow";
 
-import type {
-  ProjectedPageIndexNode,
-  ProjectedPageIndexTree,
-  RefineEntityDocResponse,
-} from "./bindings";
+import type { ProjectedPageIndexNode, ProjectedPageIndexTree } from "./bindings";
+import type { RefineEntityDocResponse } from "./apiContracts";
+import { isArrowIpcPayloadEmpty, type ArrowIpcPayload } from "./arrowIpcPayload";
 
 type ArrowRowRecord = Record<string, unknown>;
+
+function coerceFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "bigint") {
+    const converted = Number(value);
+    if (Number.isSafeInteger(converted)) {
+      return converted;
+    }
+  }
+  return undefined;
+}
 
 function requireString(row: ArrowRowRecord, key: string): string {
   const value = row[key];
@@ -17,8 +28,8 @@ function requireString(row: ArrowRowRecord, key: string): string {
 }
 
 function requireNumber(row: ArrowRowRecord, key: string): number {
-  const value = row[key];
-  if (typeof value === "number" && Number.isFinite(value)) {
+  const value = coerceFiniteNumber(row[key]);
+  if (typeof value === "number") {
     return value;
   }
   throw new Error(`Arrow document payload is missing required numeric field "${key}"`);
@@ -27,13 +38,10 @@ function requireNumber(row: ArrowRowRecord, key: string): number {
 function normalizeLineRange(value: unknown): [number, number] {
   if (Array.isArray(value) && value.length === 2) {
     const [start, end] = value;
-    if (
-      typeof start === "number" &&
-      Number.isFinite(start) &&
-      typeof end === "number" &&
-      Number.isFinite(end)
-    ) {
-      return [start, end];
+    const normalizedStart = coerceFiniteNumber(start);
+    const normalizedEnd = coerceFiniteNumber(end);
+    if (typeof normalizedStart === "number" && typeof normalizedEnd === "number") {
+      return [normalizedStart, normalizedEnd];
     }
   }
   return [0, 0];
@@ -47,15 +55,12 @@ function normalizeProjectedPageIndexNode(value: unknown): ProjectedPageIndexNode
   return {
     node_id: typeof record.node_id === "string" ? record.node_id : "",
     title: typeof record.title === "string" ? record.title : "",
-    level: typeof record.level === "number" && Number.isFinite(record.level) ? record.level : 0,
+    level: coerceFiniteNumber(record.level) ?? 0,
     structural_path: Array.isArray(record.structural_path)
       ? record.structural_path.filter((item): item is string => typeof item === "string")
       : [],
     line_range: normalizeLineRange(record.line_range),
-    token_count:
-      typeof record.token_count === "number" && Number.isFinite(record.token_count)
-        ? record.token_count
-        : 0,
+    token_count: coerceFiniteNumber(record.token_count) ?? 0,
     is_thinned: record.is_thinned === true,
     text: typeof record.text === "string" ? record.text : "",
     children,
@@ -71,9 +76,9 @@ function parseRootsJson(value: unknown): ProjectedPageIndexNode[] {
 }
 
 export function decodeProjectedPageIndexTreeFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): ProjectedPageIndexTree | undefined {
-  if (payload.byteLength === 0) {
+  if (isArrowIpcPayloadEmpty(payload)) {
     return undefined;
   }
   const table = tableFromIPC(payload);
@@ -93,9 +98,9 @@ export function decodeProjectedPageIndexTreeFromArrowIpc(
 }
 
 export function decodeRefineEntityDocResponseFromArrowIpc(
-  payload: ArrayBuffer,
+  payload: ArrowIpcPayload,
 ): RefineEntityDocResponse | undefined {
-  if (payload.byteLength === 0) {
+  if (isArrowIpcPayloadEmpty(payload)) {
     return undefined;
   }
   const table = tableFromIPC(payload);

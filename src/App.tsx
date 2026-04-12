@@ -12,6 +12,7 @@ import {
   type RuntimeStatus,
   type VfsStatus,
 } from "./components";
+import type { SearchSelection } from "./components/SearchBar/types";
 import { useEditorStore } from "./stores";
 import { useAccessibility, useKeyboardShortcuts, type ShortcutDefinition } from "./hooks";
 import { AcademicTopology } from "./types";
@@ -510,7 +511,7 @@ function App() {
 
   // Handle search result selection
   const handleSearchResultSelect = useCallback(
-    async (selection: FileSelection) => {
+    async (selection: SearchSelection) => {
       const hydrated = await hydrateSelectedFile(selection);
       if (!hydrated) {
         return;
@@ -525,7 +526,7 @@ function App() {
   );
 
   const handleSearchResultGraphSelect = useCallback(
-    async (selection: FileSelection) => {
+    async (selection: SearchSelection) => {
       const hydrated = await hydrateSelectedFile(selection);
       if (!hydrated) {
         return;
@@ -540,7 +541,7 @@ function App() {
   );
 
   const handleSearchResultReferencesSelect = useCallback(
-    async (selection: FileSelection) => {
+    async (selection: SearchSelection) => {
       const hydrated = await hydrateSelectedFile(selection);
       if (!hydrated) {
         return;
@@ -741,8 +742,8 @@ function App() {
   }, [loadExample]);
 
   const handleDiscoveryToggle = useCallback(() => {
-    setDiscoveryOpen((current) => !current);
-  }, [setDiscoveryOpen]);
+    setDiscoveryOpen(!discoveryOpen);
+  }, [discoveryOpen, setDiscoveryOpen]);
 
   const handleZenSearchClose = useCallback(() => {
     setViewMode("normal");
@@ -785,11 +786,7 @@ function App() {
             <button type="button" className="example-item" onClick={handleDiscoveryClose}>
               Empty workspace
             </button>
-            <button
-              type="button"
-              className="example-item"
-              onClick={handleLoadAdministrativeZones}
-            >
+            <button type="button" className="example-item" onClick={handleLoadAdministrativeZones}>
               🏛️ Gov Administration (Complex)
             </button>
           </div>

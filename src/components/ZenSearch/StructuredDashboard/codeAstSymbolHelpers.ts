@@ -2,7 +2,11 @@ import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
 } from "../../../api";
-import { buildCodeAstRetrievalAtom, resolveDisplayRetrievalAtom } from "./codeAstRetrievalHelpers";
+import {
+  buildCodeAstRetrievalAtom,
+  resolveDisplayRetrievalAtom,
+  toDisplayRetrievalAtom,
+} from "./codeAstRetrievalHelpers";
 import { normalizeKind, normalizeText } from "./codeAstProjectionShared";
 import type { CodeAstSymbolGroup, CodeAstSymbolModel } from "./codeAstAnatomy";
 
@@ -11,12 +15,71 @@ function countReferences(analysis: CodeAstAnalysisResponse, nodeId: string): num
     .length;
 }
 
+function deriveFallbackSymbolLabel(atom: ApiCodeAstRetrievalAtom): string {
+  const displayLabel = normalizeText(atom.displayLabel);
+  if (displayLabel?.includes("·")) {
+    return displayLabel.split("·").at(-1)?.trim() ?? displayLabel;
+  }
+
+  return displayLabel ?? normalizeText(atom.ownerId)?.split(":").at(-1) ?? atom.semanticType;
+}
+
 export function buildSymbols(
   analysis: CodeAstAnalysisResponse,
   selectedPath: string,
   focusNodeId: string | null,
   retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>,
 ): CodeAstSymbolModel[] {
+  const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
+  const backendSymbolAtoms = (analysis.retrievalAtoms ?? [])
+    .filter((atom) => atom.surface === "symbol")
+    .toSorted((left, right) => {
+      const leftLine = left.lineStart ?? Number.MAX_SAFE_INTEGER;
+      const rightLine = right.lineStart ?? Number.MAX_SAFE_INTEGER;
+      if (leftLine !== rightLine) {
+        return leftLine - rightLine;
+      }
+      return left.chunkId.localeCompare(right.chunkId);
+    });
+
+  if (backendSymbolAtoms.length > 0) {
+    return backendSymbolAtoms
+      .map((atom, index) => {
+        const node = nodeById.get(atom.ownerId);
+        const path = normalizeText(node?.path) ?? selectedPath;
+        const line = node?.line ?? node?.lineStart ?? atom.lineStart;
+        const label = node?.label ?? deriveFallbackSymbolLabel(atom);
+        const kind = normalizeKind(node?.kind ?? atom.semanticType) || "other";
+        const nodeId = node?.id ?? atom.ownerId;
+
+        return {
+          id: nodeId,
+          label,
+          kind,
+          path,
+          line,
+          references: node ? countReferences(analysis, node.id) : 0,
+          query: label,
+          atom,
+          facets: [],
+        };
+      })
+      .toSorted((left, right) => {
+        if (left.line != null && right.line != null && left.line !== right.line) {
+          return left.line - right.line;
+        }
+        if (left.references !== right.references) {
+          return right.references - left.references;
+        }
+        return left.label.localeCompare(right.label);
+      })
+      .slice(0, 10)
+      .map((symbol, index) => ({
+        ...symbol,
+        atom: toDisplayRetrievalAtom(symbol.atom, index + 5),
+      }));
+  }
+
   const connectedNodeIds = new Set<string>(
     focusNodeId
       ? analysis.edges.flatMap((edge) => {
@@ -91,6 +154,7 @@ export function buildSymbols(
         references: symbol.references,
         query: symbol.query,
         atom,
+        facets: [],
       };
     });
 }

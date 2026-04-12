@@ -32,12 +32,7 @@ const MarkdownWaterfallPillButton = React.memo(function MarkdownWaterfallPillBut
   }, [onBiLinkClick, target]);
 
   return (
-    <button
-      type="button"
-      className="markdown-waterfall__pill"
-      onClick={handleClick}
-      title={target}
-    >
+    <button type="button" className="markdown-waterfall__pill" onClick={handleClick} title={target}>
       {item}
     </button>
   );
@@ -57,22 +52,24 @@ interface MarkdownWaterfallSectionActionButtonProps {
   onClick: () => void;
 }
 
-const MarkdownWaterfallSectionActionButton = React.memo(function MarkdownWaterfallSectionActionButton({
-  label,
-  onClick,
-}: MarkdownWaterfallSectionActionButtonProps): React.ReactElement {
-  return (
-    <button
-      type="button"
-      className="markdown-waterfall__section-action"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-});
+const MarkdownWaterfallSectionActionButton = React.memo(
+  function MarkdownWaterfallSectionActionButton({
+    label,
+    onClick,
+  }: MarkdownWaterfallSectionActionButtonProps): React.ReactElement {
+    return (
+      <button
+        type="button"
+        className="markdown-waterfall__section-action"
+        title={label}
+        aria-label={label}
+        onClick={onClick}
+      >
+        {label}
+      </button>
+    );
+  },
+);
 
 interface MarkdownWaterfallSectionHeaderActionsProps {
   model: ReturnType<typeof buildMarkdownWaterfallModel>;
@@ -81,31 +78,33 @@ interface MarkdownWaterfallSectionHeaderActionsProps {
   onSectionPivot?: (query: string) => void;
 }
 
-const MarkdownWaterfallSectionHeaderActions = React.memo(function MarkdownWaterfallSectionHeaderActions({
-  model,
-  section,
-  copy,
-  onSectionPivot,
-}: MarkdownWaterfallSectionHeaderActionsProps): React.ReactElement {
-  const handleCopy = React.useCallback(() => {
-    void copyToClipboard(buildSectionCopyPayload(model, section, copy));
-  }, [copy, model, section]);
-  const handlePivot = React.useCallback(() => {
-    onSectionPivot?.(buildSectionPivotQuery(model, section, copy));
-  }, [copy, model, onSectionPivot, section]);
+const MarkdownWaterfallSectionHeaderActions = React.memo(
+  function MarkdownWaterfallSectionHeaderActions({
+    model,
+    section,
+    copy,
+    onSectionPivot,
+  }: MarkdownWaterfallSectionHeaderActionsProps): React.ReactElement {
+    const handleCopy = React.useCallback(() => {
+      void copyToClipboard(buildSectionCopyPayload(model, section, copy));
+    }, [copy, model, section]);
+    const handlePivot = React.useCallback(() => {
+      onSectionPivot?.(buildSectionPivotQuery(model, section, copy));
+    }, [copy, model, onSectionPivot, section]);
 
-  return (
-    <div className="markdown-waterfall__section-actions">
-      <MarkdownWaterfallSectionActionButton label={copy.copySectionLabel} onClick={handleCopy} />
-      {onSectionPivot && (
-        <MarkdownWaterfallSectionActionButton
-          label={copy.pivotSectionLabel}
-          onClick={handlePivot}
-        />
-      )}
-    </div>
-  );
-});
+    return (
+      <div className="markdown-waterfall__section-actions">
+        <MarkdownWaterfallSectionActionButton label={copy.copySectionLabel} onClick={handleCopy} />
+        {onSectionPivot && (
+          <MarkdownWaterfallSectionActionButton
+            label={copy.pivotSectionLabel}
+            onClick={handlePivot}
+          />
+        )}
+      </div>
+    );
+  },
+);
 
 export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
   content,

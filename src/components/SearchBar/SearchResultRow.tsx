@@ -75,43 +75,65 @@ export const SearchResultRow = React.memo(function SearchResultRow({
   const codeMetaPills = isCodeResultRow ? buildCodeMetaPills(result, lineRange) : [];
   const hierarchyHint = isCodeResultRow ? resolveHierarchyHint(result) : null;
   const graphActionAvailable = canOpenGraph && canOpenGraphForSearchResult(result);
-  const handleOpenFromContainer = useCallback((
-    event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
-  ) => {
-    onSelectIndex(displayIndex);
-    if (openOnSelect) {
-      onOpen(result, event);
-    }
-  }, [displayIndex, onOpen, onSelectIndex, openOnSelect, result]);
-  const handleContainerKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleOpenFromContainer();
-    }
-  }, [handleOpenFromContainer]);
+  const handleOpenFromContainer = useCallback(
+    (event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
+      onSelectIndex(displayIndex);
+      if (openOnSelect) {
+        onOpen(result, event);
+      }
+    },
+    [displayIndex, onOpen, onSelectIndex, openOnSelect, result],
+  );
+  const handleContainerKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleOpenFromContainer();
+      }
+    },
+    [handleOpenFromContainer],
+  );
   const handleMouseEnter = useCallback(() => {
     onHoverIndex(displayIndex);
   }, [displayIndex, onHoverIndex]);
-  const handleTogglePreview = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onTogglePreviewResult(result);
-  }, [onTogglePreviewResult, result]);
-  const handlePreview = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    onPreview(result, event);
-  }, [onPreview, result]);
-  const handleOpenClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    onOpen(result, event);
-  }, [onOpen, result]);
-  const handleOpenDefinitionClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    void onOpenDefinition(result, event);
-  }, [onOpenDefinition, result]);
-  const handleOpenReferencesClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    onOpenReferences(result, event);
-  }, [onOpenReferences, result]);
-  const handleOpenGraphClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    onOpenGraph(result, event);
-  }, [onOpenGraph, result]);
+  const handleTogglePreview = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onTogglePreviewResult(result);
+    },
+    [onTogglePreviewResult, result],
+  );
+  const handlePreview = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onPreview(result, event);
+    },
+    [onPreview, result],
+  );
+  const handleOpenClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onOpen(result, event);
+    },
+    [onOpen, result],
+  );
+  const handleOpenDefinitionClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      void onOpenDefinition(result, event);
+    },
+    [onOpenDefinition, result],
+  );
+  const handleOpenReferencesClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onOpenReferences(result, event);
+    },
+    [onOpenReferences, result],
+  );
+  const handleOpenGraphClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onOpenGraph(result, event);
+    },
+    [onOpenGraph, result],
+  );
 
   return (
     <div
@@ -194,18 +216,10 @@ export const SearchResultRow = React.memo(function SearchResultRow({
         </div>
 
         <div className="search-result-actions">
-          <button
-            type="button"
-            className="search-result-action"
-            onClick={handlePreview}
-          >
+          <button type="button" className="search-result-action" onClick={handlePreview}>
             {copy.preview}
           </button>
-          <button
-            type="button"
-            className="search-result-action"
-            onClick={handleOpenClick}
-          >
+          <button type="button" className="search-result-action" onClick={handleOpenClick}>
             {copy.open}
           </button>
           <button

@@ -26,6 +26,7 @@ export interface RepoIntelligenceExecutionResult {
 
 interface RepoIntelligenceCodeSearchOptions {
   facet?: RepoOverviewFacet | null;
+  signal?: AbortSignal;
 }
 
 function createEmptyRepoContentSearchResponse(query: string): SearchResponse {
@@ -89,6 +90,7 @@ async function searchFacetWithOverviewFallback<T>(
   facet: Exclude<RepoOverviewFacet, "doc">,
   searchFn: (query: string) => Promise<T>,
   countFn: (result: T) => number,
+  signal?: AbortSignal,
 ): Promise<{
   response: T;
   fallbackApplied?: {
@@ -103,7 +105,9 @@ async function searchFacetWithOverviewFallback<T>(
   }
 
   try {
-    const overview = await api.getRepoOverview(repoFilter);
+    const overview = signal
+      ? await api.getRepoOverview(repoFilter, { signal })
+      : await api.getRepoOverview(repoFilter);
     const fallbackQuery = resolveFallbackQueryFromDisplayName(overview.displayName);
     if (
       !fallbackQuery ||
@@ -154,7 +158,9 @@ export async function executeRepoIntelligenceCodeSearch(
   const facet = options.facet ?? null;
 
   if (facet === "doc") {
-    const response = await api.getRepoDocCoverage(repoFilter);
+    const response = options.signal
+      ? await api.getRepoDocCoverage(repoFilter, undefined, { signal: options.signal })
+      : await api.getRepoDocCoverage(repoFilter);
     const docs = filterDocCoverageByQuery(response, queryToSearch);
     return {
       results: docs.map(normalizeRepoDocCoverageHit),
@@ -175,8 +181,10 @@ export async function executeRepoIntelligenceCodeSearch(
           languageFilters: parsedCodeQuery.filters.language,
           pathPrefixes: parsedCodeQuery.filters.path,
           tagFilters: buildRepoModuleFacetTagFilters(),
+          ...(options.signal ? { signal: options.signal } : {}),
         }),
       (result) => result.hitCount,
+      options.signal,
     );
     return {
       results: response.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
@@ -198,8 +206,10 @@ export async function executeRepoIntelligenceCodeSearch(
           languageFilters: parsedCodeQuery.filters.language,
           pathPrefixes: parsedCodeQuery.filters.path,
           tagFilters: buildRepoExampleFacetTagFilters(),
+          ...(options.signal ? { signal: options.signal } : {}),
         }),
       (result) => result.hitCount,
+      options.signal,
     );
     return {
       results: response.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
@@ -221,12 +231,16 @@ export async function executeRepoIntelligenceCodeSearch(
           languageFilters: parsedCodeQuery.filters.language,
           pathPrefixes: parsedCodeQuery.filters.path,
           tagFilters: buildRepoSymbolFacetTagFilters(parsedCodeQuery),
+          ...(options.signal ? { signal: options.signal } : {}),
         }),
       (result) => result.hitCount,
+      options.signal,
     );
     const referenceSearchPromise =
       parsedCodeQuery.baseQuery.length > 0
-        ? api.searchReferences(symbolQuery, 10)
+        ? options.signal
+          ? api.searchReferences(symbolQuery, 10, { signal: options.signal })
+          : api.searchReferences(symbolQuery, 10)
         : Promise.resolve(createEmptyReferenceSearchResponse(symbolQuery));
     const settled = await Promise.allSettled([symbolSearchPromise, referenceSearchPromise]);
     const failures = settled
@@ -272,12 +286,15 @@ export async function executeRepoIntelligenceCodeSearch(
       ? api.searchRepoContentFlight(repoFilter, parsedCodeQuery.baseQuery, 10, {
           languageFilters: parsedCodeQuery.filters.language,
           pathPrefixes: parsedCodeQuery.filters.path,
+          ...(options.signal ? { signal: options.signal } : {}),
         })
       : Promise.resolve(createEmptyRepoContentSearchResponse(queryToSearch));
 
   const settled = await Promise.allSettled([
     repoContentSearchPromise,
-    api.searchReferences(queryToSearch, 10),
+    options.signal
+      ? api.searchReferences(queryToSearch, 10, { signal: options.signal })
+      : api.searchReferences(queryToSearch, 10),
   ]);
   const failures = settled
     .filter((result): result is PromiseRejectedResult => result.status === "rejected")

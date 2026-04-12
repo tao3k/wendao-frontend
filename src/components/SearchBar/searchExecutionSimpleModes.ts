@@ -17,13 +17,20 @@ import type { SearchExecutionOutcome } from "./searchExecutionTypes";
 
 export type SimpleSearchExecutionMode = "knowledge" | "symbol" | "ast" | "reference" | "attachment";
 
+interface SimpleSearchExecutionOptions {
+  signal?: AbortSignal;
+}
+
 export async function executeSimpleSearchMode(
   queryToSearch: string,
   mode: SimpleSearchExecutionMode,
+  options: SimpleSearchExecutionOptions = {},
 ): Promise<SearchExecutionOutcome> {
   switch (mode) {
     case "reference": {
-      const response: ReferenceSearchResponse = await api.searchReferences(queryToSearch, 10);
+      const response: ReferenceSearchResponse = options.signal
+        ? await api.searchReferences(queryToSearch, 10, { signal: options.signal })
+        : await api.searchReferences(queryToSearch, 10);
       return {
         results: response.hits.map(normalizeReferenceHit),
         meta: {
@@ -34,7 +41,9 @@ export async function executeSimpleSearchMode(
       };
     }
     case "attachment": {
-      const response: AttachmentSearchResponse = await api.searchAttachments(queryToSearch, 10);
+      const response: AttachmentSearchResponse = options.signal
+        ? await api.searchAttachments(queryToSearch, 10, { signal: options.signal })
+        : await api.searchAttachments(queryToSearch, 10);
       return {
         results: response.hits.map(normalizeAttachmentHit),
         meta: {
@@ -45,7 +54,9 @@ export async function executeSimpleSearchMode(
       };
     }
     case "ast": {
-      const response: AstSearchResponse = await api.searchAst(queryToSearch, 10);
+      const response: AstSearchResponse = options.signal
+        ? await api.searchAst(queryToSearch, 10, { signal: options.signal })
+        : await api.searchAst(queryToSearch, 10);
       return {
         results: response.hits.map(normalizeAstHit),
         meta: {
@@ -56,7 +67,9 @@ export async function executeSimpleSearchMode(
       };
     }
     case "symbol": {
-      const response: SymbolSearchResponse = await api.searchSymbols(queryToSearch, 10);
+      const response: SymbolSearchResponse = options.signal
+        ? await api.searchSymbols(queryToSearch, 10, { signal: options.signal })
+        : await api.searchSymbols(queryToSearch, 10);
       return {
         results: response.hits.map(normalizeSymbolHit),
         meta: {
@@ -72,6 +85,7 @@ export async function executeSimpleSearchMode(
     case "knowledge": {
       const response: SearchResponse = await api.searchKnowledge(queryToSearch, 10, {
         intent: "knowledge_lookup",
+        ...(options.signal ? { signal: options.signal } : {}),
       });
       return {
         results: response.hits.map(normalizeKnowledgeHit),

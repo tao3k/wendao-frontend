@@ -42,6 +42,110 @@ consumes one coherent build-tooling barrel instead of a flat import list. The
 normalized `scripts/rspack/*` tree plus the normalized `scripts/build/*`
 surface now define the active build helper surface.
 
+For strict TypeScript verification, prefer the direct project-local compiler
+binary instead of `npm exec tsc` indirection:
+
+```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && ./node_modules/.bin/tsc --noEmit'
+```
+
+The current closure strategy remains bounded by feature area. API contract and
+Arrow IPC slices should clear the touched `src/api/*` strict errors directly
+instead of widening scope into unrelated dashboard or build-tooling debt in the
+same change.
+
+As of `2026-04-05`, the active API contract and Arrow IPC closure slice has
+cleared the touched `src/api/*` TypeScript failures under
+`./node_modules/.bin/tsc --noEmit --pretty false`. The remaining strict
+TypeScript frontier sits outside the bounded API lane, primarily in
+`scripts/rspack/*`, broader app/search surfaces, and ZenSearch or
+StructuredDashboard component debt.
+
+The immediate next bounded closure slice is the build-tooling declaration seam:
+`scripts/rspack/*.mjs`, `scripts/build/*.mjs`, and the related `src/build/*`
+tests should publish precise colocated declarations instead of widening the
+whole frontend to ambient `*.mjs` fallbacks.
+
+As of `2026-04-05`, that build-tooling declaration seam is now closed:
+`scripts/rspack/*.mjs`, `scripts/build/*.mjs`, and the touched `src/build/*`
+tests no longer appear in `./node_modules/.bin/tsc --noEmit --pretty false`.
+The remaining strict TypeScript frontier has moved on to broader app and UI
+surfaces such as `src/App*`, `DiagramWindow`, `DirectReader`, `FileTree`,
+`SearchBar`, and ZenSearch or StructuredDashboard.
+
+As of `2026-04-05`, the bounded app-shell slice is now closed:
+`src/App.tsx` and `src/App.test.tsx` no longer appear in
+`./node_modules/.bin/tsc --noEmit --pretty false`. The touched fixes align the
+editor-store discovery toggle with its real boolean setter contract and move
+the app-shell tests onto the shared `SearchSelection` and
+`MainViewGraphSelection` callback shapes instead of narrower local rewrites.
+
+As of `2026-04-05`, the bounded `DiagramWindow` slice is also now closed:
+the shared `mermaidUnsupported` copy field is propagated through the
+`DiagramWindow` view-model and workspace builder chain, and the touched
+`DiagramWindow` tests now track the canonical shared copy contract. The
+remaining strict TypeScript frontier has moved on to `CosmicBackground`,
+`DirectReader`, `FileTree`, `SearchBar`, and ZenSearch or StructuredDashboard.
+
+As of `2026-04-05`, the bounded render-hygiene slice is also now closed:
+`src/components/CosmicBackground.tsx` no longer carries the readonly `dpr`
+tuple drift, and
+`src/components/code-syntax/CodeSyntaxHighlighter.test.tsx` no longer appears
+in the strict compiler output because the stale unused `React` import is gone.
+The remaining strict TypeScript frontier now starts at the `DirectReader`
+cluster.
+
+As of `2026-04-05`, the bounded `DirectReader` lane is now closed:
+the render/parser seam no longer reports missing `parseBiLink`, null scroll
+handoff, or readonly markdown plugin-array drift, and the waterfall-model seam
+now aligns the local markdown AST narrowing with frontmatter and heading
+handling while `MarkdownAnalysisResponse` accepts observation nodes used by the
+active retrieval surface. The remaining strict TypeScript frontier now starts
+at `FileTree`.
+
+As of `2026-04-05`, the bounded `FileTree` lane is now closed:
+the panel components now align with the automatic JSX runtime, the local
+repo-index and tree-model helpers no longer rely on `toSorted(...)` or
+implicit-`any`, and the touched repo-index fixture now matches the current
+concurrency-bearing response contract. The remaining strict TypeScript frontier
+now starts at `GraphView`, then flows into `MainView`, `PropertyEditor`,
+`VfsSidebar`, and repo-diagnostics surfaces.
+
+As of `2026-04-05`, the bounded `GraphView` lane is now closed:
+the touched `GraphSVG` regression no longer carries a stale runtime `React`
+import, and the stage-summary aggregation in `GraphView.tsx` now uses explicit
+stable sorting instead of `toSorted(...)` and implicit-`any` callbacks. The
+remaining strict TypeScript frontier now starts at `MainView`, then flows into
+`PropertyEditor`, `VfsSidebar`, and repo-diagnostics surfaces.
+
+As of `2026-04-05`, the bounded `MainView` lane is now closed:
+the touched selected-file fixtures now match the `MainViewSelectedFile`
+contract, the local tests no longer rely on `toSorted(...)`, and
+`MainViewDiagramPanel.tsx` now narrows selected content before handing it to
+`DiagramWindow`. The remaining strict TypeScript frontier now starts at
+`PropertyEditor`, then flows into `VfsSidebar` and repo-diagnostics surfaces.
+
+As of `2026-04-05`, the bounded `PropertyEditor` lane is now closed:
+the graph-summary aggregation chain now uses explicit typed sorting, lookup,
+and reduction instead of `toSorted(...)` and implicit callback parameters. The
+remaining strict TypeScript frontier now starts at `VfsSidebar`, then flows
+into repo-diagnostics surfaces.
+
+As of `2026-04-05`, the bounded `VfsSidebar` lane is now closed:
+the touched test no longer carries a stale runtime `React` import, and the
+sidebar tree sorting now uses explicit stable arrays and typed callbacks
+instead of `toSorted(...)`. The remaining strict TypeScript frontier now starts
+at repo diagnostics.
+
+As of `2026-04-05`, the bounded repo-diagnostics lane is now closed:
+`RepoDiagnosticsDrawer.tsx`, `repoDiagnostics/state.ts`,
+`RepoDiagnosticsPage.tsx`, and `RepoDiagnosticsPage.test.tsx` now use the
+automatic JSX runtime, explicit stable sorting, and current repo-index test
+contracts. Strict `tsc --noEmit --pretty false` no longer reports
+repo-diagnostics surfaces. The remaining strict TypeScript frontier now starts
+at `SearchBar`, then flows into `ZenSearch`, controllers, and shared
+surfaces.
+
 ## Gateway Configuration
 
 The frontend resolves its default gateway target from:
@@ -216,11 +320,11 @@ gateway-startup control-plane failures such as `EADDRNOTAVAIL` during the
 for search/repo status to settle before measured runs begin, so a
 just-restarted local gateway no longer pollutes the perf suite with bootstrap
 noise. The latest same-port `127.0.0.1:9517` steady-state rerun after the
-runtime `DoGet` encoded-frame reuse slice plus the explicit `react-virtuoso`
-list-budget contract reports `2.49ms` average, `5.17ms` P95, with
-`GetFlightInfo` averaging `0.91ms`, `DoGet` averaging `0.78ms`, and the shared
-hotspot artifact carrying `19` scenario records across the default
-`179`-repository config. The full report is in
+restarted-gateway contract rerun reports `1.95ms` average and `2.39ms` P95,
+with `GetFlightInfo` averaging `0.72ms`, `DoGet` averaging `0.65ms`, and the
+shared hotspot artifact still carrying `19` scenario records across the
+default `179`-repository config while the live gateway suites remain green.
+The full report is in
 [`docs/05_research/308_live_flight_search_perf_report.md`](./docs/05_research/308_live_flight_search_perf_report.md).
 
 ## Current Runtime Surface
@@ -351,7 +455,9 @@ hotspot artifact carrying `19` scenario records across the default
 - The left-pane SearchBar now also assembles its visible result list, section stack, and code-filter catalog through local Arrow-backed view helpers, so scope filtering, code-filter matching, dedupe, sort, and code facet extraction run against shared columnar tables before the existing `SearchResult[]` rows and section props are handed back to the UI
 - SearchBar all-mode execution now delegates its multi-lane aggregation, fallback shaping, and merged runtime warning assembly to `searchExecutionAllMode.ts`, so the main execution file no longer owns the largest cross-lane branch inline
 - SearchBar all-mode execution now further delegates fallback response builders and merged result/meta shaping to `searchExecutionAllModeHelpers.ts`, so the all-mode module itself is down to fan-out orchestration plus settled-lane resolution
-- SearchBar all-mode execution now also preserves repo-aware code-search options from ZenSearch default scope, strips inline `repo:` filters before the semantic lanes are issued, keeps the default repo-aware lane on repo-search Flight plus Flight-backed references, and still forwards the raw repo-aware query into backend `code_search` intent metadata, so repo-scoped code queries work from the default full-screen search surface instead of only from dedicated code mode
+- SearchBar all-mode execution now also preserves repo-aware code-search options from ZenSearch default scope, including repo facets derived from inline `kind:` and documentation-like `path:` filters; it strips inline `repo:` filters before the semantic lanes are issued, keeps the default repo-aware lane on repo-search Flight plus Flight-backed references, forwards facet-aware repo queries into dedicated repo doc-coverage or repo-search Flight lanes when available, and still sends the raw repo-aware query into backend `code_search` intent metadata, so repo-scoped code queries work from the default full-screen search surface instead of only from dedicated code mode
+- SearchBar all-mode execution now also skips the extra backend `code_search` metadata lane for explicit repo `doc`, `module`, and `example` facets, so those default-scope repo facet queries pay only for the hybrid lane plus the dedicated repo doc-coverage or repo-search Flight lane instead of a third mostly-redundant backend request
+- SearchBar all-mode execution now also prunes its supplemental AST, references, symbols, and attachments fan-out whenever the query is already code-scoped via inline code filters or an active repo facet, so `all` mode keeps the hybrid plus code lanes for code-focused queries instead of paying for stripped-query supplemental lanes that are usually noisy and expensive
 - The frontend live gateway suite now also covers the JSON repo-intelligence search surface in `src/api/liveRepoSearchGateway.test.ts`, so live repo search no longer rides only on unit mocks while same-origin Flight `code_search` is verified separately in `src/api/liveCodeSearchGateway.test.ts`
 - SearchBar code-mode execution now also delegates its repo-aware orchestration, backend intent metadata resolution, and fallback result shaping to `searchExecutionCodeMode.ts`, so the main execution file no longer owns the repo-specific code branch inline
 - SearchBar code-mode execution now further delegates repo-aware settled-result resolution, fallback selection, and standalone code-search shaping to `searchExecutionCodeModeHelpers.ts`, so the code-mode module itself is down to fan-out orchestration and route selection
@@ -377,7 +483,8 @@ hotspot artifact carrying `19` scenario records across the default
 - `compact-flow` now also supports flowchart decision nodes as bounded diamond nodes, so the current bakeoff corpus is green for the spike provider across the targeted flowchart subset
 - `compact-flow` now also supports single-layer state composite blocks through the same bounded group-shell pattern used for flowchart subgraphs, so the bakeoff corpus is green across the currently targeted flowchart/state subset; nested composites and richer state-machine semantics remain intentionally unsupported
 - Studio capabilities no longer advertise a browser Arrow search transport; the active Julia deployment inspection surface now points directly at the Flight `/rerank` route and `/healthz`
-- DiagramWindow now renders the same MarkdownWaterfall fallback for markdown-backed files when no embedded Mermaid or BPMN diagram body is available, instead of collapsing to the empty diagram hint; the fallback identity card keeps the `Title / Tags / Linked` hierarchy visible before the section stack
+- DiagramWindow now keeps the diagram tab diagram-only: markdown-backed and code-backed files no longer fall back to the same MarkdownWaterfall content surface used by the content tab, and non-embedded diagrams now prefer `/api/analysis/markdown` or `/api/analysis/code-ast` `nodes/edges` to build the diagram graph; plain markdown still synthesizes a local heading-outline Mermaid flowchart only when no structured analysis graph or renderable fallback source exists
+- DiagramWindow `Switch layout` is now a bounded structure-driven Mermaid view compiler: supported `flowchart` and `state` sources can recompile the current parsed graph into alternate flow directions plus derived `Sequence` and `State` views, supported `sequenceDiagram` sources can derive flowchart directions plus a `State` view, supported `erDiagram` sources can derive flowchart directions, markdown/code analysis `nodes/edges` now normalize into the same graph IR before layout compilation, and backend projection `source` stays on the fallback path instead of driving the primary switch contract
 - MainView content and diagram panels now hold a loading fallback while selected file content is still hydrating, which avoids flashing the empty hint during gateway reconnects
 
 ## Documentation

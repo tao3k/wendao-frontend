@@ -1,6 +1,8 @@
 import type { Configuration, SwcLoaderOptions } from "@rspack/core";
 import { RSPACK_TARGETS } from "./build-profile";
 
+type RspackModuleRules = NonNullable<NonNullable<Configuration["module"]>["rules"]>;
+
 export function createSwcRule({
   isDev,
   targets = [...RSPACK_TARGETS],
@@ -40,7 +42,7 @@ export function createRspackModuleRules({
 }: {
   isDev: boolean;
   targets?: string[];
-}): NonNullable<Configuration["module"]>["rules"] {
+}): RspackModuleRules {
   return [
     {
       test: /\.svg$/,

@@ -5,6 +5,19 @@ export interface RepoBacklinkItem {
   kind?: string;
 }
 
+export interface RefineEntityDocRequest {
+  repo_id: string;
+  entity_id: string;
+  user_hints?: string;
+}
+
+export interface RefineEntityDocResponse {
+  repo_id: string;
+  entity_id: string;
+  refined_content: string;
+  verification_state: string;
+}
+
 export interface RepoOverviewResponse {
   repoId: string;
   displayName: string;
@@ -17,12 +30,21 @@ export interface RepoOverviewResponse {
   hierarchy?: string[];
 }
 
+export interface RepoDocCoverageTarget {
+  kind: string;
+  name: string;
+  path?: string;
+  lineStart?: number;
+  lineEnd?: number;
+}
+
 export interface RepoDocCoverageDoc {
   repoId: string;
   docId: string;
   title: string;
   path: string;
   format: string;
+  docTarget?: RepoDocCoverageTarget;
 }
 
 export interface RepoDocCoverageResponse {

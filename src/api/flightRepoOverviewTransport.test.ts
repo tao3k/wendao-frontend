@@ -72,4 +72,55 @@ describe("flightRepoOverviewTransport", () => {
     expect(response.displayName).toBe("Gateway Sync");
     expect(response.docCount).toBe(5);
   });
+
+  it("forwards abort signals to repo-overview Flight calls", async () => {
+    const signal = new AbortController().signal;
+    let getFlightInfoSignal: AbortSignal | undefined;
+    let doGetSignal: AbortSignal | undefined;
+
+    await loadRepoOverviewFlight(
+      {
+        baseUrl: "http://127.0.0.1:9517",
+        schemaVersion: "v2",
+        repo: "gateway-sync",
+        signal,
+      },
+      {
+        createClient: () => ({
+          async getFlightInfo(_descriptor, options) {
+            getFlightInfoSignal = options?.signal;
+            return create(FlightInfoSchema, {
+              schema: new Uint8Array([1, 2, 3]),
+              endpoint: [
+                {
+                  ticket: create(TicketSchema, {
+                    ticket: new Uint8Array([4]),
+                  }),
+                },
+              ],
+            });
+          },
+          async *doGet(_ticket, options) {
+            doGetSignal = options?.signal;
+            yield create(FlightDataSchema, {
+              dataHeader: new Uint8Array([5, 6]),
+              dataBody: new Uint8Array([7]),
+            });
+          },
+        }),
+        decodeRepoOverviewResponse: () => ({
+          repoId: "gateway-sync",
+          displayName: "Gateway Sync",
+          revision: "rev:123",
+          moduleCount: 3,
+          symbolCount: 8,
+          exampleCount: 2,
+          docCount: 5,
+        }),
+      },
+    );
+
+    expect(getFlightInfoSignal).toBe(signal);
+    expect(doGetSignal).toBe(signal);
+  });
 });

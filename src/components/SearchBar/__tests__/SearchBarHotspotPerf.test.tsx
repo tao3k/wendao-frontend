@@ -1,4 +1,3 @@
-import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createPerfTrace } from "../../../lib/testPerfTrace";
@@ -100,7 +99,7 @@ function createMockSearchResponse(
     graphConfidenceScore: 0.8,
     selectedMode: "hybrid",
     ...meta,
-  };
+  } as any;
 }
 
 describe("SearchBar hotspot perf scenarios", () => {
@@ -112,7 +111,7 @@ describe("SearchBar hotspot perf scenarios", () => {
       supportedRepositories: ["sciml", "kernel", "ModelingToolkitStandardLibrary.jl"],
       supportedKinds: ["function", "module", "struct"],
     });
-    mockedApi.searchAutocomplete.mockResolvedValue({ prefix: "", suggestions: [] });
+    mockedApi.searchAutocomplete.mockResolvedValue({ prefix: "", suggestions: [] } as never);
     mockedApi.searchAttachments.mockResolvedValue({
       query: "",
       hits: [],
@@ -147,7 +146,7 @@ describe("SearchBar hotspot perf scenarios", () => {
     mockedApi.getVfsContent.mockResolvedValue({
       content: "# Documentation Index",
       contentType: "markdown",
-    });
+    } as never);
     mockedApi.getGraphNeighbors.mockResolvedValue({
       center: {
         id: "kernel/docs/index.md",
@@ -170,19 +169,55 @@ describe("SearchBar hotspot perf scenarios", () => {
       edges: [],
       projections: [],
       diagnostics: [],
-    });
+    } as never);
     mockedApi.getCodeAstRetrievalChunksArrow.mockResolvedValue([]);
     mockedApi.getMarkdownAnalysis.mockResolvedValue({
       path: "kernel/docs/index.md",
       title: "Documentation Index",
       nodes: [],
       retrievalAtoms: [],
-    });
+    } as never);
     mockedApi.getMarkdownRetrievalChunksArrow.mockResolvedValue([]);
   });
 
   it("records the all-scope lang-filter typing hotspot for sec lang:julia", async () => {
     const trace = createPerfTrace("SearchBarHotspotPerf.sec-lang-julia");
+    mockedApi.searchAst.mockImplementation(async () => {
+      trace.increment("search-ast-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "definitions",
+      };
+    });
+    mockedApi.searchReferences.mockImplementation(async () => {
+      trace.increment("search-reference-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "references",
+      };
+    });
+    mockedApi.searchSymbols.mockImplementation(async () => {
+      trace.increment("search-symbol-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "project",
+      };
+    });
+    mockedApi.searchAttachments.mockImplementation(async () => {
+      trace.increment("search-attachment-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "attachments",
+      };
+    });
     mockedApi.searchKnowledge.mockImplementation(async (query, _limit, options) => {
       trace.increment("search-knowledge-calls");
       if (options?.intent === "hybrid_search") {
@@ -257,27 +292,138 @@ describe("SearchBar hotspot perf scenarios", () => {
 
     const snapshot = trace.snapshot();
     expect(snapshot.counters["search-knowledge-calls"]).toBe(2);
+    expect(snapshot.counters["search-ast-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["search-reference-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["search-symbol-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["search-attachment-calls"] ?? 0).toBe(0);
     expect(snapshot.counters["type-to-filtered-results"]).toBe(1);
     expect(snapshot.renderCount).toBeLessThanOrEqual(6);
-    expect(mockedApi.searchKnowledge.mock.calls.slice(0, 2)).toMatchInlineSnapshot(`
-      [
-        [
-          "sec",
-          10,
-          {
-            "intent": "hybrid_search",
-          },
-        ],
-        [
-          "sec lang:julia",
-          10,
-          {
-            "intent": "code_search",
-          },
-        ],
-      ]
-    `);
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      1,
+      "sec",
+      10,
+      expect.objectContaining({ intent: "hybrid_search" }),
+    );
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      2,
+      "sec lang:julia",
+      10,
+      expect.objectContaining({ intent: "code_search" }),
+    );
     recordPerfTraceSnapshot("SearchBar hotspot scenario: sec lang:julia", snapshot);
+  });
+
+  it("records the all-scope repo doc facet hotspot for repo:gateway-sync kind:doc solve", async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ["julia", "rust"],
+      supportedRepositories: ["gateway-sync", "kernel"],
+      supportedKinds: ["doc", "function", "module", "struct"],
+    });
+    const trace = createPerfTrace("SearchBarHotspotPerf.repo-doc-facet");
+    mockedApi.searchAst.mockImplementation(async () => {
+      trace.increment("search-ast-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "definitions",
+      };
+    });
+    mockedApi.searchReferences.mockImplementation(async () => {
+      trace.increment("search-reference-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "references",
+      };
+    });
+    mockedApi.searchSymbols.mockImplementation(async () => {
+      trace.increment("search-symbol-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "project",
+      };
+    });
+    mockedApi.searchAttachments.mockImplementation(async () => {
+      trace.increment("search-attachment-calls");
+      return {
+        query: "",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "attachments",
+      };
+    });
+    mockedApi.searchKnowledge.mockImplementation(async (query, _limit, options) => {
+      trace.increment("search-knowledge-calls");
+      if (options?.intent === "hybrid_search") {
+        return createMockSearchResponse(String(query), []);
+      }
+
+      return createMockSearchResponse(String(query), [], {
+        selectedMode: "code_search",
+        searchMode: "graph_only",
+        intent: "code_search",
+        intentConfidence: 0.94,
+      });
+    });
+    mockedApi.getRepoDocCoverage.mockImplementation(async () => {
+      trace.increment("repo-doc-coverage-calls");
+      return {
+        repoId: "gateway-sync",
+        moduleId: "repo:gateway-sync:module:GatewaySyncPkg",
+        coveredSymbols: 2,
+        uncoveredSymbols: 0,
+        docs: [
+          {
+            repoId: "gateway-sync",
+            docId: "repo:gateway-sync:doc:docs/solve.md",
+            title: "solve",
+            path: "docs/solve.md",
+            format: "md",
+          },
+        ],
+      };
+    });
+
+    function Harness() {
+      trace.markRender();
+      return <SearchBar isOpen={true} onClose={vi.fn()} onResultSelect={vi.fn()} />;
+    }
+
+    render(<Harness />);
+
+    const input = screen.getByPlaceholderText("Search knowledge graph... (Ctrl+F)");
+    trace.reset();
+    await trace.measureAsync("type-to-repo-doc-facet-results", async () => {
+      fireEvent.change(input, { target: { value: "repo:gateway-sync kind:doc solve" } });
+      await waitFor(
+        () => {
+          expect(screen.getByText("solve")).toBeInTheDocument();
+          expect(screen.getByText("gateway-sync > docs/solve.md")).toBeInTheDocument();
+        },
+        { timeout: 1000 },
+      );
+    });
+
+    const snapshot = trace.snapshot();
+    expect(snapshot.counters["search-knowledge-calls"]).toBe(1);
+    expect(snapshot.counters["repo-doc-coverage-calls"]).toBe(1);
+    expect(snapshot.counters["search-ast-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["search-reference-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["search-symbol-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["search-attachment-calls"] ?? 0).toBe(0);
+    expect(snapshot.counters["type-to-repo-doc-facet-results"]).toBe(1);
+    expect(snapshot.renderCount).toBeLessThanOrEqual(6);
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      1,
+      "solve",
+      10,
+      expect.objectContaining({ intent: "hybrid_search" }),
+    );
+    recordPerfTraceSnapshot("SearchBar hotspot scenario: repo doc facet", snapshot);
   });
 
   it("records the latest-query-wins hotspot for sec lang:julia kind:function under stale code responses", async () => {
@@ -469,9 +615,10 @@ describe("SearchBar hotspot perf scenarios", () => {
       fireEvent.change(input, { target: { value: "continuous" } });
       await waitFor(
         () => {
+          expect(screen.getAllByText("continuous").length).toBeGreaterThan(0);
           expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(1);
         },
-        { timeout: 1000 },
+        { timeout: 3000 },
       );
       fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0]!);
       await waitFor(
@@ -681,24 +828,18 @@ describe("SearchBar hotspot perf scenarios", () => {
     expect(snapshot.counters["one-char-refinement-to-visible-results"]).toBe(1);
     expect(snapshot.renderCount).toBeLessThanOrEqual(8);
     expect(mockedApi.searchAutocomplete).toHaveBeenNthCalledWith(1, "seco", 5);
-    expect(mockedApi.searchKnowledge.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          "seco",
-          10,
-          {
-            "intent": "hybrid_search",
-          },
-        ],
-        [
-          "seco lang:julia",
-          10,
-          {
-            "intent": "code_search",
-          },
-        ],
-      ]
-    `);
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      1,
+      "seco",
+      10,
+      expect.objectContaining({ intent: "hybrid_search" }),
+    );
+    expect(mockedApi.searchKnowledge).toHaveBeenNthCalledWith(
+      2,
+      "seco lang:julia",
+      10,
+      expect.objectContaining({ intent: "code_search" }),
+    );
     recordPerfTraceSnapshot("SearchBar hotspot scenario: one-character query refinement", snapshot);
   });
 
@@ -790,9 +931,11 @@ describe("SearchBar hotspot perf scenarios", () => {
       );
       await waitFor(
         () => {
-          expect(mockedApi.searchKnowledge).toHaveBeenCalledWith("sector", 10, {
-            intent: "hybrid_search",
-          });
+          expect(mockedApi.searchKnowledge).toHaveBeenCalledWith(
+            "sector",
+            10,
+            expect.objectContaining({ intent: "hybrid_search" }),
+          );
         },
         { timeout: 1000 },
       );

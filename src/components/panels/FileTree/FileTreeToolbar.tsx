@@ -1,4 +1,4 @@
-import React from "react";
+import type { ReactElement } from "react";
 import type { FileTreeCopy } from "./types";
 
 interface FileTreeToolbarProps {
@@ -6,7 +6,7 @@ interface FileTreeToolbarProps {
   rootCount: number;
 }
 
-export function FileTreeToolbar({ copy, rootCount }: FileTreeToolbarProps): JSX.Element {
+export function FileTreeToolbar({ copy, rootCount }: FileTreeToolbarProps): ReactElement {
   return (
     <div className="file-tree-toolbar">
       <span className="file-tree-toolbar-title">{copy.toolbarTitle}</span>

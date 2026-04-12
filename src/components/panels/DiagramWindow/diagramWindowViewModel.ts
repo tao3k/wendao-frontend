@@ -50,6 +50,7 @@ export function buildDiagramWindowToolbarCopy(
     modeMermaidAria: copy.modeMermaidAria,
     panelBpmn: copy.panelBpmn,
     panelMermaid: copy.panelMermaid,
+    switchLayoutLabel: copy.switchLayoutLabel,
     resetViewLabel: copy.resetViewLabel,
   };
 }
@@ -63,7 +64,12 @@ export function buildDiagramWindowWorkspaceCopy(
     diagramIndexPrefix: copy.diagramIndexPrefix,
     modeMermaidAria: copy.modeMermaidAria,
     mermaidRenderFailedPrefix: copy.mermaidRenderFailedPrefix,
+    mermaidUnsupported: copy.mermaidUnsupported,
     noMermaidBody: copy.noMermaidBody,
+    immersivePreviewLabel: copy.immersivePreviewLabel,
+    immersivePreviewAria: copy.immersivePreviewAria,
+    closePreviewLabel: copy.closePreviewLabel,
     bpmnLoading: copy.bpmnLoading,
+    mermaidLoading: copy.mermaidLoading,
   };
 }

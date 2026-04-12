@@ -9,9 +9,10 @@ import type { SearchResult } from "../SearchBar/types";
 import {
   buildZenSearchPreviewLoadPlan,
   isMeaningfulSelection,
-  loadZenSearchPreviewBaseData,
   type ZenSearchPreviewCodeAstLoadResult,
   loadZenSearchPreviewCodeAstData,
+  loadZenSearchPreviewContentData,
+  loadZenSearchPreviewGraphData,
   loadZenSearchPreviewMarkdownData,
   resolveZenSearchPreviewLoadPlan,
 } from "./zenSearchPreviewLoaders";
@@ -105,6 +106,17 @@ function needsMarkdownLoad(
   );
 }
 
+function needsContentLoad(cachedPreview: ZenSearchPreviewState | undefined): boolean {
+  return Boolean(!cachedPreview || (cachedPreview.content == null && cachedPreview.error == null));
+}
+
+function needsGraphLoad(
+  cachedPreview: ZenSearchPreviewState | undefined,
+  graphable: boolean,
+): boolean {
+  return Boolean(graphable && (!cachedPreview || cachedPreview.graphNeighbors == null));
+}
+
 async function buildPreviewSnapshot(
   result: SearchResult,
   options: BuildPreviewSnapshotOptions = {},
@@ -114,8 +126,9 @@ async function buildPreviewSnapshot(
     buildZenSearchPreviewLoadPlan(result),
   );
   const shouldLoadCodeAst = loadPlan.codeAstEligible && options.includeCodeAst !== false;
-  const [base, markdown, codeAstBase] = await Promise.all([
-    loadZenSearchPreviewBaseData(loadPlan),
+  const [content, graph, markdown, codeAstBase] = await Promise.all([
+    loadZenSearchPreviewContentData(loadPlan),
+    loadZenSearchPreviewGraphData(loadPlan),
     loadZenSearchPreviewMarkdownData(loadPlan),
     shouldLoadCodeAst
       ? loadZenSearchPreviewCodeAstData(loadPlan)
@@ -127,11 +140,11 @@ async function buildPreviewSnapshot(
 
   return {
     loading: false,
-    error: base.error,
+    error: content.error,
     contentPath: loadPlan.contentPath,
-    content: base.content,
-    contentType: base.contentType,
-    graphNeighbors: base.graphNeighbors,
+    content: content.content,
+    contentType: content.contentType,
+    graphNeighbors: graph.graphNeighbors,
     selectedResult: result,
     markdownAnalysis: markdown.markdownAnalysis,
     markdownAnalysisLoading: false,
@@ -183,13 +196,15 @@ export function useZenSearchPreview(
     const cachedPreview = previewIdentity
       ? previewCacheRef.current.get(previewIdentity)
       : undefined;
+    const shouldLoadContent = needsContentLoad(cachedPreview);
+    const shouldLoadGraph = needsGraphLoad(cachedPreview, loadPlan.graphable);
     const shouldLoadCodeAst = needsCodeAstLoad(cachedPreview, loadPlan.codeAstEligible);
     const shouldLoadMarkdown = needsMarkdownLoad(cachedPreview, loadPlan.markdownEligible);
 
     if (cachedPreview) {
       setState({
         ...cachedPreview,
-        loading: false,
+        loading: shouldLoadContent,
         contentPath: cachedPreview.contentPath ?? loadPlan.contentPath,
         selectedResult,
         markdownAnalysisLoading: shouldLoadMarkdown,
@@ -198,7 +213,7 @@ export function useZenSearchPreview(
         codeAstError: shouldLoadCodeAst ? null : cachedPreview.codeAstError,
       });
 
-      if (!shouldLoadCodeAst && !shouldLoadMarkdown) {
+      if (!shouldLoadContent && !shouldLoadGraph && !shouldLoadCodeAst && !shouldLoadMarkdown) {
         return;
       }
     }
@@ -229,10 +244,10 @@ export function useZenSearchPreview(
       }));
     }
 
-    if (!cachedPreview) {
+    if (shouldLoadContent) {
       void (async () => {
         const resolvedLoadPlan = await resolvedLoadPlanPromise;
-        const base = await loadZenSearchPreviewBaseData(resolvedLoadPlan);
+        const content = await loadZenSearchPreviewContentData(resolvedLoadPlan);
 
         if (cancelled) {
           return;
@@ -242,12 +257,35 @@ export function useZenSearchPreview(
           const nextState = {
             ...current,
             loading: false,
-            error: base.error,
+            error: content.error,
             contentPath: resolvedLoadPlan.contentPath,
-            content: base.content,
-            contentType: base.contentType,
-            graphNeighbors: base.graphNeighbors,
+            content: content.content,
+            contentType: content.contentType,
             selectedResult,
+          };
+
+          if (previewIdentity) {
+            previewCacheRef.current.set(previewIdentity, nextState);
+          }
+
+          return nextState;
+        });
+      })();
+    }
+
+    if (shouldLoadGraph) {
+      void (async () => {
+        const resolvedLoadPlan = await resolvedLoadPlanPromise;
+        const graph = await loadZenSearchPreviewGraphData(resolvedLoadPlan);
+
+        if (cancelled) {
+          return;
+        }
+
+        setState((current) => {
+          const nextState = {
+            ...current,
+            graphNeighbors: graph.graphNeighbors ?? current.graphNeighbors,
           };
 
           if (previewIdentity) {

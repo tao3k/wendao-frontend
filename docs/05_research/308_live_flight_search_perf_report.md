@@ -10,12 +10,15 @@
 ## Scope
 
 This report captures the current same-origin Arrow Flight search profile for the
-Qianji Studio frontend against the live Wendao gateway.
+Qianji Studio frontend against the live Wendao gateway. It also tracks the
+ZenSearch preview/info-panel chain from query dispatch through base preview
+readiness and AST or markdown analysis readiness.
 
 ## Test Surface
 
 - Frontend client: `src/api/flightSearchTransport.ts`
 - Live perf harness: `src/api/liveFlightSearchPerf.test.ts`
+- Live ZenSearch preview harness: `src/api/liveZenSearchPerf.test.ts`
 - Live gateway origin: `http://127.0.0.1:9517`
 - Flight service path: same-origin `POST /arrow.flight.protocol.FlightService/*`
 - Search route under test: `/search/knowledge`
@@ -55,9 +58,62 @@ query list.
 ```bash
 direnv exec . bash -lc 'cd .data/wendao-frontend && npm run build'
 direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test:hotspot-perf'
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm test -- src/api/liveZenSearchPerf.test.ts'
 direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm run test:live-gateway'
 direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 npm run test:live-flight-perf'
+direnv exec . bash -lc 'cd .data/wendao-frontend && RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=http://127.0.0.1:9517 npm run test:live-zen-search-perf'
 ```
+
+## 2026-04-12 Live ZenSearch Preview Chain
+
+The new ZenSearch live harness measures four frontend-owned phases on the
+restarted default gateway:
+
+1. search result arrival
+2. preview-plan resolution
+3. content-first base preview settlement for the visible info-panel shell
+4. graph-summary settlement when a non-code preview requests neighbors
+5. analysis settlement for the code AST or markdown analysis panel
+
+### Code AST Sample
+
+- Query: `diffeq`
+- Intent: `code_search`
+- Result path: `Modelica/Blocks/package.mo`
+- Content path: `mcl/Modelica/Blocks/package.mo`
+- Search: `2.48ms`
+- Resolve preview plan: `0.08ms`
+- Base preview settled: `1.97ms`
+- AST analysis settled: `3.61ms`
+- Search to base preview settled: `4.45ms`
+- Search to AST analysis settled: `6.10ms`
+- Content bytes: `152147`
+- AST node count: `39`
+- Retrieval atom count: `78`
+
+### Markdown Sample
+
+- Query: `topology`
+- Intent: `knowledge`
+- Result path: `docs/00_vision/TRINITY_MANIFESTO.md`
+- Content path: `frontend/docs/00_vision/TRINITY_MANIFESTO.md`
+- Search: `2.02ms`
+- Resolve preview plan: `0.03ms`
+- Base preview settled: `3.70ms`
+- Graph summary settled: `4.92ms`
+- Markdown analysis settled: `3.36ms`
+- Search to base preview settled: `5.72ms`
+- Search to graph summary settled: `6.94ms`
+- Search to markdown analysis settled: `5.38ms`
+- Content bytes: `12026`
+- Markdown analysis node count: `34`
+- Retrieval atom count: `34`
+
+This sample matters because it separates transport latency from the first
+visible ZenSearch panel states. On the current restarted gateway, markdown
+preview content now becomes visible before graph summary completion, so the
+graph lane no longer blocks the info-panel shell. The remaining visible-path
+cost is the content fetch itself, not graph-neighbor decoration.
 
 ## Current Default-Gateway Results
 
@@ -274,6 +330,14 @@ autocomplete refresh` trace explicitly.
     config/capabilities, and Julia deployment artifact inspection. Those routes
     are now grouped under `src/api/controlPlane/*` instead of being tracked as
     active Flight migration debt.
+34. The new live ZenSearch harness shows that the visible info-panel path is no
+    longer dominated by Flight search. In the current restarted-gateway sample,
+    code search reaches base preview in `4.45ms` and AST settlement in
+    `6.10ms`, while markdown now reaches visible base preview in `5.72ms`,
+    markdown analysis settlement in `5.38ms`, and graph summary later in
+    `6.94ms`. The graph lane is no longer on the markdown critical path. The
+    next optimization target is the content and analysis loading chain, not the
+    search transport.
 
 ## Post-Restart Production-Line Proof
 

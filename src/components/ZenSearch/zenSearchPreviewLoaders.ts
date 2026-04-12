@@ -42,6 +42,17 @@ export interface ZenSearchPreviewBaseLoadResult {
   error: string | null;
 }
 
+export interface ZenSearchPreviewContentLoadResult {
+  content: string | null;
+  contentType: string | null;
+  error: string | null;
+}
+
+export interface ZenSearchPreviewGraphLoadResult {
+  graphNeighbors: GraphNeighborsResponse | null;
+  graphError: string | null;
+}
+
 export interface ZenSearchPreviewCodeAstLoadResult {
   codeAstAnalysis: CodeAstAnalysisResponse | null;
   codeAstError: string | null;
@@ -57,6 +68,10 @@ function toCodeAstError(error: unknown): ZenSearchPreviewCodeAstLoadResult {
     codeAstAnalysis: null,
     codeAstError: error instanceof Error ? error.message : "Code AST analysis failed",
   };
+}
+
+function toPreviewLoadError(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function normalizeGraphNeighborsCounts(
@@ -185,32 +200,62 @@ export async function resolveZenSearchPreviewLoadPlan(
 export async function loadZenSearchPreviewBaseData(
   plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewBaseLoadResult> {
-  const [contentResult, graphResult] = await Promise.allSettled([
-    api.getVfsContent(plan.contentPath),
-    plan.graphable
-      ? api.getGraphNeighbors(plan.graphPath, { direction: "both", hops: 1, limit: 20 })
-      : Promise.resolve(null as GraphNeighborsResponse | null),
+  const [content, graph] = await Promise.all([
+    loadZenSearchPreviewContentData(plan),
+    loadZenSearchPreviewGraphData(plan),
   ]);
 
-  const resolvedContent =
-    contentResult.status === "fulfilled" ? (contentResult.value as VfsContentResponse) : null;
-  const graphNeighbors =
-    plan.graphable && graphResult.status === "fulfilled"
-      ? normalizeGraphNeighborsCounts(graphResult.value)
-      : null;
-  const errors = [contentResult, graphResult]
-    .filter((result) => plan.graphable || result !== graphResult)
-    .filter((result) => result.status === "rejected")
-    .map((result) =>
-      result.reason instanceof Error ? result.reason.message : "Preview load failed",
-    );
-
   return {
-    content: resolvedContent?.content ?? null,
-    contentType: resolvedContent?.contentType ?? null,
-    graphNeighbors,
-    error: errors.length > 0 ? errors.join(" · ") : null,
+    content: content.content,
+    contentType: content.contentType,
+    graphNeighbors: graph.graphNeighbors,
+    error: content.error,
   };
+}
+
+export async function loadZenSearchPreviewContentData(
+  plan: ZenSearchPreviewLoadPlan,
+): Promise<ZenSearchPreviewContentLoadResult> {
+  try {
+    const content = (await api.getVfsContent(plan.contentPath)) as VfsContentResponse;
+    return {
+      content: content.content ?? null,
+      contentType: content.contentType ?? null,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      content: null,
+      contentType: null,
+      error: toPreviewLoadError(error, "Preview load failed"),
+    };
+  }
+}
+
+export async function loadZenSearchPreviewGraphData(
+  plan: ZenSearchPreviewLoadPlan,
+): Promise<ZenSearchPreviewGraphLoadResult> {
+  if (!plan.graphable) {
+    return {
+      graphNeighbors: null,
+      graphError: null,
+    };
+  }
+
+  try {
+    const graphNeighbors = normalizeGraphNeighborsCounts(
+      await api.getGraphNeighbors(plan.graphPath, { direction: "both", hops: 1, limit: 20 }),
+    );
+    return {
+      graphNeighbors,
+      graphError: null,
+    };
+  } catch (error) {
+    return {
+      graphNeighbors: null,
+      graphError: toPreviewLoadError(error, "Preview graph load failed"),
+    };
+  }
 }
 
 export async function loadZenSearchPreviewCodeAstData(

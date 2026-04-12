@@ -678,6 +678,55 @@ describe("useZenSearchPreview", () => {
     });
   });
 
+  it("publishes markdown content before the graph summary lane finishes", async () => {
+    const selectedResult = buildSearchResult();
+    const deferredGraph = createDeferred<{
+      center: {
+        id: string;
+        label: string;
+        path: string;
+        nodeType: string;
+        isCenter: boolean;
+        distance: number;
+      };
+      nodes: [];
+      links: [];
+      totalNodes: number;
+      totalLinks: number;
+    }>();
+
+    mocks.getGraphNeighbors.mockReturnValueOnce(deferredGraph.promise);
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.content).toBe("# Documentation Index");
+    });
+
+    expect(result.current.graphNeighbors).toBeNull();
+
+    deferredGraph.resolve({
+      center: {
+        id: "main/docs/index.md",
+        label: "Documentation Index",
+        path: "main/docs/index.md",
+        nodeType: "knowledge",
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    await waitFor(() => {
+      expect(result.current.graphNeighbors?.totalNodes).toBe(1);
+      expect(result.current.graphNeighbors?.totalLinks).toBe(0);
+    });
+  });
+
   it("aborts an in-flight AST request when the selected result is cleared", async () => {
     const selectedResult = buildCodeSearchResult();
     const deferredAnalysis = createDeferred<{

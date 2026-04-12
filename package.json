@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:hotspot-perf": "rm -f \"${PRJ_CACHE_HOME}/agent/tmp/wendao_frontend_hotspot_perf_traces.json\" && QIANJI_WRITE_HOTSPOT_PERF_REPORT=1 vitest run --no-file-parallelism src/components/SearchBar/__tests__/SearchInputHeader.test.tsx src/components/SearchBar/__tests__/SearchSuggestionsPanel.test.tsx src/components/SearchBar/__tests__/SearchResultsPanel.test.tsx src/components/SearchBar/__tests__/useSearchDerivedState.test.tsx src/components/SearchBar/__tests__/useSearchBarControllerPresentation.test.tsx src/components/SearchBar/__tests__/SearchBarHotspotPerf.test.tsx src/components/SearchBar/interface/autocomplete/__tests__/useSearchAutocompleteInterfacePerf.test.tsx src/components/ZenSearch/__tests__/ZenSearchWorkspace.test.tsx src/components/ZenSearch/__tests__/useZenSearchPreview.test.tsx src/App.test.tsx",
     "test:live-gateway": "RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=${STUDIO_LIVE_GATEWAY_URL:-http://127.0.0.1:9517} vitest run src/api/liveGateway.test.ts",
-    "test:live-flight-perf": "RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=${STUDIO_LIVE_GATEWAY_URL:-http://127.0.0.1:9517} vitest run src/api/liveFlightSearchPerf.test.ts"
+    "test:live-flight-perf": "RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=${STUDIO_LIVE_GATEWAY_URL:-http://127.0.0.1:9517} vitest run src/api/liveFlightSearchPerf.test.ts",
+    "test:live-zen-search-perf": "RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=${STUDIO_LIVE_GATEWAY_URL:-http://127.0.0.1:9517} vitest run src/api/liveZenSearchPerf.test.ts"
   },
   "dependencies": {
     "@algolia/autocomplete-core": "^1.19.8",

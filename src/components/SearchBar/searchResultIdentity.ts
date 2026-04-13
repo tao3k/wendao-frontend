@@ -13,11 +13,21 @@ export function getSearchResultIdentity(result: SearchResult): string {
     projectName: navigationTarget?.projectName ?? result.projectName,
     rootLabel: navigationTarget?.rootLabel ?? result.rootLabel,
   });
+  const previewPath = result.previewPath
+    ? normalizeSelectionPathForVfs({
+        path: result.previewPath,
+        category: result.category,
+        projectName: result.projectName,
+        rootLabel: result.rootLabel,
+      })
+    : "";
   const primaryLine = navigationTarget?.line ?? result.line;
   const primaryColumn = navigationTarget?.column ?? result.column;
   const primaryLabel = result.title ?? result.stem ?? result.path;
 
-  return [primaryPath, primaryLine, primaryColumn, primaryLabel].map(identitySegment).join("::");
+  return [primaryPath, previewPath, primaryLine, primaryColumn, primaryLabel]
+    .map(identitySegment)
+    .join("::");
 }
 
 export function dedupeSearchResults(results: SearchResult[]): SearchResult[] {

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { AsyncMermaidViewport } from "./AsyncMermaidViewport";
 import { DiagramPreviewDialog } from "./DiagramPreviewDialog";
 import { MermaidViewport } from "./MermaidViewport";
@@ -47,6 +47,9 @@ export function DiagramWindowWorkspace({
   onNodeClick,
 }: DiagramWindowWorkspaceProps): React.ReactElement {
   const [preview, setPreview] = useState<DiagramPreviewState | null>(null);
+  const handleOpenBpmnPreview = useCallback(() => {
+    setPreview({ kind: "bpmn" });
+  }, []);
 
   useEffect(() => {
     setPreview(null);
@@ -68,6 +71,12 @@ export function DiagramWindowWorkspace({
     () => (previewMermaidBlock ? resolveMermaidViewportTuning(previewMermaidBlock, true) : null),
     [previewMermaidBlock],
   );
+  const handleOpenActiveMermaidPreview = useCallback(() => {
+    setPreview({ kind: "mermaid", index: activeMermaidIndex });
+  }, [activeMermaidIndex]);
+  const handleClosePreview = useCallback(() => {
+    setPreview(null);
+  }, []);
 
   useEffect(() => {
     if (preview?.kind === "bpmn" && !showBpmn) {
@@ -97,9 +106,7 @@ export function DiagramWindowWorkspace({
             <div className="diagram-window__panel-title">{copy.panelBpmn}</div>
             <div
               className="diagram-window__frame diagram-window__frame--bpmn"
-              onDoubleClick={() => {
-                setPreview({ kind: "bpmn" });
-              }}
+              onDoubleClick={handleOpenBpmnPreview}
             >
               <Suspense fallback={renderDiagramWindowBpmnFallback(copy.bpmnLoading)}>
                 <LazySovereignTopology
@@ -132,9 +139,7 @@ export function DiagramWindowWorkspace({
                         fitPadding={activeMermaidViewportTuning?.fitPadding}
                         fitScaleBoost={activeMermaidViewportTuning?.fitScaleBoost}
                         nodeGlyphScale={activeMermaidViewportTuning?.nodeGlyphScale}
-                        onOpenPreview={() => {
-                          setPreview({ kind: "mermaid", index: activeMermaidIndex });
-                        }}
+                        onOpenPreview={handleOpenActiveMermaidPreview}
                       />
                     ) : activeMermaidBlock.renderMode === "official-runtime" ? (
                       <AsyncMermaidViewport
@@ -147,9 +152,7 @@ export function DiagramWindowWorkspace({
                         fitPadding={activeMermaidViewportTuning?.fitPadding}
                         fitScaleBoost={activeMermaidViewportTuning?.fitScaleBoost}
                         nodeGlyphScale={activeMermaidViewportTuning?.nodeGlyphScale}
-                        onOpenPreview={() => {
-                          setPreview({ kind: "mermaid", index: activeMermaidIndex });
-                        }}
+                        onOpenPreview={handleOpenActiveMermaidPreview}
                       />
                     ) : (
                       <>
@@ -177,9 +180,7 @@ export function DiagramWindowWorkspace({
           title={previewTitle}
           kicker={copy.immersivePreviewLabel}
           closeLabel={copy.closePreviewLabel}
-          onClose={() => {
-            setPreview(null);
-          }}
+          onClose={handleClosePreview}
         >
           {preview.kind === "bpmn" ? (
             <div className="diagram-window__preview-stage diagram-window__preview-stage--bpmn">

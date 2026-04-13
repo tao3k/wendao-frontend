@@ -1,6 +1,6 @@
 import React from "react";
 import type { Components } from "react-markdown";
-import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
@@ -8,6 +8,7 @@ import remarkMath from "remark-math";
 import type { PluggableList } from "unified";
 import "katex/dist/katex.min.css";
 import { CodeSyntaxHighlighter } from "../../code-syntax";
+import { MediaPreviewSurface, resolveMediaLinkHref } from "../../mediaPreview";
 import { MarkdownWaterfall } from "./MarkdownWaterfall";
 import {
   describeUnsupportedMermaidDialect,
@@ -15,7 +16,12 @@ import {
   MERMAID_RENDER_THEME,
   useSharedMermaidRenderer,
 } from "../mermaidRuntime";
-import { decodeBiLinkHref, hasInternalUriPrefix, remarkBiLinks } from "./markdownWaterfallBiLinks";
+import {
+  decodeBiLinkHref,
+  directReaderUrlTransform,
+  hasInternalUriPrefix,
+  remarkBiLinks,
+} from "./markdownWaterfallBiLinks";
 
 const DIRECT_READER_RICH_REMARK_PLUGINS: PluggableList = [
   remarkFrontmatter,
@@ -63,13 +69,6 @@ const DirectReaderBiLinkButton = React.memo(function DirectReaderBiLinkButton({
     </button>
   );
 });
-
-function directReaderUrlTransform(url: string): string {
-  if (url.startsWith("bilink:") || hasInternalUriPrefix(url)) {
-    return url;
-  }
-  return defaultUrlTransform(url);
-}
 
 function isBlockCode(codeClassName: string | undefined, rawValue: string): boolean {
   if (typeof codeClassName === "string" && /language-([\w-]+)/.test(codeClassName)) {
@@ -142,6 +141,47 @@ function buildMarkdownComponents({
 }: Pick<DirectReaderRichContentProps, "copy" | "onBiLinkClick" | "path"> & {
   renderMermaid: ReturnType<typeof useSharedMermaidRenderer>;
 }): Components {
+  const isMediaOnlyNode = (node: React.ReactNode): boolean => {
+    if (typeof node === "string") {
+      return node.trim().length === 0;
+    }
+
+    if (Array.isArray(node)) {
+      return node.length > 0 && node.every(isMediaOnlyNode);
+    }
+
+    if (!React.isValidElement(node)) {
+      return false;
+    }
+
+    if (node.type === MediaPreviewSurface) {
+      return true;
+    }
+
+    if (node.type === React.Fragment) {
+      return isMediaOnlyNode(node.props.children);
+    }
+
+    if (typeof node.type === "string") {
+      return ["audio", "div", "figure", "img", "object", "video"].includes(node.type);
+    }
+
+    return false;
+  };
+
+  const renderParagraph = (children: React.ReactNode) => {
+    const nodes = React.Children.toArray(children).filter((node) => {
+      return typeof node !== "string" || node.trim().length > 0;
+    });
+    const mediaOnlyParagraph = nodes.length > 0 && nodes.every(isMediaOnlyNode);
+
+    if (mediaOnlyParagraph) {
+      return <div className="direct-reader__p direct-reader__p--media">{children}</div>;
+    }
+
+    return <p className="direct-reader__p">{children}</p>;
+  };
+
   return {
     h1({ children }) {
       return <h1 className="direct-reader__h1">{children}</h1>;
@@ -153,7 +193,7 @@ function buildMarkdownComponents({
       return <h3 className="direct-reader__h3">{children}</h3>;
     },
     p({ children }) {
-      return <p className="direct-reader__p">{children}</p>;
+      return renderParagraph(children);
     },
     ul({ children }) {
       return <ul className="direct-reader__ul">{children}</ul>;
@@ -189,6 +229,15 @@ function buildMarkdownComponents({
     td({ children }) {
       return <td className="direct-reader__td">{children}</td>;
     },
+    img({ src, alt, title }) {
+      if (typeof src !== "string") {
+        return null;
+      }
+
+      return (
+        <MediaPreviewSurface alt={alt} mode="inline" sourcePath={path} target={src} title={title} />
+      );
+    },
     a({ href, children }) {
       if (typeof href === "string" && href.startsWith("bilink:")) {
         const link = decodeBiLinkHref(href);
@@ -209,7 +258,12 @@ function buildMarkdownComponents({
       }
 
       return (
-        <a className="direct-reader__link" href={href} target="_blank" rel="noreferrer noopener">
+        <a
+          className="direct-reader__link"
+          href={typeof href === "string" ? resolveMediaLinkHref(href, path) : href}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
           {children}
         </a>
       );

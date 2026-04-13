@@ -119,4 +119,21 @@ describe("searchExecution simple modes", () => {
     expect(result.meta.hitCount).toBe(1);
     expect(result.results).toHaveLength(1);
   });
+
+  it("parses attachment filter tokens into backend attachment-search options", async () => {
+    vi.spyOn(api, "searchAttachments").mockResolvedValue({
+      query: "topology",
+      hitCount: 0,
+      selectedScope: "attachments",
+      hits: [],
+    });
+
+    await executeSimpleSearchMode("topology ext:.png kind:image case:exact", "attachment");
+
+    expect(api.searchAttachments).toHaveBeenCalledWith("topology", 10, {
+      ext: ["png"],
+      kind: ["image"],
+      caseSensitive: true,
+    });
+  });
 });

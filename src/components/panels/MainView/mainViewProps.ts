@@ -6,7 +6,9 @@ import type { MainViewLocale, MainViewTab } from "./mainViewTypes";
 export interface MainViewSelectedFile {
   path: string;
   category: string;
-  content?: string;
+  content?: string | null;
+  contentType?: string | null;
+  isContentReady?: boolean;
   projectName?: string;
   rootLabel?: string;
   line?: number;

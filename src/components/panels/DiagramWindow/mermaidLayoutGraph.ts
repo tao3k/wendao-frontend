@@ -277,13 +277,13 @@ export function createMermaidLayoutGraphFromMarkdownAnalysis(
   nodes: readonly AnalysisNode[],
   edges: readonly AnalysisEdge[],
 ): MermaidLayoutGraph | null {
-  const sortedNodes = [...nodes].sort((left, right) => {
+  const sortedNodes = [...nodes].toSorted((left, right) => {
     if (left.lineStart !== right.lineStart) {
       return left.lineStart - right.lineStart;
     }
     return left.depth - right.depth;
   });
-  const sortedEdges = [...edges].sort((left, right) => {
+  const sortedEdges = [...edges].toSorted((left, right) => {
     if (left.evidence.lineStart !== right.evidence.lineStart) {
       return left.evidence.lineStart - right.evidence.lineStart;
     }
@@ -445,7 +445,7 @@ function parseSequenceLayoutGraph(source: string): MermaidLayoutGraph | null {
   return {
     sourceDialect: "sequence",
     preferredFlowDirection: "TD",
-    nodes: Array.from(nodes.values()).sort((left, right) => left.order - right.order),
+    nodes: Array.from(nodes.values()).toSorted((left, right) => left.order - right.order),
     edges,
     groups,
   };
@@ -528,7 +528,7 @@ function parseErLayoutGraph(source: string): MermaidLayoutGraph | null {
   return {
     sourceDialect: "er",
     preferredFlowDirection: "LR",
-    nodes: Array.from(nodes.values()).sort((left, right) => left.order - right.order),
+    nodes: Array.from(nodes.values()).toSorted((left, right) => left.order - right.order),
     edges,
     groups: [],
   };
@@ -608,7 +608,7 @@ export function compileMermaidLayoutGraph(
     const groupNodes = group.nodeIds
       .map((nodeId) => nodeById.get(nodeId))
       .filter((node): node is MermaidLayoutGraphNode => node !== undefined)
-      .sort((left, right) => left.order - right.order);
+      .toSorted((left, right) => left.order - right.order);
     if (groupNodes.length === 0) {
       return;
     }
@@ -623,14 +623,14 @@ export function compileMermaidLayoutGraph(
 
   graph.nodes
     .filter((node) => !groupedIds.has(node.id))
-    .sort((left, right) => left.order - right.order)
+    .toSorted((left, right) => left.order - right.order)
     .forEach((node) => {
       lines.push(serializeFlowchartNode(node));
     });
 
   graph.edges
     .slice()
-    .sort((left, right) => left.order - right.order)
+    .toSorted((left, right) => left.order - right.order)
     .forEach((edge) => {
       const label = describeFlowchartEdgeLabel(edge);
       const connector = resolveFlowchartConnector(edge);
@@ -684,7 +684,7 @@ export function compileMermaidSequenceGraph(graph: MermaidLayoutGraph): string |
     const groupNodes = group.nodeIds
       .map((nodeId) => nodeById.get(nodeId))
       .filter((node): node is MermaidLayoutGraphNode => node !== undefined)
-      .sort((left, right) => left.order - right.order);
+      .toSorted((left, right) => left.order - right.order);
     if (groupNodes.length === 0) {
       return;
     }
@@ -699,14 +699,14 @@ export function compileMermaidSequenceGraph(graph: MermaidLayoutGraph): string |
 
   graph.nodes
     .filter((node) => !groupedIds.has(node.id))
-    .sort((left, right) => left.order - right.order)
+    .toSorted((left, right) => left.order - right.order)
     .forEach((node) => {
       lines.push(serializeSequenceParticipant(node));
     });
 
   graph.edges
     .slice()
-    .sort((left, right) => left.order - right.order)
+    .toSorted((left, right) => left.order - right.order)
     .forEach((edge) => {
       const arrow = edge.sequenceArrow ?? "->>";
       lines.push(
@@ -739,7 +739,7 @@ export function compileMermaidStateGraph(graph: MermaidLayoutGraph): string | nu
 
   graph.nodes
     .slice()
-    .sort((left, right) => left.order - right.order)
+    .toSorted((left, right) => left.order - right.order)
     .forEach((node) => {
       if (node.label === "[*]") {
         return;
@@ -754,7 +754,7 @@ export function compileMermaidStateGraph(graph: MermaidLayoutGraph): string | nu
 
   graph.edges
     .slice()
-    .sort((left, right) => left.order - right.order)
+    .toSorted((left, right) => left.order - right.order)
     .forEach((edge) => {
       const source = resolveStateNodeReference(nodeById.get(edge.source));
       const target = resolveStateNodeReference(nodeById.get(edge.target));

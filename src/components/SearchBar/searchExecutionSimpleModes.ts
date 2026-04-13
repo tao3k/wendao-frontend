@@ -13,6 +13,7 @@ import {
   normalizeReferenceHit,
   normalizeSymbolHit,
 } from "./searchResultNormalization";
+import { resolveAttachmentSearchRequest } from "./attachmentSearchQuery";
 import type { SearchExecutionOutcome } from "./searchExecutionTypes";
 
 export type SimpleSearchExecutionMode = "knowledge" | "symbol" | "ast" | "reference" | "attachment";
@@ -41,9 +42,17 @@ export async function executeSimpleSearchMode(
       };
     }
     case "attachment": {
-      const response: AttachmentSearchResponse = options.signal
-        ? await api.searchAttachments(queryToSearch, 10, { signal: options.signal })
-        : await api.searchAttachments(queryToSearch, 10);
+      const request = resolveAttachmentSearchRequest(queryToSearch);
+      const requestOptions =
+        request.options || options.signal
+          ? {
+              ...request.options,
+              ...(options.signal ? { signal: options.signal } : {}),
+            }
+          : undefined;
+      const response: AttachmentSearchResponse = requestOptions
+        ? await api.searchAttachments(request.query, 10, requestOptions)
+        : await api.searchAttachments(request.query, 10);
       return {
         results: response.hits.map(normalizeAttachmentHit),
         meta: {

@@ -4,6 +4,8 @@ import { renderCompactFlowSvg } from "./compactFlow/render";
 export const COMPACT_FLOW_PROVIDER_MANIFEST: MermaidRuntimeProviderManifest = {
   providerName: "compact-flow",
   packageName: "local-compact-flow",
+  payloadPackageNames: ["local-compact-flow"],
+  payloadPackageGroups: [{ groupName: "provider-wrapper", packageNames: ["local-compact-flow"] }],
   supportedInlineDialects: ["flowchart", "graph", "state"],
   payloadNotes: [
     "Bounded spike provider: supports only simple arrow-connected flowchart/state diagrams.",

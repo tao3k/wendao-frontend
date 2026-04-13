@@ -2,6 +2,7 @@ import type { Root } from "mdast";
 import { defaultUrlTransform } from "react-markdown";
 import type { Plugin } from "unified";
 import type { VFile } from "vfile";
+import { inferMediaPreviewKind } from "../../mediaPreview/model";
 import type { MarkdownAstNode } from "./markdownWaterfallShared";
 
 const BI_LINK_RE = /\[\[([^\]\n]+)\]\]/g;
@@ -168,7 +169,26 @@ function splitTextWithBiLinks(value: string, rawSource: string | null): Markdown
       continue;
     }
 
-    if (isEmbeddedBiLink(value, matchStart)) {
+    const embeddedBiLink = isEmbeddedBiLink(value, matchStart);
+    if (embeddedBiLink) {
+      const parsedEmbed = parseBiLink(match[1]);
+      if (parsedEmbed && inferMediaPreviewKind(parsedEmbed.target)) {
+        if (matchStart - 1 > lastIndex) {
+          nodes.push({
+            type: "text",
+            value: value.slice(lastIndex, matchStart - 1),
+          });
+        }
+        nodes.push({
+          type: "image",
+          url: parsedEmbed.target,
+          alt: parsedEmbed.label,
+        });
+        lastIndex = matchEnd;
+        match = BI_LINK_RE.exec(value);
+        continue;
+      }
+
       nodes.push({
         type: "text",
         value: value.slice(lastIndex, matchEnd),

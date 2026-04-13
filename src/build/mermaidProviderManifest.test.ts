@@ -16,6 +16,20 @@ describe("Mermaid provider manifest", () => {
     expect(buildManifestModule.COMPACT_FLOW_PROVIDER_MANIFEST).toEqual(
       COMPACT_FLOW_PROVIDER_MANIFEST,
     );
+    expect(BEAUTIFUL_MERMAID_PROVIDER_MANIFEST.payloadPackageNames).toEqual([
+      "mermaid",
+      "beautiful-mermaid",
+      "elkjs",
+    ]);
+    expect(COMPACT_FLOW_PROVIDER_MANIFEST.payloadPackageNames).toEqual(["local-compact-flow"]);
+    expect(BEAUTIFUL_MERMAID_PROVIDER_MANIFEST.payloadPackageGroups).toEqual([
+      { groupName: "official-mermaid", packageNames: ["mermaid"] },
+      { groupName: "layout-engine", packageNames: ["elkjs"] },
+      { groupName: "provider-wrapper", packageNames: ["beautiful-mermaid"] },
+    ]);
+    expect(COMPACT_FLOW_PROVIDER_MANIFEST.payloadPackageGroups).toEqual([
+      { groupName: "provider-wrapper", packageNames: ["local-compact-flow"] },
+    ]);
   });
 
   it("loads the compact-flow provider through the shared runtime seam", async () => {

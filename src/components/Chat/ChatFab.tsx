@@ -4,6 +4,11 @@ import { useChatStore } from "../../stores/chatStore";
 import { ChatPanel } from "./ChatPanel";
 import "./ChatPanel.css";
 
+const FAB_PANEL_INITIAL = { opacity: 0, y: 20, scale: 0.95 } as const;
+const FAB_PANEL_ANIMATE = { opacity: 1, y: 0, scale: 1 } as const;
+const FAB_PANEL_EXIT = { opacity: 0, y: 20, scale: 0.95 } as const;
+const FAB_PANEL_TRANSITION = { duration: 0.2, ease: [0.16, 1, 0.3, 1] } as const;
+
 export function ChatFab() {
   const { isOpen, toggle } = useChatStore();
 
@@ -12,10 +17,10 @@ export function ChatFab() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            initial={FAB_PANEL_INITIAL}
+            animate={FAB_PANEL_ANIMATE}
+            exit={FAB_PANEL_EXIT}
+            transition={FAB_PANEL_TRANSITION}
           >
             <ChatPanel />
           </motion.div>

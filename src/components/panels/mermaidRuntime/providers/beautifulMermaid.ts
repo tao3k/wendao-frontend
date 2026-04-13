@@ -5,10 +5,16 @@ export type BeautifulMermaidModule = typeof import("beautiful-mermaid");
 export const BEAUTIFUL_MERMAID_PROVIDER_MANIFEST: MermaidRuntimeProviderManifest = {
   providerName: "beautiful-mermaid",
   packageName: "beautiful-mermaid",
+  payloadPackageNames: ["mermaid", "beautiful-mermaid", "elkjs"],
+  payloadPackageGroups: [
+    { groupName: "official-mermaid", packageNames: ["mermaid"] },
+    { groupName: "layout-engine", packageNames: ["elkjs"] },
+    { groupName: "provider-wrapper", packageNames: ["beautiful-mermaid"] },
+  ],
   supportedInlineDialects: ["flowchart", "graph", "state", "unknown"],
   payloadNotes: [
     "Current inline flowchart/state rendering still routes through ELK-backed graph layout.",
-    "The emitted payload frontier is dominated by mermaid.js, not the initial entrypoint.",
+    "The emitted payload frontier remains async-chunk dominated rather than initial-entrypoint dominated.",
   ],
 };
 

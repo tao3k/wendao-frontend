@@ -13,7 +13,9 @@ import {
   createRspackPlugins,
   createRspackResolve,
   createSplitChunkCacheGroups,
+  createSplitChunksConfig,
   resolveGatewayTargetFromCwd,
+  RSPACK_MAX_ASYNC_CHUNK_SIZE,
   RSPACK_TARGETS,
 } from "../../scripts/rspack";
 
@@ -39,5 +41,7 @@ describe("Rspack helper barrel", () => {
     expect(typeof createRspackPerformanceConfig).toBe("function");
     expect(typeof createRspackExperimentsConfig).toBe("function");
     expect(typeof createSplitChunkCacheGroups).toBe("function");
+    expect(typeof createSplitChunksConfig).toBe("function");
+    expect(RSPACK_MAX_ASYNC_CHUNK_SIZE).toBe(2_400_000);
   });
 });

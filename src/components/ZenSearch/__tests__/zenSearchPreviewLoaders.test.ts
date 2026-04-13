@@ -130,6 +130,45 @@ function buildImportCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildAttachmentMediaSearchResult(): SearchResult {
+  return {
+    stem: "architecture.pdf",
+    title: "architecture.pdf",
+    path: "kernel/docs/index.md",
+    previewPath: "kernel/docs/files/architecture.pdf",
+    docType: "attachment",
+    tags: ["kind:pdf", "ext:pdf"],
+    score: 0.94,
+    category: "attachment",
+    navigationTarget: {
+      path: "kernel/docs/index.md",
+      graphPath: "kernel/docs/index.md#semantic-root",
+      category: "knowledge",
+      projectName: "kernel",
+      rootLabel: "docs",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
+function buildGatewayResolvedAttachmentMediaSearchResult(): SearchResult {
+  return {
+    stem: "architecture.pdf",
+    title: "architecture.pdf",
+    path: "docs/index.md",
+    previewPath: "docs/files/architecture.pdf",
+    docType: "attachment",
+    tags: ["kind:pdf", "ext:pdf"],
+    score: 0.94,
+    category: "attachment",
+    navigationTarget: {
+      path: "docs/index.md",
+      category: "knowledge",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
 describe("zenSearchPreviewLoaders", () => {
   beforeEach(() => {
     mocks.resolveStudioPath.mockReset();
@@ -157,6 +196,17 @@ describe("zenSearchPreviewLoaders", () => {
       markdownEligible: false,
       codeAstRepo: "kernel",
       codeAstLine: 12,
+    });
+  });
+
+  it("builds attachment preview plans around the media preview path and skips graph loading", () => {
+    expect(buildZenSearchPreviewLoadPlan(buildAttachmentMediaSearchResult())).toEqual({
+      contentPath: "kernel/docs/files/architecture.pdf",
+      graphPath: "kernel/docs/index.md#semantic-root",
+      graphable: false,
+      codeAstEligible: false,
+      markdownEligible: false,
+      codeAstRepo: "kernel",
     });
   });
 
@@ -292,6 +342,28 @@ describe("zenSearchPreviewLoaders", () => {
       markdownEligible: false,
       codeAstRepo: "ModelingToolkitStandardLibrary.jl",
       codeAstLine: 42,
+    });
+  });
+
+  it("resolves attachment preview paths through the gateway when project metadata is absent", async () => {
+    const result = buildGatewayResolvedAttachmentMediaSearchResult();
+
+    mocks.resolveStudioPath.mockResolvedValueOnce({
+      path: "main/docs/files/architecture.pdf",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
+    });
+
+    await expect(
+      resolveZenSearchPreviewLoadPlan(result, buildZenSearchPreviewLoadPlan(result)),
+    ).resolves.toEqual({
+      contentPath: "main/docs/files/architecture.pdf",
+      graphPath: "main/docs/files/architecture.pdf",
+      graphable: false,
+      codeAstEligible: false,
+      markdownEligible: false,
+      codeAstRepo: "main",
     });
   });
 });

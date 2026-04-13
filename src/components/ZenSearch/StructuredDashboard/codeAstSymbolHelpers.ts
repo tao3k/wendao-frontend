@@ -44,7 +44,7 @@ export function buildSymbols(
 
   if (backendSymbolAtoms.length > 0) {
     return backendSymbolAtoms
-      .map((atom, index) => {
+      .map((atom) => {
         const node = nodeById.get(atom.ownerId);
         const path = normalizeText(node?.path) ?? selectedPath;
         const line = node?.line ?? node?.lineStart ?? atom.lineStart;
@@ -74,10 +74,19 @@ export function buildSymbols(
         return left.label.localeCompare(right.label);
       })
       .slice(0, 10)
-      .map((symbol, index) => ({
-        ...symbol,
-        atom: toDisplayRetrievalAtom(symbol.atom, index + 5),
-      }));
+      .map((symbol, index) => {
+        return {
+          id: symbol.id,
+          label: symbol.label,
+          kind: symbol.kind,
+          path: symbol.path,
+          line: symbol.line,
+          references: symbol.references,
+          query: symbol.query,
+          atom: toDisplayRetrievalAtom(symbol.atom, index + 5),
+          facets: symbol.facets,
+        };
+      });
   }
 
   const connectedNodeIds = new Set<string>(

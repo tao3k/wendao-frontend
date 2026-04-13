@@ -3,6 +3,7 @@ import { rspack } from "@rspack/core";
 import { ReactRefreshRspackPlugin } from "@rspack/plugin-react-refresh";
 import type { Configuration } from "@rspack/core";
 import {
+  RSPACK_TARGETS,
   createRspackDevServer,
   createRspackEntry,
   createRspackExperimentsConfig,
@@ -12,10 +13,9 @@ import {
   createRspackPerformanceConfig,
   createRspackPlugins,
   createRspackResolve,
-  createSplitChunkCacheGroups,
+  createSplitChunksConfig,
   resolveDaochangTargetFromCwd,
   resolveGatewayTargetFromCwd,
-  RSPACK_TARGETS,
 } from "./scripts/rspack";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -55,10 +55,7 @@ export default defineConfig({
         targets,
       }),
     ],
-    splitChunks: {
-      chunks: "all",
-      cacheGroups: createSplitChunkCacheGroups(),
-    },
+    splitChunks: createSplitChunksConfig(),
   },
   experiments: createRspackExperimentsConfig(),
   performance: createRspackPerformanceConfig(),

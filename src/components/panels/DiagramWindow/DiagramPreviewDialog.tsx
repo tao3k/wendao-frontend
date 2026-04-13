@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 interface DiagramPreviewDialogProps {
@@ -18,6 +18,13 @@ export function DiagramPreviewDialog({
   onClose,
   children,
 }: DiagramPreviewDialogProps): React.ReactElement | null {
+  const handleOverlayMouseDown = useCallback(() => {
+    onClose();
+  }, [onClose]);
+  const handleShellMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -40,15 +47,13 @@ export function DiagramPreviewDialog({
   }
 
   return createPortal(
-    <div className="diagram-window__preview-overlay" onClick={onClose}>
+    <div className="diagram-window__preview-overlay" onMouseDown={handleOverlayMouseDown}>
       <div
         className="diagram-window__preview-shell"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
-        onClick={(event) => {
-          event.stopPropagation();
-        }}
+        onMouseDown={handleShellMouseDown}
       >
         <div className="diagram-window__preview-header">
           <div className="diagram-window__preview-header-copy">

@@ -1,10 +1,41 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 vi.mock("beautiful-mermaid", () => ({
   renderMermaidSVG: vi.fn(),
+}));
+
+vi.mock("react-pdf", () => ({
+  pdfjs: {
+    GlobalWorkerOptions: {
+      workerSrc: "",
+    },
+  },
+  Document: ({
+    children,
+    file,
+    onLoadSuccess,
+  }: {
+    children: React.ReactNode;
+    file: string;
+    onLoadSuccess?: (payload: { numPages: number }) => void;
+  }) => {
+    React.useLayoutEffect(() => {
+      onLoadSuccess?.({ numPages: 3 });
+    }, [file, onLoadSuccess]);
+
+    return (
+      <div data-file={file} data-testid="react-pdf-document">
+        {children}
+      </div>
+    );
+  },
+  Page: ({ pageNumber }: { pageNumber?: number }) => (
+    <div data-page-number={String(pageNumber ?? 0)} data-testid="react-pdf-page" />
+  ),
 }));
 
 import { renderMermaidSVG } from "beautiful-mermaid";
@@ -262,6 +293,57 @@ describe("DirectReader", () => {
     expect(screen.queryByRole("button", { name: "graph-b" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
     expect(onBiLinkClick).toHaveBeenCalledWith("docs/roadmap.md");
+  });
+
+  it("renders standalone PDF previews through the media preview module", async () => {
+    render(
+      <DirectReader
+        content={null}
+        contentType="application/pdf"
+        path="kernel/docs/files/architecture.pdf"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("direct-reader-media-preview")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open PDF" })).toHaveAttribute(
+      "href",
+      "/api/vfs/raw?path=kernel%2Fdocs%2Ffiles%2Farchitecture.pdf",
+    );
+    expect(screen.queryByText("Select a file to view its content")).toBeNull();
+  });
+
+  it("renders inline multimodal assets for markdown image, video, and PDF embeds", async () => {
+    const { container } = render(
+      <DirectReader
+        content={
+          "# Preview\n\n" +
+          "![Topology](../assets/topology.png)\n\n" +
+          "![Demo Clip](media/demo.mp4)\n\n" +
+          "![[files/spec.pdf|Architecture PDF]]\n\n" +
+          "Keep ![[graph-b]] inert."
+        }
+        path="kernel/docs/index.md"
+      />,
+    );
+
+    await waitForRichContent(container);
+    expect(screen.getByAltText("Topology")).toHaveAttribute(
+      "src",
+      "/api/vfs/raw?path=kernel%2Fassets%2Ftopology.png",
+    );
+    expect(screen.getByTestId("media-preview-video")).toBeInTheDocument();
+    expect(screen.getByTestId("media-preview-video").querySelector("source")).toHaveAttribute(
+      "src",
+      "/api/vfs/raw?path=kernel%2Fdocs%2Fmedia%2Fdemo.mp4",
+    );
+    expect(screen.getByTestId("media-preview-pdf")).toHaveAttribute(
+      "data",
+      "/api/vfs/raw?path=kernel%2Fdocs%2Ffiles%2Fspec.pdf",
+    );
+    expect(screen.queryByRole("button", { name: "graph-b" })).toBeNull();
   });
 
   it("supports legacy wikilink shape [[label|target]]", async () => {

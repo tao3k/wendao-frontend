@@ -36,6 +36,7 @@ export interface SearchResult extends SearchHit {
   category: ResultCategory;
   projectName?: string;
   rootLabel?: string;
+  previewPath?: string;
   line?: number;
   lineEnd?: number;
   column?: number;

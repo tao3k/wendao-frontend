@@ -60,19 +60,29 @@ export function deriveJuliaLanguageProjection(input: LanguageProjectionInput) {
 
       return left.label.localeCompare(right.label);
     })
-    .map((fragment) => ({
-      ...fragment,
-      detail: appendDetail(fragment.detail, [
-        attributeValue(fragment.attributes, "binding_kind"),
-        attributeValue(fragment.attributes, "type_kind"),
-        attributeValue(fragment.attributes, "parameter_kind"),
-        attributeValue(fragment.attributes, "function_return_type"),
-        attributeValue(fragment.attributes, "top_level") === "true" ? "top-level" : undefined,
-        attributeValue(fragment.attributes, "owner_path")
-          ? `owner=${attributeValue(fragment.attributes, "owner_path")}`
-          : undefined,
-      ]),
-    }));
+    .map((fragment) => {
+      return {
+        id: fragment.id,
+        label: fragment.label,
+        value: fragment.value,
+        detail: appendDetail(fragment.detail, [
+          attributeValue(fragment.attributes, "binding_kind"),
+          attributeValue(fragment.attributes, "type_kind"),
+          attributeValue(fragment.attributes, "parameter_kind"),
+          attributeValue(fragment.attributes, "function_return_type"),
+          attributeValue(fragment.attributes, "top_level") === "true" ? "top-level" : undefined,
+          attributeValue(fragment.attributes, "owner_path")
+            ? `owner=${attributeValue(fragment.attributes, "owner_path")}`
+            : undefined,
+        ]),
+        semanticType: fragment.semanticType,
+        kind: fragment.kind,
+        line: fragment.line,
+        path: fragment.path,
+        attributes: fragment.attributes,
+        atom: fragment.atom,
+      };
+    });
   const saliencyFragment =
     sortedFragments.find((fragment) => {
       const semanticType = normalizeKey(fragment.semanticType);

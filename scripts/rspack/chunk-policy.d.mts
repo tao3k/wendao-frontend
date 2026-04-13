@@ -25,7 +25,10 @@ export interface SplitChunkCacheGroups {
   readonly bpmn: NamedSplitChunkCacheGroup;
   readonly shikiCore: NamedSplitChunkCacheGroup;
   readonly markdownCore: NamedSplitChunkCacheGroup;
-  readonly mermaid: NamedSplitChunkCacheGroup;
+  readonly imagePreview: NamedSplitChunkCacheGroup;
+  readonly mediaPlayer: NamedSplitChunkCacheGroup;
+  readonly pdf: NamedSplitChunkCacheGroup;
+  readonly mermaidRuntime: NamedSplitChunkCacheGroup;
   readonly katex: NamedSplitChunkCacheGroup;
   readonly lucide: NamedSplitChunkCacheGroup;
   readonly vendors: NamedSplitChunkCacheGroup;
@@ -35,8 +38,16 @@ export interface SplitChunkCacheGroups {
   readonly commonAsync: NamedSplitChunkCacheGroup;
 }
 
+export interface SplitChunksConfig {
+  readonly chunks: "all";
+  readonly maxAsyncSize: number;
+  readonly cacheGroups: SplitChunkCacheGroups;
+}
+
 export const RSPACK_CACHE_GROUP_KEYS: readonly (keyof SplitChunkCacheGroups)[];
+export const RSPACK_MAX_ASYNC_CHUNK_SIZE: number;
 
 export function normalizeChunkNameFragment(value: unknown): string;
 export function buildAsyncVendorChunkName(chunks?: readonly ChunkLike[]): string;
 export function createSplitChunkCacheGroups(): SplitChunkCacheGroups;
+export function createSplitChunksConfig(): SplitChunksConfig;

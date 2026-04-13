@@ -1,10 +1,15 @@
+import { BUILD_SIZE_BUDGETS } from "./build-size-budgets.mjs";
+
 export const RSPACK_CACHE_GROUP_KEYS = Object.freeze([
   "react",
   "three",
   "bpmn",
   "shikiCore",
   "markdownCore",
-  "mermaid",
+  "imagePreview",
+  "mediaPlayer",
+  "pdf",
+  "mermaidRuntime",
   "katex",
   "lucide",
   "vendors",
@@ -13,6 +18,8 @@ export const RSPACK_CACHE_GROUP_KEYS = Object.freeze([
   "common",
   "commonAsync",
 ]);
+
+export const RSPACK_MAX_ASYNC_CHUNK_SIZE = BUILD_SIZE_BUDGETS.maxAssetSize;
 
 export function normalizeChunkNameFragment(value) {
   return String(value ?? "misc").replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -59,9 +66,30 @@ export function createSplitChunkCacheGroups() {
       priority: 33,
       reuseExistingChunk: true,
     },
-    mermaid: {
-      test: /[\\/]node_modules[\\/](beautiful-mermaid|mermaid|elkjs|web-worker)[\\/]/,
-      name: "mermaid",
+    imagePreview: {
+      test: /[\\/]node_modules[\\/]react-zoom-pan-pinch[\\/]/,
+      name: "image-preview",
+      chunks: "async",
+      priority: 32.95,
+      reuseExistingChunk: true,
+    },
+    mediaPlayer: {
+      test: /[\\/]node_modules[\\/](vidstack|@vidstack[\\/]react|media-captions|@floating-ui[\\/]dom|dashjs|hls\.js|lit-html)[\\/]/,
+      name: "media-player",
+      chunks: "async",
+      priority: 32.93,
+      reuseExistingChunk: true,
+    },
+    pdf: {
+      test: /[\\/]node_modules[\\/](react-pdf|pdfjs-dist)[\\/]/,
+      name: "pdf",
+      chunks: "async",
+      priority: 32.9,
+      reuseExistingChunk: true,
+    },
+    mermaidRuntime: {
+      test: /[\\/]node_modules[\\/](beautiful-mermaid|elkjs|web-worker)[\\/]/,
+      name: "mermaid-runtime",
       chunks: "async",
       priority: 32.8,
       reuseExistingChunk: true,
@@ -117,5 +145,13 @@ export function createSplitChunkCacheGroups() {
       priority: 9,
       reuseExistingChunk: true,
     },
+  };
+}
+
+export function createSplitChunksConfig() {
+  return {
+    chunks: "all",
+    maxAsyncSize: RSPACK_MAX_ASYNC_CHUNK_SIZE,
+    cacheGroups: createSplitChunkCacheGroups(),
   };
 }

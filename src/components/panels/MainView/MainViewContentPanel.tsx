@@ -18,8 +18,11 @@ export function MainViewContentPanel({
   panelLoadingFallback,
   onBiLinkClick,
 }: MainViewContentPanelProps): React.ReactElement {
-  const hasSelectedContent = selectedFile?.content !== undefined;
-  const isLoadingSelectedFile = Boolean(selectedFile && selectedFile.content === undefined);
+  const isContentReady = selectedFile
+    ? (selectedFile.isContentReady ?? selectedFile.content !== undefined)
+    : false;
+  const hasSelectedContent = Boolean(selectedFile && isContentReady);
+  const isLoadingSelectedFile = Boolean(selectedFile && !isContentReady);
 
   return (
     <div className="main-view-content-raw">
@@ -27,6 +30,7 @@ export function MainViewContentPanel({
         <Suspense fallback={panelLoadingFallback}>
           <DirectReader
             content={selectedFile.content}
+            contentType={selectedFile.contentType}
             path={selectedFile.path}
             locale={locale}
             line={selectedFile.line}

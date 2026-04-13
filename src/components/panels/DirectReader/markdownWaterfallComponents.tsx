@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import type { Components } from "react-markdown";
 import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from "../../../api";
 import { buildArrowRetrievalLookup } from "../../../utils/arrowRetrievalLookup";
+import { MediaPreviewSurface, resolveMediaLinkHref } from "../../mediaPreview";
 import {
   decodeBiLinkHref,
   directReaderUrlTransform,
@@ -160,6 +161,46 @@ export function buildMarkdownComponents({
   let mathAtomCursor = 0;
   const observationAtoms = collectSectionAtoms(atomLookup, activeSection, "observation");
   let observationAtomCursor = 0;
+  const isMediaOnlyNode = (node: React.ReactNode): boolean => {
+    if (typeof node === "string") {
+      return node.trim().length === 0;
+    }
+
+    if (Array.isArray(node)) {
+      return node.length > 0 && node.every(isMediaOnlyNode);
+    }
+
+    if (!React.isValidElement(node)) {
+      return false;
+    }
+
+    if (node.type === MediaPreviewSurface) {
+      return true;
+    }
+
+    if (node.type === React.Fragment) {
+      return isMediaOnlyNode(node.props.children);
+    }
+
+    if (typeof node.type === "string") {
+      return ["audio", "div", "figure", "img", "object", "video"].includes(node.type);
+    }
+
+    return false;
+  };
+
+  const renderParagraph = (children: React.ReactNode) => {
+    const nodes = React.Children.toArray(children).filter((node) => {
+      return typeof node !== "string" || node.trim().length > 0;
+    });
+    const mediaOnlyParagraph = nodes.length > 0 && nodes.every(isMediaOnlyNode);
+
+    if (mediaOnlyParagraph) {
+      return <div className="direct-reader__p direct-reader__p--media">{children}</div>;
+    }
+
+    return <p className="direct-reader__p">{children}</p>;
+  };
 
   return {
     h1({ children }) {
@@ -172,7 +213,7 @@ export function buildMarkdownComponents({
       return <h3 className="direct-reader__h3">{children}</h3>;
     },
     p({ children }) {
-      return <p className="direct-reader__p">{children}</p>;
+      return renderParagraph(children);
     },
     ul({ children }) {
       return <ul className="direct-reader__ul">{children}</ul>;
@@ -351,6 +392,21 @@ export function buildMarkdownComponents({
     td({ children }) {
       return <td className="direct-reader__td">{children}</td>;
     },
+    img({ src, alt, title }) {
+      if (typeof src !== "string") {
+        return null;
+      }
+
+      return (
+        <MediaPreviewSurface
+          alt={alt}
+          mode="inline"
+          sourcePath={sourcePath}
+          target={src}
+          title={title}
+        />
+      );
+    },
     a({ href, children }) {
       if (typeof href === "string" && href.startsWith("bilink:")) {
         const link = decodeBiLinkHref(href);
@@ -378,7 +434,12 @@ export function buildMarkdownComponents({
       }
 
       return (
-        <a className="direct-reader__link" href={href} target="_blank" rel="noreferrer noopener">
+        <a
+          className="direct-reader__link"
+          href={typeof href === "string" ? resolveMediaLinkHref(href, sourcePath) : href}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
           {children}
         </a>
       );

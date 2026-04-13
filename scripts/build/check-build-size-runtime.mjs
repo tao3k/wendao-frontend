@@ -23,7 +23,9 @@ async function collectAssetSizes(distDir) {
         return [relativePath, fileInfo.size];
       });
     const nestedResults = await Promise.all([...nestedDirectoryEntries, ...assetEntries]);
-    return nestedResults.flat();
+    return nestedResults.flatMap((result) => {
+      return Array.isArray(result[0]) ? result : [result];
+    });
   }
 
   return Object.fromEntries(await collectDirectory(distDir));

@@ -756,6 +756,68 @@ describe("App topology wiring", () => {
     });
   });
 
+  it("treats PDF selections as multimodal preview surfaces without fetching text content", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onFileSelect: (
+              path: string,
+              category: string,
+              metadata?: { projectName?: string; rootLabel?: string },
+            ) => Promise<void>;
+          }
+        | undefined;
+      expect(fileTreeProps?.onFileSelect).toBeDefined();
+    });
+
+    const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onFileSelect: (
+            path: string,
+            category: string,
+            metadata?: { projectName?: string; rootLabel?: string },
+          ) => Promise<void>;
+        }
+      | undefined;
+
+    await act(async () => {
+      await fileTreeProps?.onFileSelect("docs/files/architecture.pdf", "doc", {
+        projectName: "kernel",
+        rootLabel: "docs",
+      });
+    });
+
+    await waitFor(() => {
+      const lastMainViewCall = mocks.mainViewSpy.mock.calls.at(-1)?.[0] as
+        | {
+            selectedFile: {
+              path: string;
+              content: null;
+              contentType: string;
+              isContentReady: boolean;
+            };
+          }
+        | undefined;
+      expect(lastMainViewCall?.selectedFile).toMatchObject({
+        path: "kernel/docs/files/architecture.pdf",
+        content: null,
+        contentType: "application/pdf",
+        isContentReady: true,
+      });
+    });
+
+    expect(mocks.getVfsContentMock).not.toHaveBeenCalled();
+    expect(mocks.getGraphNeighborsMock).not.toHaveBeenCalled();
+  });
+
   it("clears a stale graph-backed selection when GraphView reports the center node is invalid", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],

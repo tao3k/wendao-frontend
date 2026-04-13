@@ -51,6 +51,44 @@ const DiagramWindowModeButton = React.memo(function DiagramWindowModeButton({
 
 DiagramWindowModeButton.displayName = "DiagramWindowModeButton";
 
+interface DiagramWindowLayoutOptionButtonProps {
+  index: number;
+  label: string;
+  isActive: boolean;
+  onMermaidModeChange: (index: number) => void;
+  onCloseMenu: () => void;
+}
+
+const DiagramWindowLayoutOptionButton = React.memo(function DiagramWindowLayoutOptionButton({
+  index,
+  label,
+  isActive,
+  onMermaidModeChange,
+  onCloseMenu,
+}: DiagramWindowLayoutOptionButtonProps): React.ReactElement {
+  const handleClick = useCallback(() => {
+    onMermaidModeChange(index);
+    onCloseMenu();
+  }, [index, onCloseMenu, onMermaidModeChange]);
+
+  return (
+    <button
+      type="button"
+      className={`diagram-window__layout-option ${
+        isActive ? "diagram-window__layout-option--active" : ""
+      }`}
+      role="menuitemradio"
+      aria-checked={isActive}
+      disabled={isActive}
+      onClick={handleClick}
+    >
+      {label}
+    </button>
+  );
+});
+
+DiagramWindowLayoutOptionButton.displayName = "DiagramWindowLayoutOptionButton";
+
 export function DiagramWindowToolbar({
   hasBpmn,
   hasMermaid,
@@ -65,6 +103,12 @@ export function DiagramWindowToolbar({
 }: DiagramWindowToolbarProps): React.ReactElement {
   const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
   const layoutMenuRef = useRef<HTMLDivElement | null>(null);
+  const handleToggleLayoutMenu = useCallback(() => {
+    setIsLayoutMenuOpen((current) => !current);
+  }, []);
+  const handleCloseLayoutMenu = useCallback(() => {
+    setIsLayoutMenuOpen(false);
+  }, []);
 
   useEffect(() => {
     if (!isLayoutMenuOpen) {
@@ -105,9 +149,7 @@ export function DiagramWindowToolbar({
             }`}
             aria-expanded={isLayoutMenuOpen}
             aria-haspopup="menu"
-            onClick={() => {
-              setIsLayoutMenuOpen((current) => !current);
-            }}
+            onClick={handleToggleLayoutMenu}
           >
             {copy.switchLayoutLabel}
           </button>
@@ -117,22 +159,14 @@ export function DiagramWindowToolbar({
               {mermaidModeOptions.map((option) => {
                 const isActive = activeMermaidIndex === option.index;
                 return (
-                  <button
+                  <DiagramWindowLayoutOptionButton
                     key={`toolbar-mermaid-mode-${option.index}`}
-                    type="button"
-                    className={`diagram-window__layout-option ${
-                      isActive ? "diagram-window__layout-option--active" : ""
-                    }`}
-                    role="menuitemradio"
-                    aria-checked={isActive}
-                    disabled={isActive}
-                    onClick={() => {
-                      onMermaidModeChange(option.index);
-                      setIsLayoutMenuOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </button>
+                    index={option.index}
+                    label={option.label}
+                    isActive={isActive}
+                    onMermaidModeChange={onMermaidModeChange}
+                    onCloseMenu={handleCloseLayoutMenu}
+                  />
                 );
               })}
             </div>

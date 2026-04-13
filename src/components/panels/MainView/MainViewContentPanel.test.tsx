@@ -77,4 +77,34 @@ describe("MainViewContentPanel", () => {
       column: 4,
     });
   });
+
+  it("treats loaded multimodal files as ready even when textual content is null", async () => {
+    render(
+      <MainViewContentPanel
+        selectedFile={{
+          path: "kernel/docs/files/architecture.pdf",
+          category: "doc",
+          content: null,
+          contentType: "application/pdf",
+          isContentReady: true,
+        }}
+        locale="en"
+        noContentFile="unused"
+        panelLoadingFallback={<div>Loading panel...</div>}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("direct-reader")).toBeInTheDocument();
+    });
+
+    const payload = directReaderSpy.mock.calls.at(-1)?.[0] as
+      | { path: string; content: null; contentType: string }
+      | undefined;
+    expect(payload).toMatchObject({
+      path: "kernel/docs/files/architecture.pdf",
+      content: null,
+      contentType: "application/pdf",
+    });
+  });
 });

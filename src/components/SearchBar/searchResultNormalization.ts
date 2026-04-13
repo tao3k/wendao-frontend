@@ -11,6 +11,7 @@ import {
   normalizeSelectionPathForVfs,
   preferMoreCanonicalSelectionPath,
 } from "../../utils/selectionPath";
+import { resolveRelativeVfsResourcePath } from "../mediaPreview/model";
 import type { ResultCategory, SearchResult, SearchSelection } from "./types";
 
 function isNonEmptyString(value: string | undefined): value is string {
@@ -492,6 +493,7 @@ export function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
     path: hit.sourcePath,
     category: "doc",
   };
+  const previewPath = resolveRelativeVfsResourcePath(hit.attachmentPath, hit.sourcePath);
   return {
     stem: hit.attachmentName,
     title: hit.attachmentName,
@@ -504,6 +506,7 @@ export function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
     category: "attachment",
     projectName: navigationTarget.projectName,
     rootLabel: navigationTarget.rootLabel,
+    previewPath,
     searchSource: "search-index",
     navigationTarget,
   };

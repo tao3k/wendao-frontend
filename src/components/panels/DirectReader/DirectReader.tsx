@@ -6,6 +6,7 @@
 
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeSyntaxHighlighter, normalizeCodeLanguage } from "../../code-syntax";
+import { inferMediaPreviewKind, MediaPreviewSurface } from "../../mediaPreview";
 import { scrollSourceLineIntoView } from "./directReaderScroll";
 import { parseBiLink } from "./markdownWaterfallBiLinks";
 import "./DirectReader.css";
@@ -418,6 +419,10 @@ export function DirectReader({
     contentTypeIsMarkdown || (!contentTypeIsSource && isLikelyMarkdownContent(content));
   const isMarkdownDocument = isMarkdownDocumentPath(path) || contentLooksMarkdown;
   const sourceSyntaxLanguage = useMemo(() => inferSourceSyntaxLanguage(path), [path]);
+  const standaloneMediaPreviewKind = useMemo(
+    () => inferMediaPreviewKind(path, normalizedContentType),
+    [normalizedContentType, path],
+  );
   const isSourceDocument =
     Boolean(sourceSyntaxLanguage && sourceSyntaxLanguage !== "markdown") &&
     !contentLooksMarkdown &&
@@ -585,16 +590,26 @@ export function DirectReader({
         </div>
       ) : (
         <div className="direct-reader__content">
-          <Suspense fallback={DIRECT_READER_INLINE_FALLBACK}>
-            <DirectReaderRichContent
-              content={renderedMarkdownContent}
-              copy={copy}
-              isMarkdownDocument={isMarkdownDocument}
-              locale={locale}
-              onBiLinkClick={onBiLinkClick}
-              path={path}
+          {path && standaloneMediaPreviewKind ? (
+            <MediaPreviewSurface
+              contentType={normalizedContentType}
+              mode="standalone"
+              target={path}
+              testId="direct-reader-media-preview"
+              title={path}
             />
-          </Suspense>
+          ) : (
+            <Suspense fallback={DIRECT_READER_INLINE_FALLBACK}>
+              <DirectReaderRichContent
+                content={renderedMarkdownContent}
+                copy={copy}
+                isMarkdownDocument={isMarkdownDocument}
+                locale={locale}
+                onBiLinkClick={onBiLinkClick}
+                path={path}
+              />
+            </Suspense>
+          )}
         </div>
       )}
 

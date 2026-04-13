@@ -1,15 +1,29 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useState } from "react";
+import { type ChangeEvent, type FormEvent, useCallback, useState } from "react";
 import { ToolInvocation } from "./ToolInvocation";
 
 const transport = new DefaultChatTransport({ api: "/vercel/stream" });
+const PRE_WRAP_TEXT_STYLE = { whiteSpace: "pre-wrap" } as const;
 
 export function ChatPanel() {
   const { messages, sendMessage, status, error } = useChat({ transport });
   const [input, setInput] = useState("");
 
   const isReady = status === "ready";
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (input.trim() && isReady) {
+        sendMessage({ text: input });
+        setInput("");
+      }
+    },
+    [input, isReady, sendMessage],
+  );
+  const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    setInput(event.target.value);
+  }, []);
 
   return (
     <div className="chat-panel">
@@ -28,7 +42,7 @@ export function ChatPanel() {
               {msg.parts.map((part, i) => {
                 if (part.type === "text") {
                   return (
-                    <span key={i} style={{ whiteSpace: "pre-wrap" }}>
+                    <span key={i} style={PRE_WRAP_TEXT_STYLE}>
                       {part.text}
                     </span>
                   );
@@ -58,18 +72,12 @@ export function ChatPanel() {
 
       <form
         className="chat-panel__input-area"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (input.trim() && isReady) {
-            sendMessage({ text: input });
-            setInput("");
-          }
-        }}
+        onSubmit={handleSubmit}
       >
         <input
           className="chat-panel__input"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
           placeholder="Type a message..."
           disabled={!isReady}
         />

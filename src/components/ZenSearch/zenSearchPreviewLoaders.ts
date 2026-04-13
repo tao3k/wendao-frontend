@@ -10,7 +10,11 @@ import {
   normalizeSelectionPathForVfs,
   preferMoreCanonicalSelectionPath,
 } from "../../utils/selectionPath";
-import { isCodeSearchResult } from "../SearchBar/searchResultNormalization";
+import {
+  canOpenGraphForSearchResult,
+  isCodeSearchResult,
+} from "../SearchBar/searchResultNormalization";
+import { inferMediaContentType, inferMediaPreviewKind } from "../mediaPreview/model";
 import type { SearchResult } from "../SearchBar/types";
 import { supportsCodeAstPreview } from "./codeAstPreviewSupport";
 
@@ -106,7 +110,11 @@ export function buildZenSearchPreviewLoadPlan(result: SearchResult): ZenSearchPr
   const navigationTarget = result.navigationTarget;
   const projectName = navigationTarget?.projectName ?? result.projectName;
   const rootLabel = navigationTarget?.rootLabel ?? result.rootLabel;
-  const contentSourcePath = preferMoreCanonicalSelectionPath(result.path, navigationTarget?.path);
+  const contentSourcePath = preferMoreCanonicalSelectionPath(
+    result.previewPath ?? result.path,
+    result.previewPath ? undefined : navigationTarget?.path,
+  );
+  const graphSourcePath = preferMoreCanonicalSelectionPath(result.path, navigationTarget?.path);
   const contentPath = normalizeSelectionPathForVfs({
     path: contentSourcePath,
     category: navigationTarget?.category ?? result.category,
@@ -114,12 +122,14 @@ export function buildZenSearchPreviewLoadPlan(result: SearchResult): ZenSearchPr
     rootLabel,
   });
   const graphPath = normalizeSelectionPathForGraph({
-    path: navigationTarget?.graphPath ?? contentSourcePath,
+    path: navigationTarget?.graphPath ?? graphSourcePath,
     category: navigationTarget?.category ?? result.category,
     projectName,
     rootLabel,
   });
-  const graphable = !isCodeSearchResult(result);
+  const mediaPreviewKind = inferMediaPreviewKind(contentPath);
+  const graphable =
+    canOpenGraphForSearchResult(result) && !isCodeSearchResult(result) && mediaPreviewKind == null;
   const codeAstEligible = supportsCodeAstPreview(result);
   const markdownEligible = /\.(md|markdown)$/i.test(contentPath);
   const codeAstRepo =
@@ -149,14 +159,18 @@ export async function resolveZenSearchPreviewLoadPlan(
   plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewLoadPlan> {
   const navigationTarget = result.navigationTarget;
-  const contentSourcePath = preferMoreCanonicalSelectionPath(result.path, navigationTarget?.path);
+  const previewSourcePath = result.previewPath ?? result.path;
+  const contentSourcePath = preferMoreCanonicalSelectionPath(
+    previewSourcePath,
+    result.previewPath ? undefined : navigationTarget?.path,
+  );
   const projectName =
     navigationTarget?.projectName?.trim() || result.projectName?.trim() || undefined;
   const rootLabel = navigationTarget?.rootLabel?.trim() || result.rootLabel?.trim() || undefined;
-  const rawNavigationPath = navigationTarget?.path?.trim() || result.path.trim();
+  const rawContentPath = previewSourcePath.trim();
 
   if (
-    (projectName || contentSourcePath !== rawNavigationPath) &&
+    (projectName || contentSourcePath !== rawContentPath) &&
     (!plan.codeAstEligible || plan.codeAstRepo?.trim())
   ) {
     return plan;
@@ -181,6 +195,7 @@ export async function resolveZenSearchPreviewLoadPlan(
       ...(resolvedProjectName ? { projectName: resolvedProjectName } : {}),
       ...(resolvedRootLabel ? { rootLabel: resolvedRootLabel } : {}),
     });
+    const mediaPreviewKind = inferMediaPreviewKind(contentPath);
     const codeAstRepo = plan.codeAstRepo?.trim() || resolvedProjectName;
     const codeAstLine = plan.codeAstLine ?? resolvedTarget.line ?? undefined;
 
@@ -188,6 +203,7 @@ export async function resolveZenSearchPreviewLoadPlan(
       ...plan,
       contentPath,
       graphPath,
+      graphable: plan.graphable && mediaPreviewKind == null,
       markdownEligible: /\.(md|markdown)$/i.test(contentPath),
       ...(codeAstRepo ? { codeAstRepo } : {}),
       ...(typeof codeAstLine === "number" ? { codeAstLine } : {}),
@@ -216,6 +232,15 @@ export async function loadZenSearchPreviewBaseData(
 export async function loadZenSearchPreviewContentData(
   plan: ZenSearchPreviewLoadPlan,
 ): Promise<ZenSearchPreviewContentLoadResult> {
+  const mediaPreviewKind = inferMediaPreviewKind(plan.contentPath);
+  if (mediaPreviewKind) {
+    return {
+      content: null,
+      contentType: inferMediaContentType(plan.contentPath),
+      error: null,
+    };
+  }
+
   try {
     const content = (await api.getVfsContent(plan.contentPath)) as VfsContentResponse;
     return {

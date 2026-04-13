@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 interface ToolInvocationProps {
   part: {
@@ -17,6 +17,9 @@ export function ToolInvocation({ part }: ToolInvocationProps) {
   const { input, output, state } = part;
   const isRunning = state === "input-streaming" || state === "input-available";
   const hasOutput = state === "output-available" && output != null;
+  const handleToggle = useCallback(() => {
+    setExpanded((current) => !current);
+  }, []);
 
   const paramStr =
     input && typeof input === "object"
@@ -39,7 +42,7 @@ export function ToolInvocation({ part }: ToolInvocationProps) {
           <button
             type="button"
             className="chat-tool__toggle"
-            onClick={() => setExpanded(!expanded)}
+            onClick={handleToggle}
           >
             {expanded ? "▼ hide output" : "▶ show output"}
           </button>

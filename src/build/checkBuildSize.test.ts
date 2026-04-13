@@ -1,7 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { BUILD_SIZE_BUDGETS } from "../../scripts/rspack/build-size-budgets.mjs";
-import { evaluateBuildSizeBudgets, extractInitialAssets } from "../../scripts/build/index.mjs";
+import {
+  evaluateBuildSizeBudgets,
+  extractInitialAssets,
+  runBuildSizeCheck,
+} from "../../scripts/build/index.mjs";
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map(async (dir) => {
+      await rm(dir, { force: true, recursive: true });
+    }),
+  );
+});
 
 describe("BUILD_SIZE_BUDGETS", () => {
   it("exports the shared frontend asset thresholds", () => {
@@ -107,5 +124,40 @@ describe("evaluateBuildSizeBudgets", () => {
 
     expect(report.passed).toBe(false);
     expect(report.missingAssets).toEqual(["main.js"]);
+  });
+});
+
+describe("runBuildSizeCheck", () => {
+  it("collects css and js asset tuples from nested dist output without flattening entry pairs", async () => {
+    const distDir = await mkdtemp(path.join(tmpdir(), "wendao-frontend-build-size-"));
+    tempDirs.push(distDir);
+
+    await mkdir(path.join(distDir, "assets"), { recursive: true });
+    await writeFile(
+      path.join(distDir, "index.html"),
+      `
+        <html>
+          <head>
+            <link rel="stylesheet" href="./186.css" />
+          </head>
+          <body>
+            <script src="./assets/main.js"></script>
+          </body>
+        </html>
+      `,
+      "utf8",
+    );
+    await writeFile(path.join(distDir, "186.css"), "body { color: #fff; }", "utf8");
+    await writeFile(path.join(distDir, "assets", "main.js"), 'console.log("build-size");', "utf8");
+
+    const report = await runBuildSizeCheck({
+      distDir,
+      maxAssetSize: 50_000,
+      maxEntrypointSize: 50_000,
+    });
+
+    expect(report.passed).toBe(true);
+    expect(report.initialAssets).toEqual(["assets/main.js", "186.css"]);
+    expect(report.missingAssets).toEqual([]);
   });
 });

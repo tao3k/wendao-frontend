@@ -53,7 +53,10 @@ export function computeZenSearchPreviewLoadNeeds(
 ): ZenSearchPreviewLoadNeeds {
   return {
     content: Boolean(
-      !cachedPreview || (cachedPreview.content == null && cachedPreview.error == null),
+      !cachedPreview ||
+      (cachedPreview.content == null &&
+        cachedPreview.contentType == null &&
+        cachedPreview.error == null),
     ),
     graph: Boolean(plan.graphable && (!cachedPreview || cachedPreview.graphNeighbors == null)),
     markdown: Boolean(

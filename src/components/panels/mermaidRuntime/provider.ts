@@ -9,9 +9,16 @@ export type MermaidRuntimeProviderName = "beautiful-mermaid" | "compact-flow";
 
 export type MermaidInlineDialect = "flowchart" | "graph" | "state" | "unknown";
 
+export interface MermaidRuntimePayloadPackageGroup {
+  readonly groupName: string;
+  readonly packageNames: readonly string[];
+}
+
 export interface MermaidRuntimeProviderManifest {
   readonly providerName: MermaidRuntimeProviderName;
   readonly packageName: string;
+  readonly payloadPackageNames: readonly string[];
+  readonly payloadPackageGroups: readonly MermaidRuntimePayloadPackageGroup[];
   readonly supportedInlineDialects: readonly MermaidInlineDialect[];
   readonly payloadNotes: readonly string[];
 }

@@ -118,6 +118,45 @@ function buildGatewayResolvedCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildAttachmentMediaSearchResult(): SearchResult {
+  return {
+    stem: "architecture.pdf",
+    title: "architecture.pdf",
+    path: "kernel/docs/index.md",
+    previewPath: "kernel/docs/files/architecture.pdf",
+    docType: "attachment",
+    tags: ["kind:pdf", "ext:pdf"],
+    score: 0.94,
+    category: "attachment",
+    navigationTarget: {
+      path: "kernel/docs/index.md",
+      graphPath: "kernel/docs/index.md#semantic-root",
+      category: "knowledge",
+      projectName: "kernel",
+      rootLabel: "docs",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
+function buildGatewayResolvedAttachmentMediaSearchResult(): SearchResult {
+  return {
+    stem: "architecture.pdf",
+    title: "architecture.pdf",
+    path: "docs/index.md",
+    previewPath: "docs/files/architecture.pdf",
+    docType: "attachment",
+    tags: ["kind:pdf", "ext:pdf"],
+    score: 0.94,
+    category: "attachment",
+    navigationTarget: {
+      path: "docs/index.md",
+      category: "knowledge",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
 function buildSecondMarkdownSearchResult(): SearchResult {
   return {
     stem: "Workspace Guide",
@@ -281,6 +320,46 @@ describe("useZenSearchPreview", () => {
       limit: 20,
     });
     expect(mocks.getMarkdownAnalysis).toHaveBeenCalledWith("main/docs/index.md");
+  });
+
+  it("skips text VFS loading for attachment media previews and keeps graph loading disabled", async () => {
+    const selectedResult = buildAttachmentMediaSearchResult();
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.contentPath).toBe("kernel/docs/files/architecture.pdf");
+      expect(result.current.contentType).toBe("application/pdf");
+    });
+
+    expect(mocks.getVfsContent).not.toHaveBeenCalled();
+    expect(mocks.getGraphNeighbors).not.toHaveBeenCalled();
+    expect(mocks.getMarkdownAnalysis).not.toHaveBeenCalled();
+    expect(result.current.graphNeighbors).toBeNull();
+  });
+
+  it("resolves attachment media preview paths through the gateway before skipping text loads", async () => {
+    const selectedResult = buildGatewayResolvedAttachmentMediaSearchResult();
+
+    mocks.resolveStudioPath.mockResolvedValueOnce({
+      path: "main/docs/files/architecture.pdf",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
+    });
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.contentPath).toBe("main/docs/files/architecture.pdf");
+      expect(result.current.contentType).toBe("application/pdf");
+    });
+
+    expect(mocks.resolveStudioPath).toHaveBeenCalledWith("docs/files/architecture.pdf");
+    expect(mocks.getVfsContent).not.toHaveBeenCalled();
+    expect(mocks.getGraphNeighbors).not.toHaveBeenCalled();
   });
 
   it("normalizes graph totals from the neighbor payload when totals are stale", async () => {

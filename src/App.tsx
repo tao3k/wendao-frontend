@@ -31,6 +31,7 @@ import {
   normalizeSelectionPathForGraph,
   normalizeSelectionPathForVfs,
 } from "./utils/selectionPath";
+import { inferMediaContentType, inferMediaPreviewKind } from "./components/mediaPreview";
 import "./styles/UI.css";
 
 const LazyZenSearchWindow = lazy(async () => {
@@ -170,7 +171,9 @@ function withOptionalSelectionMetadata(
 function buildSelectedFileRecord(
   path: string,
   category: string,
-  content: string | undefined,
+  content: string | null,
+  contentType: string | null,
+  isContentReady: boolean,
   metadata: FileSelectionMetadata | null,
   location: FileSelectionLocation | null,
 ) {
@@ -178,6 +181,8 @@ function buildSelectedFileRecord(
     path,
     category,
     content,
+    contentType,
+    isContentReady,
     ...(metadata ? metadata : {}),
     ...(location ? location : {}),
   };
@@ -238,6 +243,8 @@ function App() {
     null,
   );
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
+  const [selectedFileContentType, setSelectedFileContentType] = useState<string | null>(null);
+  const [selectedFileContentReady, setSelectedFileContentReady] = useState(false);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [viewMode, setViewMode] = useState<"normal" | "zen-search">("normal");
   const [mainViewTabRequest, setMainViewTabRequest] = useState<MainViewTabRequest | null>(null);
@@ -404,6 +411,9 @@ function App() {
             }
           : null,
       );
+      setSelectedFileContent(null);
+      setSelectedFileContentType(null);
+      setSelectedFileContentReady(false);
       setSelectedFileMetadata(
         resolvedSelectionProjectName || resolvedSelectionRootLabel
           ? {
@@ -417,8 +427,20 @@ function App() {
       console.log("File selected:", resolvedPath, resolvedSelectionCategory);
 
       try {
-        const { content } = await api.getVfsContent(resolvedPath);
+        const mediaPreviewKind = inferMediaPreviewKind(resolvedPath);
+        if (mediaPreviewKind) {
+          setSelectedFileContent(null);
+          setSelectedFileContentType(inferMediaContentType(resolvedPath));
+          setSelectedFileContentReady(true);
+          setCurrentXml("");
+          setRelationships([]);
+          return true;
+        }
+
+        const { content, contentType } = await api.getVfsContent(resolvedPath);
         setSelectedFileContent(content);
+        setSelectedFileContentType(contentType ?? null);
+        setSelectedFileContentReady(true);
         const isMermaidFile =
           /\\.(mmd|mermaid)$/i.test(resolvedPath) || /```\\s*mermaid[\\s\\S]*?```/i.test(content);
         const isBpmnFile = /<\\s*bpmn:definitions\\b/i.test(content);
@@ -458,6 +480,7 @@ function App() {
       } catch (err) {
         console.error("Failed to load file:", err);
         setSelectedFileContent(null);
+        setSelectedFileContentType(null);
         setRelationships([]);
         return false;
       }
@@ -604,6 +627,8 @@ function App() {
     setSelectedFileLocation(null);
     setSelectedFileMetadata(null);
     setSelectedFileContent(null);
+    setSelectedFileContentType(null);
+    setSelectedFileContentReady(false);
     setRelationships([]);
   }, []);
 
@@ -723,7 +748,9 @@ function App() {
           (selectedFilePath.endsWith(".md") && selectedFilePath.includes("SKILL")
             ? "skill"
             : "doc"),
-        selectedFileContent ?? undefined,
+        selectedFileContent,
+        selectedFileContentType,
+        selectedFileContentReady,
         selectedFileMetadata,
         selectedFileLocation,
       )

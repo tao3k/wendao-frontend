@@ -10,7 +10,9 @@ export {
   createRspackDevServer,
   createRspackPlugins,
   normalizeGatewayBind,
+  parseDaochangTargetFromToml,
   parseGatewayTargetFromToml,
+  resolveDaochangTargetFromCwd,
   resolveGatewayTargetFromCwd,
 } from "./build-environment";
 export {

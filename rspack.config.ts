@@ -13,6 +13,7 @@ import {
   createRspackPlugins,
   createRspackResolve,
   createSplitChunkCacheGroups,
+  resolveDaochangTargetFromCwd,
   resolveGatewayTargetFromCwd,
   RSPACK_TARGETS,
 } from "./scripts/rspack";
@@ -20,6 +21,7 @@ import {
 const isDev = process.env.NODE_ENV === "development";
 const targets = [...RSPACK_TARGETS];
 const GATEWAY_TARGET = resolveGatewayTargetFromCwd();
+const DAOCHANG_TARGET = resolveDaochangTargetFromCwd();
 
 export default defineConfig({
   entry: createRspackEntry(),
@@ -63,5 +65,6 @@ export default defineConfig({
   devServer: createRspackDevServer({
     isDev,
     gatewayTarget: GATEWAY_TARGET,
+    daochangTarget: DAOCHANG_TARGET,
   }),
 } as Configuration);

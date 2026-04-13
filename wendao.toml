@@ -1,6 +1,9 @@
 [gateway]
 bind = "127.0.0.1:9517"
 
+[daochang]
+bind = "127.0.0.1:18092"
+
 [search.cache]
 valkey_url = "redis://127.0.0.1:6379/0"
 

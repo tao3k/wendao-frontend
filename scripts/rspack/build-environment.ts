@@ -7,8 +7,13 @@ interface GatewaySection {
   bind?: string;
 }
 
+interface DaochangSection {
+  bind?: string;
+}
+
 interface WendaoConfig {
   gateway?: GatewaySection;
+  daochang?: DaochangSection;
 }
 
 type ReadTextFile = (filePath: string, encoding: BufferEncoding) => string;
@@ -37,7 +42,7 @@ export interface RspackProxyEntry {
 }
 
 export interface RspackDevServerConfig {
-  proxy: [RspackProxyEntry, RspackProxyEntry];
+  proxy: RspackProxyEntry[];
   hot: true;
   historyApiFallback: true;
   static: RspackStaticConfig;
@@ -80,6 +85,26 @@ export function parseGatewayTargetFromToml(tomlContent: string): string {
   }
 
   return target;
+}
+
+export function parseDaochangTargetFromToml(tomlContent: string): string | null {
+  const parsed = TOML.parse(tomlContent) as WendaoConfig;
+  return normalizeGatewayBind(parsed?.daochang?.bind);
+}
+
+export function resolveDaochangTargetFromCwd({
+  cwd = process.cwd(),
+  readTextFile = (filePath, encoding) => readFileSync(filePath, encoding),
+}: {
+  cwd?: string;
+  readTextFile?: ReadTextFile;
+} = {}): string | null {
+  try {
+    const tomlContent = readTextFile(resolve(cwd, "wendao.toml"), "utf8");
+    return parseDaochangTargetFromToml(tomlContent);
+  } catch {
+    return null;
+  }
 }
 
 export function resolveGatewayTargetFromCwd({
@@ -136,9 +161,12 @@ export function createGatewayProxyAgent(): GatewayProxyAgent {
 export function createRspackDevServer({
   isDev,
   gatewayTarget,
+  daochangTarget,
 }: {
   isDev: boolean;
   gatewayTarget: string;
+  /** Daochang agent gateway target for /vercel/* streaming. Omit to disable chat proxy. */
+  daochangTarget?: string | null;
 }): RspackDevServerConfig | undefined {
   if (!isDev) {
     return undefined;
@@ -164,6 +192,18 @@ export function createRspackDevServer({
         proxyTimeout: GATEWAY_PROXY_TIMEOUT_MSECS,
         timeout: GATEWAY_PROXY_TIMEOUT_MSECS,
       },
+      ...(daochangTarget
+        ? [
+            {
+              context: ["/vercel"],
+              target: daochangTarget,
+              changeOrigin: true,
+              agent: gatewayProxyAgent,
+              proxyTimeout: GATEWAY_PROXY_TIMEOUT_MSECS,
+              timeout: GATEWAY_PROXY_TIMEOUT_MSECS,
+            },
+          ]
+        : []),
     ],
     hot: true,
     historyApiFallback: true,

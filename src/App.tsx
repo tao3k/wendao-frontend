@@ -13,6 +13,7 @@ import {
   type VfsStatus,
 } from "./components";
 import type { SearchSelection } from "./components/SearchBar/types";
+import { ChatFab } from "./components/Chat";
 import { useEditorStore } from "./stores";
 import { useAccessibility, useKeyboardShortcuts, type ShortcutDefinition } from "./hooks";
 import { AcademicTopology } from "./types";
@@ -920,6 +921,8 @@ function App() {
           />
         </Suspense>
       ) : null}
+
+      <ChatFab />
     </div>
   );
 }

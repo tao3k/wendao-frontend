@@ -1,5 +1,4 @@
 import type { CodeAstAnalysisResponse } from "../../../api";
-import type { SearchResult } from "../../SearchBar/types";
 import {
   buildBackendAtomLookup,
   buildCodeAstRetrievalAtom,
@@ -23,6 +22,11 @@ import {
   buildCodeAstSymbolFacets,
   resolveCodeAstAnatomyLanguage,
 } from "./language/anatomy";
+
+export interface CodeAstSelectionInput {
+  path: string;
+  codeLanguage: string | null;
+}
 
 export interface CodeAstTopologyModel {
   incoming: StructuredNeighbor[];
@@ -96,12 +100,11 @@ export interface CodeAstAnatomyModel {
 export function deriveCodeAstAnatomy(
   analysis: CodeAstAnalysisResponse,
   content: string | null,
-  selectedResult: SearchResult,
+  selection: CodeAstSelectionInput,
 ): CodeAstAnatomyModel {
-  const selectedPath =
-    normalizeText(selectedResult.navigationTarget?.path ?? selectedResult.path) ?? analysis.path;
+  const selectedPath = normalizeText(selection.path) ?? analysis.path;
   const language = resolveCodeAstAnatomyLanguage(
-    selectedResult.codeLanguage ?? analysis.language ?? null,
+    selection.codeLanguage ?? analysis.language ?? null,
     selectedPath,
   );
   const focusNode = pickPrimaryNode(analysis);
@@ -143,10 +146,21 @@ export function deriveCodeAstAnatomy(
   const centerNodeId = declaration?.id ?? focusNode?.id ?? null;
   const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
   const symbols = buildSymbols(analysis, selectedPath, centerNodeId, retrievalAtomLookup).map(
-    (symbol) => ({
-      ...symbol,
-      facets: buildCodeAstSymbolFacets(language, symbol.path, symbol.atom),
-    }),
+    (symbol) => {
+      const facets = buildCodeAstSymbolFacets(language, symbol.path, symbol.atom);
+
+      return {
+        id: symbol.id,
+        label: symbol.label,
+        kind: symbol.kind,
+        path: symbol.path,
+        line: symbol.line,
+        references: symbol.references,
+        query: symbol.query,
+        atom: symbol.atom,
+        facets,
+      };
+    },
   );
 
   const incoming = centerNodeId
@@ -205,10 +219,21 @@ export function deriveCodeAstAnatomy(
       analysis,
       selectedPath,
       retrievalAtomLookup,
-    ).map((block) => ({
-      ...block,
-      facets: buildCodeAstBlockFacets(language, selectedPath, block.atom),
-    })),
+    ).map((block) => {
+      const facets = buildCodeAstBlockFacets(language, selectedPath, block.atom);
+
+      return {
+        id: block.id,
+        kind: block.kind,
+        title: block.title,
+        lineRange: block.lineRange,
+        excerpt: block.excerpt,
+        anchors: block.anchors,
+        query: block.query,
+        atom: block.atom,
+        facets,
+      };
+    }),
     symbols,
     symbolGroups: buildSymbolGroups(symbols),
   };

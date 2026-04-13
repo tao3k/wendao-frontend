@@ -16,6 +16,18 @@ interface MarkdownWaterfallCodeSlotProps {
   value: string;
 }
 
+function equalMarkdownChunk(left: MarkdownRetrievalChunk, right: MarkdownRetrievalChunk): boolean {
+  return (
+    left.id === right.id &&
+    left.displayId === right.displayId &&
+    left.semanticType === right.semanticType &&
+    left.fingerprint === right.fingerprint &&
+    left.tokenEstimate === right.tokenEstimate &&
+    left.displayLabel === right.displayLabel &&
+    left.excerpt === right.excerpt
+  );
+}
+
 function renderRichSlotHeader(
   copy: MarkdownWaterfallCopy,
   label: string,
@@ -64,7 +76,7 @@ function renderRichSlotHeader(
   );
 }
 
-export const MarkdownWaterfallCodeSlot: React.FC<MarkdownWaterfallCodeSlotProps> = ({
+function MarkdownWaterfallCodeSlotComponent({
   chunk,
   codeClassName,
   copy,
@@ -74,7 +86,7 @@ export const MarkdownWaterfallCodeSlot: React.FC<MarkdownWaterfallCodeSlotProps>
   slotLabel,
   sourcePath,
   value,
-}) => {
+}: MarkdownWaterfallCodeSlotProps): React.ReactElement {
   return (
     <div
       className="markdown-waterfall__rich-slot markdown-waterfall__rich-slot--code"
@@ -101,6 +113,25 @@ export const MarkdownWaterfallCodeSlot: React.FC<MarkdownWaterfallCodeSlotProps>
       </pre>
     </div>
   );
-};
+}
+
+export const MarkdownWaterfallCodeSlot = React.memo(
+  MarkdownWaterfallCodeSlotComponent,
+  (previousProps, nextProps) => {
+    return (
+      equalMarkdownChunk(previousProps.chunk, nextProps.chunk) &&
+      previousProps.codeClassName === nextProps.codeClassName &&
+      previousProps.copy === nextProps.copy &&
+      previousProps.documentPathLabel === nextProps.documentPathLabel &&
+      previousProps.documentTitle === nextProps.documentTitle &&
+      previousProps.language === nextProps.language &&
+      previousProps.slotLabel === nextProps.slotLabel &&
+      previousProps.sourcePath === nextProps.sourcePath &&
+      previousProps.value === nextProps.value
+    );
+  },
+);
+
+MarkdownWaterfallCodeSlot.displayName = "MarkdownWaterfallCodeSlot";
 
 export default MarkdownWaterfallCodeSlot;

@@ -112,6 +112,8 @@ let liveJuliaCodeAstPath = "";
 let liveJuliaCodeAstRepo = "";
 let liveModelicaCodeAstPath = "";
 let liveModelicaCodeAstRepo = "";
+let liveSearchOnlyCodeAstPath = "";
+let liveSearchOnlyAstRepo = "";
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
   if (process.env.STUDIO_LIVE_GATEWAY_URL) {
@@ -224,7 +226,32 @@ async function fetchFirstRefinableSymbolId(repoId: string): Promise<string> {
 
 liveDescribe("live gateway studio contract", () => {
   beforeAll(async () => {
-    const uiConfig = await readLocalUiConfig();
+    const localUiConfig = await readLocalUiConfig();
+    await fetchJson<string>("/health");
+    let uiConfig = localUiConfig as LiveUiConfig;
+    try {
+      const gatewayUiConfig = await fetchJson<LiveUiConfig>("/ui/config");
+      if (gatewayUiConfig.projects.length > 0 || (gatewayUiConfig.repoProjects?.length ?? 0) > 0) {
+        uiConfig = gatewayUiConfig;
+      } else {
+        await fetchJson<LiveUiConfig>("/ui/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(localUiConfig),
+        });
+      }
+    } catch {
+      await fetchJson<LiveUiConfig>("/ui/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(localUiConfig),
+      });
+    }
+
     targetProjectName =
       uiConfig.projects.find((project) => project.name === "main")?.name ||
       uiConfig.projects.find((project) => project.name !== "kernel")?.name ||
@@ -234,14 +261,6 @@ liveDescribe("live gateway studio contract", () => {
       uiConfig.repoProjects?.[0]?.id ||
       uiConfig.projects.find((project) => project.name === "kernel")?.name ||
       targetProjectName;
-    await fetchJson<string>("/health");
-    await fetchJson<LiveUiConfig>("/ui/config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(uiConfig),
-    });
 
     const scan = (await loadVfsScanFlight({
       baseUrl: flightOrigin,
@@ -274,6 +293,16 @@ liveDescribe("live gateway studio contract", () => {
     expect(modelicaCandidate, "expected one live Modelica repo file in the VFS scan").toBeDefined();
     liveModelicaCodeAstPath = modelicaCandidate!.path;
     liveModelicaCodeAstRepo = modelicaCandidate!.projectName!;
+
+    const searchOnlyRustCandidate = scan.entries.find(
+      (entry) => entry.projectName === "lance" && !entry.isDir && entry.path.endsWith(".rs"),
+    );
+    expect(
+      searchOnlyRustCandidate,
+      "expected one live Rust file for the search-only lance repo in the VFS scan",
+    ).toBeDefined();
+    liveSearchOnlyCodeAstPath = searchOnlyRustCandidate!.path;
+    liveSearchOnlyAstRepo = searchOnlyRustCandidate!.projectName!;
   });
 
   it("satisfies the studio bootstrap contract over same-origin control plane and Flight", async () => {
@@ -552,6 +581,29 @@ liveDescribe("live gateway studio contract", () => {
     expect(
       analysis.retrievalAtoms?.some(
         (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
+      ),
+    ).toBe(true);
+  }, 15000);
+
+  it("returns code AST analysis over same-origin Flight for a live search-only Rust repo file", async () => {
+    const analysis = await loadCodeAstAnalysisFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      path: liveSearchOnlyCodeAstPath,
+      repo: liveSearchOnlyAstRepo,
+    });
+
+    expect(analysis.repoId).toBe(liveSearchOnlyAstRepo);
+    expect(analysis.path).toBe(liveSearchOnlyCodeAstPath);
+    expect(analysis.language).toBe("rust");
+    expect(Array.isArray(analysis.nodes)).toBe(true);
+    expect(Array.isArray(analysis.retrievalAtoms)).toBe(true);
+    expect(analysis.nodeCount).toBeGreaterThan(0);
+    expect(
+      analysis.retrievalAtoms?.some(
+        (atom) =>
+          Array.isArray(atom.attributes) &&
+          atom.attributes.some(([key, value]) => key === "analysis_mode" && value === "ast-grep"),
       ),
     ).toBe(true);
   }, 15000);

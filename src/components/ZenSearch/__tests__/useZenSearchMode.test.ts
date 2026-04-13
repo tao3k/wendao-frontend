@@ -23,11 +23,13 @@ describe("useZenSearchMode", () => {
         locale: "en",
         onClose: vi.fn(),
         onResultSelect: vi.fn(),
+        defaultRepoFilter: "lancd",
       }),
     );
 
     expect(useSearchBarControllerMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        defaultRepoFilter: "lancd",
         queryDebounceMs: ZEN_SEARCH_QUERY_DEBOUNCE_MS,
         autocompleteDebounceMs: ZEN_SEARCH_AUTOCOMPLETE_DEBOUNCE_MS,
       }),

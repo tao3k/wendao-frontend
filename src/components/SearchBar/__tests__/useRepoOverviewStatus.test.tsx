@@ -1,6 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../../api";
+import * as apiModule from "../../../api";
 import { useRepoOverviewStatus } from "../useRepoOverviewStatus";
 
 describe("useRepoOverviewStatus", () => {
@@ -48,6 +49,40 @@ describe("useRepoOverviewStatus", () => {
         isOpen: true,
         scope: "all",
         repoFilter: "gateway-sync",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.repoOverviewStatus).toBeNull();
+    });
+
+    expect(overviewSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not call api for search-only repos", async () => {
+    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
+      projects: [
+        {
+          name: "kernel",
+          root: ".",
+          dirs: ["docs"],
+        },
+      ],
+      repoProjects: [
+        {
+          id: "lancd",
+          url: "https://github.com/lance-format/lance",
+          plugins: ["ast-grep"],
+        },
+      ],
+    });
+    const overviewSpy = vi.spyOn(api, "getRepoOverview");
+
+    const { result } = renderHook(() =>
+      useRepoOverviewStatus({
+        isOpen: true,
+        scope: "code",
+        repoFilter: "lancd",
       }),
     );
 

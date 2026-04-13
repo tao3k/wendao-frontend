@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { UiLocale } from "../../SearchBar/types";
-import { ZenSearchPreviewContent } from "../ZenSearchPreviewContent";
 import { ZenSearchPreviewGraphSummary } from "../ZenSearchPreviewGraphSummary";
 import { ZenSearchPreviewHeader } from "../ZenSearchPreviewHeader";
 import type { ZenSearchPreviewState } from "../useZenSearchPreview";
 import { supportsCodeAstPreview } from "../codeAstPreviewSupport";
+import { StructuredFragmentsPanel } from "./StructuredFragmentsPanel";
 import { StructuredSlot } from "./StructuredSlot";
 import { StructuredCodeInspector } from "./StructuredCodeInspector";
 import { StructuredTopologyMap } from "./StructuredTopologyMap";
 import { deriveStructuredEntity } from "./structuredIntelligence";
 import {
   renderChipList,
-  renderFragmentCards,
   renderMetadataGrid,
   renderNeighborList,
   renderOutline,
@@ -257,36 +256,20 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
           </div>
         </div>
       </StructuredSlot>,
-      <StructuredSlot
-        id="structured-slot-fragments"
+      <StructuredFragmentsPanel
         key="structured-slot-fragments"
-        panelOrder={3}
-        bodyClassName="structured-slot__body--flow"
-        title={locale === "zh" ? "III. 多维片段" : "III. Multi-slot Fragments"}
-        subtitle={
-          locale === "zh"
-            ? "展开的瀑布式正文、显著性视区与辅助片段"
-            : "Expanded waterfall body, saliency view, and auxiliary fragments"
-        }
-      >
-        <ZenSearchPreviewContent
-          locale={locale}
-          content={preview.content}
-          contentPath={preview.contentPath}
-          contentType={preview.contentType}
-          loading={preview.loading}
-          error={preview.error}
-        />
-        {model.saliencyExcerpt && (
-          <div className="structured-saliency-card">
-            <div className="structured-saliency-card__title">
-              {locale === "zh" ? "显著性视区" : "Saliency View"}
-            </div>
-            <div className="structured-saliency-card__body">{model.saliencyExcerpt}</div>
-          </div>
-        )}
-        {renderFragmentCards(model.fragments, syntaxLanguage, syntaxSourcePath, onPivotQuery)}
-      </StructuredSlot>,
+        locale={locale}
+        content={preview.content}
+        contentPath={preview.contentPath}
+        contentType={preview.contentType}
+        loading={preview.loading}
+        error={preview.error}
+        saliencyExcerpt={model.saliencyExcerpt}
+        fragments={model.fragments}
+        syntaxLanguage={syntaxLanguage}
+        syntaxSourcePath={syntaxSourcePath}
+        onPivotQuery={onPivotQuery}
+      />,
     ],
     [
       focusedAnchorSide,

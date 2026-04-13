@@ -6,6 +6,7 @@ import type { SearchBarCopy, SearchResult } from "./types";
 import { SkepticBadge } from "./SkepticBadge";
 import { SaliencyIndicator } from "./SaliencyIndicator";
 import { TopoBreadcrumbs } from "./TopoBreadcrumbs";
+import { normalizePathSegments } from "../../utils/selectionPath";
 
 interface SearchResultRowProps {
   displayIndex: number;
@@ -61,16 +62,17 @@ export const SearchResultRow = React.memo(function SearchResultRow({
   onTogglePreviewResult,
 }: SearchResultRowProps) {
   const displayPath = useMemo(() => {
+    const normalizedPath = normalizePathSegments(result.path);
     if (!isCodeResultRow || !result.codeRepo) {
-      return result.path;
+      return normalizedPath;
     }
 
     const repoPrefix = `${result.codeRepo}/`;
-    if (result.path.startsWith(repoPrefix)) {
-      return `${result.codeRepo} > ${result.path.slice(repoPrefix.length)}`;
+    if (normalizedPath.startsWith(repoPrefix)) {
+      return `${result.codeRepo} > ${normalizedPath.slice(repoPrefix.length)}`;
     }
 
-    return `${result.codeRepo} > ${result.path}`;
+    return `${result.codeRepo} > ${normalizedPath}`;
   }, [isCodeResultRow, result.codeRepo, result.path]);
   const codeMetaPills = isCodeResultRow ? buildCodeMetaPills(result, lineRange) : [];
   const hierarchyHint = isCodeResultRow ? resolveHierarchyHint(result) : null;

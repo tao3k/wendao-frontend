@@ -267,6 +267,52 @@ function buildModelicaResult(): SearchResult {
 }
 
 describe("CodeAstAnatomyView", () => {
+  it("keeps hook order stable when AST loading resolves into a hydrated anatomy view", () => {
+    const onPivotQuery = vi.fn();
+    const content = [
+      "pub fn process_data(",
+      "    input: &[u8],",
+      "    config: &Config,",
+      ") -> Result<Processed> {",
+      "    if input.is_empty() { return Err(Empty); }",
+      "",
+      "    let meta = config.parse(input);",
+      "    let results = compute(meta);",
+      "",
+      "    Ok(Processed { data: results, timestamp: now() })",
+      "}",
+    ].join("\n");
+    const { rerender } = render(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildResult()}
+        analysis={null}
+        content={null}
+        loading={true}
+        error={null}
+        onPivotQuery={onPivotQuery}
+      />,
+    );
+
+    expect(screen.getByText("Loading AST analysis...")).toBeInTheDocument();
+
+    rerender(
+      <CodeAstAnatomyView
+        locale="en"
+        selectedResult={buildResult()}
+        analysis={buildAnalysis()}
+        content={content}
+        loading={false}
+        error={null}
+        onPivotQuery={onPivotQuery}
+      />,
+    );
+
+    expect(screen.getByTestId("code-ast-waterfall")).toBeInTheDocument();
+    expect(screen.getByText("Declaration Identity")).toBeInTheDocument();
+    expect(screen.getByText("Logic Block Decomposition")).toBeInTheDocument();
+  });
+
   it("renders declaration identity, logic blocks, and symbol overlay", () => {
     const onPivotQuery = vi.fn();
 

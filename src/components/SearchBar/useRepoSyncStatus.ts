@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
+import { isSearchOnlyRepoProject } from "./repoProjectConfig";
 import type { SearchScope } from "./types";
 
 interface UseRepoSyncStatusParams {
@@ -22,7 +23,7 @@ export function useRepoSyncStatus({ isOpen, scope, repoFilter }: UseRepoSyncStat
 
   useEffect(() => {
     const normalizedRepo = repoFilter?.trim();
-    if (!isOpen || scope !== "code" || !normalizedRepo) {
+    if (!isOpen || scope !== "code" || !normalizedRepo || isSearchOnlyRepoProject(normalizedRepo)) {
       setRepoSyncStatus(null);
       return;
     }

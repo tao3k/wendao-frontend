@@ -407,6 +407,69 @@ describe("App topology wiring", () => {
     expect(window.location.hash).toBe("");
   });
 
+  it("passes the selected file project name into ZenSearch as the default repo filter", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Context" });
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: {
+        id: "kernel/knowledge/context.md",
+        label: "context.md",
+        path: "kernel/knowledge/context.md",
+        nodeType: "knowledge",
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onFileSelect?: (
+              path: string,
+              category?: string,
+              metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
+            ) => Promise<void> | void;
+          }
+        | undefined;
+      expect(fileTreeProps?.onFileSelect).toBeDefined();
+    });
+
+    const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onFileSelect?: (
+            path: string,
+            category?: string,
+            metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
+          ) => Promise<void> | void;
+        }
+      | undefined;
+
+    await act(async () => {
+      await fileTreeProps?.onFileSelect?.("knowledge/context.md", "knowledge", {
+        projectName: "kernel",
+      });
+    });
+
+    await openZenSearchMode();
+
+    await waitFor(() => {
+      const searchBarProps = mocks.zenSearchSpy.mock.calls.at(-1)?.[0] as
+        | { defaultRepoFilter?: string | null }
+        | undefined;
+      expect(searchBarProps?.defaultRepoFilter).toBe("kernel");
+    });
+  });
+
   it("keeps the workspace running when the Julia deployment artifact probe fails", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],

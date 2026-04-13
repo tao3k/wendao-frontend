@@ -243,7 +243,7 @@ function buildMarkdownComponents({
   };
 }
 
-export function DirectReaderRichContent({
+function DirectReaderRichContentComponent({
   content,
   copy,
   isMarkdownDocument,
@@ -291,5 +291,9 @@ export function DirectReaderRichContent({
     </ReactMarkdown>
   );
 }
+
+export const DirectReaderRichContent = React.memo(DirectReaderRichContentComponent);
+
+DirectReaderRichContent.displayName = "DirectReaderRichContent";
 
 export default DirectReaderRichContent;

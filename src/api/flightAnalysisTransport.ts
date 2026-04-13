@@ -65,9 +65,29 @@ export interface FlightAnalysisTransportDeps {
   decodeRetrievalChunks?: (payload: ArrayBuffer) => RetrievalChunk[];
 }
 
+export interface FlightAnalysisPhaseTiming {
+  getFlightInfoMs: number;
+  metadataDecodeMs: number;
+  doGetMs: number;
+  ipcReassemblyMs: number;
+  retrievalDecodeMs: number;
+  totalMs: number;
+}
+
 interface FlightAnalysisPayload<TMetadata> {
   metadata: TMetadata;
   retrievalAtoms: RetrievalChunk[];
+  timing: FlightAnalysisPhaseTiming;
+}
+
+export interface TimedMarkdownAnalysisFlightResponse {
+  analysis: MarkdownAnalysisResponse;
+  timing: FlightAnalysisPhaseTiming;
+}
+
+export interface TimedCodeAstAnalysisFlightResponse {
+  analysis: CodeAstAnalysisResponse;
+  timing: FlightAnalysisPhaseTiming;
 }
 
 function normalizeMarkdownRetrievalAtoms(chunks: RetrievalChunk[]): MarkdownRetrievalAtom[] {
@@ -109,11 +129,29 @@ export async function loadMarkdownAnalysisFlight(
   request: MarkdownAnalysisFlightRequest,
   deps: FlightAnalysisTransportDeps = {},
 ): Promise<MarkdownAnalysisResponse> {
+  const response = await loadMarkdownAnalysisFlightWithTiming(request, deps);
+  return response.analysis;
+}
+
+export async function loadMarkdownAnalysisFlightWithTiming(
+  request: MarkdownAnalysisFlightRequest,
+  deps: FlightAnalysisTransportDeps = {},
+): Promise<TimedMarkdownAnalysisFlightResponse> {
   const response = await loadAnalysisFlight<Partial<MarkdownAnalysisResponse>>(
     ANALYSIS_MARKDOWN_ROUTE,
     request,
     deps,
   );
+  return {
+    analysis: materializeMarkdownAnalysisResponse(request, response),
+    timing: response.timing,
+  };
+}
+
+function materializeMarkdownAnalysisResponse(
+  request: MarkdownAnalysisFlightRequest,
+  response: FlightAnalysisPayload<Partial<MarkdownAnalysisResponse>>,
+): MarkdownAnalysisResponse {
   return {
     path: typeof response.metadata.path === "string" ? response.metadata.path : request.path,
     documentHash:
@@ -154,11 +192,29 @@ export async function loadCodeAstAnalysisFlight(
   request: CodeAstAnalysisFlightRequest,
   deps: FlightAnalysisTransportDeps = {},
 ): Promise<CodeAstAnalysisResponse> {
+  const response = await loadCodeAstAnalysisFlightWithTiming(request, deps);
+  return response.analysis;
+}
+
+export async function loadCodeAstAnalysisFlightWithTiming(
+  request: CodeAstAnalysisFlightRequest,
+  deps: FlightAnalysisTransportDeps = {},
+): Promise<TimedCodeAstAnalysisFlightResponse> {
   const response = await loadAnalysisFlight<Partial<CodeAstAnalysisResponse>>(
     ANALYSIS_CODE_AST_ROUTE,
     request,
     deps,
   );
+  return {
+    analysis: materializeCodeAstAnalysisResponse(request, response),
+    timing: response.timing,
+  };
+}
+
+function materializeCodeAstAnalysisResponse(
+  request: CodeAstAnalysisFlightRequest,
+  response: FlightAnalysisPayload<Partial<CodeAstAnalysisResponse>>,
+): CodeAstAnalysisResponse {
   const nodes = Array.isArray(response.metadata.nodes) ? response.metadata.nodes : [];
   const edges = Array.isArray(response.metadata.edges) ? response.metadata.edges : [];
   return {
@@ -200,16 +256,24 @@ async function loadAnalysisFlight<TMetadata>(
   request: MarkdownAnalysisFlightRequest | CodeAstAnalysisFlightRequest,
   deps: FlightAnalysisTransportDeps,
 ): Promise<FlightAnalysisPayload<TMetadata>> {
+  const startedAt = performance.now();
   const headers = buildAnalysisFlightHeaders(request);
   const client = (deps.createClient ?? createFlightServiceClient)(request.baseUrl);
   const descriptor = buildFlightDescriptor(route);
   try {
+    const getFlightInfoStartedAt = performance.now();
     const flightInfo = await client.getFlightInfo(descriptor, {
       headers,
       signal: request.signal,
     });
+    const getFlightInfoMs = performance.now() - getFlightInfoStartedAt;
+
+    const metadataDecodeStartedAt = performance.now();
     const metadata = decodeAnalysisMetadata<TMetadata>(flightInfo.appMetadata);
+    const metadataDecodeMs = performance.now() - metadataDecodeStartedAt;
     const ticket = readFlightTicket(flightInfo);
+
+    const doGetStartedAt = performance.now();
     const frames: FlightData[] = [];
     for await (const frame of client.doGet(ticket, {
       headers,
@@ -217,10 +281,27 @@ async function loadAnalysisFlight<TMetadata>(
     })) {
       frames.push(frame);
     }
+    const doGetMs = performance.now() - doGetStartedAt;
+
+    const ipcReassemblyStartedAt = performance.now();
     const payload = reassembleArrowIpcStreamFromFlight(flightInfo.schema, frames);
+    const ipcReassemblyMs = performance.now() - ipcReassemblyStartedAt;
+    const retrievalDecodeStartedAt = performance.now();
+    const retrievalAtoms = (deps.decodeRetrievalChunks ?? decodeRetrievalChunksFromArrowIpc)(
+      payload,
+    );
+    const retrievalDecodeMs = performance.now() - retrievalDecodeStartedAt;
     return {
       metadata,
-      retrievalAtoms: (deps.decodeRetrievalChunks ?? decodeRetrievalChunksFromArrowIpc)(payload),
+      retrievalAtoms,
+      timing: {
+        getFlightInfoMs,
+        metadataDecodeMs,
+        doGetMs,
+        ipcReassemblyMs,
+        retrievalDecodeMs,
+        totalMs: performance.now() - startedAt,
+      },
     };
   } catch (error) {
     throw mapFlightAnalysisError(error);

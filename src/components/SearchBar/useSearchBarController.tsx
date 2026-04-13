@@ -18,6 +18,7 @@ export function useSearchBarController({
   onResultSelect,
   onReferencesResultSelect,
   onGraphResultSelect,
+  defaultRepoFilter,
   onRuntimeStatusChange,
   queryDebounceMs,
   autocompleteDebounceMs,
@@ -62,6 +63,7 @@ export function useSearchBarController({
     locale,
     results,
     showSuggestions,
+    defaultRepoFilter,
   });
   const {
     parsedCodeInput,

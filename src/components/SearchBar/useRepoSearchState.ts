@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { parseCodeFilters } from "./codeSearchUtils";
 import { resolveRepoFacetFromFilters } from "./repoFacetResolution";
+import { inferRepoFilterFromConfiguredFields } from "./repoProjectConfig";
 import type { SearchScope } from "./types";
 import type { RepoOverviewStatusSnapshot } from "./useRepoOverviewStatus";
 import { useRepoOverviewStatus } from "./useRepoOverviewStatus";
@@ -12,6 +13,7 @@ interface UseRepoSearchStateParams {
   debouncedQuery: string;
   isOpen: boolean;
   scope: SearchScope;
+  defaultRepoFilter?: string | null;
 }
 
 interface UseRepoSearchStateResult {
@@ -29,11 +31,26 @@ export function useRepoSearchState({
   debouncedQuery,
   isOpen,
   scope,
+  defaultRepoFilter,
 }: UseRepoSearchStateParams): UseRepoSearchStateResult {
   const parsedCodeInput = useMemo(() => parseCodeFilters(query), [query]);
   const parsedCodeSearch = useMemo(() => parseCodeFilters(debouncedQuery), [debouncedQuery]);
-  const activeRepoFilter = parsedCodeInput.filters.repo[0];
-  const primaryRepoFilter = parsedCodeSearch.filters.repo[0];
+  const normalizedDefaultRepoFilter = useMemo(() => {
+    const trimmed = defaultRepoFilter?.trim();
+    return trimmed ? trimmed : undefined;
+  }, [defaultRepoFilter]);
+  const inferredActiveRepoFilter = useMemo(
+    () => inferRepoFilterFromConfiguredFields(query),
+    [query],
+  );
+  const inferredPrimaryRepoFilter = useMemo(
+    () => inferRepoFilterFromConfiguredFields(debouncedQuery),
+    [debouncedQuery],
+  );
+  const activeRepoFilter =
+    parsedCodeInput.filters.repo[0] ?? inferredActiveRepoFilter ?? normalizedDefaultRepoFilter;
+  const primaryRepoFilter =
+    parsedCodeSearch.filters.repo[0] ?? inferredPrimaryRepoFilter ?? normalizedDefaultRepoFilter;
   const repoFacet = useMemo(
     () => resolveRepoFacetFromFilters(parsedCodeSearch.filters),
     [parsedCodeSearch.filters],

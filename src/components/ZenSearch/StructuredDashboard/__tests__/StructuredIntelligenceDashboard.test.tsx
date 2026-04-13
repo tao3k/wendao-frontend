@@ -1,11 +1,14 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { CodeAstAnalysisResponse } from "../../../../api";
+import { createPerfTrace } from "../../../../lib/testPerfTrace";
 import type { SearchResult } from "../../../SearchBar/types";
 import type { ZenSearchPreviewState } from "../../useZenSearchPreview";
 import { StructuredIntelligenceDashboard } from "../StructuredIntelligenceDashboard";
 import { deriveStructuredEntity } from "../structuredIntelligence";
+
+const fragmentsPreviewTrace = createPerfTrace("StructuredFragmentsPanel.preview");
 
 vi.mock("../../ZenSearchPreviewHeader", () => ({
   ZenSearchPreviewHeader: () => <div data-testid="mock-preview-header" />,
@@ -16,8 +19,15 @@ vi.mock("../../ZenSearchPreviewGraphSummary", () => ({
 }));
 
 vi.mock("../../ZenSearchPreviewContent", () => ({
-  ZenSearchPreviewContent: () => <div data-testid="mock-preview-content" />,
+  ZenSearchPreviewContent: () => {
+    fragmentsPreviewTrace.markRender();
+    return <div data-testid="mock-preview-content" />;
+  },
 }));
+
+beforeEach(() => {
+  fragmentsPreviewTrace.reset();
+});
 
 function buildPreview(overrides: Partial<ZenSearchPreviewState> = {}): ZenSearchPreviewState {
   return {
@@ -505,6 +515,31 @@ describe("StructuredIntelligenceDashboard", () => {
       "title",
       "kernel/docs/05_research/306_alignment_milestone_log.md",
     );
+  });
+
+  it("keeps fragment detail content stable during topology-focus updates", () => {
+    const onPivotQuery = vi.fn();
+
+    render(
+      <StructuredIntelligenceDashboard
+        locale="en"
+        preview={buildPreview()}
+        onPivotQuery={onPivotQuery}
+      />,
+    );
+
+    expect(fragmentsPreviewTrace.snapshot().renderCount).toBe(1);
+
+    fireEvent.click(
+      within(screen.getByTestId("structured-topology-map")).getByRole("button", { name: "Intro" }),
+    );
+    expect(fragmentsPreviewTrace.snapshot().renderCount).toBe(1);
+
+    fireEvent.click(screen.getByTestId("structured-neighbor-kernel/docs/appendix.md"));
+    expect(fragmentsPreviewTrace.snapshot().renderCount).toBe(1);
+
+    fireEvent.click(screen.getByTestId("structured-topology-clear-focus"));
+    expect(fragmentsPreviewTrace.snapshot().renderCount).toBe(1);
   });
 
   it("remains stable when graph neighbors are present without a center node", () => {

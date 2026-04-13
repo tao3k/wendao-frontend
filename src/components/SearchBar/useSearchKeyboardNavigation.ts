@@ -6,6 +6,7 @@ import {
   isEscapeKey,
   shouldAcceptTabSuggestion,
 } from "./searchKeyboardUtils";
+import { closeAfterSelection } from "./searchSelectionClose";
 import { toSearchSelection } from "./searchResultNormalization";
 import type { SearchResult, SearchSelectionAction } from "./types";
 
@@ -60,17 +61,6 @@ export function useSearchKeyboardNavigation({
 }: UseSearchKeyboardNavigationParams): UseSearchKeyboardNavigationResult {
   const hasActiveSuggestions = suggestionCount > 0;
   const hasResultItems = !hasActiveSuggestions && resultCount > 0;
-
-  const closeAfterSelection = useCallback(
-    (selection: void | Promise<void>) => {
-      if (selection && typeof (selection as Promise<void>).then === "function") {
-        void (selection as Promise<void>).then(onClose).catch(() => undefined);
-        return;
-      }
-      onClose();
-    },
-    [onClose],
-  );
 
   const applySuggestion = useCallback(
     (
@@ -136,7 +126,7 @@ export function useSearchKeyboardNavigation({
           const selectedResult =
             visibleResults[clampSelectableIndex(resultSelectedIndex, resultCount)];
           if (selectedResult) {
-            closeAfterSelection(onResultSelect(toSearchSelection(selectedResult)));
+            closeAfterSelection(onResultSelect(toSearchSelection(selectedResult)), onClose);
           }
           break;
         }
@@ -153,7 +143,6 @@ export function useSearchKeyboardNavigation({
     },
     [
       applySuggestion,
-      closeAfterSelection,
       activeSuggestionIndex,
       hasActiveSuggestions,
       hasResultItems,

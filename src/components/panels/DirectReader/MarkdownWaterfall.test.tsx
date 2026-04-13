@@ -92,7 +92,6 @@ describe("MarkdownWaterfall", () => {
     expect(screen.getByText("2. Core algorithm flow")).toBeInTheDocument();
     expect(screen.getByText("BERT")).toBeInTheDocument();
     expect(screen.getByText("Table")).toBeInTheDocument();
-    expect(screen.getByText("Mermaid")).toBeInTheDocument();
     expect(screen.getByText("Code · python")).toBeInTheDocument();
     const chunkRows = screen.getAllByTestId("markdown-waterfall-section-chunk");
     expect(chunkRows).toHaveLength(2);
@@ -107,6 +106,11 @@ describe("MarkdownWaterfall", () => {
     expect(container.querySelector(".markdown-waterfall__rich-slot--table")).toBeTruthy();
     expect(container.querySelector(".markdown-waterfall__rich-slot--mermaid")).toBeTruthy();
     expect(container.querySelector(".markdown-waterfall__rich-slot--code")).toBeTruthy();
+    expect(
+      container.querySelector(
+        ".markdown-waterfall__rich-slot--mermaid .markdown-waterfall__rich-slot-label",
+      ),
+    ).toHaveTextContent("Mermaid");
     expect(screen.getAllByRole("button", { name: "Copy for RAG" })).toHaveLength(4);
     expect(screen.getAllByRole("button", { name: "Pivot section" })).toHaveLength(2);
 

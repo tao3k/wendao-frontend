@@ -19,8 +19,9 @@ import {
 import { loadRepoIndexStatusFlight } from "./flightRepoIndexStatusTransport";
 import { searchKnowledgeFlight } from "./flightSearchTransport";
 import {
-  loadCodeAstAnalysisFlight,
-  loadMarkdownAnalysisFlight,
+  loadCodeAstAnalysisFlightWithTiming,
+  loadMarkdownAnalysisFlightWithTiming,
+  type FlightAnalysisPhaseTiming,
 } from "./flightAnalysisTransport";
 import { loadGraphNeighborsFlight } from "./flightGraphTransport";
 import {
@@ -28,9 +29,15 @@ import {
   loadVfsScanFlight,
   resolveStudioPathFlight,
 } from "./flightWorkspaceTransport";
-import { normalizeCodeSearchHit, normalizeKnowledgeHit } from "../components/SearchBar/searchResultNormalization";
+import {
+  normalizeCodeSearchHit,
+  normalizeKnowledgeHit,
+} from "../components/SearchBar/searchResultNormalization";
 import type { SearchResult } from "../components/SearchBar/types";
-import { buildZenSearchPreviewLoadPlan, type ZenSearchPreviewLoadPlan } from "../components/ZenSearch/zenSearchPreviewLoaders";
+import {
+  buildZenSearchPreviewLoadPlan,
+  type ZenSearchPreviewLoadPlan,
+} from "../components/ZenSearch/zenSearchPreviewLoaders";
 import { supportsCodeAstPreview } from "../components/ZenSearch/codeAstPreviewSupport";
 import {
   normalizeSelectionPathForGraph,
@@ -105,11 +112,13 @@ type PreviewAnalysisResult =
   | {
       kind: "code_ast";
       analysis: CodeAstAnalysisResponse;
+      timing: FlightAnalysisPhaseTiming;
       error: null;
     }
   | {
       kind: "markdown";
       analysis: MarkdownAnalysisResponse;
+      timing: FlightAnalysisPhaseTiming;
       error: null;
     };
 
@@ -122,6 +131,7 @@ type PreviewMeasurement = {
   searchToBasePreviewSettledMs: number;
   searchToGraphSettledMs: number | null;
   searchToAnalysisSettledMs: number;
+  analysisTransport: FlightAnalysisPhaseTiming;
 };
 
 type LiveZenSearchMeasurement = {
@@ -159,10 +169,18 @@ type ScenarioSummary = {
   avgSearchToBasePreviewSettledMs: number;
   avgSearchToGraphSettledMs: number | null;
   avgSearchToAnalysisSettledMs: number;
+  avgAnalysisTransport: FlightAnalysisPhaseTiming;
   avgGraphNodeCount: number;
   avgContentBytes: number;
   avgAnalysisNodeCount: number;
   avgRetrievalAtomCount: number;
+};
+
+type ScenarioUnavailable = {
+  available: false;
+  error: string;
+  candidateQueries: string[];
+  knowledgeSectionRowCount: number | null;
 };
 
 type LiveZenSearchPerfSummary = {
@@ -174,7 +192,10 @@ type LiveZenSearchPerfSummary = {
   measuredRuns: number;
   scenarios: {
     codeAst: ScenarioSummary;
-    markdown: ScenarioSummary;
+    markdown: ScenarioSummary | null;
+  };
+  unavailableScenarios: {
+    markdown: ScenarioUnavailable | null;
   };
 };
 
@@ -186,7 +207,8 @@ type DiscoveredSearchTarget = {
 
 type LiveZenSearchTargets = {
   codeAst: DiscoveredSearchTarget;
-  markdown: DiscoveredSearchTarget;
+  markdown: DiscoveredSearchTarget | null;
+  markdownUnavailable: ScenarioUnavailable | null;
 };
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
@@ -488,7 +510,10 @@ async function discoverCodeSearchTarget(
   );
 }
 
-async function discoverMarkdownSearchTarget(limit: number): Promise<DiscoveredSearchTarget> {
+async function discoverMarkdownSearchTargetOrUnavailable(limit: number): Promise<{
+  target: DiscoveredSearchTarget | null;
+  unavailable: ScenarioUnavailable | null;
+}> {
   const scan = await loadVfsScanFlight({
     baseUrl: gatewayOrigin,
     schemaVersion: flightSchemaVersion,
@@ -514,18 +539,38 @@ async function discoverMarkdownSearchTarget(limit: number): Promise<DiscoveredSe
       .find((candidate) => candidate.path.toLowerCase().endsWith(".md"));
     if (result) {
       return {
-        query,
-        searchIntent: "knowledge",
-        result,
+        target: {
+          query,
+          searchIntent: "knowledge",
+          result,
+        },
+        unavailable: null,
       };
     }
   }
 
-  throw new Error(
-    `live ZenSearch perf harness could not discover a markdown preview target: ${JSON.stringify({
-      candidateQueries: candidates.slice(0, 12),
-    })}`,
-  );
+  const searchStatus = await fetchWithRetry(
+    () => fetchJson<SearchIndexStatusEnvelope>("/search/index/status"),
+    GATEWAY_REQUEST_RETRY_COUNT,
+    GATEWAY_REQUEST_RETRY_DELAY_MS,
+  ).catch(() => null);
+  const knowledgeSectionRowCount =
+    searchStatus?.corpora?.find((corpus) => corpus.corpus === "knowledge_section")?.rowCount ??
+    null;
+  const unavailable = {
+    available: false,
+    error: `live ZenSearch perf harness could not discover a markdown preview target: ${JSON.stringify(
+      {
+        candidateQueries: candidates.slice(0, 12),
+      },
+    )}`,
+    candidateQueries: candidates.slice(0, 12),
+    knowledgeSectionRowCount,
+  } satisfies ScenarioUnavailable;
+  return {
+    target: null,
+    unavailable,
+  };
 }
 
 async function resolvePreviewPlanLive(
@@ -536,8 +581,7 @@ async function resolvePreviewPlanLive(
   const contentSourcePath = preferMoreCanonicalSelectionPath(result.path, navigationTarget?.path);
   const projectName =
     navigationTarget?.projectName?.trim() || result.projectName?.trim() || undefined;
-  const rootLabel =
-    navigationTarget?.rootLabel?.trim() || result.rootLabel?.trim() || undefined;
+  const rootLabel = navigationTarget?.rootLabel?.trim() || result.rootLabel?.trim() || undefined;
   const rawNavigationPath = navigationTarget?.path?.trim() || result.path.trim();
 
   if (
@@ -608,7 +652,9 @@ async function loadBasePreviewLive(plan: ZenSearchPreviewLoadPlan): Promise<Base
   }
 }
 
-async function loadGraphPreviewLive(plan: ZenSearchPreviewLoadPlan): Promise<GraphPreviewLoadResult> {
+async function loadGraphPreviewLive(
+  plan: ZenSearchPreviewLoadPlan,
+): Promise<GraphPreviewLoadResult> {
   if (!plan.graphable) {
     return {
       graphNeighbors: null,
@@ -634,7 +680,7 @@ async function loadGraphPreviewLive(plan: ZenSearchPreviewLoadPlan): Promise<Gra
       graphNeighbors: null,
       error: error instanceof Error ? error.message : "Preview graph load failed",
     };
-  };
+  }
 }
 
 async function loadPreviewAnalysisLive(
@@ -642,7 +688,7 @@ async function loadPreviewAnalysisLive(
   plan: ZenSearchPreviewLoadPlan,
 ): Promise<PreviewAnalysisResult> {
   if (scenario === "code_ast") {
-    const analysis = await loadCodeAstAnalysisFlight({
+    const response = await loadCodeAstAnalysisFlightWithTiming({
       baseUrl: gatewayOrigin,
       schemaVersion: flightSchemaVersion,
       path: plan.contentPath,
@@ -651,19 +697,21 @@ async function loadPreviewAnalysisLive(
     });
     return {
       kind: "code_ast",
-      analysis,
+      analysis: response.analysis,
+      timing: response.timing,
       error: null,
     };
   }
 
-  const analysis = await loadMarkdownAnalysisFlight({
+  const response = await loadMarkdownAnalysisFlightWithTiming({
     baseUrl: gatewayOrigin,
     schemaVersion: flightSchemaVersion,
     path: plan.contentPath,
   });
   return {
     kind: "markdown",
-    analysis,
+    analysis: response.analysis,
+    timing: response.timing,
     error: null,
   };
 }
@@ -672,12 +720,38 @@ function roundMs(value: number): number {
   return Number(value.toFixed(2));
 }
 
+function roundFlightAnalysisPhaseTiming(
+  timing: FlightAnalysisPhaseTiming,
+): FlightAnalysisPhaseTiming {
+  return {
+    getFlightInfoMs: roundMs(timing.getFlightInfoMs),
+    metadataDecodeMs: roundMs(timing.metadataDecodeMs),
+    doGetMs: roundMs(timing.doGetMs),
+    ipcReassemblyMs: roundMs(timing.ipcReassemblyMs),
+    retrievalDecodeMs: roundMs(timing.retrievalDecodeMs),
+    totalMs: roundMs(timing.totalMs),
+  };
+}
+
 function averageNullable(values: Array<number | null>): number | null {
   const definedValues = values.filter((value): value is number => value != null);
   if (definedValues.length === 0) {
     return null;
   }
   return roundMs(average(definedValues));
+}
+
+function averageFlightAnalysisPhaseTiming(
+  values: FlightAnalysisPhaseTiming[],
+): FlightAnalysisPhaseTiming {
+  return {
+    getFlightInfoMs: roundMs(average(values.map((value) => value.getFlightInfoMs))),
+    metadataDecodeMs: roundMs(average(values.map((value) => value.metadataDecodeMs))),
+    doGetMs: roundMs(average(values.map((value) => value.doGetMs))),
+    ipcReassemblyMs: roundMs(average(values.map((value) => value.ipcReassemblyMs))),
+    retrievalDecodeMs: roundMs(average(values.map((value) => value.retrievalDecodeMs))),
+    totalMs: roundMs(average(values.map((value) => value.totalMs))),
+  };
 }
 
 async function measureScenario(
@@ -704,7 +778,9 @@ async function measureScenario(
 
   const measuredResult = response.hits
     .map((hit) =>
-      target.searchIntent === "code_search" ? normalizeCodeSearchHit(hit) : normalizeKnowledgeHit(hit),
+      target.searchIntent === "code_search"
+        ? normalizeCodeSearchHit(hit)
+        : normalizeKnowledgeHit(hit),
     )
     .find((candidate) =>
       scenario === "code_ast"
@@ -769,6 +845,7 @@ async function measureScenario(
       searchToBasePreviewSettledMs: roundMs(searchMs + basePreviewSettledMs),
       searchToGraphSettledMs: resolvedPlan.graphable ? roundMs(searchMs + graphSettledMs) : null,
       searchToAnalysisSettledMs: roundMs(searchMs + analysisSettledMs),
+      analysisTransport: roundFlightAnalysisPhaseTiming(analysis.timing),
     },
     contentType: base.contentType,
     baseError: base.error,
@@ -795,9 +872,7 @@ function summarizeScenario(measurements: LiveZenSearchMeasurement[]): ScenarioSu
     avgBasePreviewSettledMs: roundMs(
       average(measurements.map((entry) => entry.phases.basePreviewSettledMs)),
     ),
-    avgGraphSettledMs: averageNullable(
-      measurements.map((entry) => entry.phases.graphSettledMs),
-    ),
+    avgGraphSettledMs: averageNullable(measurements.map((entry) => entry.phases.graphSettledMs)),
     avgAnalysisSettledMs: roundMs(
       average(measurements.map((entry) => entry.phases.analysisSettledMs)),
     ),
@@ -810,6 +885,9 @@ function summarizeScenario(measurements: LiveZenSearchMeasurement[]): ScenarioSu
     avgSearchToAnalysisSettledMs: roundMs(
       average(measurements.map((entry) => entry.phases.searchToAnalysisSettledMs)),
     ),
+    avgAnalysisTransport: averageFlightAnalysisPhaseTiming(
+      measurements.map((entry) => entry.phases.analysisTransport),
+    ),
     avgGraphNodeCount: roundMs(average(measurements.map((entry) => entry.graphNodeCount))),
     avgContentBytes: roundMs(average(measurements.map((entry) => entry.contentBytes))),
     avgAnalysisNodeCount: roundMs(average(measurements.map((entry) => entry.analysisNodeCount))),
@@ -819,15 +897,9 @@ function summarizeScenario(measurements: LiveZenSearchMeasurement[]): ScenarioSu
 
 describe("live ZenSearch perf helpers", () => {
   it("extracts stable query terms from markdown paths", () => {
-    expect(extractSearchTermsFromPath("docs/05_research/308_live_flight_search_perf_report.md")).toEqual([
-      "docs",
-      "research",
-      "live",
-      "flight",
-      "search",
-      "perf",
-      "report",
-    ]);
+    expect(
+      extractSearchTermsFromPath("docs/05_research/308_live_flight_search_perf_report.md"),
+    ).toEqual(["docs", "research", "live", "flight", "search", "perf", "report"]);
   });
 
   it("keeps markdown discovery candidates unique and path-driven", () => {
@@ -884,9 +956,11 @@ liveDescribe("live ZenSearch preview performance", () => {
     }
     await waitForStableGatewayState();
     const limit = parsePositiveInt(process.env.STUDIO_LIVE_ZEN_SEARCH_PERF_LIMIT, DEFAULT_LIMIT);
+    const markdownDiscovery = await discoverMarkdownSearchTargetOrUnavailable(limit);
     discoveredTargets = {
       codeAst: await discoverCodeSearchTarget(uiConfig, limit),
-      markdown: await discoverMarkdownSearchTarget(limit),
+      markdown: markdownDiscovery.target,
+      markdownUnavailable: markdownDiscovery.unavailable,
     };
   }, LIVE_ZEN_SEARCH_PERF_TIMEOUT_MS);
 
@@ -909,29 +983,38 @@ liveDescribe("live ZenSearch preview performance", () => {
       );
 
       const measurements: LiveZenSearchMeasurement[] = [];
-      for (const [scenario, target] of [
-        ["code_ast", targets.codeAst],
-        ["markdown", targets.markdown],
-      ] as const) {
+      const scenarioTargets = [
+        {
+          scenario: "code_ast" as const,
+          target: targets.codeAst,
+        },
+        ...(targets.markdown
+          ? [
+              {
+                scenario: "markdown" as const,
+                target: targets.markdown,
+              },
+            ]
+          : []),
+      ];
+      for (const { scenario, target } of scenarioTargets) {
         for (let iteration = 1; iteration <= warmupRuns; iteration += 1) {
-          measurements.push(
-            await measureScenario(scenario, "warmup", iteration, target, limit),
-          );
+          measurements.push(await measureScenario(scenario, "warmup", iteration, target, limit));
         }
         for (
           let iteration = warmupRuns + 1;
           iteration <= warmupRuns + measuredRuns;
           iteration += 1
         ) {
-          measurements.push(
-            await measureScenario(scenario, "measured", iteration, target, limit),
-          );
+          measurements.push(await measureScenario(scenario, "measured", iteration, target, limit));
         }
       }
 
       const measured = measurements.filter((entry) => entry.runKind === "measured");
       const codeMeasurements = measured.filter((entry) => entry.scenario === "code_ast");
       const markdownMeasurements = measured.filter((entry) => entry.scenario === "markdown");
+      const markdownSummary =
+        markdownMeasurements.length > 0 ? summarizeScenario(markdownMeasurements) : null;
 
       const summary: LiveZenSearchPerfSummary = {
         gatewayOrigin,
@@ -942,7 +1025,10 @@ liveDescribe("live ZenSearch preview performance", () => {
         measuredRuns,
         scenarios: {
           codeAst: summarizeScenario(codeMeasurements),
-          markdown: summarizeScenario(markdownMeasurements),
+          markdown: markdownSummary,
+        },
+        unavailableScenarios: {
+          markdown: targets.markdownUnavailable,
         },
       };
 
@@ -951,13 +1037,22 @@ liveDescribe("live ZenSearch preview performance", () => {
         measurements,
       });
 
+      if (targets.markdownUnavailable) {
+        console.warn(
+          `[zen-search-live-perf-unavailable] ${JSON.stringify(targets.markdownUnavailable)}`,
+        );
+      }
       console.info(`\n[zen-search-live-perf] ${JSON.stringify(summary, null, 2)}`);
       console.info(`[zen-search-live-perf-artifact] json=${artifactPath}`);
 
       expect(summary.scenarios.codeAst.avgAnalysisSettledMs).toBeGreaterThan(0);
-      expect(summary.scenarios.markdown.avgAnalysisSettledMs).toBeGreaterThan(0);
       expect(summary.scenarios.codeAst.avgSearchToBasePreviewSettledMs).toBeGreaterThan(0);
-      expect(summary.scenarios.markdown.avgSearchToBasePreviewSettledMs).toBeGreaterThan(0);
+      if (summary.scenarios.markdown) {
+        expect(summary.scenarios.markdown.avgAnalysisSettledMs).toBeGreaterThan(0);
+        expect(summary.scenarios.markdown.avgSearchToBasePreviewSettledMs).toBeGreaterThan(0);
+      } else {
+        expect(summary.unavailableScenarios.markdown).not.toBeNull();
+      }
     },
     LIVE_ZEN_SEARCH_PERF_TIMEOUT_MS,
   );

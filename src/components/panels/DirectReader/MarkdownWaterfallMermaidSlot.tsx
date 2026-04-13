@@ -16,6 +16,28 @@ interface MarkdownWaterfallMermaidSlotProps {
   source: string;
 }
 
+function equalMarkdownChunk(
+  left: MarkdownRetrievalChunk | undefined,
+  right: MarkdownRetrievalChunk | undefined,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.id === right.id &&
+    left.displayId === right.displayId &&
+    left.semanticType === right.semanticType &&
+    left.fingerprint === right.fingerprint &&
+    left.tokenEstimate === right.tokenEstimate &&
+    left.displayLabel === right.displayLabel &&
+    left.excerpt === right.excerpt
+  );
+}
+
 function buildMermaidSlotSvgMarkup(svg: string): { __html: string } {
   return { __html: svg };
 }
@@ -76,13 +98,13 @@ function renderRichSlotHeader(
   );
 }
 
-export const MarkdownWaterfallMermaidSlot: React.FC<MarkdownWaterfallMermaidSlotProps> = ({
+function MarkdownWaterfallMermaidSlotComponent({
   chunk,
   copy,
   documentPathLabel,
   documentTitle,
   source,
-}) => {
+}: MarkdownWaterfallMermaidSlotProps): React.ReactElement {
   const trimmed = source.trim();
   const unsupportedDialect = describeUnsupportedMermaidDialect(trimmed);
   const renderMermaid = useSharedMermaidRenderer({
@@ -203,6 +225,21 @@ export const MarkdownWaterfallMermaidSlot: React.FC<MarkdownWaterfallMermaidSlot
       </div>
     );
   }
-};
+}
+
+export const MarkdownWaterfallMermaidSlot = React.memo(
+  MarkdownWaterfallMermaidSlotComponent,
+  (previousProps, nextProps) => {
+    return (
+      equalMarkdownChunk(previousProps.chunk, nextProps.chunk) &&
+      previousProps.copy === nextProps.copy &&
+      previousProps.documentPathLabel === nextProps.documentPathLabel &&
+      previousProps.documentTitle === nextProps.documentTitle &&
+      previousProps.source === nextProps.source
+    );
+  },
+);
+
+MarkdownWaterfallMermaidSlot.displayName = "MarkdownWaterfallMermaidSlot";
 
 export default MarkdownWaterfallMermaidSlot;

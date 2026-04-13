@@ -26,7 +26,11 @@ export type SearchSelection = StudioNavigationTarget & {
   graphPath?: string;
 };
 
-export type SearchSelectionAction = (selection: SearchSelection) => void | Promise<void>;
+export type SearchSelectionActionDecision = void | boolean;
+export type SearchSelectionActionResult =
+  | SearchSelectionActionDecision
+  | Promise<SearchSelectionActionDecision>;
+export type SearchSelectionAction = (selection: SearchSelection) => SearchSelectionActionResult;
 
 export interface SearchResult extends SearchHit {
   category: ResultCategory;

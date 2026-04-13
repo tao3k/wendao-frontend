@@ -1,4 +1,10 @@
 import { api, SearchResponse } from "../../api";
+import {
+  buildStructuralSearchGuidance,
+  hasStructuralCodeQuery,
+  inferStructuralSearchLanguage,
+  parseCodeFilters,
+} from "./codeSearchUtils";
 import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
 import { errorMessage, normalizeCodeSearchHit } from "./searchResultNormalization";
 import type { SearchExecutionOutcome } from "./searchExecutionTypes";
@@ -53,6 +59,19 @@ export function fetchStandaloneCodeSearchResponse(
   });
 }
 
+export function fetchRepoScopedCodeSearchResponse(
+  query: string,
+  repo: string,
+  limit: number = 10,
+  signal?: AbortSignal,
+): Promise<SearchResponse> {
+  return api.searchKnowledge(query, limit, {
+    intent: "code_search",
+    repo,
+    ...(signal ? { signal } : {}),
+  });
+}
+
 export function resolveRepoAwareCodeModeOutcome({
   queryToSearch,
   repoFilter,
@@ -86,11 +105,24 @@ export function resolveRepoAwareCodeModeOutcome({
     throw new Error(repoIntelligenceError ?? "Search failed");
   }
 
-  const runtimeWarnings = isPendingCodeSearch
-    ? []
-    : [repoIntelligenceResult?.partialError, repoIntelligenceError].filter(
-        (value): value is string => Boolean(value),
-      );
+  const runtimeWarnings = (
+    isPendingCodeSearch
+      ? []
+      : [repoIntelligenceResult?.partialError, repoIntelligenceError].filter(
+          (value): value is string => Boolean(value),
+        )
+  ) as string[];
+  const parsedCodeFilters = parseCodeFilters(queryToSearch);
+  const structuralLanguage =
+    !repoFacet &&
+    !hasStructuralCodeQuery(queryToSearch) &&
+    resolvedResults.length === 0 &&
+    !isPendingCodeSearch
+      ? inferStructuralSearchLanguage(parsedCodeFilters.filters)
+      : null;
+  if (structuralLanguage) {
+    runtimeWarnings.push(buildStructuralSearchGuidance(structuralLanguage));
+  }
   const resolvedSearchMode = codeIntentMeta?.searchMode ?? codeIntentMeta?.selectedMode;
   const resolvedHitCount = useBackendCodeResults
     ? (codeIntentMeta?.hitCount ?? resolvedResults.length)
@@ -129,6 +161,39 @@ export function buildStandaloneCodeModeOutcome(
       hitCount: codeResponse.hitCount,
       selectedMode: codeResponse.searchMode ?? codeResponse.selectedMode ?? "code_search",
       searchMode: codeResponse.searchMode,
+      graphConfidenceScore: codeResponse.graphConfidenceScore,
+      intent: codeResponse.intent,
+      intentConfidence: codeResponse.intentConfidence,
+      partial: codeResponse.partial,
+      indexingState: codeResponse.indexingState,
+      pendingRepos: codeResponse.pendingRepos,
+      skippedRepos: codeResponse.skippedRepos,
+    },
+  };
+}
+
+interface BuildRepoScopedBackendCodeModeOutcomeParams {
+  query: string;
+  repoFilter: string;
+  repoFacet?: RepoOverviewFacet | null;
+  codeResponse: SearchResponse;
+}
+
+export function buildRepoScopedBackendCodeModeOutcome({
+  query,
+  repoFilter,
+  repoFacet,
+  codeResponse,
+}: BuildRepoScopedBackendCodeModeOutcomeParams): SearchExecutionOutcome {
+  return {
+    results: codeResponse.hits.map((hit) => normalizeCodeSearchHit(hit, repoFilter)),
+    meta: {
+      query,
+      hitCount: codeResponse.hitCount,
+      selectedMode: repoFacet
+        ? `Code (Repo: ${repoFilter} · ${repoFacet})`
+        : `Code (Repo: ${repoFilter})`,
+      searchMode: codeResponse.searchMode ?? codeResponse.selectedMode,
       graphConfidenceScore: codeResponse.graphConfidenceScore,
       intent: codeResponse.intent,
       intentConfidence: codeResponse.intentConfidence,

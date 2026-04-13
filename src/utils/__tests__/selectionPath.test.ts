@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSelectionPathForGraph, normalizeSelectionPathForVfs } from "../selectionPath";
+import {
+  normalizePathSegments,
+  normalizeSelectionPathForGraph,
+  normalizeSelectionPathForVfs,
+} from "../selectionPath";
 
 describe("selectionPath", () => {
   it("canonicalizes workspace-local VFS paths into project-scoped paths", () => {
@@ -33,5 +37,16 @@ describe("selectionPath", () => {
         rootLabel: "docs",
       }),
     ).toBe("main/docs/guide.md#semantic-root");
+  });
+
+  it("drops standalone dot segments from file paths", () => {
+    expect(normalizePathSegments("src/./algorithms.jl")).toBe("src/algorithms.jl");
+    expect(
+      normalizeSelectionPathForVfs({
+        path: "src/./algorithms.jl",
+        category: "doc",
+        projectName: "SimpleOptimization.jl",
+      }),
+    ).toBe("SimpleOptimization.jl/src/algorithms.jl");
   });
 });

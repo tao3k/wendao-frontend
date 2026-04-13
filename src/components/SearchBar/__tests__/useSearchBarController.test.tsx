@@ -121,6 +121,7 @@ describe("useSearchBarController", () => {
         onResultSelect,
         onReferencesResultSelect,
         onGraphResultSelect,
+        defaultRepoFilter: "lancd",
         onRuntimeStatusChange,
       }),
     );
@@ -130,6 +131,7 @@ describe("useSearchBarController", () => {
       expect.objectContaining({
         isOpen: true,
         debouncedAutocomplete: "repo:gateway-sync solve",
+        defaultRepoFilter: "lancd",
       }),
     );
     expect(useSearchBarControllerPresentationMock).toHaveBeenCalledWith(

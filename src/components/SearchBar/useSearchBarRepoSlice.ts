@@ -14,6 +14,7 @@ interface UseSearchBarRepoSliceParams {
   locale: UiLocale;
   results: SearchResult[];
   showSuggestions: boolean;
+  defaultRepoFilter?: string | null;
 }
 
 export function useSearchBarRepoSlice({
@@ -25,12 +26,14 @@ export function useSearchBarRepoSlice({
   locale,
   results,
   showSuggestions,
+  defaultRepoFilter,
 }: UseSearchBarRepoSliceParams) {
   const repoState = useRepoSearchState({
     query,
     debouncedQuery,
     isOpen,
     scope,
+    defaultRepoFilter,
   });
 
   const capabilities = getUiCapabilitiesSync();

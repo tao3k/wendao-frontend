@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, getUiCapabilitiesSync, resetUiCapabilitiesCache } from "./index";
+import { api, getUiCapabilitiesSync, getUiConfigSync, resetUiCapabilitiesCache } from "./index";
 import * as flightAnalysisTransport from "./flightAnalysisTransport";
 import * as flightDocumentTransport from "./flightDocumentTransport";
 import * as flightGraphTransport from "./flightGraphTransport";
@@ -478,6 +478,49 @@ describe("api client ui capabilities contract", () => {
       supportedRepositories: ["kernel", "sciml"],
       supportedKinds: ["function", "module", "struct"],
     });
+  });
+});
+
+describe("api client ui config contract", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetUiCapabilitiesCache();
+  });
+
+  it("loads UI config from /api/ui/config and caches repo projects", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          projects: [
+            {
+              name: "kernel",
+              root: ".",
+              dirs: ["docs"],
+            },
+          ],
+          repoProjects: [
+            {
+              id: "lancd",
+              url: "https://github.com/lance-format/lance",
+              plugins: ["ast-grep"],
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const config = await api.getUiConfig();
+
+    expect(fetchSpy).toHaveBeenCalledWith("/api/ui/config");
+    expect(config.repoProjects).toEqual([
+      {
+        id: "lancd",
+        url: "https://github.com/lance-format/lance",
+        plugins: ["ast-grep"],
+      },
+    ]);
+    expect(getUiConfigSync()).toEqual(config);
   });
 });
 

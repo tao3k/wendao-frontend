@@ -2,10 +2,7 @@ import type { Root } from "mdast";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
-import type {
-  MarkdownAnalysisResponse,
-  MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom,
-} from "../../../api";
+import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from "../../../api";
 import {
   buildArrowRetrievalLookup,
   type ArrowRetrievalLookup,
@@ -232,9 +229,9 @@ function buildMarkdownRetrievalChunk(
 }
 
 function buildMarkdownAtomLookup(
-  analysis: MarkdownAnalysisResponse | undefined,
+  retrievalAtoms: ApiMarkdownRetrievalAtom[] | undefined,
 ): ArrowRetrievalLookup<ApiMarkdownRetrievalAtom> {
-  return buildArrowRetrievalLookup(analysis?.retrievalAtoms ?? []);
+  return buildArrowRetrievalLookup(retrievalAtoms ?? []);
 }
 
 export function toDisplayMarkdownChunk(
@@ -440,7 +437,7 @@ export function buildMarkdownRichSlotCopyPayload(args: {
 export function buildMarkdownWaterfallModel(
   content: string,
   path?: string,
-  analysis?: MarkdownAnalysisResponse,
+  retrievalAtoms?: ApiMarkdownRetrievalAtom[],
 ): MarkdownWaterfallModel {
   const root = unified()
     .use(remarkParse)
@@ -457,7 +454,7 @@ export function buildMarkdownWaterfallModel(
     (node): node is MarkdownHeadingAstNode =>
       node.type === "heading" && typeof node.depth === "number" && node.depth <= 2,
   );
-  const atomLookup = buildMarkdownAtomLookup(analysis);
+  const atomLookup = buildMarkdownAtomLookup(retrievalAtoms);
   const totalLines = content.split(/\r?\n/).length || 1;
   const firstHeading = headingNodes[0] ?? null;
   const hasExplicitDocumentTitle = Boolean(frontmatter.title);

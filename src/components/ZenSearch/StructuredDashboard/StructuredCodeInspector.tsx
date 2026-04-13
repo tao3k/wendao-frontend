@@ -3,12 +3,16 @@ import { CodeAstAnatomyView } from "../CodeAstAnatomyView";
 
 type StructuredCodeInspectorProps = ComponentProps<typeof CodeAstAnatomyView>;
 
-export const StructuredCodeInspector: React.FC<StructuredCodeInspectorProps> = (props) => {
+function StructuredCodeInspectorComponent(props: StructuredCodeInspectorProps): React.ReactElement {
   return (
     <section className="structured-code-inspector" data-testid="structured-code-inspector">
       <CodeAstAnatomyView {...props} />
     </section>
   );
-};
+}
+
+export const StructuredCodeInspector = React.memo(StructuredCodeInspectorComponent);
+
+StructuredCodeInspector.displayName = "StructuredCodeInspector";
 
 export default StructuredCodeInspector;

@@ -81,12 +81,12 @@ restarted default gateway:
 - Intent: `code_search`
 - Result path: `Modelica/Blocks/package.mo`
 - Content path: `mcl/Modelica/Blocks/package.mo`
-- Search: `2.48ms`
+- Search: `1.85ms`
 - Resolve preview plan: `0.08ms`
-- Base preview settled: `1.97ms`
-- AST analysis settled: `3.61ms`
-- Search to base preview settled: `4.45ms`
-- Search to AST analysis settled: `6.10ms`
+- Base preview settled: `2.10ms`
+- AST analysis settled: `3.15ms`
+- Search to base preview settled: `3.95ms`
+- Search to AST analysis settled: `5.00ms`
 - Content bytes: `152147`
 - AST node count: `39`
 - Retrieval atom count: `78`
@@ -97,14 +97,14 @@ restarted default gateway:
 - Intent: `knowledge`
 - Result path: `docs/00_vision/TRINITY_MANIFESTO.md`
 - Content path: `frontend/docs/00_vision/TRINITY_MANIFESTO.md`
-- Search: `2.02ms`
+- Search: `1.36ms`
 - Resolve preview plan: `0.03ms`
-- Base preview settled: `3.70ms`
-- Graph summary settled: `4.92ms`
-- Markdown analysis settled: `3.36ms`
-- Search to base preview settled: `5.72ms`
-- Search to graph summary settled: `6.94ms`
-- Search to markdown analysis settled: `5.38ms`
+- Base preview settled: `2.29ms`
+- Graph summary settled: `2.87ms`
+- Markdown analysis settled: `4.22ms`
+- Search to base preview settled: `3.65ms`
+- Search to graph summary settled: `4.23ms`
+- Search to markdown analysis settled: `5.58ms`
 - Content bytes: `12026`
 - Markdown analysis node count: `34`
 - Retrieval atom count: `34`
@@ -114,6 +114,8 @@ visible ZenSearch panel states. On the current restarted gateway, markdown
 preview content now becomes visible before graph summary completion, so the
 graph lane no longer blocks the info-panel shell. The remaining visible-path
 cost is the content fetch itself, not graph-neighbor decoration.
+The preview runtime is also easier to trace now because state/load-need policy
+and async lane helpers are no longer fused into a single hook file.
 
 ## Current Default-Gateway Results
 
@@ -214,15 +216,15 @@ single-digit milliseconds for the sampled search queries.
    `matching code hits exist` and `no code hit matches so fall back to non-code
 results`.
 10. The left result pane now has an explicit virtualization budget. The static
-   list threshold, initial virtual window, and overscan are locked in
-   `VirtualizedSearchResultsList`, and the hotspot trace suite now includes a
-   large code-result typing scenario so render-pressure drift shows up as JSON
-   artifact changes instead of subjective typing lag.
+    list threshold, initial virtual window, and overscan are locked in
+    `VirtualizedSearchResultsList`, and the hotspot trace suite now includes a
+    large code-result typing scenario so render-pressure drift shows up as JSON
+    artifact changes instead of subjective typing lag.
 11. The suggestion dropdown now follows the same budgeted-contract pattern. The
-   visible suggestion slice is capped at `12` items inside the autocomplete
-   state source, and the hotspot trace suite now records dropdown
-   selection-shift paint drift so keyboard browsing regressions are visible in
-   the shared JSON artifact.
+    visible suggestion slice is capped at `12` items inside the autocomplete
+    state source, and the hotspot trace suite now records dropdown
+    selection-shift paint drift so keyboard browsing regressions are visible in
+    the shared JSON artifact.
 12. Suggestion hover now has its own controller-level stability contract. The
     SearchBar controller keeps suggestion highlight separate from result
     selection, reuses a stable toggle callback, and the hotspot suite records a
@@ -332,12 +334,48 @@ autocomplete refresh` trace explicitly.
     active Flight migration debt.
 34. The new live ZenSearch harness shows that the visible info-panel path is no
     longer dominated by Flight search. In the current restarted-gateway sample,
-    code search reaches base preview in `4.45ms` and AST settlement in
-    `6.10ms`, while markdown now reaches visible base preview in `5.72ms`,
-    markdown analysis settlement in `5.38ms`, and graph summary later in
-    `6.94ms`. The graph lane is no longer on the markdown critical path. The
-    next optimization target is the content and analysis loading chain, not the
+    code search reaches base preview in `3.95ms` and AST settlement in
+    `5.00ms`, while markdown now reaches visible base preview in `3.65ms`,
+    graph summary in `4.23ms`, and markdown analysis settlement in `5.58ms`.
+    The graph lane is no longer on the markdown critical path. The next
+    optimization target is the content and analysis loading chain, not the
     search transport.
+35. The frontend preview code now mirrors those measured lanes structurally.
+    `zenSearchPreviewState.ts` owns preview-state shape plus load-need policy,
+    `zenSearchPreviewPhases.ts` owns async lane helpers and snapshot building,
+    and `useZenSearchPreview.ts` is reduced to orchestration. This makes future
+    performance tracing simpler because the measured content/graph/analysis
+    phases now map onto explicit frontend modules.
+36. Selection activation now adopts in-flight prefetched preview lanes instead
+    of discarding them and starting duplicate work. The focused regression test
+    now proves that selecting a still-prefetching markdown result keeps
+    secondary `VFS`, `graph`, and `markdown analysis` requests at one each
+    while still allowing content to publish before the new graph lane settles.
+37. New preview identities now clear stale `content`, `contentType`, and
+    `graphNeighbors` immediately while their own lanes are pending. This avoids
+    showing the previous result's graph summary or body content during a hot
+    selection handoff, which makes the content-first contract visually honest.
+38. The live ZenSearch harness now records a modular `analysisTransport`
+    breakdown inside the existing analysis milestone. In the current restarted
+    gateway sample, code AST analysis transport totals `2.53ms`, with
+    `getFlightInfo=0.83ms`, `doGet=0.91ms`, and `retrievalDecode=0.71ms`;
+    markdown analysis transport totals `2.45ms`, with
+    `getFlightInfo=0.92ms`, `doGet=1.09ms`, and `retrievalDecode=0.33ms`.
+    Arrow IPC reassembly is effectively negligible on both paths
+    (`0.03ms` and `0.02ms` respectively). The remaining analysis work is
+    therefore transport-bound at the Flight discovery/stream stages rather
+    than blocked by frontend IPC stitching.
+39. A runtime-side analysis `do_get` prewarm in `xiuxian-wendao-runtime`
+    produced a measurable live improvement on the same code-search target.
+    Re-running the harness against the default `9517` gateway and a patched
+    `9527` gateway on `diffeq -> mcl/Modelica/Blocks/package.mo` reduced the
+    code-AST analysis transport total from `4.76ms` to `3.69ms`, with
+    `doGet` falling from `1.96ms` to `1.22ms` and end-to-end
+    `search -> analysis settled` dropping from `7.54ms` to `6.97ms`.
+    The fresh patched gateway still exposed `knowledge_section.rowCount=0`, so
+    markdown search discovery was unavailable there; the live harness now
+    records that corpus-availability state explicitly instead of aborting the
+    entire performance proof.
 
 ## Post-Restart Production-Line Proof
 
@@ -465,6 +503,156 @@ manual restart across both request-path validation and frontend hotspot
 instrumentation. The current bottleneck is still not the same-origin Flight
 search path; the slight rise from the earlier `1.67ms` warm checkpoint is
 still comfortably inside low single-digit latency.
+
+## Panel Render Boundary Update
+
+The next meaningful frontend cost after transport is inside the structured
+preview panel rather than the search request path. The `III. Multi-slot
+Fragments` stage is now isolated behind
+`src/components/ZenSearch/StructuredDashboard/StructuredFragmentsPanel.tsx`,
+and `CodeSyntaxHighlighter` is memoized at the leaf boundary.
+
+Focused topology interactions no longer rerender the heavy fragment detail
+subtree when its inputs are unchanged. The regression proof in
+`src/components/ZenSearch/StructuredDashboard/__tests__/StructuredIntelligenceDashboard.test.tsx`
+uses a render trace around the preview-content stage and holds that trace at
+`renderCount = 1` across initial render, topology focus, neighbor focus, and
+focus clear. This does not change search latency, but it removes avoidable
+panel-side work while the user browses anchors inside the dashboard.
+
+## Code AST Detail Boundary Update
+
+The next heavy panel stage was the code-AST data panel. `CodeAstAnatomyView`
+used to keep the `blocks + symbols` subtree inline and tied its derived model
+to the full `selectedResult` object identity. That meant metadata-only result
+updates could still invalidate the heavy detail stage even when the actual
+source identity and AST payload were unchanged.
+
+That path is now split through
+`src/components/ZenSearch/CodeAstDetailStages.tsx`, a memoized boundary for
+the `CodeAstBlocksStage` and `CodeAstSymbolsStage` subtree. The anatomy derive
+path also now depends on a narrower selection input (`path + codeLanguage`)
+instead of the whole search result object. The focused regression in
+`src/components/ZenSearch/__tests__/CodeAstAnatomyView.renderBoundary.test.tsx`
+rerenders the panel with updated result metadata but the same source identity,
+and the detail-stage render trace stays at `renderCount = 1`.
+
+This keeps the AST data panel aligned with the earlier fragment-panel work:
+transport remains unchanged, while heavy render work is isolated behind a
+named module boundary that can be measured independently.
+
+## DirectReader Rich-View Boundary Update
+
+The next markdown-side panel issue was inside `DirectReader`. Line and column
+metadata changes could rerender the rich markdown subtree even when the user
+stayed in rich mode and the actual document content did not change. That meant
+navigation metadata churn could still rebuild `DirectReaderRichContent` and its
+downstream markdown rendering path unnecessarily.
+
+`src/components/panels/DirectReader/DirectReaderRichContent.tsx` is now an
+explicit memoized boundary. The focused regression in
+`src/components/panels/DirectReader/DirectReader.renderBoundary.test.tsx`
+rerenders `DirectReader` with the same markdown document but different
+`line/lineEnd` metadata, and the rich-content render trace stays at
+`renderCount = 1`.
+
+This keeps the markdown data panel aligned with the same modular performance
+strategy as the fragment and code-AST slices: line-focus metadata can change
+without forcing the heavy rich-content subtree to rebuild when the visible rich
+document payload is unchanged.
+
+## Markdown Section-Body Boundary Update
+
+The next markdown-side cost sat one level deeper inside `MarkdownWaterfall`.
+The waterfall model depended on the whole `analysis` object even though the
+rendered section cards only consume `retrievalAtoms`, and section bodies were
+not isolated behind their own memoized boundary. That allowed unrelated
+analysis-metadata churn to rebuild section-level rich markdown rendering.
+
+This path is now tightened in two places. `buildMarkdownWaterfallModel()` takes
+the retrieval-atom slice directly, and `MarkdownWaterfall` memoizes its model
+on `content + path + retrievalAtoms` instead of the full analysis object.
+`MarkdownWaterfallSectionBody.tsx` is also now a memoized leaf with its
+markdown component map built once per stable section payload.
+
+The focused regression in
+`src/components/panels/DirectReader/MarkdownWaterfall.renderBoundary.test.tsx`
+rerenders the waterfall with changed analysis metadata but the same
+`retrievalAtoms` array, and the section-body trace stays at `renderCount = 1`.
+That removes another avoidable rebuild from the markdown data panel without
+changing search or analysis transport behavior.
+
+## Markdown Rich-Slot Callback Boundary Update
+
+The next residual panel-side cost sat inside the markdown rich-slot path.
+`MarkdownWaterfallSectionBody` rebuilt its markdown component map whenever the
+bi-link callback identity changed, which let callback-only churn re-enter the
+code and mermaid rich slots even when the visible section payload was
+unchanged. A first naive stabilization pass added extra hooks directly inside
+the mounted section-body component and exposed a live Fast Refresh hook-order
+mismatch during local development.
+
+The final shape keeps `MarkdownWaterfallSectionBody` on a single-hook
+controller cache. That controller stores the latest bi-link callback, reuses
+the existing markdown component map while the section payload stays stable, and
+only rebuilds when the actual content inputs change or bi-link support toggles
+on/off. `MarkdownWaterfallCodeSlot.tsx` and
+`MarkdownWaterfallMermaidSlot.tsx` are also value-memoized leaves, so stable
+slot payloads do not rerender just because wrapper callback identity churned.
+
+The focused regression in
+`src/components/panels/DirectReader/MarkdownWaterfallSectionBody.renderBoundary.test.tsx`
+rerenders the same section body with only a new bi-link callback identity and
+proves both the code-slot and mermaid-slot traces stay at `renderCount = 1`.
+This keeps the markdown data panel modular in the same way as the earlier
+fragment, code-AST, and section-body boundaries while avoiding the live
+hook-order drift seen in the intermediate implementation.
+
+## ZenSearch Selection-Close Stability Update
+
+One remaining user-facing instability was not a transport problem at all. The
+ZenSearch selection surfaces closed the dialog as soon as their
+`onResultSelect()` Promise resolved, but the App hydration handlers returned a
+resolved Promise even when the file hydrate failed. That meant keyboard Enter,
+row open, references open, or definition open could still drop the user back
+to the normal workspace after a failed hydrate, which looked like a random
+jump back to the home view.
+
+The selection contract is now explicit: search selection actions may return
+`false` to veto dialog close. `App.tsx` returns `false` when a result hydrate
+fails, and both keyboard and click-driven selection helpers now keep ZenSearch
+open unless the action resolves to success. This keeps failed path resolution
+or VFS hydrate misses inside the search workflow instead of ejecting the user
+out of context.
+
+Focused regressions now cover both paths:
+
+- `src/components/SearchBar/__tests__/useSearchKeyboardNavigation.test.tsx`
+  proves Enter-key result selection does not close search when the action
+  resolves `false`.
+- `src/components/SearchBar/__tests__/useSearchResultActions.test.tsx`
+  proves result-open and definition-open actions also keep search open when
+  the selection contract vetoes close.
+
+## Code AST Hook-Order Stability Update
+
+Another live instability surfaced in `CodeAstAnatomyView`: the view returned
+early for `loading`, `error`, and empty-analysis states, but two additional
+`useMemo()` calls sat below those early returns. When a preview transitioned
+from loading into a hydrated AST panel, React saw more hooks than during the
+previous render and threw the runtime hook-order error instead of stabilizing
+the panel.
+
+`src/components/ZenSearch/CodeAstAnatomyView.tsx` now computes all derived AST
+memo state unconditionally before any early return. The loading, error, and
+empty branches remain the same user-facing states, but the component now keeps
+one stable hook layout across every render phase.
+
+The focused regression in
+`src/components/ZenSearch/__tests__/CodeAstAnatomyView.test.tsx` now rerenders
+the same component from `loading=true` into a fully hydrated AST anatomy view
+and proves the waterfall renders successfully without tripping hook-order
+drift.
 
 ## Optimization Candidates
 

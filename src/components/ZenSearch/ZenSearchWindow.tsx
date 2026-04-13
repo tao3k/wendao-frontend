@@ -12,6 +12,7 @@ interface ZenSearchWindowProps {
   onResultSelect: SearchSelectionAction;
   onReferencesResultSelect?: SearchSelectionAction;
   onGraphResultSelect?: SearchSelectionAction;
+  defaultRepoFilter?: string | null;
   onRuntimeStatusChange?: (
     status: { tone: "warning" | "error"; message: string; source: "search" } | null,
   ) => void;
@@ -24,6 +25,7 @@ export const ZenSearchWindow: React.FC<ZenSearchWindowProps> = ({
   onResultSelect,
   onReferencesResultSelect,
   onGraphResultSelect,
+  defaultRepoFilter,
   onRuntimeStatusChange,
 }) => {
   const controller = useZenSearchMode({
@@ -33,6 +35,7 @@ export const ZenSearchWindow: React.FC<ZenSearchWindowProps> = ({
     onResultSelect,
     onReferencesResultSelect,
     onGraphResultSelect,
+    defaultRepoFilter,
     onRuntimeStatusChange,
   });
 

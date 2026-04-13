@@ -162,13 +162,13 @@ export function normalizeCodeLanguage(language?: string | null): string | null {
   return normalizeLanguage(language);
 }
 
-export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
+function CodeSyntaxHighlighterComponent({
   source,
   language,
   sourcePath,
   className,
   theme = "tokyo-night",
-}) => {
+}: CodeSyntaxHighlighterProps): React.ReactElement {
   const normalizedLanguage = useMemo(() => normalizeLanguage(language), [language]);
   const inferredLanguage = useMemo(() => inferCodeLanguageFromPath(sourcePath), [sourcePath]);
   const effectiveLanguage = useMemo(() => {
@@ -267,4 +267,8 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
       ))}
     </span>
   );
-};
+}
+
+export const CodeSyntaxHighlighter = React.memo(CodeSyntaxHighlighterComponent);
+
+CodeSyntaxHighlighter.displayName = "CodeSyntaxHighlighter";

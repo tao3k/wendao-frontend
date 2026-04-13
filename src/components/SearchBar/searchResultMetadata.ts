@@ -1,4 +1,5 @@
 import type { SearchResult } from "./types";
+import { normalizePathSegments } from "../../utils/selectionPath";
 
 export interface SearchResultMetaPill {
   kind:
@@ -45,8 +46,9 @@ export function resolveHierarchyHint(
   result: Pick<SearchResult, "hierarchy" | "hierarchicalUri">,
 ): string | null {
   const segments =
-    result.hierarchy?.map((segment) => segment.trim()).filter((segment) => segment.length > 0) ??
-    [];
+    result.hierarchy
+      ?.map((segment) => normalizePathSegments(segment).trim())
+      .filter((segment) => segment.length > 0) ?? [];
   if (segments.length > 0) {
     return segments.join(" / ");
   }

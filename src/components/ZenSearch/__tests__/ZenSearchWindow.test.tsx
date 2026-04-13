@@ -34,7 +34,14 @@ describe("ZenSearchWindow", () => {
   });
 
   it("renders the dialog shell and delegates to the zen controller", () => {
-    render(<ZenSearchWindow locale="en" onClose={vi.fn()} onResultSelect={vi.fn()} />);
+    render(
+      <ZenSearchWindow
+        locale="en"
+        defaultRepoFilter="lancd"
+        onClose={vi.fn()}
+        onResultSelect={vi.fn()}
+      />,
+    );
 
     expect(screen.getByTestId("zen-search-window")).toHaveAttribute("role", "dialog");
     expect(screen.getByTestId("zen-search-window")).toHaveAttribute("aria-modal", "true");
@@ -42,7 +49,7 @@ describe("ZenSearchWindow", () => {
     expect(screen.getByTestId("mock-zen-layout")).toBeInTheDocument();
     expect(screen.getByTestId("zen-search-window")).toBeInTheDocument();
     expect(useZenSearchModeSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ isOpen: true, locale: "en" }),
+      expect.objectContaining({ isOpen: true, locale: "en", defaultRepoFilter: "lancd" }),
     );
   });
 

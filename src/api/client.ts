@@ -70,5 +70,10 @@ export type {
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
 
-export { api, getUiCapabilitiesSync, resetUiCapabilitiesCache } from "./clientRuntime";
+export {
+  api,
+  getUiCapabilitiesSync,
+  getUiConfigSync,
+  resetUiCapabilitiesCache,
+} from "./clientRuntime";
 export { ApiClientError } from "./responseTransport";

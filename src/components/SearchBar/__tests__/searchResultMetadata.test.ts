@@ -33,6 +33,15 @@ describe("searchResultMetadata", () => {
     expect(hint).toBe("Modelica / Clocked / package.mo");
   });
 
+  it("drops standalone dot hierarchy segments from file breadcrumbs", () => {
+    const hint = resolveHierarchyHint({
+      hierarchy: ["src", ".", "algorithms.jl"],
+      hierarchicalUri: "repo://SimpleOptimization.jl/module/src.algorithms",
+    });
+
+    expect(hint).toBe("src / algorithms.jl");
+  });
+
   it("builds deterministic metadata pills from backend fields", () => {
     const pills = buildCodeMetaPills(
       {

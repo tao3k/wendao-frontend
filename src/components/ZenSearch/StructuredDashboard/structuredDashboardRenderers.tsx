@@ -132,6 +132,15 @@ const StructuredOutlineButton = React.memo(function StructuredOutlineButton({
   );
 });
 
+export interface StructuredFragmentCardItem {
+  kind: "heading" | "code" | "math" | "excerpt";
+  label: string;
+  value: string;
+  query?: string;
+  language?: string;
+  detail?: string;
+}
+
 export function renderChipList(
   items: Array<{ label: string; value: string; query?: string }>,
   onPivotQuery?: (query: string) => void,
@@ -181,14 +190,7 @@ export function renderNeighborList(
 }
 
 export function renderFragmentCards(
-  items: Array<{
-    kind: "heading" | "code" | "math" | "excerpt";
-    label: string;
-    value: string;
-    query?: string;
-    language?: string;
-    detail?: string;
-  }>,
+  items: StructuredFragmentCardItem[],
   syntaxLanguage: string | null,
   sourcePath: string | null,
   onPivotQuery?: (query: string) => void,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
+import { isSearchOnlyRepoProject } from "./repoProjectConfig";
 import type { SearchScope } from "./types";
 
 interface UseRepoOverviewStatusParams {
@@ -25,7 +26,7 @@ export function useRepoOverviewStatus({ isOpen, scope, repoFilter }: UseRepoOver
 
   useEffect(() => {
     const normalizedRepo = repoFilter?.trim();
-    if (!isOpen || scope !== "code" || !normalizedRepo) {
+    if (!isOpen || scope !== "code" || !normalizedRepo || isSearchOnlyRepoProject(normalizedRepo)) {
       setRepoOverviewStatus(null);
       return;
     }

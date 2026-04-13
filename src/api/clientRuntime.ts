@@ -177,13 +177,19 @@ const uiConfigTransportState = createUiConfigTransportState({
   apiBase: API_BASE,
   handleResponse,
 });
+let uiConfigCache: UiConfig | null = null;
 
 export function getUiCapabilitiesSync(): UiCapabilities | null {
   return uiConfigTransportState.getUiCapabilitiesSync();
 }
 
+export function getUiConfigSync(): UiConfig | null {
+  return uiConfigCache;
+}
+
 export function resetUiCapabilitiesCache(): void {
   uiConfigTransportState.resetUiCapabilitiesCache();
+  uiConfigCache = null;
 }
 
 const workspaceTransportDeps = {
@@ -745,7 +751,9 @@ export const api = {
    * Get UI configuration from backend
    */
   async getUiConfig(): Promise<UiConfig> {
-    return fetchControlPlaneUiConfig<UiConfig>(controlPlaneJsonTransportDeps);
+    const config = await fetchControlPlaneUiConfig<UiConfig>(controlPlaneJsonTransportDeps);
+    uiConfigCache = config;
+    return config;
   },
 
   /**
@@ -777,6 +785,7 @@ export const api = {
    */
   async setUiConfig(config: UiConfig): Promise<void> {
     await postControlPlaneUiConfig(controlPlaneJsonTransportDeps, config);
+    uiConfigCache = config;
   },
 };
 

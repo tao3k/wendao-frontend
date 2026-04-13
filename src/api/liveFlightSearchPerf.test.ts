@@ -166,9 +166,7 @@ function parseQueries(value: string | undefined): string[] {
 }
 
 function hasExplicitQueries(value: string | undefined): boolean {
-  return (value ?? "")
-    .split(",")
-    .some((part) => part.trim().length > 0);
+  return (value ?? "").split(",").some((part) => part.trim().length > 0);
 }
 
 function parseSearchIntent(value: string | undefined): string | undefined {
@@ -239,12 +237,14 @@ async function discoverLivePerfQueryPlan(options: {
   }
 
   throw new Error(
-    `live Flight perf harness could not discover any hit-bearing query for the current UI surface: ${JSON.stringify({
-      uiProjects: options.uiConfig.projects.map((project) => project.name),
-      configuredRepoCount: options.uiConfig.repoProjects?.length ?? 0,
-      candidateQueries: candidates.slice(0, 12),
-      explicitIntent: explicitIntent ?? null,
-    })}`,
+    `live Flight perf harness could not discover any hit-bearing query for the current UI surface: ${JSON.stringify(
+      {
+        uiProjects: options.uiConfig.projects.map((project) => project.name),
+        configuredRepoCount: options.uiConfig.repoProjects?.length ?? 0,
+        candidateQueries: candidates.slice(0, 12),
+        explicitIntent: explicitIntent ?? null,
+      },
+    )}`,
   );
 }
 

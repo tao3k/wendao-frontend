@@ -10,6 +10,8 @@ import type { MarkdownWaterfallProps } from "./markdownWaterfallShared";
 import { copyToClipboard, WATERFALL_COPY } from "./markdownWaterfallShared";
 import "./MarkdownWaterfall.css";
 
+const EMPTY_MARKDOWN_ANALYSIS_ATOMS: [] = [];
+
 const MarkdownWaterfallSectionBody = lazy(async () => {
   const module = await import("./MarkdownWaterfallSectionBody");
   return { default: module.MarkdownWaterfallSectionBody };
@@ -115,11 +117,11 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
   onSectionPivot,
 }) => {
   const copy = WATERFALL_COPY[locale];
+  const analysisAtoms = analysis?.retrievalAtoms ?? EMPTY_MARKDOWN_ANALYSIS_ATOMS;
   const model = useMemo(
-    () => buildMarkdownWaterfallModel(content, path, analysis),
-    [analysis, content, path],
+    () => buildMarkdownWaterfallModel(content, path, analysisAtoms),
+    [analysisAtoms, content, path],
   );
-  const analysisAtoms = useMemo(() => analysis?.retrievalAtoms ?? [], [analysis]);
 
   const renderPillRow = (
     label: string,

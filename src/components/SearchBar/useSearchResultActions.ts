@@ -6,6 +6,7 @@ import {
   resolveDefinitionSelection,
   toSearchSelection,
 } from "./searchResultNormalization";
+import { closeAfterSelection, shouldCloseAfterSelection } from "./searchSelectionClose";
 import type { SearchResult, SearchSelectionAction } from "./types";
 
 interface UseSearchResultActionsParams {
@@ -47,24 +48,13 @@ export function useSearchResultActions({
   setIsLoading,
   setError,
 }: UseSearchResultActionsParams): UseSearchResultActionsResult {
-  const closeAfterSelection = useCallback(
-    (selection: void | Promise<void>) => {
-      if (selection && typeof (selection as Promise<void>).then === "function") {
-        void (selection as Promise<void>).then(onClose).catch(() => undefined);
-        return;
-      }
-      onClose();
-    },
-    [onClose],
-  );
-
   const handleResultClick = useCallback(
     (result: SearchResult, event?: React.MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
       event?.preventDefault();
       event?.stopPropagation();
-      closeAfterSelection(onResultSelect(toSearchSelection(result)));
+      closeAfterSelection(onResultSelect(toSearchSelection(result)), onClose);
     },
-    [closeAfterSelection, onResultSelect],
+    [onClose, onResultSelect],
   );
 
   const handleGraphResultClick = useCallback(
@@ -86,9 +76,9 @@ export function useSearchResultActions({
       if (!onReferencesResultSelect) {
         return;
       }
-      closeAfterSelection(onReferencesResultSelect(toSearchSelection(result)));
+      closeAfterSelection(onReferencesResultSelect(toSearchSelection(result)), onClose);
     },
-    [closeAfterSelection, onReferencesResultSelect],
+    [onClose, onReferencesResultSelect],
   );
 
   const handleDefinitionResultClick = useCallback(
@@ -103,8 +93,12 @@ export function useSearchResultActions({
           path: result.path,
           ...(typeof result.line === "number" ? { line: result.line } : {}),
         });
-        await Promise.resolve(onResultSelect(resolveDefinitionSelection(result, response)));
-        onClose();
+        const selectionDecision = await Promise.resolve(
+          onResultSelect(resolveDefinitionSelection(result, response)),
+        );
+        if (shouldCloseAfterSelection(selectionDecision)) {
+          onClose();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Definition lookup failed");
       } finally {

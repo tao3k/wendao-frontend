@@ -2,7 +2,11 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { FlightDataSchema, FlightInfoSchema, TicketSchema } from "./flight/generated/Flight_pb";
-import { loadCodeAstAnalysisFlight, loadMarkdownAnalysisFlight } from "./flightAnalysisTransport";
+import {
+  loadCodeAstAnalysisFlight,
+  loadCodeAstAnalysisFlightWithTiming,
+  loadMarkdownAnalysisFlight,
+} from "./flightAnalysisTransport";
 
 describe("flightAnalysisTransport", () => {
   it("materializes markdown analysis from Flight metadata and Arrow retrieval atoms", async () => {
@@ -212,5 +216,64 @@ describe("flightAnalysisTransport", () => {
 
     expect(getFlightInfoSignal).toBe(signal);
     expect(doGetSignal).toBe(signal);
+  });
+
+  it("reports non-negative analysis phase timings for timed analysis loads", async () => {
+    const response = await loadCodeAstAnalysisFlightWithTiming(
+      {
+        baseUrl: "http://127.0.0.1:9517",
+        schemaVersion: "v2",
+        path: "kernel/src/lib.rs",
+        repo: "kernel",
+        line: 12,
+      },
+      {
+        createClient: () => ({
+          async getFlightInfo() {
+            return create(FlightInfoSchema, {
+              schema: new Uint8Array([9, 9, 9]),
+              endpoint: [
+                {
+                  ticket: create(TicketSchema, { ticket: new Uint8Array([7, 7]) }),
+                },
+              ],
+              appMetadata: new TextEncoder().encode(
+                JSON.stringify({
+                  repoId: "kernel",
+                  path: "kernel/src/lib.rs",
+                  language: "rust",
+                  nodes: [],
+                  edges: [],
+                  projections: [],
+                  diagnostics: [],
+                }),
+              ),
+            });
+          },
+          async *doGet() {
+            yield create(FlightDataSchema, {
+              dataHeader: new Uint8Array([10, 11, 12]),
+              dataBody: new Uint8Array([13, 14]),
+            });
+          },
+        }),
+        decodeRetrievalChunks: () => [],
+      },
+    );
+
+    expect(response.analysis.path).toBe("kernel/src/lib.rs");
+    expect(response.timing.getFlightInfoMs).toBeGreaterThanOrEqual(0);
+    expect(response.timing.metadataDecodeMs).toBeGreaterThanOrEqual(0);
+    expect(response.timing.doGetMs).toBeGreaterThanOrEqual(0);
+    expect(response.timing.ipcReassemblyMs).toBeGreaterThanOrEqual(0);
+    expect(response.timing.retrievalDecodeMs).toBeGreaterThanOrEqual(0);
+    expect(response.timing.totalMs).toBeGreaterThanOrEqual(0);
+    expect(response.timing.totalMs).toBeGreaterThanOrEqual(
+      response.timing.getFlightInfoMs +
+        response.timing.metadataDecodeMs +
+        response.timing.doGetMs +
+        response.timing.ipcReassemblyMs +
+        response.timing.retrievalDecodeMs,
+    );
   });
 });

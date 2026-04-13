@@ -16,8 +16,128 @@ interface BuildCodeFilterSuggestionsOptions {
   includeDefaultPrefixes?: boolean;
 }
 
-export const CODE_FILTER_PREFIXES = ["lang", "kind", "repo", "path"] as const;
+export const STRUCTURAL_CODE_PREFIXES = ["ast", "sg"] as const;
+export const CODE_FILTER_PREFIXES = [
+  "lang",
+  "kind",
+  "repo",
+  "path",
+  ...STRUCTURAL_CODE_PREFIXES,
+] as const;
 export type CodeFilterPrefix = (typeof CODE_FILTER_PREFIXES)[number];
+export const AST_STRUCTURAL_LANGUAGES = [
+  "python",
+  "rust",
+  "javascript",
+  "typescript",
+  "bash",
+  "go",
+  "java",
+  "c",
+  "cpp",
+  "csharp",
+  "ruby",
+  "swift",
+  "kotlin",
+  "lua",
+  "php",
+  "json",
+  "yaml",
+  "toml",
+  "markdown",
+  "dockerfile",
+  "html",
+  "css",
+  "sql",
+] as const;
+
+type StructuralCodePrefix = (typeof STRUCTURAL_CODE_PREFIXES)[number];
+type StructuralTemplateSpec = {
+  prefix: StructuralCodePrefix;
+  pattern: string;
+};
+
+const AST_STRUCTURAL_LANGUAGE_SET = new Set<string>(AST_STRUCTURAL_LANGUAGES);
+const STRUCTURAL_LANGUAGE_EXTENSION_MAP: Array<[suffix: string, language: string]> = [
+  [".py", "python"],
+  [".rs", "rust"],
+  [".js", "javascript"],
+  [".mjs", "javascript"],
+  [".ts", "typescript"],
+  [".tsx", "typescript"],
+  [".sh", "bash"],
+  [".bash", "bash"],
+  [".go", "go"],
+  [".java", "java"],
+  [".c", "c"],
+  [".h", "c"],
+  [".cpp", "cpp"],
+  [".cc", "cpp"],
+  [".cxx", "cpp"],
+  [".hpp", "cpp"],
+  [".cs", "csharp"],
+  [".rb", "ruby"],
+  [".swift", "swift"],
+  [".kt", "kotlin"],
+  [".kts", "kotlin"],
+  [".lua", "lua"],
+  [".php", "php"],
+  [".json", "json"],
+  [".yaml", "yaml"],
+  [".yml", "yaml"],
+  [".toml", "toml"],
+  [".md", "markdown"],
+  [".html", "html"],
+  [".htm", "html"],
+  [".css", "css"],
+  [".sql", "sql"],
+];
+
+const STRUCTURAL_TEMPLATE_LIBRARY: Record<string, StructuralTemplateSpec[]> = {
+  rust: [
+    { prefix: "ast", pattern: "fn $NAME($$$ARGS) { $$$BODY }" },
+    { prefix: "sg", pattern: "impl $T { $$$BODY }" },
+    { prefix: "ast", pattern: "struct $NAME { $$$FIELDS }" },
+  ],
+  python: [
+    { prefix: "ast", pattern: "def $NAME($$$ARGS): $$$BODY" },
+    { prefix: "sg", pattern: "class $NAME($$$BASES): $$$BODY" },
+  ],
+  typescript: [
+    { prefix: "ast", pattern: "function $NAME($$$ARGS) { $$$BODY }" },
+    { prefix: "sg", pattern: "class $NAME { $$$BODY }" },
+    { prefix: "ast", pattern: "export function $NAME($$$ARGS) { $$$BODY }" },
+  ],
+  javascript: [
+    { prefix: "ast", pattern: "function $NAME($$$ARGS) { $$$BODY }" },
+    { prefix: "sg", pattern: "class $NAME { $$$BODY }" },
+    { prefix: "ast", pattern: "export function $NAME($$$ARGS) { $$$BODY }" },
+  ],
+  go: [
+    { prefix: "ast", pattern: "func $NAME($$$ARGS) { $$$BODY }" },
+    { prefix: "sg", pattern: "type $NAME interface { $$$BODY }" },
+  ],
+  html: [
+    { prefix: "ast", pattern: "<$TAG $$$ATTRS>$$$BODY</$TAG>" },
+    { prefix: "sg", pattern: "<$TAG $$$ATTRS />" },
+  ],
+  css: [
+    { prefix: "ast", pattern: "$SELECTOR { $$$BODY }" },
+    { prefix: "sg", pattern: "@media $COND { $$$BODY }" },
+  ],
+  sql: [
+    { prefix: "ast", pattern: "SELECT $$$COLUMNS FROM $TABLE" },
+    { prefix: "sg", pattern: "CREATE TABLE $NAME ($$$BODY)" },
+  ],
+  toml: [
+    { prefix: "ast", pattern: "[$SECTION]" },
+    { prefix: "sg", pattern: "$KEY = $VALUE" },
+  ],
+  generic: [
+    { prefix: "ast", pattern: "$PATTERN" },
+    { prefix: "sg", pattern: "$PATTERN" },
+  ],
+};
 
 const CODE_FILTER_PREFIX_BY_KEY: Record<keyof SearchFilters, string> = {
   language: "lang",
@@ -76,6 +196,147 @@ function uniqueSuggestionValues(values: string[]): string[] {
   });
 
   return output;
+}
+
+function normalizeStructuralLanguage(value: string | undefined): string | null {
+  const normalized = value?.trim().toLowerCase();
+  return normalized && AST_STRUCTURAL_LANGUAGE_SET.has(normalized) ? normalized : null;
+}
+
+function inferStructuralLanguageFromPath(pathFilter: string): string | null {
+  const normalizedPath = pathFilter.trim().toLowerCase();
+  if (!normalizedPath) {
+    return null;
+  }
+  if (
+    normalizedPath === "dockerfile" ||
+    normalizedPath.endsWith("/dockerfile") ||
+    normalizedPath.endsWith("\\dockerfile")
+  ) {
+    return "dockerfile";
+  }
+
+  for (const [suffix, language] of STRUCTURAL_LANGUAGE_EXTENSION_MAP) {
+    if (normalizedPath.endsWith(suffix)) {
+      return language;
+    }
+  }
+
+  return null;
+}
+
+function structuralTemplateToken(prefix: StructuralCodePrefix, pattern: string): string {
+  return `${prefix}:"${pattern}"`;
+}
+
+function resolveStructuralTemplateSpecs(language: string): StructuralTemplateSpec[] {
+  return STRUCTURAL_TEMPLATE_LIBRARY[language] ?? STRUCTURAL_TEMPLATE_LIBRARY.generic;
+}
+
+function resolveStructuralTemplateLanguage(
+  activeFilters: SearchFilters,
+  catalog?: SearchFilters,
+): string {
+  return resolvePreferredStructuralLanguage(activeFilters, catalog) ?? "generic";
+}
+
+function resolvePreferredStructuralLanguage(
+  activeFilters: SearchFilters,
+  catalog?: SearchFilters,
+): string | null {
+  for (const language of activeFilters.language) {
+    const normalized = normalizeStructuralLanguage(language);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  for (const pathFilter of activeFilters.path) {
+    const inferred = inferStructuralLanguageFromPath(pathFilter);
+    if (inferred) {
+      return inferred;
+    }
+  }
+
+  for (const language of catalog?.language ?? []) {
+    const normalized = normalizeStructuralLanguage(language);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+function filterStructuralTemplateSpecs(
+  templates: StructuralTemplateSpec[],
+  prefix: StructuralCodePrefix,
+  typedValue: string,
+): StructuralTemplateSpec[] {
+  const normalizedTypedValue = typedValue.replace(/^['"]/, "").toLowerCase();
+  return templates
+    .filter((template) => template.prefix === prefix)
+    .filter((template) =>
+      normalizedTypedValue.length === 0
+        ? true
+        : template.pattern.toLowerCase().includes(normalizedTypedValue),
+    );
+}
+
+function formatStructuralLanguageLabel(language: string): string {
+  switch (language) {
+    case "javascript":
+      return "JavaScript";
+    case "typescript":
+      return "TypeScript";
+    case "csharp":
+      return "C#";
+    case "cpp":
+      return "C++";
+    case "toml":
+      return "TOML";
+    case "yaml":
+      return "YAML";
+    case "json":
+      return "JSON";
+    case "sql":
+      return "SQL";
+    case "html":
+      return "HTML";
+    case "css":
+      return "CSS";
+    default:
+      return language.charAt(0).toUpperCase() + language.slice(1);
+  }
+}
+
+export function inferStructuralSearchLanguage(filters: SearchFilters): string | null {
+  return resolvePreferredStructuralLanguage(filters, undefined);
+}
+
+export function buildStructuralSearchGuidance(language: string): string {
+  const [astTemplate] = filterStructuralTemplateSpecs(
+    resolveStructuralTemplateSpecs(language),
+    "ast",
+    "",
+  );
+  const [sgTemplate] = filterStructuralTemplateSpecs(
+    resolveStructuralTemplateSpecs(language),
+    "sg",
+    "",
+  );
+  const astToken = structuralTemplateToken(
+    astTemplate?.prefix ?? "ast",
+    astTemplate?.pattern ?? "$PATTERN",
+  );
+  const sgToken = structuralTemplateToken(
+    sgTemplate?.prefix ?? "sg",
+    sgTemplate?.pattern ?? "$PATTERN",
+  );
+  if (language === "generic") {
+    return `Try structural code search with ${astToken} or ${sgToken}`;
+  }
+  return `Try structural ${formatStructuralLanguageLabel(language)} search with ${astToken} or ${sgToken}`;
 }
 
 export function parseCodeFilters(query: string): ParsedCodeFilters {
@@ -140,6 +401,10 @@ export function stripCodeFilters(query: string): string {
   return parseCodeFilters(query).baseQuery;
 }
 
+export function hasStructuralCodeQuery(query: string): boolean {
+  return /(?:^|\s)(?:ast|sg):/i.test(query);
+}
+
 export function removeCodeFilterFromQuery(
   query: string,
   filterKind: keyof SearchFilters,
@@ -181,8 +446,29 @@ export function buildCodeFilterSuggestions(
     return [];
   }
 
-  const explicitFilterToken = /(?:^|\s)(lang|language|kind|repo|path):([^\s]*)$/i.exec(query);
+  const explicitFilterToken = /(?:^|\s)(lang|language|kind|repo|path|ast|sg):([^\s]*)$/i.exec(
+    query,
+  );
   if (explicitFilterToken) {
+    const explicitPrefix = explicitFilterToken[1].toLowerCase();
+    if (explicitPrefix === "ast" || explicitPrefix === "sg") {
+      const preferredLanguage = resolveStructuralTemplateLanguage(activeFilters, catalog);
+      return filterStructuralTemplateSpecs(
+        resolveStructuralTemplateSpecs(preferredLanguage),
+        explicitPrefix,
+        explicitFilterToken[2],
+      )
+        .slice(0, 4)
+        .map((template) => ({
+          text: replaceLastQueryToken(
+            query,
+            structuralTemplateToken(template.prefix, template.pattern),
+          ),
+          suggestionType: "stem",
+          docType: "filter",
+        }));
+    }
+
     const filterKey = mapFilterPrefixToKey(explicitFilterToken[1]);
     if (!filterKey) {
       return [];
@@ -211,7 +497,7 @@ export function buildCodeFilterSuggestions(
   const lastToken = (tokens[tokens.length - 1] || "").toLowerCase();
   const prefixMatches = CODE_FILTER_PREFIXES.filter((prefix) => prefix.startsWith(lastToken));
   if (lastToken && !lastToken.includes(":") && prefixMatches.length > 0 && lastToken.length <= 4) {
-    return prefixMatches.slice(0, 4).map((prefix) => ({
+    return prefixMatches.map((prefix) => ({
       text: replaceLastQueryToken(query, `${prefix}:`),
       suggestionType: "stem",
       docType: "filter",
@@ -222,7 +508,7 @@ export function buildCodeFilterSuggestions(
     return [];
   }
 
-  return CODE_FILTER_PREFIXES.slice(0, 4).map((prefix) => ({
+  return CODE_FILTER_PREFIXES.map((prefix) => ({
     text: `${query} ${prefix}:`.trim(),
     suggestionType: "stem",
     docType: "filter",
@@ -251,7 +537,14 @@ export function buildCodeQuickExampleTokens(catalog: SearchFilters): string[] {
   const kindToken = `kind:${catalog.kind[0] || "function"}`;
   const repoToken = `repo:${catalog.repo[0] || "xiuxian-wendao"}`;
   const pathToken = `path:${catalog.path.find((value) => value.includes("/")) || catalog.path[0] || "src/"}`;
-  return [languageToken, kindToken, repoToken, pathToken];
+  const structuralLanguage = resolveStructuralTemplateLanguage(
+    { language: [preferredLanguage], kind: [], repo: [], path: [] },
+    catalog,
+  );
+  const structuralTokens = resolveStructuralTemplateSpecs(structuralLanguage)
+    .slice(0, 2)
+    .map((template) => structuralTemplateToken(template.prefix, template.pattern));
+  return [languageToken, kindToken, repoToken, pathToken, ...structuralTokens];
 }
 
 export function buildCodeQuickScenarios(
@@ -290,6 +583,46 @@ export function buildCodeQuickScenarios(
       id: "repo-intelligence",
       label: locale === "zh" ? "仓库智能" : "Repo intelligence",
       tokens: [`repo:${preferredRepo}`, `lang:${preferredLanguage}`, "kind:function"],
+    });
+  }
+
+  const structuralLanguage = resolveStructuralTemplateLanguage(
+    { language: [preferredLanguage], kind: [], repo: [], path: [] },
+    catalog,
+  );
+  const structuralTemplates = resolveStructuralTemplateSpecs(structuralLanguage);
+  const astTemplate = structuralTemplates.find((template) => template.prefix === "ast");
+  const sgTemplate = structuralTemplates.find((template) => template.prefix === "sg");
+  const structuralLanguageTokens =
+    structuralLanguage === "generic" ? [] : [`lang:${structuralLanguage}`];
+  const structuralLabelPrefix =
+    structuralLanguage === "generic" ? "" : `${formatStructuralLanguageLabel(structuralLanguage)} `;
+  if (astTemplate) {
+    scenarios.unshift({
+      id: "structural-ast",
+      label:
+        locale === "zh"
+          ? `${structuralLabelPrefix}AST 模板`.trim()
+          : `${structuralLabelPrefix}AST template`.trim(),
+      tokens: [
+        ...structuralLanguageTokens,
+        ...(preferredRepo ? [`repo:${preferredRepo}`] : []),
+        structuralTemplateToken(astTemplate.prefix, astTemplate.pattern),
+      ],
+    });
+  }
+  if (sgTemplate) {
+    scenarios.unshift({
+      id: "structural-sg",
+      label:
+        locale === "zh"
+          ? `${structuralLabelPrefix}sg 模板`.trim()
+          : `${structuralLabelPrefix}sg template`.trim(),
+      tokens: [
+        ...structuralLanguageTokens,
+        ...(preferredRepo ? [`repo:${preferredRepo}`] : []),
+        structuralTemplateToken(sgTemplate.prefix, sgTemplate.pattern),
+      ],
     });
   }
 

@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as apiModule from "../../../api";
 import { useRepoSearchState } from "../useRepoSearchState";
 
 const useRepoOverviewStatusMock = vi.fn();
@@ -17,6 +18,7 @@ describe("useRepoSearchState", () => {
   beforeEach(() => {
     useRepoOverviewStatusMock.mockReset();
     useRepoSyncStatusMock.mockReset();
+    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue(null);
 
     useRepoOverviewStatusMock.mockReturnValue({ repoOverviewStatus: null });
     useRepoSyncStatusMock.mockReturnValue({ repoSyncStatus: null });
@@ -45,5 +47,67 @@ describe("useRepoSearchState", () => {
       scope: "code",
       repoFilter: "primary-repo",
     });
+  });
+
+  it("falls back to the default repo filter until an explicit repo filter overrides it", () => {
+    const { result, rerender } = renderHook(
+      ({ query, debouncedQuery }: { query: string; debouncedQuery: string }) =>
+        useRepoSearchState({
+          query,
+          debouncedQuery,
+          isOpen: true,
+          scope: "code",
+          defaultRepoFilter: "lancd",
+        }),
+      {
+        initialProps: {
+          query: "lang:rust impl",
+          debouncedQuery: "lang:rust impl",
+        },
+      },
+    );
+
+    expect(result.current.activeRepoFilter).toBe("lancd");
+    expect(result.current.primaryRepoFilter).toBe("lancd");
+
+    rerender({
+      query: "repo:override lang:rust impl",
+      debouncedQuery: "repo:override lang:rust impl",
+    });
+
+    expect(result.current.activeRepoFilter).toBe("override");
+    expect(result.current.primaryRepoFilter).toBe("override");
+  });
+
+  it("infers a repo filter from configured repo project fields before default scope", () => {
+    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
+      projects: [
+        {
+          name: "kernel",
+          root: ".",
+          dirs: ["docs"],
+        },
+      ],
+      repoProjects: [
+        {
+          id: "lancd",
+          url: "https://github.com/lance-format/lance",
+          plugins: ["ast-grep"],
+        },
+      ],
+    });
+
+    const { result } = renderHook(() =>
+      useRepoSearchState({
+        query: "lance",
+        debouncedQuery: "lance",
+        isOpen: true,
+        scope: "code",
+        defaultRepoFilter: "kernel",
+      }),
+    );
+
+    expect(result.current.activeRepoFilter).toBe("lancd");
+    expect(result.current.primaryRepoFilter).toBe("lancd");
   });
 });

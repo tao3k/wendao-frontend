@@ -1,18 +1,14 @@
 import React, { useMemo } from "react";
 import type { CodeAstAnalysisResponse } from "../../api";
 import type { SearchResult } from "../SearchBar/types";
+import { CodeAstDetailStages } from "./CodeAstDetailStages";
 import {
   buildDisplayedLineRange,
   buildSignatureParameterRows,
   copyForLocale,
   resolveEmptyCodeAstMessage,
 } from "./codeAstAnatomyViewModel";
-import {
-  CodeAstBlocksStage,
-  CodeAstDeclarationStage,
-  CodeAstSymbolsStage,
-  CodeAstWaterfallHeader,
-} from "./codeAstAnatomySections";
+import { CodeAstDeclarationStage, CodeAstWaterfallHeader } from "./codeAstAnatomySections";
 import { deriveCodeAstAnatomy } from "./StructuredDashboard/codeAstAnatomy";
 import "./CodeAstAnatomyView.css";
 
@@ -35,10 +31,29 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
   error,
   onPivotQuery,
 }) => {
-  const copy = copyForLocale(locale);
+  const copy = useMemo(() => copyForLocale(locale), [locale]);
+  const selectedPath = selectedResult.navigationTarget?.path ?? selectedResult.path;
+  const selectedCodeLanguage = selectedResult.codeLanguage ?? null;
   const model = useMemo(
-    () => (analysis ? deriveCodeAstAnatomy(analysis, content, selectedResult) : null),
-    [analysis, content, selectedResult],
+    () =>
+      analysis
+        ? deriveCodeAstAnatomy(analysis, content, {
+            path: selectedPath,
+            codeLanguage: selectedCodeLanguage,
+          })
+        : null,
+    [analysis, content, selectedCodeLanguage, selectedPath],
+  );
+  const declaration = model?.declaration ?? null;
+  const syntaxLanguage = selectedCodeLanguage ?? analysis?.language ?? null;
+  const sourcePath = selectedPath;
+  const signatureRows = useMemo(
+    () => buildSignatureParameterRows(model?.signatureParts ?? []),
+    [model?.signatureParts],
+  );
+  const sourceLineRange = useMemo(
+    () => buildDisplayedLineRange(declaration?.line, model?.blocks ?? []),
+    [declaration?.line, model?.blocks],
   );
 
   if (loading) {
@@ -59,12 +74,6 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
     );
   }
 
-  const declaration = model.declaration;
-  const syntaxLanguage = selectedResult.codeLanguage ?? analysis.language ?? null;
-  const sourcePath = selectedResult.navigationTarget?.path ?? selectedResult.path;
-  const signatureRows = buildSignatureParameterRows(model.signatureParts);
-  const sourceLineRange = buildDisplayedLineRange(declaration?.line, model.blocks);
-
   return (
     <div className="code-ast-waterfall" data-testid="code-ast-waterfall">
       <CodeAstWaterfallHeader
@@ -80,17 +89,13 @@ export const CodeAstAnatomyView: React.FC<CodeAstAnatomyViewProps> = ({
         signatureRows={signatureRows}
         onPivotQuery={onPivotQuery}
       />
-      <CodeAstBlocksStage
+      <CodeAstDetailStages
         locale={locale}
         copy={copy}
         blocks={model.blocks}
+        symbolGroups={model.symbolGroups}
         syntaxLanguage={syntaxLanguage}
         sourcePath={sourcePath}
-        onPivotQuery={onPivotQuery}
-      />
-      <CodeAstSymbolsStage
-        copy={copy}
-        symbolGroups={model.symbolGroups}
         onPivotQuery={onPivotQuery}
       />
     </div>

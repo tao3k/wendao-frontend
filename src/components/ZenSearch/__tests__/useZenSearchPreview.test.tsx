@@ -118,6 +118,26 @@ function buildGatewayResolvedCodeSearchResult(): SearchResult {
   } as SearchResult;
 }
 
+function buildSecondMarkdownSearchResult(): SearchResult {
+  return {
+    stem: "Workspace Guide",
+    title: "Workspace Guide",
+    path: ".data/wendao-frontend/docs/guide.md",
+    docType: "knowledge",
+    tags: [],
+    score: 0.89,
+    category: "document",
+    navigationTarget: {
+      path: ".data/wendao-frontend/docs/guide.md",
+      graphPath: ".data/wendao-frontend/docs/guide.md#semantic-root",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
 function buildSecondCodeSearchResult(): SearchResult {
   return {
     ...buildCodeSearchResult(),
@@ -1024,5 +1044,176 @@ describe("useZenSearchPreview", () => {
       "ZenSearch/useZenSearchPreview adjacent selection activation",
       activationSnapshot,
     );
+  });
+
+  it("adopts inflight prefetched markdown lanes without duplicate requests", async () => {
+    const primary = buildSearchResult();
+    const secondary = buildSecondMarkdownSearchResult();
+    const deferredContent = createDeferred<{ content: string; contentType: string }>();
+    const deferredGraph = createDeferred<{
+      center: {
+        id: string;
+        label: string;
+        path: string;
+        nodeType: string;
+        isCenter: boolean;
+        distance: number;
+      };
+      nodes: [];
+      links: [];
+      totalNodes: number;
+      totalLinks: number;
+    }>();
+    const deferredMarkdown = createDeferred<{
+      path: string;
+      documentHash: string;
+      nodeCount: number;
+      edgeCount: number;
+      nodes: [];
+      edges: [];
+      projections: [];
+      retrievalAtoms: [];
+      diagnostics: [];
+    }>();
+    const trace = createPerfTrace("useZenSearchPreview.prefetch-inflight-adoption");
+
+    mocks.getVfsContent.mockImplementation(async (path: string) => {
+      if (path.includes("guide.md")) {
+        trace.increment("secondary-vfs");
+        return deferredContent.promise;
+      }
+      return {
+        content: `content:${path}`,
+        contentType: "markdown",
+      };
+    });
+    mocks.getGraphNeighbors.mockImplementation(async (path: string) => {
+      if (path.includes("guide.md")) {
+        trace.increment("secondary-graph");
+        return deferredGraph.promise;
+      }
+      return {
+        center: {
+          id: "main/docs/index.md",
+          label: "Documentation Index",
+          path: "main/docs/index.md",
+          nodeType: "knowledge",
+          isCenter: true,
+          distance: 0,
+        },
+        nodes: [],
+        links: [],
+        totalNodes: 1,
+        totalLinks: 0,
+      };
+    });
+    mocks.getMarkdownAnalysis.mockImplementation(async (path: string) => {
+      if (path.includes("guide.md")) {
+        trace.increment("secondary-markdown");
+        return deferredMarkdown.promise;
+      }
+      return {
+        path,
+        documentHash: `hash:${path}`,
+        nodeCount: 1,
+        edgeCount: 0,
+        nodes: [],
+        edges: [],
+        projections: [],
+        retrievalAtoms: [],
+        diagnostics: [],
+      };
+    });
+
+    const { result, rerender } = renderHook(
+      ({ selected, prefetch }) => useZenSearchPreview(selected, prefetch),
+      {
+        initialProps: {
+          selected: primary as SearchResult | null,
+          prefetch: [secondary] as SearchResult[],
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.content).toBe("content:main/docs/index.md");
+      expect(trace.snapshot().counters).toMatchObject({
+        "secondary-vfs": 1,
+        "secondary-graph": 1,
+        "secondary-markdown": 1,
+      });
+    });
+
+    rerender({
+      selected: secondary,
+      prefetch: [primary],
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedResult?.path).toBe(secondary.path);
+      expect(result.current.loading).toBe(true);
+      expect(result.current.content).toBeNull();
+      expect(result.current.graphNeighbors).toBeNull();
+    });
+
+    expect(trace.snapshot().counters).toMatchObject({
+      "secondary-vfs": 1,
+      "secondary-graph": 1,
+      "secondary-markdown": 1,
+    });
+
+    deferredContent.resolve({
+      content: "content:main/docs/guide.md",
+      contentType: "markdown",
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.content).toBe("content:main/docs/guide.md");
+      expect(result.current.graphNeighbors).toBeNull();
+    });
+
+    expect(trace.snapshot().counters).toMatchObject({
+      "secondary-vfs": 1,
+      "secondary-graph": 1,
+      "secondary-markdown": 1,
+    });
+
+    deferredMarkdown.resolve({
+      path: "main/docs/guide.md",
+      documentHash: "hash:main/docs/guide.md",
+      nodeCount: 1,
+      edgeCount: 0,
+      nodes: [],
+      edges: [],
+      projections: [],
+      retrievalAtoms: [],
+      diagnostics: [],
+    });
+    deferredGraph.resolve({
+      center: {
+        id: "main/docs/guide.md",
+        label: "Workspace Guide",
+        path: "main/docs/guide.md",
+        nodeType: "knowledge",
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    await waitFor(() => {
+      expect(result.current.markdownAnalysis?.path).toBe("main/docs/guide.md");
+      expect(result.current.graphNeighbors?.totalNodes).toBe(1);
+    });
+
+    expect(trace.snapshot().counters).toMatchObject({
+      "secondary-vfs": 1,
+      "secondary-graph": 1,
+      "secondary-markdown": 1,
+    });
   });
 });

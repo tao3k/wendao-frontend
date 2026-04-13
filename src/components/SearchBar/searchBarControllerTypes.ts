@@ -56,6 +56,7 @@ export interface UseSearchBarControllerParams {
   onResultSelect: SearchSelectionAction;
   onReferencesResultSelect?: SearchSelectionAction;
   onGraphResultSelect?: SearchSelectionAction;
+  defaultRepoFilter?: string | null;
   onRuntimeStatusChange?: (
     status: { tone: "warning" | "error"; message: string; source: "search" } | null,
   ) => void;

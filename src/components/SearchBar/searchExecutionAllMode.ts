@@ -20,7 +20,10 @@ import {
 import {
   resolveCodeSearchIntentMeta,
   resolveRepoAwareCodeModeOutcome,
+  buildRepoScopedBackendCodeModeOutcome,
+  fetchRepoScopedCodeSearchResponse,
 } from "./searchExecutionCodeModeHelpers";
+import { resolveRepoScopedBackendCodeSearchQuery } from "./repoProjectConfig";
 import type { SearchExecutionOptions, SearchExecutionOutcome } from "./searchExecutionTypes";
 
 interface ProgressiveAllModeState {
@@ -101,6 +104,25 @@ async function executeRepoAwareAllModeCodeSearch(
   options: SearchExecutionOptions,
 ): Promise<SearchExecutionOutcome> {
   const repoFacet = options.repoFacet ?? null;
+  const backendCodeSearchQuery = resolveRepoScopedBackendCodeSearchQuery(
+    rawCodeQuery,
+    repoFilter,
+    repoFacet,
+  );
+  if (backendCodeSearchQuery) {
+    const codeResponse = await fetchRepoScopedCodeSearchResponse(
+      backendCodeSearchQuery,
+      repoFilter,
+      10,
+      options.signal,
+    );
+    return buildRepoScopedBackendCodeModeOutcome({
+      query: rawCodeQuery,
+      repoFilter,
+      repoFacet,
+      codeResponse,
+    });
+  }
   const codeIntentPromise = shouldRequestRepoAwareAllModeCodeIntentMeta(repoFacet)
     ? resolveCodeSearchIntentMeta(rawCodeQuery, repoFilter, 10, options.signal)
     : Promise.resolve(null);

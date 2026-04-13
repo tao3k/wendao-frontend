@@ -514,13 +514,14 @@ function App() {
     async (selection: SearchSelection) => {
       const hydrated = await hydrateSelectedFile(selection);
       if (!hydrated) {
-        return;
+        return false;
       }
       setMainViewTabRequest((current) => ({
         tab: "content",
         nonce: (current?.nonce ?? 0) + 1,
       }));
       setViewMode("normal");
+      return true;
     },
     [hydrateSelectedFile],
   );
@@ -529,13 +530,14 @@ function App() {
     async (selection: SearchSelection) => {
       const hydrated = await hydrateSelectedFile(selection);
       if (!hydrated) {
-        return;
+        return false;
       }
       setMainViewTabRequest((current) => ({
         tab: "graph",
         nonce: (current?.nonce ?? 0) + 1,
       }));
       setViewMode("normal");
+      return true;
     },
     [hydrateSelectedFile],
   );
@@ -544,13 +546,14 @@ function App() {
     async (selection: SearchSelection) => {
       const hydrated = await hydrateSelectedFile(selection);
       if (!hydrated) {
-        return;
+        return false;
       }
       setMainViewTabRequest((current) => ({
         tab: "references",
         nonce: (current?.nonce ?? 0) + 1,
       }));
       setViewMode("normal");
+      return true;
     },
     [hydrateSelectedFile],
   );
@@ -912,6 +915,7 @@ function App() {
             onResultSelect={handleSearchResultSelect}
             onReferencesResultSelect={handleSearchResultReferencesSelect}
             onGraphResultSelect={handleSearchResultGraphSelect}
+            defaultRepoFilter={selectedFileMetadata?.projectName?.trim() || null}
             onRuntimeStatusChange={handleSearchRuntimeStatusChange}
           />
         </Suspense>

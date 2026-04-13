@@ -181,6 +181,65 @@ describe("useSearchKeyboardNavigation tab behavior", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps search open when an async result selection resolves false", async () => {
+    const onClose = vi.fn();
+    let resolveSelection: ((value: boolean) => void) | null = null;
+    const onResultSelect = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveSelection = resolve;
+        }),
+    );
+    const event = buildEnterEvent();
+
+    const { result } = renderHook(() =>
+      useSearchKeyboardNavigation({
+        isComposing: false,
+        query: "repo",
+        suggestions: [],
+        suggestionCount: 0,
+        activeSuggestionIndex: 0,
+        resultCount: 1,
+        resultSelectedIndex: 0,
+        visibleResults: [
+          {
+            stem: "repo",
+            title: "repo.rs",
+            path: "src/repo.rs",
+            score: 0.91,
+            category: "document",
+            navigationTarget: {
+              path: "src/repo.rs",
+              category: "doc",
+            },
+          } as any,
+        ],
+        inputRef: { current: null },
+        onClose,
+        onResultSelect,
+        setQuery: vi.fn(),
+        setShowSuggestions: vi.fn(),
+        setResultSelectedIndex: vi.fn(),
+        setActiveSuggestionIndex: vi.fn(),
+        selectSuggestion: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.handleKeyDown(event);
+    });
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(onResultSelect).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveSelection?.(false);
+      await Promise.resolve();
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("keeps arrow navigation inside the suggestion slice while suggestions are visible", () => {
     const setActiveSuggestionIndex = vi.fn();
     const event = buildArrowDownEvent();

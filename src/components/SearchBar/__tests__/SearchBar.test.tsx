@@ -13,6 +13,7 @@ import { SearchBar } from "../SearchBar";
 
 const mocks = vi.hoisted(() => ({
   getUiCapabilitiesSync: vi.fn(),
+  getUiConfigSync: vi.fn(),
   getVfsContent: vi.fn(),
   getGraphNeighbors: vi.fn(),
   getCodeAstAnalysis: vi.fn(),
@@ -43,6 +44,7 @@ vi.mock("../../../api", () => ({
     getMarkdownRetrievalChunksArrow: mocks.getMarkdownRetrievalChunksArrow,
   },
   getUiCapabilitiesSync: mocks.getUiCapabilitiesSync,
+  getUiConfigSync: mocks.getUiConfigSync,
 }));
 
 import { api } from "../../../api";
@@ -57,6 +59,8 @@ const createMockSearchResponse = (
     path: string;
     docType?: string;
     tags?: string[];
+    hierarchy?: string[];
+    hierarchicalUri?: string;
     score: number;
     bestSection?: string;
     matchReason?: string;
@@ -82,6 +86,8 @@ const createMockSearchResponse = (
       path: h.path,
       docType: h.docType,
       tags: h.tags || [],
+      hierarchy: h.hierarchy,
+      hierarchicalUri: h.hierarchicalUri,
       score: h.score,
       bestSection: h.bestSection,
       matchReason: h.matchReason,
@@ -379,10 +385,15 @@ describe("SearchBar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getUiCapabilitiesSync.mockReset();
+    mocks.getUiConfigSync.mockReset();
     mocks.getUiCapabilitiesSync.mockReturnValue({
       supportedLanguages: ["julia"],
       supportedRepositories: ["kernel"],
       supportedKinds: ["function", "module", "struct"],
+    });
+    mocks.getUiConfigSync.mockReturnValue({
+      projects: [],
+      repoProjects: [],
     });
     mockedApi.searchAutocomplete.mockResolvedValue(createMockAutocompleteResponse([]));
     mockedApi.searchRepoContentFlight.mockResolvedValue(createMockSearchResponse("", []));
@@ -1830,6 +1841,68 @@ describe("SearchBar", () => {
         expect(screen.queryByText("SectionModule")).not.toBeInTheDocument();
       },
       { timeout: 1000 },
+    );
+  });
+
+  it("should normalize dotted Julia file paths in code search result display", async () => {
+    mocks.getUiCapabilitiesSync.mockReturnValue({
+      supportedLanguages: ["julia", "rust"],
+      supportedRepositories: ["SimpleOptimization.jl"],
+      supportedKinds: ["function", "module"],
+    });
+    mockedApi.searchKnowledge
+      .mockResolvedValueOnce(createMockSearchResponse("algorithms", []))
+      .mockResolvedValueOnce(
+        createMockSearchResponse(
+          "algorithms lang:julia kind:function",
+          [
+            {
+              stem: "algorithms",
+              title: "algorithms",
+              path: "src/./algorithms.jl",
+              docType: "symbol",
+              tags: ["code", "lang:julia", "kind:function"],
+              score: 0.92,
+              hierarchy: ["src", ".", "algorithms.jl"],
+              navigationTarget: {
+                path: "src/./algorithms.jl",
+                category: "doc",
+                projectName: "SimpleOptimization.jl",
+                rootLabel: "src",
+                line: 12,
+              },
+            },
+          ],
+          {
+            selectedMode: "code_search",
+            searchMode: "code_search",
+            intent: "code_search",
+            intentConfidence: 0.97,
+          },
+        ),
+      );
+    mockedApi.searchAst.mockResolvedValue(createMockAstResponse("algorithms", []));
+    mockedApi.searchReferences.mockResolvedValue(createMockReferenceResponse("algorithms", []));
+    mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse("algorithms", []));
+    mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse("algorithms", []));
+
+    const { container } = render(
+      <SearchBar isOpen={true} onClose={mockOnClose} onResultSelect={mockOnResultSelect} />,
+    );
+
+    const input = screen.getByPlaceholderText("Search knowledge graph... (Ctrl+F)");
+    fireEvent.change(input, { target: { value: "algorithms lang:julia kind:function" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("algorithms")).toBeInTheDocument();
+    });
+
+    const firstResult = container.querySelector(".search-result");
+    expect(firstResult?.querySelector(".search-result-path")?.textContent).toBe(
+      "SimpleOptimization.jl > src/algorithms.jl",
+    );
+    expect(firstResult?.querySelector(".search-result-hierarchy")?.textContent).toBe(
+      "src / algorithms.jl",
     );
   });
 

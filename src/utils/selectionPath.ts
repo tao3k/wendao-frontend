@@ -7,6 +7,29 @@ export interface SelectionPathLike {
 
 const INTERNAL_WORKSPACE_MARKER = ".data/wendao-frontend/";
 
+export function normalizePathSegments(path: string): string {
+  const normalizedPath = path.trim().replace(/\\/g, "/");
+  if (normalizedPath.length === 0 || normalizedPath.includes("://")) {
+    return normalizedPath;
+  }
+
+  const fragmentIndex = normalizedPath.indexOf("#");
+  const pathBody = fragmentIndex >= 0 ? normalizedPath.slice(0, fragmentIndex) : normalizedPath;
+  const pathSuffix = fragmentIndex >= 0 ? normalizedPath.slice(fragmentIndex) : "";
+  const hasLeadingSlash = pathBody.startsWith("/");
+  const hasTrailingSlash = pathBody.endsWith("/") && pathBody.length > 1;
+  const normalizedSegments = pathBody
+    .split("/")
+    .filter((segment) => segment.length > 0 && segment !== ".");
+  const normalizedBody = `${hasLeadingSlash ? "/" : ""}${normalizedSegments.join("/")}`;
+
+  if (normalizedBody.length === 0) {
+    return pathSuffix;
+  }
+
+  return `${normalizedBody}${hasTrailingSlash ? "/" : ""}${pathSuffix}`;
+}
+
 function stripInternalWorkspacePrefix(path: string): string {
   const normalizedPath = path.trim().replace(/\\/g, "/");
   if (normalizedPath.length === 0) {
@@ -15,10 +38,12 @@ function stripInternalWorkspacePrefix(path: string): string {
 
   const markerIndex = normalizedPath.indexOf(INTERNAL_WORKSPACE_MARKER);
   if (markerIndex >= 0) {
-    return normalizedPath.slice(markerIndex + INTERNAL_WORKSPACE_MARKER.length).replace(/^\/+/, "");
+    return normalizePathSegments(
+      normalizedPath.slice(markerIndex + INTERNAL_WORKSPACE_MARKER.length).replace(/^\/+/, ""),
+    ).replace(/^\/+/, "");
   }
 
-  return normalizedPath.replace(/^\/+/, "");
+  return normalizePathSegments(normalizedPath).replace(/^\/+/, "");
 }
 
 function isSemanticGraphNodeId(path: string): boolean {

@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import * as TOML from "smol-toml";
 
 import type { SearchResponse } from "./bindings";
+import type { UiCapabilities } from "./apiContracts";
 import { searchKnowledgeFlight } from "./flightSearchTransport";
 import { loadRepoOverviewFlight } from "./flightRepoOverviewTransport";
 import {
@@ -18,17 +19,7 @@ const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
 
-type LiveUiCapabilities = {
-  supportedRepositories: string[];
-};
-
-type LiveUiConfig = {
-  repoProjects?: Array<{
-    id: string;
-    plugins?: string[];
-    url?: string;
-  }>;
-};
+type LiveUiCapabilities = UiCapabilities;
 
 let gatewayOrigin = "";
 let flightSchemaVersion = "";
@@ -78,16 +69,15 @@ liveDescribe("live gateway code search contract", () => {
     gatewayOrigin = resolveGatewayOrigin(config);
     flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
 
-    const uiConfig = await fetchJson<LiveUiConfig>("/ui/config");
-    const searchOnlyRepo = uiConfig.repoProjects?.find((project) => project.id === "lance");
-    expect(searchOnlyRepo, "expected live ui config to include repo project `lance`").toBeDefined();
+    const capabilities = await fetchJson<LiveUiCapabilities>("/ui/capabilities");
+    const searchOnlyRepo = capabilities.repoProjects?.find((project) => project.id === "lance");
+    expect(searchOnlyRepo, "expected live ui capabilities to include repo project `lance`").toBeDefined();
     expect(
       (searchOnlyRepo?.plugins ?? []).map((plugin) => plugin.toLowerCase()),
       "expected repo `lance` to remain search-only via ast-grep",
     ).toEqual(["ast-grep"]);
     searchOnlyRepoId = searchOnlyRepo!.id;
 
-    const capabilities = await fetchJson<LiveUiCapabilities>("/ui/capabilities");
     candidateRepoQueries = buildCandidateQueries(capabilities.supportedRepositories.slice(0, 12));
     expect(candidateRepoQueries.length).toBeGreaterThan(0);
   });

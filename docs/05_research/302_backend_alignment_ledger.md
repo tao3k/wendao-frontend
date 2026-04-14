@@ -16,7 +16,7 @@ This ledger records the current alignment status between the Wendao Studio backe
 ### Configuration and VFS
 
 - `wendao.toml`-driven gateway target
-- `/api/ui/config`
+- `/api/ui/capabilities`
 - `/api/vfs`
 - `/api/vfs/cat`
 - `/api/vfs/scan`
@@ -52,6 +52,17 @@ Frontend outcome:
 - Search result actions support `Open`, `Graph`, `Refs`, and `Definition`.
 - `Definition` is backed by the native Wendao Studio contract at `/api/search/definition`.
 - Source line focus now reaches `DirectReader`.
+
+### Document Projection
+
+- `GET /api/repo/projected-page-index-trees`
+- same-origin Flight `PATH /analysis/repo-projected-page-index-tree`
+
+Frontend outcome:
+
+- Repo-scoped projected page-index tree discovery now has a first-class frontend API surface instead of ad hoc live-test fetches.
+- The frontend keeps the intended hybrid contract explicit: JSON discovery first, then Arrow Flight opening for one selected tree.
+- Live gateway proof and public client runtime now share the same discovery owner path.
 
 ## Partial
 

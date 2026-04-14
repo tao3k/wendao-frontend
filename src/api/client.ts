@@ -64,6 +64,7 @@ export type {
   RepoIndexRequest,
   RepoIndexStatusResponse,
   RepoOverviewResponse,
+  RepoProjectedPageIndexTreesResponse,
   RepoSyncResponse,
   UiCapabilities,
   UiJuliaAnalyzerLaunchManifest,

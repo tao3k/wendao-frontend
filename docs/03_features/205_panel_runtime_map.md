@@ -23,7 +23,7 @@ Responsibilities:
 
 Gateway dependencies:
 
-- `/api/ui/config`
+- `/api/ui/capabilities`
 - `/api/vfs/scan`
 - `/api/vfs/cat`
 

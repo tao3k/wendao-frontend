@@ -15,16 +15,16 @@ Qianji Studio exposes the Wendao VFS surface through the `Indexed Roots` explore
 
 1. `wendao.toml` declares the gateway bind and indexed roots.
 2. The dev proxy resolves the gateway target from that configuration.
-3. `FileTree` loads `/api/ui/config` and `/api/vfs/scan` to build the explorer.
+3. `FileTree` loads `/api/ui/capabilities` and `/api/vfs/scan` to build the explorer.
 4. Selecting an entry calls the shared file hydration path in `App`.
 5. Content is retrieved from `/api/vfs/cat`, while live relationships are fetched from `/api/graph/neighbors/...`.
 
 ## Metadata Contract
 
 - `GET /api/vfs/scan` is the authoritative explorer payload.
+- `GET /api/ui/capabilities` is the authoritative control-plane bootstrap payload for indexed roots and repo project metadata.
 - Grouped roots and descendants should expose `projectName` and `rootLabel` for tree grouping.
 - VFS entries also carry `projectRoot` and `projectDirs` for hover provenance, so `FileTree` does not need to recover project metadata from local path parsing or `wendao.toml` heuristics.
-- The frontend still pushes runtime UI config derived from `wendao.toml` through `/api/ui/config`, but that control-plane sync is runtime-only and should not rewrite the workspace `wendao.toml` file on disk.
 
 ## UX Expectations
 

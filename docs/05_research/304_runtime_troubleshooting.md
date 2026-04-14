@@ -38,7 +38,7 @@ Current interpretation:
 
 Current recovery path:
 
-1. Confirm `/api/ui/config` and `/api/vfs/scan` are reaching the live gateway.
+1. Confirm `/api/ui/capabilities` and `/api/vfs/scan` are reaching the live gateway.
 2. Confirm the dev proxy target is not stuck on the wrong bind.
 3. Confirm indexed roots from `wendao.toml` are valid on the current machine.
 

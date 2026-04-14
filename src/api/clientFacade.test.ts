@@ -1,6 +1,11 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { ApiClientError, api } from "./index";
-import type { RepoSyncResponse, UiCapabilities, UiJuliaDeploymentArtifact } from "./index";
+import type {
+  RepoProjectedPageIndexTreesResponse,
+  RepoSyncResponse,
+  UiCapabilities,
+  UiJuliaDeploymentArtifact,
+} from "./index";
 import type { UiProjectConfig, UiRepoProjectConfig } from "./bindings";
 
 describe("api client facade", () => {
@@ -9,6 +14,7 @@ describe("api client facade", () => {
     expect(typeof api.searchKnowledge).toBe("function");
     expect(typeof api.getJuliaDeploymentArtifact).toBe("function");
     expect(typeof api.getJuliaDeploymentArtifactToml).toBe("function");
+    expect(typeof api.getRepoProjectedPageIndexTrees).toBe("function");
   });
 
   it("re-exports ApiClientError through the facade", () => {
@@ -22,6 +28,7 @@ describe("api client facade", () => {
     expectTypeOf<RepoSyncResponse["repoId"]>().toEqualTypeOf<string>();
     expectTypeOf<RepoSyncResponse["mode"]>().toEqualTypeOf<string>();
     expectTypeOf<RepoSyncResponse["healthState"]>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<RepoProjectedPageIndexTreesResponse["repo_id"]>().toEqualTypeOf<string>();
     expectTypeOf<UiCapabilities>().toEqualTypeOf<{
       supportedLanguages: string[];
       supportedRepositories: string[];

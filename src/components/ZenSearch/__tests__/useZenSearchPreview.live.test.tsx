@@ -6,7 +6,7 @@ import * as TOML from "smol-toml";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { WendaoConfig } from "../../../config/loader";
-import { resolveSearchFlightSchemaVersion, toUiConfig } from "../../../config/loader";
+import { resolveSearchFlightSchemaVersion } from "../../../config/loader";
 import { loadVfsScanFlight } from "../../../api/flightWorkspaceTransport";
 import { loadCodeAstAnalysisFlight } from "../../../api/flightAnalysisTransport";
 import { searchKnowledgeFlight } from "../../../api/flightSearchTransport";
@@ -24,11 +24,6 @@ import {
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
-
-type LiveUiConfig = {
-  projects: Array<{ name: string; root: string; dirs: string[] }>;
-  repoProjects?: Array<{ id: string }>;
-};
 
 type LiveVfsScanResult = {
   entries: Array<{
@@ -118,13 +113,12 @@ function resolveGatewayOrigin(config: WendaoConfig): string {
   return `http://${bind}`;
 }
 
-async function readLocalUiConfig(): Promise<LiveUiConfig> {
+async function readLocalUiConfig(): Promise<void> {
   const tomlPath = resolve(process.cwd(), "wendao.toml");
   const tomlContent = await readFile(tomlPath, "utf8");
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   liveState.gatewayOrigin = resolveGatewayOrigin(config);
   liveState.flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
-  return toUiConfig(config);
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -315,15 +309,8 @@ function requireCodeAstAnalysis(
 
 liveDescribe("useZenSearchPreview live gateway integration", () => {
   beforeAll(async () => {
-    const uiConfig = await readLocalUiConfig();
+    await readLocalUiConfig();
     await fetchJson<string>("/health");
-    await fetchJson<LiveUiConfig>("/ui/config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(uiConfig),
-    });
 
     const scan = (await loadVfsScanFlight({
       baseUrl: liveState.gatewayOrigin,

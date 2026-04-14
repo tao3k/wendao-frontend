@@ -13,6 +13,7 @@ import * as flightRepoSyncTransport from "./flightRepoSyncTransport";
 import * as flightRepoSearchTransport from "./flightRepoSearchTransport";
 import * as flightSearchTransport from "./flightSearchTransport";
 import * as flightWorkspaceTransport from "./flightWorkspaceTransport";
+import * as repoProjectedPageIndexTransport from "./repoProjectedPageIndexTransport";
 import { ApiClientError } from "./responseTransport";
 
 function mockFrontendFlightConfigFetch() {
@@ -409,6 +410,37 @@ describe("api client Flight repo transport", () => {
     );
     expect(response.path).toBe("docs/solve.md");
     expect(response.roots[0]?.title).toBe("solve");
+  });
+
+  it("routes repo projected page-index discovery through the JSON transport", async () => {
+    const projectedPageIndexTreesSpy = vi
+      .spyOn(repoProjectedPageIndexTransport, "fetchRepoProjectedPageIndexTrees")
+      .mockResolvedValue({
+        repo_id: "gateway-sync",
+        trees: [
+          {
+            repo_id: "gateway-sync",
+            page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+            kind: "reference",
+            path: "docs/solve.md",
+            doc_id: "repo:gateway-sync:doc:docs/solve.md",
+            title: "solve",
+            root_count: 1,
+            roots: [],
+          },
+        ],
+      });
+
+    const response = await api.getRepoProjectedPageIndexTrees("gateway-sync");
+
+    expect(projectedPageIndexTreesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiBase: "/api",
+      }),
+      "gateway-sync",
+    );
+    expect(response.repo_id).toBe("gateway-sync");
+    expect(response.trees[0]?.path).toBe("docs/solve.md");
   });
 
   it("routes refine-doc through same-origin Flight", async () => {

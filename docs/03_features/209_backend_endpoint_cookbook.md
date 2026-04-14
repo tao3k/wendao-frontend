@@ -13,30 +13,24 @@ This cookbook records the current frontend-facing Wendao Studio endpoints, the r
 
 ## UI Configuration
 
-### `GET /api/ui/config`
+### `GET /api/ui/capabilities`
 
 Typical purpose:
 
-- Bootstrap frontend-facing configuration loaded from `wendao.toml`.
+- Bootstrap frontend-facing capabilities and indexed-root metadata from the live gateway.
 
 Frontend consumers:
 
 - `FileTree`
-- Runtime config bootstrap
+- Runtime bootstrap and live contract proofs
 
-Expected role:
+Expected metadata:
 
-- Return indexed roots and UI-level gateway settings used by the explorer.
-
-### `POST /api/ui/config`
-
-Typical purpose:
-
-- Push updated UI config back to the backend when the frontend owns a config write path.
-
-Frontend consumers:
-
-- Runtime config synchronization paths
+- `projects`
+- `repoProjects`
+- `supportedLanguages`
+- `supportedRepositories`
+- `supportedKinds`
 
 ## VFS Endpoints
 
@@ -124,6 +118,56 @@ Frontend consumers:
 
 - `App`
 - `MainView` topology surface
+
+## Document Projection
+
+### `GET /api/repo/projected-page-index-trees?repo=<repo>`
+
+Typical purpose:
+
+- Enumerate projected markdown/page-index trees available for one repository before the frontend opens a specific tree.
+
+Frontend consumers:
+
+- `src/api/clientRuntime.ts`
+- live gateway contract proofs
+
+Expected metadata:
+
+- `repo_id`
+- `trees[*].page_id`
+- `trees[*].path`
+- `trees[*].title`
+- `trees[*].root_count`
+
+Notes:
+
+- This is the canonical frontend discovery surface for projected page-index trees.
+- The steady-state contract is repository-scoped discovery over JSON, followed by page-scoped opening over same-origin Flight.
+
+### same-origin Flight `PATH /analysis/repo-projected-page-index-tree`
+
+Typical purpose:
+
+- Open one deterministic projected page-index tree selected from the discovery surface.
+
+Frontend consumers:
+
+- `src/api/clientRuntime.ts`
+- reader/runtime hydration paths that need the full projected tree payload
+
+Expected metadata:
+
+- request headers:
+  - `x-wendao-repo-projected-page-index-tree-repo`
+  - `x-wendao-repo-projected-page-index-tree-page-id`
+- response payload:
+  - full `ProjectedPageIndexTree`, including `roots[*].children` and section text
+
+Notes:
+
+- The frontend does not currently use `GET /api/docs/page-index-tree` as its steady-state opener.
+- The frontend-facing contract for repo-scoped page-index work is the hybrid discovery/open pair documented in this section.
 
 ## Search Surface
 

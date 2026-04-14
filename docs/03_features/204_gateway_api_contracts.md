@@ -15,14 +15,12 @@ Qianji Studio is a frontend shell over the Wendao Studio gateway. The frontend s
 
 ### UI Configuration
 
-- `GET /api/ui/config`
-- `POST /api/ui/config`
+- `GET /api/ui/capabilities`
 
 Runtime role:
 
-- Resolves the effective frontend-facing configuration loaded from `wendao.toml`.
-- Declares indexed roots and UI-level gateway settings.
-- `POST /api/ui/config` is a runtime synchronization surface for the active gateway process, not a disk-persistence contract for rewriting `wendao.toml`.
+- Resolves the effective frontend-facing capabilities exposed by the live gateway.
+- Declares indexed roots, repo projects, and supported language/kind metadata for the frontend runtime.
 
 ### Virtual File System
 
@@ -45,6 +43,17 @@ Runtime role:
 
 - `graph/neighbors` powers the graph tab and the references ledger for the selected file.
 - `topology/3d` hydrates the higher-level workspace shell.
+
+### Document Projection
+
+- `GET /api/repo/projected-page-index-trees?repo=<repo>`
+- same-origin Flight `PATH /analysis/repo-projected-page-index-tree`
+
+Runtime role:
+
+- `projected-page-index-trees` enumerates stable projected markdown trees for one repository.
+- `repo-projected-page-index-tree` opens one selected projected tree with the richer Arrow Flight payload used by the frontend reader/runtime.
+- The intended frontend contract is hybrid: discover candidate pages over JSON, then open one page tree over same-origin Flight.
 
 ### Search Surfaces
 

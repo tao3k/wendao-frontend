@@ -1,4 +1,4 @@
-import type { UiProjectConfig, UiRepoProjectConfig } from "./bindings";
+import type { ProjectedPageIndexTree, UiProjectConfig, UiRepoProjectConfig } from "./bindings";
 
 export interface RepoBacklinkItem {
   id: string;
@@ -76,6 +76,11 @@ export interface RepoSyncResponse {
   stalenessState?: string;
   driftState?: string;
   statusSummary?: Record<string, unknown>;
+}
+
+export interface RepoProjectedPageIndexTreesResponse {
+  repo_id: string;
+  trees: ProjectedPageIndexTree[];
 }
 
 export interface RepoIndexEntryStatus {

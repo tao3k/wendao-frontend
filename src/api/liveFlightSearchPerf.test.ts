@@ -5,7 +5,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import * as TOML from "smol-toml";
 
 import type { WendaoConfig } from "../config/loader";
-import { resolveSearchFlightSchemaVersion, toUiConfig } from "../config/loader";
+import { resolveSearchFlightSchemaVersion } from "../config/loader";
+import type { UiCapabilities } from "./apiContracts";
 import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeSearchHitsFromArrowIpc,
@@ -92,7 +93,7 @@ type PerfSummary = {
   hotspotTraceRecordCount?: number;
 };
 
-type LiveUiConfig = ReturnType<typeof toUiConfig>;
+type LiveUiConfig = UiCapabilities;
 
 type PerfQueryPlan = {
   queries: string[];
@@ -239,7 +240,7 @@ async function discoverLivePerfQueryPlan(options: {
   throw new Error(
     `live Flight perf harness could not discover any hit-bearing query for the current UI surface: ${JSON.stringify(
       {
-        uiProjects: options.uiConfig.projects.map((project) => project.name),
+        uiProjects: (options.uiConfig.projects ?? []).map((project) => project.name),
         configuredRepoCount: options.uiConfig.repoProjects?.length ?? 0,
         candidateQueries: candidates.slice(0, 12),
         explicitIntent: explicitIntent ?? null,
@@ -367,10 +368,6 @@ function deriveOptimizationCandidates(phases: Record<string, PhaseSummary>): str
     .map(([phase, stats]) => `${phase}: avg=${stats.avgMs}ms p95=${stats.p95Ms}ms`);
 }
 
-function jsonEquivalent(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
 function encodeMeasurementsCsv(measurements: PerfMeasurement[]): string {
   const header = "query,run_kind,iteration,duration_ms,hit_count";
   const rows = measurements.map((entry) =>
@@ -449,14 +446,13 @@ async function fetchWithRetry<T>(
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-async function readLocalUiConfig(): Promise<ReturnType<typeof toUiConfig>> {
+async function readLocalUiConfig(): Promise<void> {
   const tomlPath = resolve(process.cwd(), "wendao.toml");
   const tomlContent = await readFile(tomlPath, "utf8");
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   gatewayOrigin = normalizeLoopbackGatewayOrigin(resolveGatewayOrigin(config));
   flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
   configuredRepoCount = Object.keys(config.link_graph?.projects ?? {}).length;
-  return toUiConfig(config);
 }
 
 async function waitForStableGatewayState(): Promise<void> {
@@ -654,8 +650,7 @@ describe("live Flight perf query discovery helpers", () => {
 
 liveDescribe("live Flight knowledge search performance", () => {
   beforeAll(async () => {
-    const uiConfig = await readLocalUiConfig();
-    uiProjectCount = uiConfig.projects.length;
+    await readLocalUiConfig();
     const limit = parsePositiveInt(process.env.STUDIO_LIVE_FLIGHT_PERF_LIMIT, DEFAULT_LIMIT);
     await fetchJsonWithRetry<string>(
       "/health",
@@ -663,26 +658,13 @@ liveDescribe("live Flight knowledge search performance", () => {
       GATEWAY_BOOT_RETRY_COUNT,
       GATEWAY_BOOT_RETRY_DELAY_MS,
     );
-    const currentUiConfig = await fetchJsonWithRetry<unknown>(
-      "/ui/config",
+    const uiConfig = await fetchJsonWithRetry<LiveUiConfig>(
+      "/ui/capabilities",
       undefined,
       GATEWAY_BOOT_RETRY_COUNT,
       GATEWAY_BOOT_RETRY_DELAY_MS,
     );
-    if (!jsonEquivalent(currentUiConfig, uiConfig)) {
-      await fetchJsonWithRetry(
-        "/ui/config",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(uiConfig),
-        },
-        GATEWAY_BOOT_RETRY_COUNT,
-        GATEWAY_BOOT_RETRY_DELAY_MS,
-      );
-    }
+    uiProjectCount = uiConfig.projects?.length ?? 0;
     await waitForStableGatewayState();
     perfQueryPlan = await discoverLivePerfQueryPlan({
       explicitQueries: process.env.STUDIO_LIVE_FLIGHT_PERF_QUERIES,

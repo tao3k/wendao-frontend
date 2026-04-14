@@ -11,7 +11,8 @@ import type {
   VfsScanResult,
 } from "./bindings";
 import type { WendaoConfig } from "../config/loader";
-import { resolveSearchFlightSchemaVersion, toUiConfig } from "../config/loader";
+import { resolveSearchFlightSchemaVersion } from "../config/loader";
+import type { UiCapabilities } from "./apiContracts";
 import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeSearchHitsFromArrowIpc,
@@ -69,7 +70,7 @@ let uiProjectCount = 0;
 let configuredRepoCount = 0;
 let discoveredTargets: LiveZenSearchTargets | null = null;
 
-type LiveUiConfig = ReturnType<typeof toUiConfig>;
+type LiveUiConfig = UiCapabilities;
 
 type SearchIndexStatusEnvelope = {
   indexing: number;
@@ -424,14 +425,13 @@ async function waitForStableGatewayState(): Promise<void> {
   );
 }
 
-async function readLocalUiConfig(): Promise<LiveUiConfig> {
+async function readLocalUiConfig(): Promise<void> {
   const tomlPath = resolve(process.cwd(), "wendao.toml");
   const tomlContent = await readFile(tomlPath, "utf8");
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   gatewayOrigin = normalizeLoopbackGatewayOrigin(resolveGatewayOrigin(config));
   flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
   configuredRepoCount = Object.keys(config.link_graph?.projects ?? {}).length;
-  return toUiConfig(config);
 }
 
 function buildRepoQueryCandidates(repoId: string): string[] {
@@ -927,32 +927,18 @@ describe("live ZenSearch perf helpers", () => {
 
 liveDescribe("live ZenSearch preview performance", () => {
   beforeAll(async () => {
-    const uiConfig = await readLocalUiConfig();
-    uiProjectCount = uiConfig.projects.length;
+    await readLocalUiConfig();
     await fetchWithRetry(
       () => fetchJson("/health"),
       GATEWAY_BOOT_RETRY_COUNT,
       GATEWAY_BOOT_RETRY_DELAY_MS,
     );
-    const currentUiConfig = await fetchWithRetry(
-      () => fetchJson<unknown>("/ui/config"),
+    const uiConfig = await fetchWithRetry(
+      () => fetchJson<LiveUiConfig>("/ui/capabilities"),
       GATEWAY_BOOT_RETRY_COUNT,
       GATEWAY_BOOT_RETRY_DELAY_MS,
     );
-    if (JSON.stringify(currentUiConfig) !== JSON.stringify(uiConfig)) {
-      await fetchWithRetry(
-        () =>
-          fetchJson("/ui/config", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(uiConfig),
-          }),
-        GATEWAY_BOOT_RETRY_COUNT,
-        GATEWAY_BOOT_RETRY_DELAY_MS,
-      );
-    }
+    uiProjectCount = uiConfig.projects?.length ?? 0;
     await waitForStableGatewayState();
     const limit = parsePositiveInt(process.env.STUDIO_LIVE_ZEN_SEARCH_PERF_LIMIT, DEFAULT_LIMIT);
     const markdownDiscovery = await discoverMarkdownSearchTargetOrUnavailable(limit);

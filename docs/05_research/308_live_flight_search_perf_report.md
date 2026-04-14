@@ -178,7 +178,7 @@ single-digit milliseconds for the sampled search queries.
    average and `DoGet` is now `0.78ms` average in the current warm
    steady-state run.
 4. The live perf harness exposed operator-path noise rather than a request-path
-   regression: loopback address instability, startup-time `/api/ui/config`
+   regression: loopback address instability, startup-time UI capabilities
    churn, and search/repo bootstrap recovery could all distort a just-restarted
    sample. The harness now explicitly gates on a readable steady state before
    measuring: no blocking repo-backed corpus issues, readable `repo_entity` and
@@ -329,7 +329,7 @@ autocomplete refresh` trace explicitly.
     request id so repeated repo-index actions do not reuse cached route payloads.
 33. After the repo-index cut, the remaining non-Flight `/api/` surface is
     intentionally limited to control-plane routes such as health, UI
-    config/capabilities, and Julia deployment artifact inspection. Those routes
+    capabilities, and Julia deployment artifact inspection. Those routes
     are now grouped under `src/api/controlPlane/*` instead of being tracked as
     active Flight migration debt.
 34. The new live ZenSearch harness shows that the visible info-panel path is no

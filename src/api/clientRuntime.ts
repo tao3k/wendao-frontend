@@ -140,6 +140,7 @@ import * as flightAnalysisTransport from "./flightAnalysisTransport";
 import * as flightDocumentTransport from "./flightDocumentTransport";
 import * as flightGraphTransport from "./flightGraphTransport";
 import * as flightWorkspaceTransport from "./flightWorkspaceTransport";
+import * as repoProjectedPageIndexTransport from "./repoProjectedPageIndexTransport";
 import { ApiClientError, handleResponse, handleTextResponse } from "./responseTransport";
 import {
   fetchControlPlaneJuliaDeploymentArtifact,
@@ -156,6 +157,7 @@ import type {
   RepoIndexRequest,
   RepoIndexStatusResponse,
   RepoOverviewResponse,
+  RepoProjectedPageIndexTreesResponse,
   RepoSyncResponse,
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
@@ -564,6 +566,16 @@ export const api = {
       {
         decodeAutocompleteSuggestions: decodeAutocompleteSuggestionsFromArrowIpc,
       },
+    );
+  },
+
+  /**
+   * List deterministic projected page-index trees for a repository.
+   */
+  async getRepoProjectedPageIndexTrees(repo: string): Promise<RepoProjectedPageIndexTreesResponse> {
+    return repoProjectedPageIndexTransport.fetchRepoProjectedPageIndexTrees(
+      controlPlaneJsonTransportDeps,
+      repo,
     );
   },
 

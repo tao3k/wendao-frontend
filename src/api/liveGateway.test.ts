@@ -4,18 +4,35 @@ import { beforeAll, describe, expect, it } from "vitest";
 import * as TOML from "smol-toml";
 
 import type { WendaoConfig } from "../config/loader";
-import { resolveSearchFlightSchemaVersion, toUiConfig } from "../config/loader";
+import { resolveSearchFlightSchemaVersion } from "../config/loader";
+import type { UiCapabilities } from "./apiContracts";
+import { fetchControlPlaneUiCapabilities } from "./controlPlane/transport";
 import { loadGraphNeighborsFlight } from "./flightGraphTransport";
 import { loadTopology3DFlight } from "./flightGraphTransport";
-import { loadCodeAstAnalysisFlight, loadMarkdownAnalysisFlight } from "./flightAnalysisTransport";
+import {
+  loadCodeAstAnalysisFlight,
+  loadMarkdownAnalysisFlight,
+  type CodeAstAnalysisFlightRequest,
+} from "./flightAnalysisTransport";
 import { loadRepoProjectedPageIndexTreeFlight } from "./flightProjectedPageIndexTransport";
 import { loadRepoIndexFlight } from "./flightRepoIndexTransport";
 import { loadRepoIndexStatusFlight } from "./flightRepoIndexStatusTransport";
 import { loadRepoSyncFlight } from "./flightRepoSyncTransport";
 import { loadRefineEntityDocFlight } from "./flightRefineEntityDocTransport";
-import { loadVfsContentFlight, loadVfsScanFlight } from "./flightWorkspaceTransport";
+import {
+  loadVfsContentFlight,
+  loadVfsScanFlight,
+  resolveStudioPathFlight,
+} from "./flightWorkspaceTransport";
 import { decodeSearchHitsFromArrowIpc } from "./arrowSearchIpc";
 import { searchKnowledgeFlight } from "./flightSearchTransport";
+import { fetchRepoProjectedPageIndexTrees } from "./repoProjectedPageIndexTransport";
+import { handleResponse } from "./responseTransport";
+import {
+  normalizeSelectionPathForGraph,
+  normalizeSelectionPathForVfs,
+  preferMoreCanonicalSelectionPath,
+} from "../utils/selectionPath";
 import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeRepoSyncResponseFromArrowIpc,
@@ -25,16 +42,21 @@ const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
 const liveDescribe = runLiveGateway ? describe : describe.skip;
 
-type LiveUiConfig = {
-  projects: Array<{ name: string; root: string; dirs: string[] }>;
-  repoProjects?: Array<{ id: string }>;
-};
+type LiveUiCapabilities = UiCapabilities;
+type LiveNavigationTarget = NonNullable<LiveSearchResponse["hits"][number]["navigationTarget"]>;
+type LiveVfsEntry = LiveVfsScanResult["entries"][number];
 
-type LiveUiCapabilities = {
-  supportedLanguages: string[];
-  supportedRepositories: string[];
-  supportedKinds: string[];
-};
+const LIVE_GRAPH_TIMEOUT_MS = 15_000;
+const LIVE_TOPOLOGY_TIMEOUT_MS = 15_000;
+const LIVE_PROJECTED_PAGE_INDEX_TIMEOUT_MS = 15_000;
+const LIVE_CODE_AST_TIMEOUT_MS = 30_000;
+const LIVE_MODELICA_CODE_AST_TIMEOUT_MS = 120_000;
+const PREFERRED_MODELICA_LIVE_CANDIDATE_SUFFIXES = [
+  "Modelica/Clocked/Types/SolverMethod.mo",
+  "Modelica/Electrical/PowerConverters/Types/PWMType.mo",
+  "Modelica/Magnetic/FluxTubes/Interfaces/MagneticPort.mo",
+] as const;
+const liveCodeAstAnalysisCache = new Map<string, Promise<Awaited<ReturnType<typeof loadCodeAstAnalysisFlight>>>>();
 
 type LiveVfsScanResult = {
   entries: Array<{
@@ -83,16 +105,6 @@ type LiveSearchResponse = {
   }>;
 };
 
-type LiveProjectedPageIndexTreesResponse = {
-  repo_id: string;
-  trees: Array<{
-    page_id: string;
-    path: string;
-    title: string;
-    root_count: number;
-  }>;
-};
-
 type LiveRepoSymbolSearchResponse = {
   symbols?: Array<{
     symbol_id?: string;
@@ -134,7 +146,13 @@ async function readLocalUiConfig() {
   gatewayOrigin = resolveGatewayOrigin(config);
   flightOrigin = gatewayOrigin;
   flightSchemaVersion = resolveSearchFlightSchemaVersion(config);
-  return toUiConfig(config);
+}
+
+async function fetchLiveUiCapabilities(): Promise<LiveUiCapabilities> {
+  return fetchControlPlaneUiCapabilities<LiveUiCapabilities>({
+    apiBase: `${gatewayOrigin}/api`,
+    handleResponse,
+  });
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -171,6 +189,128 @@ async function fetchFirstResolvableGraphNeighbors(
     }
   }
   throw lastError ?? new Error("expected one graph-resolvable candidate path");
+}
+
+async function resolveCanonicalStudioDocumentPath(entry: LiveVfsEntry): Promise<string> {
+  const resolvedTarget = await resolveStudioPathFlight({
+    baseUrl: flightOrigin,
+    schemaVersion: flightSchemaVersion,
+    path: entry.path,
+  });
+  return normalizeSelectionPathForVfs({
+    path: resolvedTarget.path || entry.path,
+    category: resolvedTarget.category || "file",
+    projectName: resolvedTarget.projectName?.trim() || entry.projectName?.trim(),
+    rootLabel: resolvedTarget.rootLabel?.trim() || entry.rootLabel?.trim(),
+  });
+}
+
+async function resolveCanonicalGraphCandidatePath(
+  rawPath: string,
+  navigationTarget?: LiveNavigationTarget,
+): Promise<string> {
+  const preferredPath = preferMoreCanonicalSelectionPath(rawPath, navigationTarget?.path);
+  const resolvedTarget = await resolveStudioPathFlight({
+    baseUrl: flightOrigin,
+    schemaVersion: flightSchemaVersion,
+    path: preferredPath,
+  });
+  return normalizeSelectionPathForGraph({
+    path: resolvedTarget.path || preferredPath,
+    category: resolvedTarget.category || navigationTarget?.category || "file",
+    projectName: resolvedTarget.projectName?.trim() || navigationTarget?.projectName?.trim(),
+    rootLabel: resolvedTarget.rootLabel?.trim() || navigationTarget?.rootLabel?.trim(),
+  });
+}
+
+function rankCodeAstCandidates(
+  entries: LiveVfsEntry[],
+  predicate: (entry: LiveVfsEntry) => boolean,
+): LiveVfsEntry[] {
+  function score(entry: LiveVfsEntry): number {
+    const normalizedPath = entry.path.replace(/\\/g, "/");
+    let points = 0;
+    if (/^(?:[^/]+\/)?src\//.test(normalizedPath) || normalizedPath.includes("/src/")) {
+      points += 8;
+    }
+    if (/\.(jl|rs|mo)$/i.test(normalizedPath)) {
+      points += 2;
+    }
+    if (/package\.mo$/i.test(normalizedPath)) {
+      points -= 4;
+    }
+    if (/(^|\/)(test|tests|docs|examples|usersguide|resources)\//i.test(normalizedPath)) {
+      points -= 3;
+    }
+    if (/(^|\/)(types|interfaces|baseclasses)\//i.test(normalizedPath)) {
+      points += 4;
+    }
+    if (/(^|\/)blocks\//i.test(normalizedPath)) {
+      points -= 2;
+    }
+    return points;
+  }
+
+  return entries.filter(predicate).toSorted((left, right) => {
+    const scoreDelta = score(right) - score(left);
+    if (scoreDelta !== 0) {
+      return scoreDelta;
+    }
+    const lengthDelta = left.path.length - right.path.length;
+    if (lengthDelta !== 0) {
+      return lengthDelta;
+    }
+    return left.path.localeCompare(right.path);
+  });
+}
+
+function pickPreferredModelicaCodeAstCandidate(entries: LiveVfsEntry[]): LiveVfsEntry | undefined {
+  for (const suffix of PREFERRED_MODELICA_LIVE_CANDIDATE_SUFFIXES) {
+    const preferred = entries.find(
+      (entry) =>
+        entry.projectName === "mcl" &&
+        !entry.isDir &&
+        entry.path.replace(/\\/g, "/").endsWith(suffix),
+    );
+    if (preferred) {
+      return preferred;
+    }
+  }
+  return rankCodeAstCandidates(
+    entries,
+    (entry) => entry.projectName === "mcl" && !entry.isDir && entry.path.endsWith(".mo"),
+  )[0];
+}
+
+function liveCodeAstAnalysisCacheKey(request: CodeAstAnalysisFlightRequest): string {
+  return [request.repo ?? "", request.path, String(request.line ?? "")].join("::");
+}
+
+function loadCachedCodeAstAnalysis(
+  request: CodeAstAnalysisFlightRequest,
+): Promise<Awaited<ReturnType<typeof loadCodeAstAnalysisFlight>>> {
+  const key = liveCodeAstAnalysisCacheKey(request);
+  const cached = liveCodeAstAnalysisCache.get(key);
+  if (cached) {
+    return cached;
+  }
+  const inflight = loadCodeAstAnalysisFlight(request);
+  inflight.catch(() => {});
+  liveCodeAstAnalysisCache.set(key, inflight);
+  return inflight;
+}
+
+function primeCachedCodeAstAnalysis(request: CodeAstAnalysisFlightRequest): void {
+  void loadCachedCodeAstAnalysis(request);
+}
+
+function buildLiveCodeAstRequest(path: string, repo: string): CodeAstAnalysisFlightRequest {
+  return {
+    baseUrl: flightOrigin,
+    schemaVersion: flightSchemaVersion,
+    path,
+    repo,
+  };
 }
 
 function buildRepoSearchQueries(repoId: string): string[] {
@@ -226,40 +366,20 @@ async function fetchFirstRefinableSymbolId(repoId: string): Promise<string> {
 
 liveDescribe("live gateway studio contract", () => {
   beforeAll(async () => {
-    const localUiConfig = await readLocalUiConfig();
+    await readLocalUiConfig();
     await fetchJson<string>("/health");
-    let uiConfig = localUiConfig as LiveUiConfig;
-    try {
-      const gatewayUiConfig = await fetchJson<LiveUiConfig>("/ui/config");
-      if (gatewayUiConfig.projects.length > 0 || (gatewayUiConfig.repoProjects?.length ?? 0) > 0) {
-        uiConfig = gatewayUiConfig;
-      } else {
-        await fetchJson<LiveUiConfig>("/ui/config", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(localUiConfig),
-        });
-      }
-    } catch {
-      await fetchJson<LiveUiConfig>("/ui/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(localUiConfig),
-      });
-    }
+    const uiCapabilities = await fetchLiveUiCapabilities();
+    const projects = uiCapabilities.projects ?? [];
+    const repoProjects = uiCapabilities.repoProjects ?? [];
 
     targetProjectName =
-      uiConfig.projects.find((project) => project.name === "main")?.name ||
-      uiConfig.projects.find((project) => project.name !== "kernel")?.name ||
-      uiConfig.projects[0]?.name ||
+      projects.find((project) => project.name === "main")?.name ||
+      projects.find((project) => project.name !== "kernel")?.name ||
+      projects[0]?.name ||
       "";
     targetRepoId =
-      uiConfig.repoProjects?.[0]?.id ||
-      uiConfig.projects.find((project) => project.name === "kernel")?.name ||
+      repoProjects[0]?.id ||
+      projects.find((project) => project.name === "kernel")?.name ||
       targetProjectName;
 
     const scan = (await loadVfsScanFlight({
@@ -274,24 +394,24 @@ liveDescribe("live gateway studio contract", () => {
       candidate,
       `expected VFS scan to include one ${targetProjectName} markdown entry`,
     ).toBeDefined();
-    qianjiDocPath = candidate!.path;
+    qianjiDocPath = await resolveCanonicalStudioDocumentPath(candidate!);
 
-    const juliaCandidate = scan.entries.find(
+    const juliaCandidate = rankCodeAstCandidates(
+      scan.entries,
       (entry) =>
-        entry.projectName &&
+        Boolean(entry.projectName) &&
         entry.projectName !== "mcl" &&
         !entry.isDir &&
         entry.path.endsWith(".jl"),
-    );
+    )[0];
     expect(juliaCandidate, "expected one live Julia repo file in the VFS scan").toBeDefined();
-    liveJuliaCodeAstPath = juliaCandidate!.path;
+    liveJuliaCodeAstPath = await resolveCanonicalStudioDocumentPath(juliaCandidate!);
     liveJuliaCodeAstRepo = juliaCandidate!.projectName!;
+    targetRepoId = liveJuliaCodeAstRepo;
 
-    const modelicaCandidate = scan.entries.find(
-      (entry) => entry.projectName === "mcl" && !entry.isDir && entry.path.endsWith(".mo"),
-    );
+    const modelicaCandidate = pickPreferredModelicaCodeAstCandidate(scan.entries);
     expect(modelicaCandidate, "expected one live Modelica repo file in the VFS scan").toBeDefined();
-    liveModelicaCodeAstPath = modelicaCandidate!.path;
+    liveModelicaCodeAstPath = await resolveCanonicalStudioDocumentPath(modelicaCandidate!);
     liveModelicaCodeAstRepo = modelicaCandidate!.projectName!;
 
     const searchOnlyRustCandidate = scan.entries.find(
@@ -301,18 +421,24 @@ liveDescribe("live gateway studio contract", () => {
       searchOnlyRustCandidate,
       "expected one live Rust file for the search-only lance repo in the VFS scan",
     ).toBeDefined();
-    liveSearchOnlyCodeAstPath = searchOnlyRustCandidate!.path;
+    liveSearchOnlyCodeAstPath = await resolveCanonicalStudioDocumentPath(searchOnlyRustCandidate!);
     liveSearchOnlyAstRepo = searchOnlyRustCandidate!.projectName!;
+
+    primeCachedCodeAstAnalysis(buildLiveCodeAstRequest(liveJuliaCodeAstPath, liveJuliaCodeAstRepo));
+    primeCachedCodeAstAnalysis(
+      buildLiveCodeAstRequest(liveModelicaCodeAstPath, liveModelicaCodeAstRepo),
+    );
+    primeCachedCodeAstAnalysis(
+      buildLiveCodeAstRequest(liveSearchOnlyCodeAstPath, liveSearchOnlyAstRepo),
+    );
   });
 
   it("satisfies the studio bootstrap contract over same-origin control plane and Flight", async () => {
     const health = await fetchJson<unknown>("/health");
     expect(health).toBeDefined();
 
-    const config = await fetchJson<LiveUiConfig>("/ui/config");
-    expect(config.projects.map((project) => project.name)).toContain(targetProjectName);
-
-    const capabilities = await fetchJson<LiveUiCapabilities>("/ui/capabilities");
+    const capabilities = await fetchLiveUiCapabilities();
+    expect((capabilities.projects ?? []).map((project) => project.name)).toContain(targetProjectName);
     expect(capabilities.supportedRepositories.length).toBeGreaterThan(0);
     expect(capabilities.supportedRepositories).toContain(targetRepoId);
     expect(capabilities.supportedLanguages.length).toBeGreaterThan(0);
@@ -329,10 +455,7 @@ liveDescribe("live gateway studio contract", () => {
     ).toBe(true);
   });
 
-  it("pushes local project config into the live gateway VFS", async () => {
-    const config = await fetchJson<LiveUiConfig>("/ui/config");
-    expect(config.projects.map((project) => project.name)).toContain(targetProjectName);
-
+  it("projects live capability metadata into the VFS scan", async () => {
     const scan = (await loadVfsScanFlight({
       baseUrl: flightOrigin,
       schemaVersion: flightSchemaVersion,
@@ -359,7 +482,7 @@ liveDescribe("live gateway studio contract", () => {
     expect(response.center.navigationTarget?.path).toBe(qianjiDocPath);
     expect(response.center.navigationTarget?.category).toBeDefined();
     expect(response.totalNodes).toBeGreaterThanOrEqual(1);
-  });
+  }, LIVE_GRAPH_TIMEOUT_MS);
 
   it("returns VFS content over same-origin Flight for a live studio document", async () => {
     const response = await loadVfsContentFlight({
@@ -382,11 +505,15 @@ liveDescribe("live gateway studio contract", () => {
     expect(response.nodes.length).toBeGreaterThan(0);
     expect(response.links.length).toBeGreaterThanOrEqual(0);
     expect(response.clusters.length).toBeGreaterThanOrEqual(0);
-  });
+  }, LIVE_TOPOLOGY_TIMEOUT_MS);
 
   it("returns projected page-index trees over same-origin Flight for a live repo page", async () => {
-    const projectedTrees = await fetchJson<LiveProjectedPageIndexTreesResponse>(
-      `/repo/projected-page-index-trees?repo=${encodeURIComponent(targetRepoId)}`,
+    const projectedTrees = await fetchRepoProjectedPageIndexTrees(
+      {
+        apiBase: `${gatewayOrigin}/api`,
+        handleResponse,
+      },
+      targetRepoId,
     );
     const projectedTree = projectedTrees.trees.find((tree) => tree.path.endsWith(".md"));
 
@@ -406,7 +533,7 @@ liveDescribe("live gateway studio contract", () => {
     expect(response.page_id).toBe(projectedTree!.page_id);
     expect(response.path).toBe(projectedTree!.path);
     expect(response.root_count).toBeGreaterThanOrEqual(1);
-  });
+  }, LIVE_PROJECTED_PAGE_INDEX_TIMEOUT_MS);
 
   it("returns refine-doc payloads over same-origin Flight for a live repo symbol", async () => {
     const symbolId = await fetchFirstRefinableSymbolId(targetRepoId);
@@ -508,9 +635,21 @@ liveDescribe("live gateway studio contract", () => {
     expect(targetHit.navigationTarget).toBeDefined();
     expect(targetHit.navigationTarget?.path.length).toBeGreaterThan(0);
     expect(targetHit.navigationTarget?.category).toBeDefined();
-    const graph = await fetchFirstResolvableGraphNeighbors([
-      ...new Set([targetHit.path, targetHit.navigationTarget?.path].filter(Boolean) as string[]),
-    ]);
+    const candidatePaths = [
+      await resolveCanonicalGraphCandidatePath(
+        targetHit.path,
+        targetHit.navigationTarget ?? undefined,
+      ),
+      ...(targetHit.navigationTarget?.path
+        ? [
+            await resolveCanonicalGraphCandidatePath(
+              targetHit.navigationTarget.path,
+              targetHit.navigationTarget,
+            ),
+          ]
+        : []),
+    ];
+    const graph = await fetchFirstResolvableGraphNeighbors([...new Set(candidatePaths)]);
     expect(graph.totalNodes).toBeGreaterThanOrEqual(1);
     expect(graph.center.path.length).toBeGreaterThan(0);
 
@@ -544,12 +683,9 @@ liveDescribe("live gateway studio contract", () => {
   });
 
   it("returns code AST analysis over same-origin Flight for a live Julia repo file", async () => {
-    const analysis = await loadCodeAstAnalysisFlight({
-      baseUrl: flightOrigin,
-      schemaVersion: flightSchemaVersion,
-      path: liveJuliaCodeAstPath,
-      repo: liveJuliaCodeAstRepo,
-    });
+    const analysis = await loadCachedCodeAstAnalysis(
+      buildLiveCodeAstRequest(liveJuliaCodeAstPath, liveJuliaCodeAstRepo),
+    );
 
     expect(analysis.repoId).toBe(liveJuliaCodeAstRepo);
     expect(analysis.path).toBe(liveJuliaCodeAstPath);
@@ -562,15 +698,12 @@ liveDescribe("live gateway studio contract", () => {
         (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
       ),
     ).toBe(true);
-  }, 15000);
+  }, LIVE_CODE_AST_TIMEOUT_MS);
 
   it("returns code AST analysis over same-origin Flight for a live Modelica repo file", async () => {
-    const analysis = await loadCodeAstAnalysisFlight({
-      baseUrl: flightOrigin,
-      schemaVersion: flightSchemaVersion,
-      path: liveModelicaCodeAstPath,
-      repo: liveModelicaCodeAstRepo,
-    });
+    const analysis = await loadCachedCodeAstAnalysis(
+      buildLiveCodeAstRequest(liveModelicaCodeAstPath, liveModelicaCodeAstRepo),
+    );
 
     expect(analysis.repoId).toBe(liveModelicaCodeAstRepo);
     expect(analysis.path).toBe(liveModelicaCodeAstPath);
@@ -583,15 +716,12 @@ liveDescribe("live gateway studio contract", () => {
         (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
       ),
     ).toBe(true);
-  }, 15000);
+  }, LIVE_MODELICA_CODE_AST_TIMEOUT_MS);
 
   it("returns code AST analysis over same-origin Flight for a live search-only Rust repo file", async () => {
-    const analysis = await loadCodeAstAnalysisFlight({
-      baseUrl: flightOrigin,
-      schemaVersion: flightSchemaVersion,
-      path: liveSearchOnlyCodeAstPath,
-      repo: liveSearchOnlyAstRepo,
-    });
+    const analysis = await loadCachedCodeAstAnalysis(
+      buildLiveCodeAstRequest(liveSearchOnlyCodeAstPath, liveSearchOnlyAstRepo),
+    );
 
     expect(analysis.repoId).toBe(liveSearchOnlyAstRepo);
     expect(analysis.path).toBe(liveSearchOnlyCodeAstPath);

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { assembleSearchBarControllerResult } from "./searchBarControllerAssembler";
 import { SEARCH_BAR_COPY } from "./searchPresentation";
 import { getDocIcon, highlightMatch } from "./searchRenderUtils";

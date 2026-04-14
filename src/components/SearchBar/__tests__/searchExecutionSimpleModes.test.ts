@@ -94,6 +94,9 @@ describe("searchExecution simple modes", () => {
       query: "schema",
       hitCount: 1,
       selectedScope: "attachments",
+      partial: true,
+      indexingState: "indexing",
+      indexError: "attachment index warming",
       hits: [
         {
           name: "Schema PDF",
@@ -117,7 +120,30 @@ describe("searchExecution simple modes", () => {
     expect(api.searchAttachments).toHaveBeenCalledWith("schema", 10);
     expect(result.meta.selectedMode).toBe("Attachment Index");
     expect(result.meta.hitCount).toBe(1);
+    expect(result.meta.partial).toBe(true);
+    expect(result.meta.indexingState).toBe("indexing");
+    expect(result.meta.runtimeWarning).toBe("attachment index warming");
     expect(result.results).toHaveLength(1);
+  });
+
+  it("routes reference mode partial metadata through the shared search meta surface", async () => {
+    vi.spyOn(api, "searchReferences").mockResolvedValue({
+      query: "AlphaService",
+      hitCount: 0,
+      selectedScope: "references",
+      partial: true,
+      indexingState: "indexing",
+      indexError: "reference index warming",
+      hits: [],
+    });
+
+    const result = await executeSimpleSearchMode("AlphaService", "reference");
+
+    expect(api.searchReferences).toHaveBeenCalledWith("AlphaService", 10);
+    expect(result.meta.selectedMode).toBe("Reference Index");
+    expect(result.meta.partial).toBe(true);
+    expect(result.meta.indexingState).toBe("indexing");
+    expect(result.meta.runtimeWarning).toBe("reference index warming");
   });
 
   it("parses attachment filter tokens into backend attachment-search options", async () => {

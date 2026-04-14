@@ -6,6 +6,7 @@ function makeResult(
   overrides: Partial<SearchResult> & Pick<SearchResult, "path" | "category">,
 ): SearchResult {
   const path = overrides.path;
+  const navigationTarget = overrides.navigationTarget;
   return {
     stem: overrides.stem ?? path,
     title: overrides.title ?? path,
@@ -14,9 +15,9 @@ function makeResult(
     tags: overrides.tags ?? [],
     score: overrides.score ?? 0,
     category: overrides.category,
-    navigationTarget: overrides.navigationTarget ?? {
+    navigationTarget: navigationTarget ?? {
       path,
-      category: overrides.navigationTarget?.category ?? "doc",
+      category: "doc",
       projectName: overrides.projectName,
       rootLabel: overrides.rootLabel,
       line: overrides.line,

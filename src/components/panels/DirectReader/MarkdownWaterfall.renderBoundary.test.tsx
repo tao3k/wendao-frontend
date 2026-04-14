@@ -118,6 +118,12 @@ describe("MarkdownWaterfall render boundaries", () => {
               sourceId: "doc:0",
               targetId: "sec:5",
               kind: "contains",
+              evidence: {
+                path: "docs/03_features/offline-quantization-plan.md",
+                lineStart: 5,
+                lineEnd: 8,
+                confidence: 1,
+              },
             },
           ],
           projections: [],

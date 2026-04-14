@@ -156,7 +156,7 @@ function StructuredTopologyOverlayButton({
       color: "transparent",
     }),
     [radius, x, y],
-  );
+  ) as React.CSSProperties;
 
   return (
     <button type="button" aria-label={label} className={className} style={style} onClick={onClick}>

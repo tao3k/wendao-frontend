@@ -14,9 +14,8 @@
     "allowImportingTsExtensions": true,
 
     /* path aliases */
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
 
     /* type checking */

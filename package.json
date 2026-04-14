@@ -15,7 +15,7 @@
     "test:live-zen-search-perf": "RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=${STUDIO_LIVE_GATEWAY_URL:-http://127.0.0.1:9517} vitest run src/api/liveZenSearchPerf.test.ts"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.160",
+    "@ai-sdk/react": "^3.0.161",
     "@algolia/autocomplete-core": "^1.19.8",
     "@bufbuild/protobuf": "2.11.0",
     "@connectrpc/connect": "2.1.1",
@@ -28,13 +28,13 @@
     "@shikijs/langs": "^4.0.2",
     "@shikijs/themes": "^4.0.2",
     "@vidstack/react": "^1.12.13",
-    "ai": "^6.0.158",
+    "ai": "^6.0.159",
     "apache-arrow": "^21.1.0",
     "beautiful-mermaid": "^1.1.3",
     "bpmn-js": "^18.14.0",
     "framer-motion": "^12.38.0",
     "katex": "^0.16.45",
-    "lucide-react": "^0.577.0",
+    "lucide-react": "^1.8.0",
     "mermaid": "^11.14.0",
     "postprocessing": "^6.39.0",
     "react": "^19.2.5",
@@ -63,9 +63,9 @@
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.183.1",
-    "jsdom": "^28.1.0",
+    "jsdom": "^29.0.2",
     "react-refresh": "^0.18.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.4"
   },
   "overrides": {

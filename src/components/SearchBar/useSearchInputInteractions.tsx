@@ -24,12 +24,8 @@ export function useSearchInputInteractions({
     }
 
     switch (suggestion.suggestionType) {
-      case "heading":
+      case "title":
         return getDocIcon(undefined);
-      case "symbol":
-        return <Hash size={12} className="suggestion-icon symbol" />;
-      case "metadata":
-        return <Tag size={12} className="suggestion-icon metadata" />;
       case "tag":
         return <Tag size={12} className="suggestion-icon tag" />;
       case "stem":

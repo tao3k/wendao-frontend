@@ -1,9 +1,11 @@
-import React from "react";
+import { memo } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
 import { createPerfTrace } from "../../../lib/testPerfTrace";
 import { buildSearchResultsListModel } from "../../SearchBar/interface/results";
+import type { SearchResultSection } from "../../SearchBar/searchResultSections";
+import type { SearchBarControllerResultsPanelProps } from "../../SearchBar/searchBarControllerTypes";
 import { ZenSearchWorkspace } from "../ZenSearchWorkspace";
 import type { SearchResult } from "../../SearchBar/types";
 
@@ -18,7 +20,7 @@ vi.mock("../ZenSearchResultsPane", () => ({
 }));
 
 vi.mock("../ZenSearchPreviewPane", () => ({
-  ZenSearchPreviewPane: React.memo(
+  ZenSearchPreviewPane: memo(
     (props: { selectedResult: SearchResult | null; prefetchResults?: SearchResult[] }) => {
       previewPaneSpy(props);
       return <div data-testid="mock-zen-preview" />;
@@ -48,9 +50,9 @@ function buildSearchResult(overrides: Partial<SearchResult> = {}): SearchResult 
 function buildResultsPanelProps(
   hits: SearchResult[],
   selectedIndex = -1,
-  sectionKey = "document",
+  sectionKey: SearchResultSection["key"] = "document",
   title = "Documents",
-) {
+): SearchBarControllerResultsPanelProps {
   const listModel = buildSearchResultsListModel([
     {
       key: sectionKey,
@@ -63,7 +65,7 @@ function buildResultsPanelProps(
     selectedIndex,
     rows: listModel.rows,
     visibleResultCount: listModel.visibleResultCount,
-  } as never;
+  } as SearchBarControllerResultsPanelProps;
 }
 
 describe("ZenSearchWorkspace", () => {
@@ -472,9 +474,7 @@ describe("ZenSearchWorkspace", () => {
     const result = buildSearchResult();
     const trace = createPerfTrace("ZenSearchWorkspace.preview-stability");
     const onQueryChange = vi.fn();
-    const resultsPanelProps = {
-      ...buildResultsPanelProps([result], 0),
-    } as never;
+    const resultsPanelProps = buildResultsPanelProps([result], 0);
 
     const { rerender } = render(
       <ZenSearchWorkspace

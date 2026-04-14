@@ -141,6 +141,10 @@ function buildMarkdownComponents({
 }: Pick<DirectReaderRichContentProps, "copy" | "onBiLinkClick" | "path"> & {
   renderMermaid: ReturnType<typeof useSharedMermaidRenderer>;
 }): Components {
+  const getNodeChildren = (node: React.ReactElement): React.ReactNode => {
+    return (node.props as { children?: React.ReactNode }).children;
+  };
+
   const isMediaOnlyNode = (node: React.ReactNode): boolean => {
     if (typeof node === "string") {
       return node.trim().length === 0;
@@ -159,7 +163,7 @@ function buildMarkdownComponents({
     }
 
     if (node.type === React.Fragment) {
-      return isMediaOnlyNode(node.props.children);
+      return isMediaOnlyNode(getNodeChildren(node));
     }
 
     if (typeof node.type === "string") {

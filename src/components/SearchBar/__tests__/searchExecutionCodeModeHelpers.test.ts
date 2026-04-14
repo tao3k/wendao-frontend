@@ -10,7 +10,7 @@ describe("searchExecutionCodeModeHelpers", () => {
     const outcome = resolveRepoAwareCodeModeOutcome({
       queryToSearch: "modelica",
       repoFilter: "sciml",
-      repoFacet: "modules",
+      repoFacet: "module",
       repoIntelligenceSettled: {
         status: "fulfilled",
         value: {
@@ -18,7 +18,7 @@ describe("searchExecutionCodeModeHelpers", () => {
           hitCount: 0,
           partialError: "repo intelligence partial",
           fallbackApplied: {
-            facet: "modules",
+            facet: "module",
             fromQuery: "modelica",
             toQuery: "basemodelica",
           },
@@ -49,10 +49,10 @@ describe("searchExecutionCodeModeHelpers", () => {
       },
     });
 
-    expect(outcome.meta.selectedMode).toBe("Code (Repo: sciml · modules)");
+    expect(outcome.meta.selectedMode).toBe("Code (Repo: sciml · module)");
     expect(outcome.meta.searchMode).toBe("code_search");
     expect(outcome.meta.intent).toBe("code_search");
-    expect(outcome.meta.repoFallbackFacet).toBe("modules");
+    expect(outcome.meta.repoFallbackFacet).toBe("module");
     expect(outcome.meta.repoFallbackFromQuery).toBe("modelica");
     expect(outcome.meta.repoFallbackToQuery).toBe("basemodelica");
     expect(outcome.meta.runtimeWarning).toBe("repo intelligence partial");

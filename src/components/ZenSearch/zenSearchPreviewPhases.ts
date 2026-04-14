@@ -69,7 +69,7 @@ export function loadCodeAstPreviewWithTimeout(
   resolvedLoadPlanPromise: Promise<Awaited<ReturnType<typeof resolveZenSearchPreviewLoadPlan>>>,
   abortController: AbortController,
 ): PendingCodeAstPreview {
-  let timeoutId = 0;
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
   const promise = new Promise<ZenSearchPreviewCodeAstLoadResult>((resolve) => {
     timeoutId = globalThis.setTimeout(() => {
       // Use a soft timeout so the preview can stop waiting without forcing the
@@ -91,13 +91,17 @@ export function loadCodeAstPreviewWithTimeout(
         }),
       )
       .finally(() => {
-        globalThis.clearTimeout(timeoutId);
+        if (timeoutId !== null) {
+          globalThis.clearTimeout(timeoutId);
+        }
       });
   });
   return {
     promise,
     cancelTimeout: () => {
-      globalThis.clearTimeout(timeoutId);
+      if (timeoutId !== null) {
+        globalThis.clearTimeout(timeoutId);
+      }
     },
   };
 }

@@ -93,7 +93,7 @@ export function PdfPreviewSurface({
   const previousResolvedUrlRef = useRef(resolvedUrl);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageWidth, setPageWidth] = useState(DEFAULT_PAGE_WIDTH[mode]);
+  const [pageWidth, setPageWidth] = useState<number>(DEFAULT_PAGE_WIDTH[mode]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {

@@ -697,7 +697,7 @@ describe("DiagramWindow", () => {
     const initialRenderCall = mocks.topology.mock.calls.at(-1)?.[0] as
       | { fitViewportScale?: number }
       | undefined;
-    expect(initialRenderCall?.fitViewportScale).toBeUndefined();
+    expect(initialRenderCall?.fitViewportScale).toBe(1.68);
 
     const frame = container.querySelector(".diagram-window__frame--bpmn");
     expect(frame).toBeTruthy();

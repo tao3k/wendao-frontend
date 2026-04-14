@@ -24,9 +24,9 @@ export function MainViewContentPanel({
   const hasSelectedContent = Boolean(selectedFile && isContentReady);
   const isLoadingSelectedFile = Boolean(selectedFile && !isContentReady);
 
-  return (
-    <div className="main-view-content-raw">
-      {hasSelectedContent ? (
+  if (hasSelectedContent && selectedFile) {
+    return (
+      <div className="main-view-content-raw">
         <Suspense fallback={panelLoadingFallback}>
           <DirectReader
             content={selectedFile.content}
@@ -39,7 +39,13 @@ export function MainViewContentPanel({
             onBiLinkClick={onBiLinkClick}
           />
         </Suspense>
-      ) : isLoadingSelectedFile ? (
+      </div>
+    );
+  }
+
+  return (
+    <div className="main-view-content-raw">
+      {isLoadingSelectedFile ? (
         panelLoadingFallback
       ) : (
         <div className="no-file-selected">{noContentFile}</div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { SearchMeta } from "./searchExecution";
-import type { SearchScope, SearchSort } from "./types";
+import type { SearchResult, SearchScope, SearchSort } from "./types";
 
 export function useSearchBarState(): {
   query: string;

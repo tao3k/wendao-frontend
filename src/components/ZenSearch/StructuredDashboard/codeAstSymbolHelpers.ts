@@ -2,6 +2,7 @@ import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
 } from "../../../api";
+import type { ArrowRetrievalLookup } from "../../../utils/arrowRetrievalLookup";
 import {
   buildCodeAstRetrievalAtom,
   resolveDisplayRetrievalAtom,
@@ -9,6 +10,12 @@ import {
 } from "./codeAstRetrievalHelpers";
 import { normalizeKind, normalizeText } from "./codeAstProjectionShared";
 import type { CodeAstSymbolGroup, CodeAstSymbolModel } from "./codeAstAnatomy";
+
+const EXTERNAL_SYMBOL_KIND = "external_symbol";
+
+function isExternalSymbolKind(kind: string): boolean {
+  return kind === EXTERNAL_SYMBOL_KIND || kind === "externalsymbol";
+}
 
 function countReferences(analysis: CodeAstAnalysisResponse, nodeId: string): number {
   return analysis.edges.filter((edge) => edge.sourceId === nodeId || edge.targetId === nodeId)
@@ -28,7 +35,7 @@ export function buildSymbols(
   analysis: CodeAstAnalysisResponse,
   selectedPath: string,
   focusNodeId: string | null,
-  retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>,
+  retrievalAtomLookup: ArrowRetrievalLookup<ApiCodeAstRetrievalAtom>,
 ): CodeAstSymbolModel[] {
   const nodeById = new Map(analysis.nodes.map((node) => [node.id, node]));
   const backendSymbolAtoms = (analysis.retrievalAtoms ?? [])
@@ -47,7 +54,7 @@ export function buildSymbols(
       .map((atom) => {
         const node = nodeById.get(atom.ownerId);
         const path = normalizeText(node?.path) ?? selectedPath;
-        const line = node?.line ?? node?.lineStart ?? atom.lineStart;
+        const line = node?.lineStart ?? atom.lineStart;
         const label = node?.label ?? deriveFallbackSymbolLabel(atom);
         const kind = normalizeKind(node?.kind ?? atom.semanticType) || "other";
         const nodeId = node?.id ?? atom.ownerId;
@@ -115,7 +122,7 @@ export function buildSymbols(
       return (
         sameFile ||
         connectedNodeIds.has(node.id) ||
-        normalizeKind(node.kind) === "externalsymbol" ||
+        isExternalSymbolKind(normalizeKind(node.kind)) ||
         node.id === focusNodeId
       );
     })
@@ -124,7 +131,7 @@ export function buildSymbols(
       label: node.label,
       kind: normalizeKind(node.kind) || "other",
       path: normalizeText(node.path) ?? selectedPath,
-      line: node.line,
+      line: node.lineStart,
       references: countReferences(analysis, node.id),
       query: node.label,
     }))
@@ -169,8 +176,8 @@ export function buildSymbols(
 }
 
 export function buildSymbolGroups(symbols: CodeAstSymbolModel[]): CodeAstSymbolGroup[] {
-  const localSymbols = symbols.filter((symbol) => symbol.kind !== "externalsymbol");
-  const externalSymbols = symbols.filter((symbol) => symbol.kind === "externalsymbol");
+  const localSymbols = symbols.filter((symbol) => !isExternalSymbolKind(symbol.kind));
+  const externalSymbols = symbols.filter((symbol) => isExternalSymbolKind(symbol.kind));
   const pivotAnchors = [...symbols]
     .toSorted((left, right) => {
       if (left.references !== right.references) {

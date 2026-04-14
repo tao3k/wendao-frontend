@@ -114,7 +114,7 @@ describe("StudioBootstrap", () => {
   });
 
   it("keeps the bootstrap surface blank while loading so startup does not flash a panel", async () => {
-    let releaseUiConfig: (() => void) | null = null;
+    let releaseUiConfig!: () => void;
     mocks.getUiConfig.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -141,7 +141,7 @@ describe("StudioBootstrap", () => {
     expect(screen.queryByText("Studio bootstrap")).not.toBeInTheDocument();
     expect(screen.queryByText("Studio startup blocked")).not.toBeInTheDocument();
 
-    releaseUiConfig?.();
+    releaseUiConfig();
 
     await waitFor(() => {
       expect(screen.getByTestId("studio-app")).toBeInTheDocument();

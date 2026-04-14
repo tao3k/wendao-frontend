@@ -1,4 +1,4 @@
-import React from "react";
+import { memo } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { CodeAstAnalysisResponse } from "../../../api";
@@ -8,7 +8,7 @@ import type { SearchResult } from "../../SearchBar/types";
 const detailStagesTrace = createPerfTrace("CodeAstDetailStages");
 
 vi.mock("../CodeAstDetailStages", () => ({
-  CodeAstDetailStages: React.memo(function MockCodeAstDetailStages() {
+  CodeAstDetailStages: memo(function MockCodeAstDetailStages() {
     detailStagesTrace.markRender();
     return <div data-testid="mock-code-ast-detail-stages" />;
   }),
@@ -25,20 +25,24 @@ function buildAnalysis(): CodeAstAnalysisResponse {
     repoId: "kernel",
     path: "kernel/src/lib.rs",
     language: "rust",
+    nodeCount: 2,
+    edgeCount: 1,
     nodes: [
       {
         id: "fn:process_data",
         label: "process_data",
-        kind: "function",
+        kind: "symbol",
         path: "kernel/src/lib.rs",
-        line: 1,
+        lineStart: 1,
+        lineEnd: 1,
       },
       {
         id: "type:Config",
         label: "Config",
-        kind: "type",
+        kind: "symbol",
         path: "kernel/src/config.rs",
-        line: 2,
+        lineStart: 2,
+        lineEnd: 2,
       },
     ],
     edges: [
@@ -50,6 +54,7 @@ function buildAnalysis(): CodeAstAnalysisResponse {
       },
     ],
     projections: [],
+    diagnostics: [],
     retrievalAtoms: [
       {
         ownerId: "fn:process_data",

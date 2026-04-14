@@ -70,7 +70,7 @@ describe("searchBarPanelPropsBuilder", () => {
 
     const result = buildCodeFilterHelperProps({
       copy,
-      locale: "zh-CN",
+      locale: "zh",
       activeEntries,
       exampleTokens,
       scenarios,
@@ -132,6 +132,7 @@ describe("searchBarPanelPropsBuilder", () => {
     const onOpenDefinition: SearchBarControllerResultsPanelProps["onOpenDefinition"] = vi.fn();
     const onOpenReferences: SearchBarControllerResultsPanelProps["onOpenReferences"] = vi.fn();
     const onOpenGraph: SearchBarControllerResultsPanelProps["onOpenGraph"] = vi.fn();
+    const onPreview: SearchBarControllerResultsPanelProps["onPreview"] = vi.fn();
     const onTogglePreview: SearchBarControllerResultsPanelProps["onTogglePreview"] = vi.fn();
 
     const result = buildSearchResultsPanelProps({
@@ -152,6 +153,7 @@ describe("searchBarPanelPropsBuilder", () => {
       onOpenDefinition,
       onOpenReferences,
       onOpenGraph,
+      onPreview,
       onTogglePreview,
     });
 
@@ -160,6 +162,7 @@ describe("searchBarPanelPropsBuilder", () => {
     expect(result.onOpenDefinition).toBe(onOpenDefinition);
     expect(result.onOpenReferences).toBe(onOpenReferences);
     expect(result.onOpenGraph).toBe(onOpenGraph);
+    expect(result.onPreview).toBe(onPreview);
     expect(result.onTogglePreview).toBe(onTogglePreview);
 
     result.onSelectIndex(3);

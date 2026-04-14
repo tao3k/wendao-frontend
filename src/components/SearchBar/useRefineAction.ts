@@ -1,14 +1,23 @@
 import { useState, useCallback } from "react";
 import { api } from "../../api";
-import type { SearchResult } from "./types";
+
+interface RefineEntityParams {
+  repoId: string;
+  entityId: string;
+  userHints?: string;
+}
 
 export function useRefineAction() {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementError, setRefinementError] = useState<string | null>(null);
 
-  const refineEntity = useCallback(async (result: SearchResult, userHints?: string) => {
-    if (!result.codeRepo) {
+  const refineEntity = useCallback(async ({ repoId, entityId, userHints }: RefineEntityParams) => {
+    if (!repoId.trim()) {
       setRefinementError("No repository associated with this entity");
+      return null;
+    }
+    if (!entityId.trim()) {
+      setRefinementError("No entity identifier associated with this entity");
       return null;
     }
 
@@ -17,8 +26,8 @@ export function useRefineAction() {
 
     try {
       const response = await api.refineEntityDoc({
-        repo_id: result.codeRepo,
-        entity_id: result.symbolId, // Using symbolId as the stable entity identifier
+        repo_id: repoId,
+        entity_id: entityId,
         user_hints: userHints,
       });
       return response;

@@ -9,6 +9,7 @@ import { StructuredSlot } from "./StructuredSlot";
 import { StructuredCodeInspector } from "./StructuredCodeInspector";
 import { StructuredTopologyMap } from "./StructuredTopologyMap";
 import { deriveStructuredEntity } from "./structuredIntelligence";
+import type { StructuredChip } from "./structuredIntelligence";
 import {
   renderChipList,
   renderMetadataGrid,
@@ -64,10 +65,10 @@ const StructuredLayerNavButton = React.memo(function StructuredLayerNavButton({
 });
 
 interface StructuredPathTrailButtonProps {
-  item: { label: string; value: string; query: string };
+  item: StructuredChip;
   focusedAnchorId: string | null;
   focusedAnchorSide: "incoming" | "outgoing" | null;
-  onFocusAndPivot: (value: string, query: string) => void;
+  onFocusAndPivot: (value: string, query?: string) => void;
 }
 
 const StructuredPathTrailButton = React.memo(function StructuredPathTrailButton({
@@ -176,9 +177,9 @@ export const StructuredIntelligenceDashboard: React.FC<StructuredIntelligenceDas
     handlePivot(focusedAnchor?.query);
   }, [focusedAnchor?.query, handlePivot]);
   const handleFocusAndPivot = useCallback(
-    (value: string, query: string) => {
+    (value: string, query?: string) => {
       setTopologyFocusedAnchorId(value);
-      handlePivot(query);
+      handlePivot(query ?? value);
     },
     [handlePivot],
   );

@@ -226,11 +226,20 @@ function buildMetadata(result: SearchResult): StructuredChip[] {
 function buildBacklinks(result: SearchResult): StructuredChip[] {
   const items = result.implicitBacklinkItems ?? [];
   if (items.length > 0) {
-    return items.slice(0, 8).map((item) => ({
-      label: item.title || item.id,
-      value: item.path,
-      query: item.path,
-    }));
+    return items.slice(0, 8).flatMap((item) => {
+      const path = normalizeText(item.path) ?? normalizeText(item.id);
+      if (!path) {
+        return [];
+      }
+
+      return [
+        {
+          label: normalizeText(item.title) ?? item.id,
+          value: path,
+          query: path,
+        },
+      ];
+    });
   }
 
   return (result.implicitBacklinks ?? []).slice(0, 8).map((item) => ({

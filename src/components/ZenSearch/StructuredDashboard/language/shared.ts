@@ -227,7 +227,8 @@ function buildFragments(input: LanguageProjectionInput): StructuredFragment[] {
   const normalizedLanguage =
     normalizeText(input.language) ?? normalizeText(analysis.language) ?? undefined;
 
-  return analysis.retrievalAtoms
+  const fragments: StructuredFragment[] = [];
+  const orderedAtoms = analysis.retrievalAtoms
     .filter(
       (atom) =>
         atom.surface === "declaration" || atom.surface === "block" || atom.surface === "symbol",
@@ -247,26 +248,32 @@ function buildFragments(input: LanguageProjectionInput): StructuredFragment[] {
 
       return left.chunkId.localeCompare(right.chunkId);
     })
-    .slice(0, 6)
-    .map((atom) => {
-      const value = resolveFragmentValue(atom, contentLines);
-      if (!value) {
-        return null;
-      }
+    .slice(0, 6);
 
-      return {
-        kind: atom.surface === "block" ? ("code" as const) : ("excerpt" as const),
-        label: buildFragmentLabel(atom),
-        value,
-        query: buildAtomQuery(atom),
-        language: normalizedLanguage,
-        detail: buildFragmentDetail(atom, normalizedLanguage ?? null),
-        semanticType: buildSemanticLabel(atom.semanticType, atom.surface),
-        surface: atom.surface,
-        attributes: buildAtomAttributes(atom),
-      };
-    })
-    .filter((fragment): fragment is StructuredFragment => Boolean(fragment));
+  for (const atom of orderedAtoms) {
+    const value = resolveFragmentValue(atom, contentLines);
+    if (!value) {
+      continue;
+    }
+
+    const query = buildAtomQuery(atom);
+    const detail = buildFragmentDetail(atom, normalizedLanguage ?? null);
+    const attributes = buildAtomAttributes(atom);
+
+    fragments.push({
+      kind: atom.surface === "block" ? "code" : "excerpt",
+      label: buildFragmentLabel(atom),
+      value,
+      ...(query ? { query } : {}),
+      ...(normalizedLanguage ? { language: normalizedLanguage } : {}),
+      ...(detail ? { detail } : {}),
+      semanticType: buildSemanticLabel(atom.semanticType, atom.surface),
+      surface: atom.surface,
+      ...(attributes ? { attributes } : {}),
+    });
+  }
+
+  return fragments;
 }
 
 function buildSaliencyExcerpt(input: LanguageProjectionInput): string | null {

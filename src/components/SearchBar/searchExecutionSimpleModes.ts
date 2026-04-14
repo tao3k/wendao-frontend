@@ -38,6 +38,9 @@ export async function executeSimpleSearchMode(
           query: response.query,
           hitCount: response.hitCount,
           selectedMode: "Reference Index",
+          partial: response.partial,
+          indexingState: response.indexingState,
+          runtimeWarning: response.indexError,
         },
       };
     }
@@ -59,6 +62,9 @@ export async function executeSimpleSearchMode(
           query: response.query,
           hitCount: response.hitCount,
           selectedMode: "Attachment Index",
+          partial: response.partial,
+          indexingState: response.indexingState,
+          runtimeWarning: response.indexError,
         },
       };
     }
@@ -72,6 +78,9 @@ export async function executeSimpleSearchMode(
           query: response.query,
           hitCount: response.hitCount,
           selectedMode: "AST Index",
+          partial: response.partial,
+          indexingState: response.indexingState,
+          runtimeWarning: response.indexError,
         },
       };
     }

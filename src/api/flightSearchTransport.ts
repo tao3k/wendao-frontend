@@ -283,6 +283,11 @@ export async function searchAttachmentsFlight(
         hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
         selectedScope:
           typeof parsed.selectedScope === "string" ? parsed.selectedScope : "attachments",
+        ...(typeof parsed.partial === "boolean" ? { partial: parsed.partial } : {}),
+        ...(typeof parsed.indexingState === "string"
+          ? { indexingState: parsed.indexingState }
+          : {}),
+        ...(typeof parsed.indexError === "string" ? { indexError: parsed.indexError } : {}),
       };
     },
   );
@@ -306,6 +311,11 @@ export async function searchAstFlight(
         hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
         selectedScope:
           typeof parsed.selectedScope === "string" ? parsed.selectedScope : "definitions",
+        ...(typeof parsed.partial === "boolean" ? { partial: parsed.partial } : {}),
+        ...(typeof parsed.indexingState === "string"
+          ? { indexingState: parsed.indexingState }
+          : {}),
+        ...(typeof parsed.indexError === "string" ? { indexError: parsed.indexError } : {}),
       };
     },
   );
@@ -329,6 +339,11 @@ export async function searchReferencesFlight(
         hitCount: typeof parsed.hitCount === "number" ? parsed.hitCount : hits.length,
         selectedScope:
           typeof parsed.selectedScope === "string" ? parsed.selectedScope : "references",
+        ...(typeof parsed.partial === "boolean" ? { partial: parsed.partial } : {}),
+        ...(typeof parsed.indexingState === "string"
+          ? { indexingState: parsed.indexingState }
+          : {}),
+        ...(typeof parsed.indexError === "string" ? { indexError: parsed.indexError } : {}),
       };
     },
   );

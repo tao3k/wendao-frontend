@@ -7,6 +7,13 @@ import type {
   SearchExecutionOutcome,
 } from "./searchExecutionTypes";
 
+export type {
+  SearchExecutionMode,
+  SearchExecutionOptions,
+  SearchExecutionOutcome,
+  SearchMeta,
+} from "./searchExecutionTypes";
+
 export async function executeSearchQuery(
   queryToSearch: string,
   mode: SearchExecutionMode,

@@ -32,18 +32,12 @@ export function ToolInvocation({ part }: ToolInvocationProps) {
     <div className="chat-tool">
       <div className="chat-tool__header">
         <span className="chat-tool__name">{toolName}</span>
-        <span className="chat-tool__params">
-          ({paramStr})
-        </span>
+        <span className="chat-tool__params">({paramStr})</span>
         {isRunning && <span className="chat-tool__status">running...</span>}
       </div>
       {hasOutput && (
         <div>
-          <button
-            type="button"
-            className="chat-tool__toggle"
-            onClick={handleToggle}
-          >
+          <button type="button" className="chat-tool__toggle" onClick={handleToggle}>
             {expanded ? "▼ hide output" : "▶ show output"}
           </button>
           {expanded && (

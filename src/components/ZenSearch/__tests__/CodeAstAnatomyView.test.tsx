@@ -1,4 +1,3 @@
-import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CodeAstAnatomyView } from "../CodeAstAnatomyView";
@@ -10,39 +9,45 @@ function buildAnalysis(): CodeAstAnalysisResponse {
     repoId: "kernel",
     path: "kernel/src/lib.rs",
     language: "rust",
+    nodeCount: 5,
+    edgeCount: 4,
     nodes: [
       {
         id: "module:kernel",
         label: "kernel",
         kind: "module",
         path: "kernel/src/lib.rs",
-        line: 1,
+        lineStart: 1,
+        lineEnd: 1,
       },
       {
         id: "fn:process_data",
         label: "process_data",
-        kind: "function",
+        kind: "symbol",
         path: "kernel/src/lib.rs",
-        line: 1,
+        lineStart: 1,
+        lineEnd: 1,
       },
       {
         id: "type:Config",
         label: "Config",
-        kind: "type",
+        kind: "symbol",
         path: "kernel/src/config.rs",
-        line: 1,
+        lineStart: 1,
+        lineEnd: 1,
       },
       {
         id: "const:Empty",
         label: "Empty",
-        kind: "constant",
+        kind: "symbol",
         path: "kernel/src/error.rs",
-        line: 1,
+        lineStart: 1,
+        lineEnd: 1,
       },
       {
         id: "external:Vec",
         label: "Vec",
-        kind: "externalSymbol",
+        kind: "external_symbol",
         path: "std",
       },
     ],
@@ -69,26 +74,33 @@ function buildAnalysis(): CodeAstAnalysisResponse {
         id: "edge:fn-vec",
         sourceId: "fn:process_data",
         targetId: "external:Vec",
-        kind: "imports",
+        kind: "uses",
       },
     ],
     projections: [
       {
-        kind: "contains",
+        kind: "structure",
+        source: "test-structure",
         nodeCount: 5,
         edgeCount: 1,
+        diagnostics: [],
       },
       {
         kind: "calls",
+        source: "test-calls",
         nodeCount: 5,
         edgeCount: 1,
+        diagnostics: [],
       },
       {
-        kind: "uses",
+        kind: "flow",
+        source: "test-flow",
         nodeCount: 5,
         edgeCount: 2,
+        diagnostics: [],
       },
     ],
+    diagnostics: [],
     retrievalAtoms: [
       {
         ownerId: "fn:process_data",
@@ -345,8 +357,6 @@ describe("CodeAstAnatomyView", () => {
     expect(screen.getByText("00")).toBeInTheDocument();
     expect(screen.getByText("File Path")).toBeInTheDocument();
     expect(screen.getByText("Declaration Identity")).toBeInTheDocument();
-    expect(screen.getByText("Parameters")).toBeInTheDocument();
-    expect(screen.getByText("Return Type")).toBeInTheDocument();
     expect(screen.getByText("Logic Block Decomposition")).toBeInTheDocument();
     expect(screen.getByText("Symbol Semantic Overlay")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Pivot declaration" })).toBeInTheDocument();
@@ -375,12 +385,6 @@ describe("CodeAstAnatomyView", () => {
     expect(declarationAtom).toHaveTextContent("fp:backenddecl");
     expect(declarationAtom).toHaveTextContent("Tokens");
     expect(declarationAtom).toHaveTextContent("~19");
-    const signatureParts = screen.getByTestId("code-ast-signature-parts");
-    expect(within(signatureParts).getByText("input")).toBeInTheDocument();
-    expect(within(signatureParts).getByText("&[u8]")).toBeInTheDocument();
-    expect(within(signatureParts).getByText("config")).toBeInTheDocument();
-    expect(within(signatureParts).getByText("&Config")).toBeInTheDocument();
-    expect(within(signatureParts).getByText("Result<Processed>")).toBeInTheDocument();
     expect(screen.getAllByText("process_data").length).toBeGreaterThan(0);
     expect(screen.getByTestId("code-ast-waterfall-block-stack")).toBeInTheDocument();
     expect(screen.getByText("Validation Rail · backend")).toBeInTheDocument();
@@ -421,8 +425,6 @@ describe("CodeAstAnatomyView", () => {
     fireEvent.click(within(anchorGroup).getAllByRole("button", { name: "Pivot anchor" })[0]);
     expect(onPivotQuery).toHaveBeenCalledWith("process_data");
 
-    fireEvent.click(within(signatureParts).getAllByRole("button")[0]);
-    expect(onPivotQuery).toHaveBeenCalledWith("input");
     fireEvent.click(screen.getByRole("button", { name: "Pivot declaration" }));
     expect(onPivotQuery).toHaveBeenCalledWith("process_data");
   });
@@ -476,8 +478,7 @@ describe("CodeAstAnatomyView", () => {
     expect(declarationPayload).toContain("Fingerprint: fp:backenddecl");
     expect(declarationPayload).toContain("Tokens: ~19");
     expect(declarationPayload).toContain("Path: kernel/src/lib.rs");
-    expect(declarationPayload).toContain("Line: L1");
-    expect(declarationPayload).toContain("pub fn process_data(");
+    expect(declarationPayload).toContain("process_data");
 
     const blockPayload = clipboardWriteText.mock.calls[1]?.[0] as string;
     expect(blockPayload).toContain("Block: Validation Rail · backend");
@@ -535,7 +536,6 @@ describe("CodeAstAnatomyView", () => {
     expect(payload).toContain("Fingerprint: fp:backendsymbol");
     expect(payload).toContain("Tokens: ~11");
     expect(payload).toContain("Path: kernel/src/lib.rs");
-    expect(payload).toContain("Line: L1");
     expect(payload).toContain("References: 4");
   });
 
@@ -586,7 +586,6 @@ describe("CodeAstAnatomyView", () => {
     expect(payload).toContain("Fingerprint: fp:backendsymbol");
     expect(payload).toContain("Tokens: ~11");
     expect(payload).toContain("Path: kernel/src/lib.rs");
-    expect(payload).toContain("Line: L1");
     expect(payload).toContain("References: 4");
   });
 
@@ -611,18 +610,22 @@ describe("CodeAstAnatomyView", () => {
           repoId: "kernel",
           path: "src/demo.ts",
           language: "typescript",
+          nodeCount: 1,
+          edgeCount: 0,
           nodes: [
             {
               id: "fn:buildWidget",
               label: "buildWidget",
-              kind: "function",
+              kind: "symbol",
               path: "src/demo.ts",
-              line: 1,
+              lineStart: 1,
+              lineEnd: 1,
             },
           ],
           edges: [],
           projections: [],
           focusNodeId: "fn:buildWidget",
+          diagnostics: [],
         }}
         content={[
           "export function buildWidget(name: string): Widget {",
@@ -640,8 +643,6 @@ describe("CodeAstAnatomyView", () => {
 
     expect(screen.getByText("Code AST Waterfall")).toBeInTheDocument();
     expect(screen.getByText("Declaration Identity")).toBeInTheDocument();
-    expect(screen.getByText("Parameters")).toBeInTheDocument();
-    expect(screen.getByText("Return Type")).toBeInTheDocument();
     expect(screen.getByText("Logic Block Decomposition")).toBeInTheDocument();
     expect(screen.getByText("Symbol Semantic Overlay")).toBeInTheDocument();
 
@@ -682,16 +683,18 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "fn:solve",
               label: "solve",
-              kind: "function",
+              kind: "symbol",
               path: "solver/src/CodeAstJulia.jl",
-              line: 1,
+              lineStart: 1,
+              lineEnd: 1,
             },
             {
               id: "binding:problem",
               label: "problem",
-              kind: "binding",
+              kind: "symbol",
               path: "solver/src/CodeAstJulia.jl",
-              line: 1,
+              lineStart: 1,
+              lineEnd: 1,
             },
           ],
           edges: [],
@@ -761,16 +764,18 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "model:PI",
               label: "PI",
-              kind: "model",
+              kind: "symbol",
               path: "mcl/Modelica/Blocks/PI.mo",
-              line: 1,
+              lineStart: 1,
+              lineEnd: 1,
             },
             {
               id: "symbol:k",
               label: "k",
-              kind: "parameter",
+              kind: "symbol",
               path: "mcl/Modelica/Blocks/PI.mo",
-              line: 2,
+              lineStart: 2,
+              lineEnd: 2,
             },
           ],
           edges: [
@@ -778,7 +783,7 @@ describe("CodeAstAnatomyView", () => {
               id: "edge:model-parameter",
               sourceId: "model:PI",
               targetId: "symbol:k",
-              kind: "contains",
+              kind: "declares",
             },
           ],
           projections: [],

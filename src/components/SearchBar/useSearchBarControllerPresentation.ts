@@ -214,7 +214,6 @@ export function useSearchBarControllerPresentation({
     onScopeChange: setScope,
     onSortModeChange: setSortMode,
     setResultSelectedIndex,
-    onPreview: selectPreviewResult,
   });
 
   const {

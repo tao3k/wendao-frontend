@@ -7,6 +7,7 @@ import {
 } from "../../codeSearchUtils";
 import type { SearchScope } from "../../types";
 import type { AutocompleteSource } from "@algolia/autocomplete-core";
+import { toSearchAutocompleteItems, type SearchAutocompleteItem } from "./types";
 
 interface BuildSearchAutocompleteSourcesParams {
   scope: SearchScope;
@@ -34,16 +35,18 @@ function createFilterSource(
   parsedCodeFilters: SearchFilters,
   codeFilterCatalog: SearchFilters,
   includeDefaultPrefixes: boolean,
-): AutocompleteSource<AutocompleteSuggestion> {
+): AutocompleteSource<SearchAutocompleteItem> {
   return {
     sourceId: "code-filters",
     getItemInputValue({ item }) {
       return item.text;
     },
     async getItems() {
-      return buildCodeFilterSuggestions(rawQuery, parsedCodeFilters, codeFilterCatalog, {
-        includeDefaultPrefixes,
-      });
+      return toSearchAutocompleteItems(
+        buildCodeFilterSuggestions(rawQuery, parsedCodeFilters, codeFilterCatalog, {
+          includeDefaultPrefixes,
+        }),
+      );
     },
   };
 }
@@ -52,7 +55,7 @@ function createBackendAutocompleteSource(
   autocompleteQuery: string,
   allScopeFilterSuggestions: AutocompleteSuggestion[],
   scope: SearchScope,
-): AutocompleteSource<AutocompleteSuggestion> {
+): AutocompleteSource<SearchAutocompleteItem> {
   return {
     sourceId: "backend-autocomplete",
     getItemInputValue({ item }) {
@@ -60,17 +63,19 @@ function createBackendAutocompleteSource(
     },
     async getItems() {
       if (!autocompleteQuery) {
-        return allScopeFilterSuggestions;
+        return toSearchAutocompleteItems(allScopeFilterSuggestions);
       }
 
       try {
         const response = await api.searchAutocomplete(autocompleteQuery, 5);
         if (scope === "all") {
-          return mergeAutocompleteSuggestions(allScopeFilterSuggestions, response.suggestions);
+          return toSearchAutocompleteItems(
+            mergeAutocompleteSuggestions(allScopeFilterSuggestions, response.suggestions),
+          );
         }
-        return response.suggestions;
+        return toSearchAutocompleteItems(response.suggestions);
       } catch {
-        return allScopeFilterSuggestions;
+        return toSearchAutocompleteItems(allScopeFilterSuggestions);
       }
     },
   };
@@ -81,7 +86,7 @@ export function buildSearchAutocompleteSources({
   rawQuery,
   parsedCodeFilters,
   codeFilterCatalog,
-}: BuildSearchAutocompleteSourcesParams): Array<AutocompleteSource<AutocompleteSuggestion>> {
+}: BuildSearchAutocompleteSourcesParams): Array<AutocompleteSource<SearchAutocompleteItem>> {
   const trimmedQuery = rawQuery.trim();
   if (!trimmedQuery) {
     return [];

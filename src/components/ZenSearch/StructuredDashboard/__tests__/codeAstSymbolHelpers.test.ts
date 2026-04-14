@@ -203,7 +203,7 @@ describe("codeAstSymbolHelpers", () => {
     );
     const groups = buildSymbolGroups(symbols);
 
-    expect(symbols.map((symbol) => symbol.id)).toEqual(["ext:Printf", "fn:solve", "fn:helper"]);
+    expect(symbols.map((symbol) => symbol.id)).toEqual(["fn:solve", "ext:Printf", "fn:helper"]);
     expect(symbols.every((symbol) => symbol.atom.id.startsWith("ast:"))).toBe(true);
     expect(groups.map((group) => group.id)).toEqual(["local", "external", "anchors"]);
     expect(groups[0]?.symbols.map((symbol) => symbol.id)).toEqual(["fn:solve", "fn:helper"]);

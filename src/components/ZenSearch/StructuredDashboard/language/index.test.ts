@@ -18,7 +18,7 @@ describe("structured dashboard language projections", () => {
           {
             id: "fn:solve",
             label: "solve",
-            kind: "function",
+            kind: "symbol",
             path: "solver/src/CodeAstJulia.jl",
             lineStart: 1,
             lineEnd: 3,
@@ -96,7 +96,7 @@ describe("structured dashboard language projections", () => {
           {
             id: "model:PI",
             label: "PI",
-            kind: "type",
+            kind: "symbol",
             path: "mcl/Modelica/Blocks/package.mo",
             lineStart: 1,
             lineEnd: 5,

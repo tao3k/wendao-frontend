@@ -1,5 +1,11 @@
 import React from "react";
-import { MediaPlayer, MediaProvider } from "@vidstack/react";
+import {
+  MediaPlayer,
+  MediaProvider,
+  type AudioSrc,
+  type PlayerSrc,
+  type VideoSrc,
+} from "@vidstack/react";
 import {
   defaultLayoutIcons,
   DefaultAudioLayout,
@@ -25,7 +31,7 @@ function renderVidstackPlayer({
   sourceKey,
   title,
 }: Pick<VideoAudioPreviewSurfaceProps, "kind" | "label" | "title"> & {
-  source: string | { src: string; type?: string };
+  source: PlayerSrc;
   sourceKey: string;
 }): React.ReactElement {
   return (
@@ -57,16 +63,23 @@ export function VideoAudioPreviewSurface({
   testId,
   title,
 }: VideoAudioPreviewSurfaceProps): React.ReactElement {
-  const source = React.useMemo(() => {
+  const source = React.useMemo<PlayerSrc>(() => {
     if (!resolvedContentType) {
       return resolvedUrl;
     }
 
+    if (kind === "audio") {
+      return {
+        src: resolvedUrl,
+        type: resolvedContentType as AudioSrc["type"],
+      };
+    }
+
     return {
       src: resolvedUrl,
-      type: resolvedContentType,
+      type: resolvedContentType as VideoSrc["type"],
     };
-  }, [resolvedContentType, resolvedUrl]);
+  }, [kind, resolvedContentType, resolvedUrl]);
 
   return (
     <div className={`${className} media-preview__player-shell`} data-testid={testId}>

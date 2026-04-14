@@ -66,14 +66,9 @@ export function ChatPanel() {
         )}
       </div>
 
-      {error && (
-        <div className="chat-panel__error">Error: {error.message}</div>
-      )}
+      {error && <div className="chat-panel__error">Error: {error.message}</div>}
 
-      <form
-        className="chat-panel__input-area"
-        onSubmit={handleSubmit}
-      >
+      <form className="chat-panel__input-area" onSubmit={handleSubmit}>
         <input
           className="chat-panel__input"
           value={input}
@@ -81,11 +76,7 @@ export function ChatPanel() {
           placeholder="Type a message..."
           disabled={!isReady}
         />
-        <button
-          type="submit"
-          className="chat-panel__send"
-          disabled={!isReady || !input.trim()}
-        >
+        <button type="submit" className="chat-panel__send" disabled={!isReady || !input.trim()}>
           Send
         </button>
       </form>

@@ -150,18 +150,12 @@ export function formatSuggestionType(suggestion: AutocompleteSuggestion, locale:
   }
 
   switch (suggestion.suggestionType) {
-    case "heading":
-      return locale === "zh" ? "标题段落" : "Heading";
-    case "symbol":
-      return locale === "zh" ? "符号" : "Symbol";
-    case "metadata":
-      return locale === "zh" ? "元数据" : "Metadata";
-    case "stem":
-      return locale === "zh" ? "词干" : "Stem";
-    case "tag":
-      return locale === "zh" ? "标签" : "Tag";
     case "title":
       return locale === "zh" ? "标题" : "Title";
+    case "tag":
+      return locale === "zh" ? "标签" : "Tag";
+    case "stem":
+      return locale === "zh" ? "词干" : "Stem";
     default:
       return locale === "zh" ? "匹配" : "Match";
   }

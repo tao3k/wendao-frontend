@@ -12,6 +12,7 @@ import {
 describe("searchExecutionAllModeHelpers", () => {
   it("builds all-mode meta from resolved lane responses", () => {
     const outcome = buildAllModeOutcome({
+      queryToSearch: "solver",
       knowledgeResponse: {
         query: "solver",
         hits: [],
@@ -50,8 +51,17 @@ describe("searchExecutionAllModeHelpers", () => {
         hits: [],
         hitCount: 1,
         selectedScope: "definitions",
+        partial: false,
       },
-      referenceResponse: createFallbackReferenceResponse("solver"),
+      referenceResponse: {
+        query: "solver",
+        hits: [],
+        hitCount: 0,
+        selectedScope: "references",
+        partial: true,
+        indexingState: "indexing",
+        indexError: "reference index warming",
+      },
       symbolResponse: createFallbackSymbolResponse("solver"),
       attachmentResponse: createFallbackAttachmentResponse("solver"),
       failures: ["reference lane offline"],
@@ -63,7 +73,9 @@ describe("searchExecutionAllModeHelpers", () => {
     expect(outcome.meta.indexingState).toBe("indexing");
     expect(outcome.meta.pendingRepos).toEqual(["gateway-sync"]);
     expect(outcome.meta.skippedRepos).toEqual(["archive"]);
-    expect(outcome.meta.runtimeWarning).toBe("Partial search results: reference lane offline");
+    expect(outcome.meta.runtimeWarning).toBe(
+      "reference index warming | Partial search results: reference lane offline",
+    );
   });
 
   it("creates fallback lane responses with stable empty defaults", () => {

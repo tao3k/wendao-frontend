@@ -172,12 +172,15 @@ import type {
 import { getConfig } from "../config/loader";
 
 const API_BASE = "/api";
+let uiConfigCache: UiConfig | null = null;
 
 const uiConfigTransportState = createUiConfigTransportState({
   apiBase: API_BASE,
   handleResponse,
+  onUiConfigSynced: (config) => {
+    uiConfigCache = config;
+  },
 });
-let uiConfigCache: UiConfig | null = null;
 
 export function getUiCapabilitiesSync(): UiCapabilities | null {
   return uiConfigTransportState.getUiCapabilitiesSync();

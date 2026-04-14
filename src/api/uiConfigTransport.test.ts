@@ -45,7 +45,58 @@ describe("uiConfigTransport", () => {
     expect(result).toBe("ok");
   });
 
-  it("does not retry failed requests by posting local ui config", async () => {
+  it("re-syncs local ui config and retries once on UNKNOWN_REPOSITORY", async () => {
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/wendao.toml") {
+        return new Response(
+          `
+[gateway]
+bind = "127.0.0.1:9517"
+
+[link_graph.projects.kernel]
+root = "."
+dirs = ["docs"]
+`,
+          { status: 200, headers: { "Content-Type": "text/plain" } },
+        );
+      }
+
+      if (url === "/api/ui/config" && init?.method === "POST") {
+        return new Response("null", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      throw new Error(`unexpected fetch call: ${url}`);
+    }) as unknown as typeof fetch;
+
+    const state = createUiConfigTransportState({
+      apiBase: "/api",
+      fetchImpl: fetchSpy,
+      handleResponse: async <T>(response: Response) => response.json() as Promise<T>,
+    });
+    let attempts = 0;
+
+    const result = await state.withUiConfigSyncRetry(async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("UNKNOWN_REPOSITORY");
+      }
+      return "ok";
+    });
+
+    expect(result).toBe("ok");
+    expect(attempts).toBe(2);
+    expect(fetchSpy).toHaveBeenCalledWith("/wendao.toml");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/ui/config",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("does not retry non-repository failures", async () => {
     const state = createUiConfigTransportState({
       apiBase: "/api",
       handleResponse: async <T>(response: Response) => response.json() as Promise<T>,
@@ -53,8 +104,8 @@ describe("uiConfigTransport", () => {
 
     await expect(
       state.withUiConfigSyncRetry(async () => {
-        throw new Error("UNKNOWN_REPOSITORY");
+        throw new Error("NETWORK_DOWN");
       }),
-    ).rejects.toThrow("UNKNOWN_REPOSITORY");
+    ).rejects.toThrow("NETWORK_DOWN");
   });
 });

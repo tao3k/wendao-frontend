@@ -69,8 +69,6 @@ class MockWorker {
                 name: node.name,
                 type: node.type,
                 position: node.position,
-                content: node.content,
-                metadata: node.metadata,
                 x: 0,
                 y: 0,
                 z: 0,

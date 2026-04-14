@@ -155,8 +155,8 @@ export const SearchResultRow = React.memo(function SearchResultRow({
               <SaliencyIndicator score={result.saliencyScore} />
             )}
           </div>
-          {result.hierarchical_uri ? (
-            <TopoBreadcrumbs uri={result.hierarchical_uri} />
+          {result.hierarchicalUri ? (
+            <TopoBreadcrumbs uri={result.hierarchicalUri} />
           ) : (
             <div className="search-result-path">{displayPath}</div>
           )}

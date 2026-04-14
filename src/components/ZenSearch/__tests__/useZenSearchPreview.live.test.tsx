@@ -13,6 +13,7 @@ import { searchKnowledgeFlight } from "../../../api/flightSearchTransport";
 import { decodeSearchHitsFromArrowIpc } from "../../../api/arrowSearchIpc";
 import type { SearchResult } from "../../SearchBar/types";
 import { normalizeCodeSearchHit } from "../../SearchBar/searchResultNormalization";
+import type { CodeAstAnalysisResponse } from "../../../api";
 import { CodeAstAnatomyView } from "../CodeAstAnatomyView";
 import { useZenSearchPreview } from "../useZenSearchPreview";
 import {
@@ -290,15 +291,26 @@ function findFirstLiveAttributeValue(
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  let timeoutId = 0;
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
   return new Promise<T>((resolve, reject) => {
     timeoutId = globalThis.setTimeout(() => {
       reject(new Error(`${label} timed out after ${ms}ms`));
     }, ms);
     void promise.then(resolve, reject).finally(() => {
-      globalThis.clearTimeout(timeoutId);
+      if (timeoutId !== null) {
+        globalThis.clearTimeout(timeoutId);
+      }
     });
   });
+}
+
+function requireCodeAstAnalysis(
+  analysis: CodeAstAnalysisResponse | null | undefined,
+): CodeAstAnalysisResponse {
+  if (!analysis) {
+    throw new Error("expected a live code AST analysis");
+  }
+  return analysis;
 }
 
 liveDescribe("useZenSearchPreview live gateway integration", () => {
@@ -470,11 +482,13 @@ liveDescribe("useZenSearchPreview live gateway integration", () => {
       "owner_path",
     ]);
 
+    const analysis = requireCodeAstAnalysis(result.current.codeAstAnalysis);
+
     render(
       <CodeAstAnatomyView
         locale="en"
         selectedResult={selectedResult!}
-        analysis={result.current.codeAstAnalysis}
+        analysis={analysis}
         content={result.current.content}
         loading={false}
         error={result.current.codeAstError ?? null}
@@ -512,7 +526,7 @@ liveDescribe("useZenSearchPreview live gateway integration", () => {
     expect(direct.repoId).toBe(liveModelicaCodeAstRepo);
     expect(direct.path.endsWith(".mo")).toBe(true);
     expect(direct.language).toBe("modelica");
-    expect(direct.retrievalAtoms.length).toBeGreaterThan(0);
+    expect(direct.retrievalAtoms?.length ?? 0).toBeGreaterThan(0);
   }, 40_000);
 
   it("renders parser-backed facets in the live Modelica code anatomy view", async () => {
@@ -541,11 +555,13 @@ liveDescribe("useZenSearchPreview live gateway integration", () => {
       "class_name",
     ]);
 
+    const analysis = requireCodeAstAnalysis(result.current.codeAstAnalysis);
+
     render(
       <CodeAstAnatomyView
         locale="en"
         selectedResult={selectedResult!}
-        analysis={result.current.codeAstAnalysis}
+        analysis={analysis}
         content={result.current.content}
         loading={false}
         error={result.current.codeAstError ?? null}

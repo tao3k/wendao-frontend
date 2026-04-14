@@ -5,6 +5,7 @@ import type { SearchFilters } from "../../codeSearchUtils";
 import { buildVisibleSearchSuggestions } from "../../searchSuggestionBudget";
 import type { SearchScope } from "../../types";
 import { buildSearchAutocompleteSources } from "./buildSearchAutocompleteSources";
+import type { SearchAutocompleteItem } from "./types";
 
 interface UseSearchAutocompleteInterfaceParams {
   isOpen: boolean;
@@ -32,9 +33,9 @@ function serializeSearchFilters(filters: SearchFilters): string {
 }
 
 function flattenCollections(
-  collections: Array<{ items: AutocompleteSuggestion[] }>,
-): AutocompleteSuggestion[] {
-  const merged = new Map<string, AutocompleteSuggestion>();
+  collections: Array<{ items: SearchAutocompleteItem[] }>,
+): SearchAutocompleteItem[] {
+  const merged = new Map<string, SearchAutocompleteItem>();
   collections
     .flatMap((collection) => collection.items)
     .forEach((suggestion) => {
@@ -99,7 +100,7 @@ export function useSearchAutocompleteInterface({
     codeFilterCatalog,
   };
 
-  const autocompleteRef = useRef<AutocompleteApi<AutocompleteSuggestion> | null>(null);
+  const autocompleteRef = useRef<AutocompleteApi<SearchAutocompleteItem> | null>(null);
   const syncSuggestionProjection = useCallback(
     (
       nextSuggestions: AutocompleteSuggestion[],
@@ -173,13 +174,13 @@ export function useSearchAutocompleteInterface({
   );
 
   useEffect(() => {
-    autocompleteRef.current = createAutocomplete<AutocompleteSuggestion>({
+    autocompleteRef.current = createAutocomplete<SearchAutocompleteItem>({
       id: "searchbar-interface-autocomplete",
       defaultActiveItemId: 0,
       openOnFocus: true,
       onStateChange({ state }) {
         syncSuggestionProjection(
-          flattenCollections(state.collections as Array<{ items: AutocompleteSuggestion[] }>),
+          flattenCollections(state.collections as Array<{ items: SearchAutocompleteItem[] }>),
           state.activeItemId,
           state.isOpen,
         );

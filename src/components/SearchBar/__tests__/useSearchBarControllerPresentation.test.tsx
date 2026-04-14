@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
 import { createPerfTrace } from "../../../lib/testPerfTrace";
 import { useSearchBarControllerPresentation } from "../useSearchBarControllerPresentation";
+import type { SearchResult } from "../types";
 
 const mocks = vi.hoisted(() => ({
   useSearchDataFlow: vi.fn(),
@@ -21,7 +22,7 @@ describe("useSearchBarControllerPresentation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const visibleResult = {
+    const visibleResult: SearchResult = {
       stem: "solve",
       title: "solve",
       path: "sciml/src/solve.jl",
@@ -36,6 +37,7 @@ describe("useSearchBarControllerPresentation", () => {
         rootLabel: "src",
         line: 12,
       },
+      searchSource: "search-index",
     };
     const visibleSections = [
       {
@@ -87,7 +89,7 @@ describe("useSearchBarControllerPresentation", () => {
     );
     const setActiveSuggestionIndex = vi.fn();
 
-    const baseProps = {
+    const baseProps: Parameters<typeof useSearchBarControllerPresentation>[0] = {
       isOpen: true,
       locale: "en" as const,
       copy: {} as any,
@@ -120,25 +122,19 @@ describe("useSearchBarControllerPresentation", () => {
         parsedCodeInput: {
           baseQuery: "sec",
           filters: {
+            language: ["julia"],
             repo: [],
             kind: [],
-            lang: ["julia"],
             path: [],
-            symbol: [],
-            section: [],
-            tag: [],
           },
         },
         parsedCodeSearch: {
           baseQuery: "sec",
           filters: {
+            language: ["julia"],
             repo: [],
             kind: [],
-            lang: ["julia"],
             path: [],
-            symbol: [],
-            section: [],
-            tag: [],
           },
         },
         activeRepoFilter: undefined,
@@ -146,14 +142,17 @@ describe("useSearchBarControllerPresentation", () => {
         repoFacet: null,
         repoOverviewStatus: null,
         repoSyncStatus: null,
-        activeCodeFilterEntries: [{ kind: "lang", rawToken: "lang:julia", value: "julia" }],
+        activeCodeFilterEntries: [{ key: "language", label: "lang:julia" }],
+        codeQuickExampleTokens: [],
+        codeQuickScenarios: [],
         suggestions: [
-          { text: "lang:julia", type: "filter" },
-          { text: "kind:function", type: "filter" },
+          { text: "lang:julia", suggestionType: "stem", docType: "filter" },
+          { text: "kind:function", suggestionType: "stem", docType: "filter" },
         ],
         activeSuggestionIndex: 0,
         setActiveSuggestionIndex,
         selectSuggestion: vi.fn(),
+        clearSuggestions: vi.fn(),
       },
       renderIcon: () => null,
       renderTitle: (text: string) => text,

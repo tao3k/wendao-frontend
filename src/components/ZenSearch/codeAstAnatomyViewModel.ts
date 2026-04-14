@@ -189,8 +189,8 @@ export async function copyToClipboard(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 
-function buildFacetPayloadLines(facets: CodeAstFacetModel[]): string[] {
-  if (facets.length === 0) {
+function buildFacetPayloadLines(facets: CodeAstFacetModel[] | undefined): string[] {
+  if (!facets || facets.length === 0) {
     return [];
   }
 

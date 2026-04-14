@@ -208,7 +208,16 @@ describe("flightSearchTransport", () => {
                   }),
                 },
               ],
-              appMetadata: new Uint8Array(),
+              appMetadata: new TextEncoder().encode(
+                JSON.stringify({
+                  query: "topology",
+                  hitCount: 1,
+                  selectedScope: "attachments",
+                  partial: true,
+                  indexingState: "indexing",
+                  indexError: "attachment index warming",
+                }),
+              ),
             });
           },
           async *doGet() {
@@ -237,6 +246,9 @@ describe("flightSearchTransport", () => {
 
     expect(response.selectedScope).toBe("attachments");
     expect(response.hitCount).toBe(1);
+    expect(response.partial).toBe(true);
+    expect(response.indexingState).toBe("indexing");
+    expect(response.indexError).toBe("attachment index warming");
     expect(response.hits[0]?.attachmentName).toBe("topology.png");
   });
 

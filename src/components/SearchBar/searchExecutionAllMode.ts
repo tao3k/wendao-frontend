@@ -167,7 +167,7 @@ export async function executeAllModeSearch(
       return;
     }
     const outcome = buildProgressiveAllModeOutcome(queryToSearch, trimmedQuery, progress);
-    if (outcome.results.length === 0) {
+    if (outcome.results.length === 0 && !outcome.meta.partial && !outcome.meta.runtimeWarning) {
       return;
     }
     options.onProgress(outcome);
@@ -232,7 +232,7 @@ export async function executeAllModeSearch(
   const trackedAstPromise = astPromise.then(
     (response) => {
       progress.astResponse = response;
-      if (response.hitCount > 0) {
+      if (response.hitCount > 0 || response.partial) {
         emitProgress();
       }
       return response;
@@ -245,7 +245,7 @@ export async function executeAllModeSearch(
   const trackedReferencePromise = referencePromise.then(
     (response) => {
       progress.referenceResponse = response;
-      if (response.hitCount > 0) {
+      if (response.hitCount > 0 || response.partial) {
         emitProgress();
       }
       return response;
@@ -258,7 +258,7 @@ export async function executeAllModeSearch(
   const trackedSymbolPromise = symbolPromise.then(
     (response) => {
       progress.symbolResponse = response;
-      if (response.hitCount > 0) {
+      if (response.hitCount > 0 || response.partial) {
         emitProgress();
       }
       return response;
@@ -271,7 +271,7 @@ export async function executeAllModeSearch(
   const trackedAttachmentPromise = attachmentPromise.then(
     (response) => {
       progress.attachmentResponse = response;
-      if (response.hitCount > 0) {
+      if (response.hitCount > 0 || response.partial) {
         emitProgress();
       }
       return response;

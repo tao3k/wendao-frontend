@@ -198,6 +198,9 @@ export interface AttachmentSearchResponse {
   hits: AttachmentSearchHit[];
   hitCount: number;
   selectedScope: string;
+  partial?: boolean;
+  indexingState?: string;
+  indexError?: string;
 }
 
 export interface AstSearchHit {
@@ -221,6 +224,9 @@ export interface AstSearchResponse {
   hits: AstSearchHit[];
   hitCount: number;
   selectedScope: string;
+  partial?: boolean;
+  indexingState?: string;
+  indexError?: string;
 }
 
 export interface DefinitionResolveResponse {
@@ -262,6 +268,9 @@ export interface ReferenceSearchResponse {
   hits: ReferenceSearchHit[];
   hitCount: number;
   selectedScope: string;
+  partial?: boolean;
+  indexingState?: string;
+  indexError?: string;
 }
 
 export type SymbolSearchSource = "project" | "external";

@@ -2,6 +2,7 @@ import type {
   CodeAstAnalysisResponse,
   CodeAstRetrievalAtom as ApiCodeAstRetrievalAtom,
 } from "../../../api";
+import type { ArrowRetrievalLookup } from "../../../utils/arrowRetrievalLookup";
 import {
   buildCodeAstRetrievalAtom,
   resolveDisplayRetrievalAtom,
@@ -175,7 +176,7 @@ function collectSegments(
   const segments: RawBlockSegment[] = [];
   let current: RawBlockSegment | null = null;
 
-  bodyLines.forEach((line, offset) => {
+  for (const [offset, line] of bodyLines.entries()) {
     const absoluteLine = bodyStartIndex + offset + 1;
 
     if (line.trim().length === 0) {
@@ -183,7 +184,7 @@ function collectSegments(
         segments.push(current);
         current = null;
       }
-      return;
+      continue;
     }
 
     if (!current) {
@@ -196,7 +197,7 @@ function collectSegments(
 
     current.lines.push(line);
     current.end = absoluteLine;
-  });
+  }
 
   if (current && current.lines.length > 0) {
     segments.push(current);
@@ -210,7 +211,7 @@ export function buildCodeBlocks(
   declarationLine: number | undefined,
   analysis: CodeAstAnalysisResponse,
   selectedPath: string,
-  retrievalAtomLookup: Map<string, ApiCodeAstRetrievalAtom>,
+  retrievalAtomLookup: ArrowRetrievalLookup<ApiCodeAstRetrievalAtom>,
 ): CodeAstBlockModel[] {
   if (contentLines.length === 0) {
     return (
@@ -266,7 +267,7 @@ export function buildCodeBlocks(
                   nodePath === selected ||
                   nodePath?.endsWith(`/${selectedPath}`) === true ||
                   selected?.endsWith(`/${nodePath}`) === true;
-                const nodeLine = node.line ?? node.lineStart;
+                const nodeLine = node.lineStart;
                 return (
                   sameFile && typeof nodeLine === "number" && nodeLine >= start && nodeLine <= end
                 );
@@ -306,7 +307,7 @@ export function buildCodeBlocks(
     const kind = classifyBlockKind(segment.lines);
     const anchors = analysis.nodes
       .filter((node) => {
-        if (!node.line) {
+        if (!node.lineStart) {
           return false;
         }
 
@@ -316,7 +317,7 @@ export function buildCodeBlocks(
           nodePath === selected ||
           nodePath?.endsWith(`/${selectedPath}`) === true ||
           selected?.endsWith(`/${nodePath}`) === true;
-        return sameFile && node.line >= segment.start && node.line <= segment.end;
+        return sameFile && node.lineStart >= segment.start && node.lineStart <= segment.end;
       })
       .map((node) => node.label)
       .filter((label) => label.trim().length > 0);
@@ -382,6 +383,10 @@ export function buildCodeBlocks(
   }
 
   const fallback = segments[0];
+  if (!fallback) {
+    return [];
+  }
+
   return [
     {
       id: `execution-${fallback.start}-${fallback.end}`,

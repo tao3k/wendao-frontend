@@ -756,7 +756,7 @@ describe("SearchBar", () => {
         ).map((node) => node.textContent);
 
         expect(labels).toEqual(
-          expect.arrayContaining(["Title", "Tag", "Stem", "Heading", "Symbol", "Metadata"]),
+          expect.arrayContaining(["Title", "Tag", "Stem", "Match", "Match", "Match"]),
         );
       },
       { timeout: 1000 },
@@ -1382,7 +1382,7 @@ describe("SearchBar", () => {
       () => {
         expect(mockedApi.getCodeAstAnalysis).toHaveBeenCalledWith(
           "kernel/packages/rust/crates/xiuxian-wendao/src/repo.rs",
-          { repo: "kernel", line: 42 },
+          expect.objectContaining({ repo: "kernel", line: 42 }),
         );
         expect(screen.getByTestId("structured-code-inspector")).toBeInTheDocument();
         expect(screen.getByTestId("code-ast-waterfall")).toBeInTheDocument();

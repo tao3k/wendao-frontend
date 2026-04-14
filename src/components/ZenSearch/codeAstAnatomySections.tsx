@@ -66,7 +66,7 @@ interface CodeAstAtomRowProps {
 
 interface CodeAstPivotButtonProps {
   className?: string;
-  label: string;
+  label: React.ReactNode;
   query: string | null | undefined;
   title?: string;
   onPivotQuery?: (query: string) => void;
@@ -239,6 +239,8 @@ function CodeAstAnchorCard({
   rank: number;
   onPivotQuery?: (query: string) => void;
 }): React.ReactNode {
+  const facets = symbol.facets ?? [];
+
   return (
     <div
       className="code-ast-waterfall__anchor-card"
@@ -259,13 +261,13 @@ function CodeAstAnchorCard({
         {symbol.references > 0 ? ` · refs:${symbol.references}` : ""}
       </div>
       <CodeAstAtomRow copy={copy} atom={symbol.atom} testId="code-ast-anchor-atom" />
-      {symbol.facets.length > 0 && (
+      {facets.length > 0 && (
         <div
           className="structured-chip-row code-ast-waterfall__facet-row"
           data-testid="code-ast-anchor-facets"
           aria-label={copy.parserFacets}
         >
-          {symbol.facets.map((facet) => (
+          {facets.map((facet) => (
             <CodeAstFacetChip
               key={`${symbol.id}-${facet.label}-${facet.value}-anchor`}
               chipKey={`${symbol.id}-${facet.label}-${facet.value}-anchor`}
@@ -296,6 +298,8 @@ function CodeAstSymbolCard({
   symbol: CodeAstSymbolModel;
   onPivotQuery?: (query: string) => void;
 }): React.ReactNode {
+  const facets = symbol.facets ?? [];
+
   return (
     <div
       className="code-ast-waterfall__symbol-card"
@@ -311,13 +315,13 @@ function CodeAstSymbolCard({
         {symbol.references > 0 ? ` · refs:${symbol.references}` : ""}
       </div>
       <CodeAstAtomRow copy={copy} atom={symbol.atom} testId="code-ast-symbol-atom" />
-      {symbol.facets.length > 0 && (
+      {facets.length > 0 && (
         <div
           className="structured-chip-row code-ast-waterfall__facet-row"
           data-testid="code-ast-symbol-facets"
           aria-label={copy.parserFacets}
         >
-          {symbol.facets.map((facet) => (
+          {facets.map((facet) => (
             <CodeAstFacetChip
               key={`${symbol.id}-${facet.label}-${facet.value}`}
               chipKey={`${symbol.id}-${facet.label}-${facet.value}`}
@@ -367,6 +371,7 @@ export function CodeAstDeclarationStage({
   signatureRows,
   onPivotQuery,
 }: CodeAstDeclarationStageProps): React.ReactNode {
+  const facets = declaration?.facets ?? [];
   const handlePivotDeclaration = React.useCallback(() => {
     onPivotQuery?.(declaration?.query ?? declaration?.label ?? "");
   }, [declaration?.label, declaration?.query, onPivotQuery]);
@@ -410,13 +415,13 @@ export function CodeAstDeclarationStage({
             />
           </div>
           <CodeAstAtomRow copy={copy} atom={declaration.atom} testId="code-ast-declaration-atom" />
-          {declaration.facets.length > 0 && (
+          {facets.length > 0 && (
             <div
               className="structured-chip-row code-ast-waterfall__facet-row"
               data-testid="code-ast-declaration-facets"
               aria-label={copy.parserFacets}
             >
-              {declaration.facets.map((facet) => (
+              {facets.map((facet) => (
                 <CodeAstFacetChip
                   key={`declaration-${facet.label}-${facet.value}`}
                   chipKey={`declaration-${facet.label}-${facet.value}`}
@@ -509,73 +514,77 @@ export function CodeAstBlocksStage({
       </div>
       <div className="code-ast-waterfall__block-stack" data-testid="code-ast-waterfall-block-stack">
         {blocks.length > 0 ? (
-          blocks.map((block) => (
-            <details
-              key={block.id}
-              className={`code-ast-waterfall__block code-ast-waterfall__block--${block.kind}`}
-              data-chunk-id={block.atom.id}
-              data-semantic-type={block.atom.semanticType}
-              open
-            >
-              <summary className="code-ast-waterfall__block-summary">
-                <span className="code-ast-waterfall__block-title">{block.title}</span>
-                <span className="code-ast-waterfall__block-meta">
-                  {block.lineRange}
-                  {block.anchors.length > 0 ? ` · ${block.anchors.length} anchors` : ""}
-                </span>
-              </summary>
-              <div className="code-ast-waterfall__block-body">
-                <div className="code-ast-waterfall__block-actions">
-                  <CodeAstPivotButton
-                    label={copy.pivotBlock}
-                    query={block.query}
-                    title={block.query ?? block.title}
-                    onPivotQuery={onPivotQuery}
-                  />
-                  <CodeAstCopyButton
-                    label={copy.copyForRag}
-                    payload={buildBlockCopyPayload(block)}
-                  />
+          blocks.map((block) => {
+            const facets = block.facets ?? [];
+
+            return (
+              <details
+                key={block.id}
+                className={`code-ast-waterfall__block code-ast-waterfall__block--${block.kind}`}
+                data-chunk-id={block.atom.id}
+                data-semantic-type={block.atom.semanticType}
+                open
+              >
+                <summary className="code-ast-waterfall__block-summary">
+                  <span className="code-ast-waterfall__block-title">{block.title}</span>
+                  <span className="code-ast-waterfall__block-meta">
+                    {block.lineRange}
+                    {block.anchors.length > 0 ? ` · ${block.anchors.length} anchors` : ""}
+                  </span>
+                </summary>
+                <div className="code-ast-waterfall__block-body">
+                  <div className="code-ast-waterfall__block-actions">
+                    <CodeAstPivotButton
+                      label={copy.pivotBlock}
+                      query={block.query}
+                      title={block.query ?? block.title}
+                      onPivotQuery={onPivotQuery}
+                    />
+                    <CodeAstCopyButton
+                      label={copy.copyForRag}
+                      payload={buildBlockCopyPayload(block)}
+                    />
+                  </div>
+                  <CodeAstAtomRow copy={copy} atom={block.atom} testId="code-ast-block-atom" />
+                  {facets.length > 0 && (
+                    <div
+                      className="structured-chip-row code-ast-waterfall__facet-row"
+                      data-testid="code-ast-block-facets"
+                      aria-label={copy.parserFacets}
+                    >
+                      {facets.map((facet) => (
+                        <CodeAstFacetChip
+                          key={`${block.id}-${facet.label}-${facet.value}`}
+                          chipKey={`${block.id}-${facet.label}-${facet.value}`}
+                          facet={facet}
+                          onPivotQuery={onPivotQuery}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <pre className="code-ast-waterfall__block-excerpt">
+                    <CodeSyntaxHighlighter
+                      source={block.excerpt}
+                      language={syntaxLanguage}
+                      sourcePath={sourcePath}
+                    />
+                  </pre>
+                  {block.anchors.length > 0 && (
+                    <div className="structured-chip-row">
+                      {block.anchors.map((anchor) => (
+                        <CodeAstAnchorChip
+                          key={`${block.id}-${anchor}`}
+                          chipKey={`${block.id}-${anchor}`}
+                          anchor={anchor}
+                          onPivotQuery={onPivotQuery}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <CodeAstAtomRow copy={copy} atom={block.atom} testId="code-ast-block-atom" />
-                {block.facets.length > 0 && (
-                  <div
-                    className="structured-chip-row code-ast-waterfall__facet-row"
-                    data-testid="code-ast-block-facets"
-                    aria-label={copy.parserFacets}
-                  >
-                    {block.facets.map((facet) => (
-                      <CodeAstFacetChip
-                        key={`${block.id}-${facet.label}-${facet.value}`}
-                        chipKey={`${block.id}-${facet.label}-${facet.value}`}
-                        facet={facet}
-                        onPivotQuery={onPivotQuery}
-                      />
-                    ))}
-                  </div>
-                )}
-                <pre className="code-ast-waterfall__block-excerpt">
-                  <CodeSyntaxHighlighter
-                    source={block.excerpt}
-                    language={syntaxLanguage}
-                    sourcePath={sourcePath}
-                  />
-                </pre>
-                {block.anchors.length > 0 && (
-                  <div className="structured-chip-row">
-                    {block.anchors.map((anchor) => (
-                      <CodeAstAnchorChip
-                        key={`${block.id}-${anchor}`}
-                        chipKey={`${block.id}-${anchor}`}
-                        anchor={anchor}
-                        onPivotQuery={onPivotQuery}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </details>
-          ))
+              </details>
+            );
+          })
         ) : (
           <div className="code-ast-waterfall__block-empty">
             {locale === "zh" ? "暂无逻辑块。" : "No logic blocks."}

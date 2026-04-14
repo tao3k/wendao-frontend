@@ -30,6 +30,23 @@ export interface AllModeResolvedResponses {
   failures: string[];
 }
 
+interface PartialLaneState {
+  partial?: boolean;
+  indexingState?: string;
+  indexError?: string;
+}
+
+const INDEXING_STATE_PRIORITY = ["failed", "indexing", "degraded", "idle", "ready"] as const;
+
+function resolveAggregatedIndexingState(
+  laneStates: readonly PartialLaneState[],
+): string | undefined {
+  const states = laneStates
+    .map((state) => state.indexingState)
+    .filter((state): state is string => typeof state === "string" && state.length > 0);
+  return INDEXING_STATE_PRIORITY.find((state) => states.includes(state)) ?? states[0];
+}
+
 function resolveCodeResults(
   codeResponse: SearchResponse,
   codeOutcome?: SearchExecutionOutcome | null,
@@ -67,6 +84,9 @@ export function createFallbackAstResponse(query: string): AstSearchResponse {
     hits: [],
     hitCount: 0,
     selectedScope: "definitions",
+    partial: false,
+    indexingState: undefined,
+    indexError: undefined,
   };
 }
 
@@ -76,6 +96,9 @@ export function createFallbackReferenceResponse(query: string): ReferenceSearchR
     hits: [],
     hitCount: 0,
     selectedScope: "references",
+    partial: false,
+    indexingState: undefined,
+    indexError: undefined,
   };
 }
 
@@ -94,6 +117,9 @@ export function createFallbackAttachmentResponse(query: string): AttachmentSearc
     hits: [],
     hitCount: 0,
     selectedScope: "attachments",
+    partial: false,
+    indexingState: undefined,
+    indexError: undefined,
   };
 }
 
@@ -128,8 +154,32 @@ export function buildAllModeOutcome({
     ...symbolResponse.hits.map(normalizeSymbolHit),
     ...attachmentResponse.hits.map(normalizeAttachmentHit),
   ]);
+  const laneStates: PartialLaneState[] = [
+    {
+      partial: knowledgeResponse.partial,
+      indexingState: knowledgeResponse.indexingState,
+    },
+    codeOutcome
+      ? {
+          partial: codeOutcome.meta.partial,
+          indexingState: codeOutcome.meta.indexingState,
+        }
+      : {
+          partial: codeResponse.partial,
+          indexingState: codeResponse.indexingState,
+        },
+    astResponse,
+    referenceResponse,
+    symbolResponse,
+    attachmentResponse,
+  ];
+  const partial = laneStates.some((state) => Boolean(state.partial));
   const runtimeWarningSegments = [
     codeRuntimeWarning,
+    astResponse.indexError,
+    referenceResponse.indexError,
+    symbolResponse.indexError,
+    attachmentResponse.indexError,
     failures.length > 0 ? `Partial search results: ${failures.join(" | ")}` : undefined,
   ].filter((value): value is string => Boolean(value));
 
@@ -145,8 +195,8 @@ export function buildAllModeOutcome({
       graphConfidenceScore: knowledgeResponse.graphConfidenceScore,
       intent: knowledgeResponse.intent,
       intentConfidence: knowledgeResponse.intentConfidence,
-      partial: codeOutcome?.meta.partial ?? codeResponse.partial,
-      indexingState: codeOutcome?.meta.indexingState ?? codeResponse.indexingState,
+      partial,
+      indexingState: resolveAggregatedIndexingState(laneStates),
       pendingRepos: codeOutcome?.meta.pendingRepos ?? codeResponse.pendingRepos,
       skippedRepos: codeOutcome?.meta.skippedRepos ?? codeResponse.skippedRepos,
       runtimeWarning:

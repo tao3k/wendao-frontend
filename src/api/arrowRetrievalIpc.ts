@@ -4,6 +4,8 @@ import type { RetrievalChunk, RetrievalChunkSurface } from "./bindings";
 
 export const ARROW_RETRIEVAL_CONTENT_TYPE = "application/vnd.apache.arrow.stream";
 
+type ArrowIpcPayload = ArrayBuffer | Uint8Array<ArrayBufferLike>;
+
 const RETRIEVAL_SURFACES = new Set<RetrievalChunkSurface>([
   "document",
   "section",
@@ -79,7 +81,7 @@ function toOptionalAttributes(value: unknown): [string, string][] | undefined {
   }
 }
 
-export function decodeRetrievalChunksFromArrowIpc(payload: ArrayBuffer): RetrievalChunk[] {
+export function decodeRetrievalChunksFromArrowIpc(payload: ArrowIpcPayload): RetrievalChunk[] {
   if (payload.byteLength === 0) {
     return [];
   }

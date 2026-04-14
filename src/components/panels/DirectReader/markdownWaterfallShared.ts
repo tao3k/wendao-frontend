@@ -46,6 +46,7 @@ export interface MarkdownAstNode {
   depth?: number;
   children?: MarkdownAstNode[];
   url?: string;
+  alt?: string;
   position?: {
     start?: { offset?: number; line?: number };
     end?: { offset?: number; line?: number };

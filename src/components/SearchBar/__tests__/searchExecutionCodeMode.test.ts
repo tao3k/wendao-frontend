@@ -18,6 +18,9 @@ describe("searchExecutionCodeMode", () => {
       ready: 0,
       unsupported: 0,
       failed: 0,
+      targetConcurrency: 1,
+      maxConcurrency: 1,
+      syncConcurrencyLimit: 1,
       repos: [],
     });
   });

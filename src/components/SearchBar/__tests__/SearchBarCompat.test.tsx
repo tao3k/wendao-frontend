@@ -1,4 +1,3 @@
-import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { SearchBar } from "../SearchBar";
@@ -14,7 +13,7 @@ const zenSearchWindowMock = vi.fn(
 );
 
 vi.mock("../../ZenSearch", () => ({
-  ZenSearchWindow: (props: unknown) => zenSearchWindowMock(props),
+  ZenSearchWindow: (props: { locale?: string; onClose?: () => void }) => zenSearchWindowMock(props),
 }));
 
 describe("SearchBar compatibility wrapper", () => {

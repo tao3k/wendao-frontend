@@ -822,10 +822,9 @@ async function measureScenario(
 
   const analysisNodeCount =
     scenario === "code_ast" ? analysis.analysis.nodeCount : analysis.analysis.nodeCount;
+  const retrievalAtoms = analysis.analysis.retrievalAtoms ?? [];
   const retrievalAtomCount =
-    scenario === "code_ast"
-      ? analysis.analysis.retrievalAtoms.length
-      : analysis.analysis.retrievalAtoms.length;
+    scenario === "code_ast" ? retrievalAtoms.length : retrievalAtoms.length;
 
   return {
     scenario,

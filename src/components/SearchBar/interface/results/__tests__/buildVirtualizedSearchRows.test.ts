@@ -69,7 +69,7 @@ describe("buildVirtualizedSearchRows", () => {
         },
         {
           "displayIndex": 0,
-          "key": "result:sciml/src/solve.jl::12::::solve",
+          "key": "result:sciml/src/solve.jl::::12::::solve",
           "result": {
             "category": "symbol",
             "codeKind": "function",
@@ -104,7 +104,7 @@ describe("buildVirtualizedSearchRows", () => {
         },
         {
           "displayIndex": 1,
-          "key": "result:sciml/src/model.jl::30::::solve reference",
+          "key": "result:sciml/src/model.jl::::30::::solve reference",
           "result": {
             "category": "reference",
             "codeKind": "reference",

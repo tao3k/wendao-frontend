@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { recordPerfTraceSnapshot } from "../../../lib/testPerfRegistry";
 import { createPerfTrace } from "../../../lib/testPerfTrace";
 import { useSearchViewProps } from "../useSearchViewProps";
+import type { SearchResultSection } from "../searchResultSections";
+import type { SearchResult } from "../types";
 
 describe("useSearchViewProps", () => {
   it("keeps the shell input on the live query while the results panel can use a deferred query", () => {
@@ -81,7 +83,29 @@ describe("useSearchViewProps", () => {
     const onPreview = vi.fn();
     const renderTitle = vi.fn((text: string) => text);
     const trace = createPerfTrace("useSearchViewProps.shell-stability");
-    const baseProps = {
+    const visibleResult: SearchResult = {
+      stem: "Solver",
+      title: "Solver",
+      path: "kernel/docs/solver.md",
+      docType: "doc",
+      tags: [],
+      score: 0.8,
+      category: "document",
+      navigationTarget: {
+        path: "kernel/docs/solver.md",
+        category: "doc",
+        projectName: "kernel",
+      },
+      searchSource: "search-index",
+    };
+    const visibleSections: SearchResultSection[] = [
+      {
+        key: "document",
+        title: "Documents",
+        hits: [visibleResult],
+      },
+    ];
+    const baseProps: Parameters<typeof useSearchViewProps>[0] = {
       state: {
         inputRef: { current: null },
         copy: {} as any,
@@ -101,28 +125,7 @@ describe("useSearchViewProps", () => {
         repoSyncStatus: null,
         error: null,
         hasCodeFilterOnlyQuery: false,
-        visibleSections: [
-          {
-            key: "document",
-            title: "Documents",
-            hits: [
-              {
-                stem: "Solver",
-                title: "Solver",
-                path: "kernel/docs/solver.md",
-                docType: "doc",
-                tags: [],
-                score: 0.8,
-                category: "document",
-                navigationTarget: {
-                  path: "kernel/docs/solver.md",
-                  category: "doc",
-                  projectName: "kernel",
-                },
-              },
-            ],
-          },
-        ],
+        visibleSections,
         resultSelectedIndex: 0,
         canOpenReferences: true,
         canOpenGraph: true,

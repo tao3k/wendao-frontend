@@ -230,8 +230,10 @@ describe("flightSearchTransport", () => {
         decodeAttachmentHits: () => [
           {
             path: "kernel/docs/attachments/topology.md",
+            name: "topology.png",
             sourceId: "doc:topology",
             sourceStem: "topology",
+            sourceTitle: "Topology",
             sourcePath: "kernel/docs/attachments/topology.md",
             attachmentId: "attachment:topology",
             attachmentPath: "kernel/docs/assets/topology.png",
@@ -239,6 +241,10 @@ describe("flightSearchTransport", () => {
             attachmentExt: "png",
             kind: "image",
             score: 0.9,
+            navigationTarget: {
+              path: "kernel/docs/attachments/topology.md",
+              category: "doc",
+            },
           },
         ],
       },

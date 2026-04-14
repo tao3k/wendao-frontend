@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../../api";
-import type { UiConfig, UiProjectConfig, UiRepoProjectConfig } from "../../../api/bindings";
 import type { RepoIndexStatus } from "../../statusBar/types";
 import {
-  linkGraphOnlyRepoProjectIds,
   startRepoIndexStatusPolling,
   toRepoIndexStatusSnapshot,
 } from "./repoIndexStatus";
-import { buildTree, formatProjectSourceHint, formatRepoProjectSourceHint } from "./treeModel";
-import type { ConfiguredProjectGroup, FileNode, FileTreeLocale } from "./types";
+import { buildTree } from "./treeModel";
+import type { FileNode, FileTreeLocale } from "./types";
 
 interface UseFileTreeRuntimeOptions {
   locale: FileTreeLocale;
@@ -42,43 +40,39 @@ export function useFileTreeRuntime({ locale, emptyProjectHint }: UseFileTreeRunt
       setRepoIndexStatus(null);
       setLinkGraphOnlyProjectIds([]);
       try {
-        const uiConfig: UiConfig = await api.getUiConfig();
-
-        const repoProjects = uiConfig.repoProjects ?? [];
-        const repoIndexProjects = repoProjects.filter((project) => project.plugins.length > 0);
-        const linkGraphOnlyProjects = linkGraphOnlyRepoProjectIds(repoProjects);
+        const linkGraphOnlyProjects: string[] = [];
         setLinkGraphOnlyProjectIds(linkGraphOnlyProjects);
-
-        const configuredProjects: ConfiguredProjectGroup[] = [
-          ...uiConfig.projects.map((project: UiProjectConfig) => ({
-            name: project.name,
-            root: project.root,
-            dirs: project.dirs,
-            sourceHint: formatProjectSourceHint(project.root, project.dirs, locale),
-            isRepoProject: false,
-          })),
-          ...(uiConfig.repoProjects ?? []).map((project: UiRepoProjectConfig) => ({
-            name: project.id,
-            root: project.root,
-            sourceHint: formatRepoProjectSourceHint(project, locale),
-            isRepoProject: true,
-          })),
-        ];
-
-        if (repoIndexProjects.length > 0) {
-          stopRepoIndexPolling = startRepoIndexStatusPolling(
-            (status) => {
-              if (!cancelled) {
-                setRepoIndexStatus(status);
-              }
-            },
-            undefined,
-            { linkGraphOnlyProjectIds: linkGraphOnlyProjects },
-          );
-        }
+        stopRepoIndexPolling = startRepoIndexStatusPolling(
+          (status) => {
+            if (!cancelled) {
+              setRepoIndexStatus(status);
+            }
+          },
+          undefined,
+          { linkGraphOnlyProjectIds: linkGraphOnlyProjects },
+        );
 
         const vfsResult = await api.scanVfs();
-        const tree = buildTree(vfsResult.entries, locale, configuredProjects, emptyProjectHint);
+        const tree = buildTree(
+          vfsResult.entries.map((entry) => ({
+            path: entry.path,
+            name: entry.name,
+            isDir: entry.isDir,
+            category: entry.category,
+            size: entry.size,
+            modified: entry.modified,
+            hasFrontmatter: entry.hasFrontmatter,
+            contentType: entry.contentType ?? undefined,
+            projectName: entry.projectName ?? undefined,
+            rootLabel: entry.rootLabel ?? undefined,
+            projectRoot: entry.projectRoot ?? undefined,
+            projectDirs: entry.projectDirs ?? undefined,
+            wendaoId: entry.wendaoId ?? undefined,
+          })),
+          locale,
+          [],
+          emptyProjectHint,
+        );
         if (cancelled) {
           return;
         }

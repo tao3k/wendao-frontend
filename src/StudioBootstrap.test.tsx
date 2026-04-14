@@ -4,8 +4,6 @@ import { StudioBootstrap } from "./StudioBootstrap";
 
 const mocks = vi.hoisted(() => ({
   health: vi.fn(),
-  getUiConfig: vi.fn(),
-  getUiCapabilities: vi.fn(),
   scanVfs: vi.fn(),
   appSpy: vi.fn(),
 }));
@@ -20,8 +18,6 @@ vi.mock("./App", () => ({
 vi.mock("./api", () => ({
   api: {
     health: mocks.health,
-    getUiConfig: mocks.getUiConfig,
-    getUiCapabilities: mocks.getUiCapabilities,
     scanVfs: mocks.scanVfs,
   },
 }));
@@ -32,27 +28,13 @@ describe("StudioBootstrap", () => {
     vi.useRealTimers();
     window.localStorage.setItem("qianji-ui-locale", "en");
     mocks.health.mockResolvedValue("ok");
-    mocks.getUiConfig.mockResolvedValue({
-      projects: [
-        {
-          name: "main",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-    });
-    mocks.getUiCapabilities.mockResolvedValue({
-      supportedLanguages: ["julia", "modelica"],
-      supportedRepositories: ["main", "sciml"],
-      supportedKinds: ["function", "module", "struct"],
-    });
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("renders the studio app after gateway health and ui-config load succeed", async () => {
+  it("renders the studio app after gateway health succeeds", async () => {
     render(<StudioBootstrap />);
 
     await waitFor(() => {
@@ -60,8 +42,6 @@ describe("StudioBootstrap", () => {
     });
 
     expect(mocks.health).toHaveBeenCalledTimes(1);
-    expect(mocks.getUiConfig).toHaveBeenCalledTimes(1);
-    expect(mocks.getUiCapabilities).toHaveBeenCalledTimes(1);
     expect(mocks.scanVfs).not.toHaveBeenCalled();
   });
 
@@ -76,20 +56,6 @@ describe("StudioBootstrap", () => {
 
     expect(screen.getByText("connect ECONNREFUSED")).toBeInTheDocument();
     expect(screen.queryByTestId("studio-app")).not.toBeInTheDocument();
-  });
-
-  it("blocks studio startup when gateway ui config loading fails", async () => {
-    mocks.getUiConfig.mockRejectedValue(new Error("HTTP 404: Not Found"));
-
-    render(<StudioBootstrap />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Studio startup blocked")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText("HTTP 404: Not Found")).toBeInTheDocument();
-    expect(mocks.health).toHaveBeenCalledTimes(1);
-    expect(mocks.getUiCapabilities).not.toHaveBeenCalled();
   });
 
   it("retries the studio bootstrap after a blocked startup", async () => {
@@ -114,20 +80,11 @@ describe("StudioBootstrap", () => {
   });
 
   it("keeps the bootstrap surface blank while loading so startup does not flash a panel", async () => {
-    let releaseUiConfig!: () => void;
-    mocks.getUiConfig.mockImplementation(
+    let releaseHealth!: () => void;
+    mocks.health.mockImplementation(
       () =>
         new Promise((resolve) => {
-          releaseUiConfig = () =>
-            resolve({
-              projects: [
-                {
-                  name: "main",
-                  root: ".",
-                  dirs: ["docs"],
-                },
-              ],
-            });
+          releaseHealth = () => resolve("ok");
         }),
     );
 
@@ -141,23 +98,11 @@ describe("StudioBootstrap", () => {
     expect(screen.queryByText("Studio bootstrap")).not.toBeInTheDocument();
     expect(screen.queryByText("Studio startup blocked")).not.toBeInTheDocument();
 
-    releaseUiConfig();
+    releaseHealth();
 
     await waitFor(() => {
       expect(screen.getByTestId("studio-app")).toBeInTheDocument();
     });
-  });
-
-  it("continues startup when gateway capabilities are unavailable", async () => {
-    mocks.getUiCapabilities.mockRejectedValue(new Error("HTTP 404: Not Found"));
-
-    render(<StudioBootstrap />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("studio-app")).toBeInTheDocument();
-    });
-
-    expect(mocks.getUiCapabilities).toHaveBeenCalledTimes(1);
   });
 
   it("uses zh copy and localized fallback message when rejected value is not Error", async () => {

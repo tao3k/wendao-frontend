@@ -34,23 +34,6 @@ export async function fetchControlPlaneHealthResponse(
   return fetchControlPlaneJson<string>(deps, "health");
 }
 
-export async function fetchControlPlaneUiConfig<T>(
-  deps: ControlPlaneJsonTransportDeps,
-): Promise<T> {
-  return fetchControlPlaneJson<T>(deps, "uiConfig");
-}
-
-export async function postControlPlaneUiConfig(
-  deps: ControlPlaneJsonTransportDeps,
-  config: unknown,
-): Promise<void> {
-  await fetchControlPlaneJson<void>(deps, "uiConfig", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
-}
-
 export async function fetchControlPlaneUiCapabilities<T>(
   deps: ControlPlaneJsonTransportDeps,
 ): Promise<T> {

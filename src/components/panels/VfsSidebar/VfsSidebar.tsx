@@ -172,7 +172,36 @@ export function VfsSidebar({
       try {
         const result = await api.scanVfs();
         if (!cancelled) {
-          setEntries(result.entries);
+          setEntries(
+            result.entries.map((entry) => {
+              const normalizedEntry: {
+                path: string;
+                name: string;
+                isDir: boolean;
+                category: typeof entry.category;
+                size: number;
+                modified: number;
+                hasFrontmatter: boolean;
+                contentType?: string;
+                wendaoId?: string;
+              } = {
+                path: entry.path,
+                name: entry.name,
+                isDir: entry.isDir,
+                category: entry.category,
+                size: entry.size,
+                modified: entry.modified,
+                hasFrontmatter: entry.hasFrontmatter,
+              };
+              if (entry.contentType) {
+                normalizedEntry.contentType = entry.contentType;
+              }
+              if (entry.wendaoId) {
+                normalizedEntry.wendaoId = entry.wendaoId;
+              }
+              return normalizedEntry;
+            }),
+          );
         }
       } catch (err) {
         if (!cancelled) {

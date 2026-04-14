@@ -4,6 +4,7 @@ import type {
   RepoDocCoverageDoc,
   ReferenceSearchHit,
   SearchHit,
+  StudioNavigationTarget,
   SymbolSearchHit,
 } from "../../api";
 import {
@@ -14,8 +15,16 @@ import {
 import { resolveRelativeVfsResourcePath } from "../mediaPreview/model";
 import type { ResultCategory, SearchResult, SearchSelection } from "./types";
 
-function isNonEmptyString(value: string | undefined): value is string {
+function isNonEmptyString(value: string | null | undefined): value is string {
   return typeof value === "string" && value.length > 0;
+}
+
+function toOptionalText(value: string | null | undefined): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function toOptionalNumber(value: number | null | undefined): number | undefined {
+  return typeof value === "number" ? value : undefined;
 }
 
 function stripPathFragment(path: string): string {
@@ -253,20 +262,30 @@ function knowledgeResultCategory(hit: SearchHit): ResultCategory {
 }
 
 function canonicalizeSearchSelection(selection: SearchSelection): SearchSelection {
+  const projectName = toOptionalText(selection.projectName);
+  const rootLabel = toOptionalText(selection.rootLabel);
+  const line = toOptionalNumber(selection.line);
+  const lineEnd = toOptionalNumber(selection.lineEnd);
+  const column = toOptionalNumber(selection.column);
   const canonicalPath = normalizeSelectionPathForVfs({
     path: selection.path,
     category: selection.category,
-    projectName: selection.projectName,
+    projectName,
   });
   const canonicalGraphPath = normalizeSelectionPathForGraph({
     path: selection.graphPath ?? selection.path,
     category: selection.category,
-    projectName: selection.projectName,
+    projectName,
   });
 
   return {
-    ...selection,
     path: canonicalPath,
+    category: selection.category,
+    ...(projectName ? { projectName } : {}),
+    ...(rootLabel ? { rootLabel } : {}),
+    ...(typeof line === "number" ? { line } : {}),
+    ...(typeof lineEnd === "number" ? { lineEnd } : {}),
+    ...(typeof column === "number" ? { column } : {}),
     graphPath: canonicalGraphPath,
   };
 }
@@ -292,14 +311,23 @@ export function toSearchSelection(result: SearchResult): SearchSelection {
       result.path,
       result.navigationTarget.path,
     );
+    const projectName =
+      toOptionalText(result.navigationTarget.projectName) ?? toOptionalText(result.projectName);
+    const rootLabel =
+      toOptionalText(result.navigationTarget.rootLabel) ?? toOptionalText(result.rootLabel);
+    const line = toOptionalNumber(result.navigationTarget.line) ?? toOptionalNumber(result.line);
+    const lineEnd =
+      toOptionalNumber(result.navigationTarget.lineEnd) ?? toOptionalNumber(result.lineEnd);
+    const column =
+      toOptionalNumber(result.navigationTarget.column) ?? toOptionalNumber(result.column);
     return canonicalizeSearchSelection({
       ...result.navigationTarget,
       path: canonicalPathSource,
-      projectName: result.navigationTarget.projectName ?? result.projectName,
-      rootLabel: result.navigationTarget.rootLabel ?? result.rootLabel,
-      line: result.navigationTarget.line ?? result.line,
-      lineEnd: result.navigationTarget.lineEnd ?? result.lineEnd,
-      column: result.navigationTarget.column ?? result.column,
+      ...(projectName ? { projectName } : {}),
+      ...(rootLabel ? { rootLabel } : {}),
+      ...(typeof line === "number" ? { line } : {}),
+      ...(typeof lineEnd === "number" ? { lineEnd } : {}),
+      ...(typeof column === "number" ? { column } : {}),
       graphPath: result.navigationTarget.graphPath ?? canonicalPathSource,
     });
   }
@@ -319,16 +347,31 @@ export function toSearchSelection(result: SearchResult): SearchSelection {
 
 export function normalizeKnowledgeHit(hit: SearchHit): SearchResult {
   const category = knowledgeResultCategory(hit);
-  const navigationTarget = hit.navigationTarget ?? {
+  const navigationTarget = canonicalizeSearchSelection({
     path: hit.path,
-    category: category === "document" ? "doc" : category,
-  };
+    category: hit.navigationTarget?.category ?? (category === "document" ? "doc" : category),
+    ...(toOptionalText(hit.navigationTarget?.projectName)
+      ? { projectName: toOptionalText(hit.navigationTarget?.projectName) }
+      : {}),
+    ...(toOptionalText(hit.navigationTarget?.rootLabel)
+      ? { rootLabel: toOptionalText(hit.navigationTarget?.rootLabel) }
+      : {}),
+    ...(typeof toOptionalNumber(hit.navigationTarget?.line) === "number"
+      ? { line: toOptionalNumber(hit.navigationTarget?.line) }
+      : {}),
+    ...(typeof toOptionalNumber(hit.navigationTarget?.lineEnd) === "number"
+      ? { lineEnd: toOptionalNumber(hit.navigationTarget?.lineEnd) }
+      : {}),
+    ...(typeof toOptionalNumber(hit.navigationTarget?.column) === "number"
+      ? { column: toOptionalNumber(hit.navigationTarget?.column) }
+      : {}),
+  });
 
   return {
     ...hit,
     category,
-    projectName: navigationTarget.projectName,
-    rootLabel: navigationTarget.rootLabel,
+    projectName: navigationTarget.projectName ?? undefined,
+    rootLabel: navigationTarget.rootLabel ?? undefined,
     searchSource: "search-index",
     navigationTarget,
   };
@@ -338,11 +381,11 @@ export function normalizeCodeSearchHit(hit: SearchHit, repoHint?: string): Searc
   const base = normalizeKnowledgeHit(hit);
   const codeKind = resolveCodeKindFromHit(hit);
   const codeLanguage = resolveCodeLanguageFromHit(hit);
-  const codeRepo = resolveCodeRepoFromHit(hit, repoHint);
+  const codeRepo = toOptionalText(resolveCodeRepoFromHit(hit, repoHint));
 
   return {
     ...base,
-    category: resolveCodeCategoryFromKind(codeKind, hit.docType),
+    category: resolveCodeCategoryFromKind(codeKind, toOptionalText(hit.docType)),
     projectName: codeRepo ?? base.projectName,
     codeLanguage,
     codeKind,
@@ -364,14 +407,32 @@ export function normalizeSymbolHit(hit: SymbolSearchHit): SearchResult {
     bestSection: `${hit.kind} · ${hit.language} · line ${hit.line}`,
     matchReason: `${sourceLabel} symbol in ${hit.crateName}`,
     category: "symbol",
-    projectName: hit.projectName ?? hit.crateName,
-    rootLabel: hit.rootLabel,
+    projectName: hit.projectName ?? hit.crateName ?? undefined,
+    rootLabel: hit.rootLabel ?? undefined,
     line: hit.line,
     codeLanguage: hit.language,
     codeKind: hit.kind,
-    codeRepo: hit.projectName ?? hit.crateName,
+    codeRepo: hit.projectName ?? hit.crateName ?? undefined,
     searchSource: "search-index",
-    navigationTarget: hit.navigationTarget,
+    navigationTarget: canonicalizeSearchSelection({
+      path: hit.navigationTarget.path,
+      category: hit.navigationTarget.category,
+      ...(toOptionalText(hit.navigationTarget.projectName)
+        ? { projectName: toOptionalText(hit.navigationTarget.projectName) }
+        : {}),
+      ...(toOptionalText(hit.navigationTarget.rootLabel)
+        ? { rootLabel: toOptionalText(hit.navigationTarget.rootLabel) }
+        : {}),
+      ...(typeof toOptionalNumber(hit.navigationTarget.line) === "number"
+        ? { line: toOptionalNumber(hit.navigationTarget.line) }
+        : {}),
+      ...(typeof toOptionalNumber(hit.navigationTarget.lineEnd) === "number"
+        ? { lineEnd: toOptionalNumber(hit.navigationTarget.lineEnd) }
+        : {}),
+      ...(typeof toOptionalNumber(hit.navigationTarget.column) === "number"
+        ? { column: toOptionalNumber(hit.navigationTarget.column) }
+        : {}),
+    }),
   };
 }
 
@@ -439,6 +500,14 @@ export function normalizeAstHit(hit: AstSearchHit): SearchResult {
     hit.lineStart === hit.lineEnd
       ? `${lineSubject}${ownerSuffix} · line ${hit.lineStart}`
       : `${lineSubject}${ownerSuffix} · lines ${hit.lineStart}-${hit.lineEnd}`;
+  const navigation = hit.navigationTarget ?? {
+    path: hit.path,
+    category: "doc",
+    ...(toOptionalText(hit.projectName) ? { projectName: toOptionalText(hit.projectName) } : {}),
+    ...(toOptionalText(hit.rootLabel) ? { rootLabel: toOptionalText(hit.rootLabel) } : {}),
+    line: hit.lineStart,
+    lineEnd: hit.lineEnd,
+  };
 
   return {
     stem: hit.name,
@@ -452,19 +521,46 @@ export function normalizeAstHit(hit: AstSearchHit): SearchResult {
     bestSection: lineLabel,
     matchReason: hit.signature,
     category: "ast",
-    projectName: hit.projectName ?? hit.crateName,
-    rootLabel: hit.rootLabel,
+    projectName: hit.projectName ?? hit.crateName ?? undefined,
+    rootLabel: hit.rootLabel ?? undefined,
     line: hit.lineStart,
     lineEnd: hit.lineEnd,
     codeLanguage: hit.language,
-    codeKind: isMarkdownOutline ? hit.nodeKind : hit.nodeKind || "symbol",
-    codeRepo: hit.projectName ?? hit.crateName,
+    codeKind: isMarkdownOutline ? hit.nodeKind ?? undefined : (hit.nodeKind ?? "symbol"),
+    codeRepo: hit.projectName ?? hit.crateName ?? undefined,
     searchSource: "search-index",
-    navigationTarget: hit.navigationTarget,
+    navigationTarget: canonicalizeSearchSelection({
+      path: navigation.path,
+      category: navigation.category,
+      ...(toOptionalText(navigation.projectName)
+        ? { projectName: toOptionalText(navigation.projectName) }
+        : {}),
+      ...(toOptionalText(navigation.rootLabel)
+        ? { rootLabel: toOptionalText(navigation.rootLabel) }
+        : {}),
+      ...(typeof toOptionalNumber(navigation.line) === "number"
+        ? { line: toOptionalNumber(navigation.line) }
+        : {}),
+      ...(typeof toOptionalNumber(navigation.lineEnd) === "number"
+        ? { lineEnd: toOptionalNumber(navigation.lineEnd) }
+        : {}),
+      ...(typeof toOptionalNumber(navigation.column) === "number"
+        ? { column: toOptionalNumber(navigation.column) }
+        : {}),
+    }),
   };
 }
 
 export function normalizeReferenceHit(hit: ReferenceSearchHit): SearchResult {
+  const navigation = hit.navigationTarget ?? {
+    path: hit.path,
+    category: "repo_code",
+    ...(toOptionalText(hit.projectName) ? { projectName: toOptionalText(hit.projectName) } : {}),
+    ...(toOptionalText(hit.rootLabel) ? { rootLabel: toOptionalText(hit.rootLabel) } : {}),
+    line: hit.line,
+    column: hit.column,
+  };
+
   return {
     stem: hit.name,
     title: `${hit.name} reference`,
@@ -475,24 +571,57 @@ export function normalizeReferenceHit(hit: ReferenceSearchHit): SearchResult {
     bestSection: `${hit.language} · line ${hit.line} · col ${hit.column}`,
     matchReason: hit.lineText,
     category: "reference",
-    projectName: hit.projectName ?? hit.crateName,
-    rootLabel: hit.rootLabel,
+    projectName: hit.projectName ?? hit.crateName ?? undefined,
+    rootLabel: hit.rootLabel ?? undefined,
     line: hit.line,
     column: hit.column,
     codeLanguage: hit.language,
     codeKind: "reference",
-    codeRepo: hit.projectName ?? hit.crateName,
+    codeRepo: hit.projectName ?? hit.crateName ?? undefined,
     searchSource: "search-index",
-    navigationTarget: hit.navigationTarget,
+    navigationTarget: canonicalizeSearchSelection({
+      path: navigation.path,
+      category: navigation.category,
+      ...(toOptionalText(navigation.projectName)
+        ? { projectName: toOptionalText(navigation.projectName) }
+        : {}),
+      ...(toOptionalText(navigation.rootLabel)
+        ? { rootLabel: toOptionalText(navigation.rootLabel) }
+        : {}),
+      ...(typeof toOptionalNumber(navigation.line) === "number"
+        ? { line: toOptionalNumber(navigation.line) }
+        : {}),
+      ...(typeof toOptionalNumber(navigation.lineEnd) === "number"
+        ? { lineEnd: toOptionalNumber(navigation.lineEnd) }
+        : {}),
+      ...(typeof toOptionalNumber(navigation.column) === "number"
+        ? { column: toOptionalNumber(navigation.column) }
+        : {}),
+    }),
   };
 }
 
 export function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
   const sourceLabel = hit.sourceTitle?.trim() || hit.sourceStem;
-  const navigationTarget = hit.navigationTarget ?? {
-    path: hit.sourcePath,
-    category: "doc",
-  };
+  const navigationTarget = canonicalizeSearchSelection({
+    path: preferMoreCanonicalSelectionPath(hit.sourcePath, hit.navigationTarget?.path),
+    category: hit.navigationTarget?.category ?? "doc",
+    ...(toOptionalText(hit.navigationTarget?.projectName)
+      ? { projectName: toOptionalText(hit.navigationTarget?.projectName) }
+      : {}),
+    ...(toOptionalText(hit.navigationTarget?.rootLabel)
+      ? { rootLabel: toOptionalText(hit.navigationTarget?.rootLabel) }
+      : {}),
+    ...(typeof toOptionalNumber(hit.navigationTarget?.line) === "number"
+      ? { line: toOptionalNumber(hit.navigationTarget?.line) }
+      : {}),
+    ...(typeof toOptionalNumber(hit.navigationTarget?.lineEnd) === "number"
+      ? { lineEnd: toOptionalNumber(hit.navigationTarget?.lineEnd) }
+      : {}),
+    ...(typeof toOptionalNumber(hit.navigationTarget?.column) === "number"
+      ? { column: toOptionalNumber(hit.navigationTarget?.column) }
+      : {}),
+  });
   const previewPath = resolveRelativeVfsResourcePath(hit.attachmentPath, hit.sourcePath);
   return {
     stem: hit.attachmentName,
@@ -504,8 +633,8 @@ export function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
     bestSection: hit.attachmentPath,
     matchReason: hit.visionSnippet || `Attached to ${sourceLabel}`,
     category: "attachment",
-    projectName: navigationTarget.projectName,
-    rootLabel: navigationTarget.rootLabel,
+    projectName: navigationTarget.projectName ?? undefined,
+    rootLabel: navigationTarget.rootLabel ?? undefined,
     previewPath,
     searchSource: "search-index",
     navigationTarget,
@@ -515,28 +644,60 @@ export function normalizeAttachmentHit(hit: AttachmentSearchHit): SearchResult {
 export function resolveDefinitionSelection(
   result: SearchResult,
   response: {
-    navigationTarget?: SearchSelection;
+    navigationTarget?: StudioNavigationTarget | null;
     definition?: {
       path: string;
-      crateName?: string;
-      projectName?: string;
-      rootLabel?: string;
-      lineStart?: number;
-      lineEnd?: number;
-      navigationTarget?: SearchSelection;
+      crateName?: string | null;
+      projectName?: string | null;
+      rootLabel?: string | null;
+      lineStart?: number | null;
+      lineEnd?: number | null;
+      navigationTarget?: StudioNavigationTarget | null;
     };
   },
 ): SearchSelection {
   if (response.navigationTarget) {
     return canonicalizeSearchSelection({
-      ...response.navigationTarget,
+      path: response.navigationTarget.path,
+      category: response.navigationTarget.category,
+      ...(toOptionalText(response.navigationTarget.projectName)
+        ? { projectName: toOptionalText(response.navigationTarget.projectName) }
+        : {}),
+      ...(toOptionalText(response.navigationTarget.rootLabel)
+        ? { rootLabel: toOptionalText(response.navigationTarget.rootLabel) }
+        : {}),
+      ...(typeof toOptionalNumber(response.navigationTarget.line) === "number"
+        ? { line: toOptionalNumber(response.navigationTarget.line) }
+        : {}),
+      ...(typeof toOptionalNumber(response.navigationTarget.lineEnd) === "number"
+        ? { lineEnd: toOptionalNumber(response.navigationTarget.lineEnd) }
+        : {}),
+      ...(typeof toOptionalNumber(response.navigationTarget.column) === "number"
+        ? { column: toOptionalNumber(response.navigationTarget.column) }
+        : {}),
       graphPath: response.navigationTarget.path,
     });
   }
 
   if (response.definition?.navigationTarget) {
     return canonicalizeSearchSelection({
-      ...response.definition.navigationTarget,
+      path: response.definition.navigationTarget.path,
+      category: response.definition.navigationTarget.category,
+      ...(toOptionalText(response.definition.navigationTarget.projectName)
+        ? { projectName: toOptionalText(response.definition.navigationTarget.projectName) }
+        : {}),
+      ...(toOptionalText(response.definition.navigationTarget.rootLabel)
+        ? { rootLabel: toOptionalText(response.definition.navigationTarget.rootLabel) }
+        : {}),
+      ...(typeof toOptionalNumber(response.definition.navigationTarget.line) === "number"
+        ? { line: toOptionalNumber(response.definition.navigationTarget.line) }
+        : {}),
+      ...(typeof toOptionalNumber(response.definition.navigationTarget.lineEnd) === "number"
+        ? { lineEnd: toOptionalNumber(response.definition.navigationTarget.lineEnd) }
+        : {}),
+      ...(typeof toOptionalNumber(response.definition.navigationTarget.column) === "number"
+        ? { column: toOptionalNumber(response.definition.navigationTarget.column) }
+        : {}),
       graphPath: response.definition.navigationTarget.path,
     });
   }

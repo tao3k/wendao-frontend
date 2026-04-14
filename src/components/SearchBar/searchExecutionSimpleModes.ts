@@ -22,6 +22,14 @@ interface SimpleSearchExecutionOptions {
   signal?: AbortSignal;
 }
 
+function toOptionalText(value: string | null | undefined): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function toOptionalNumber(value: number | null | undefined): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
 export async function executeSimpleSearchMode(
   queryToSearch: string,
   mode: SimpleSearchExecutionMode,
@@ -39,8 +47,8 @@ export async function executeSimpleSearchMode(
           hitCount: response.hitCount,
           selectedMode: "Reference Index",
           partial: response.partial,
-          indexingState: response.indexingState,
-          runtimeWarning: response.indexError,
+          indexingState: response.indexingState ?? undefined,
+          runtimeWarning: response.indexError ?? undefined,
         },
       };
     }
@@ -63,8 +71,8 @@ export async function executeSimpleSearchMode(
           hitCount: response.hitCount,
           selectedMode: "Attachment Index",
           partial: response.partial,
-          indexingState: response.indexingState,
-          runtimeWarning: response.indexError,
+          indexingState: response.indexingState ?? undefined,
+          runtimeWarning: response.indexError ?? undefined,
         },
       };
     }
@@ -79,8 +87,8 @@ export async function executeSimpleSearchMode(
           hitCount: response.hitCount,
           selectedMode: "AST Index",
           partial: response.partial,
-          indexingState: response.indexingState,
-          runtimeWarning: response.indexError,
+          indexingState: response.indexingState ?? undefined,
+          runtimeWarning: response.indexError ?? undefined,
         },
       };
     }
@@ -95,8 +103,8 @@ export async function executeSimpleSearchMode(
           hitCount: response.hitCount,
           selectedMode: "Symbol Index",
           partial: response.partial,
-          indexingState: response.indexingState,
-          runtimeWarning: response.indexError,
+          indexingState: response.indexingState ?? undefined,
+          runtimeWarning: response.indexError ?? undefined,
         },
       };
     }
@@ -110,13 +118,13 @@ export async function executeSimpleSearchMode(
         meta: {
           query: response.query,
           hitCount: response.hitCount,
-          selectedMode: response.searchMode ?? response.selectedMode,
-          searchMode: response.searchMode,
-          graphConfidenceScore: response.graphConfidenceScore,
-          intent: response.intent,
-          intentConfidence: response.intentConfidence,
+          selectedMode: toOptionalText(response.searchMode ?? response.selectedMode),
+          searchMode: toOptionalText(response.searchMode),
+          graphConfidenceScore: toOptionalNumber(response.graphConfidenceScore),
+          intent: response.intent ?? undefined,
+          intentConfidence: toOptionalNumber(response.intentConfidence),
           partial: response.partial,
-          indexingState: response.indexingState,
+          indexingState: response.indexingState ?? undefined,
           pendingRepos: response.pendingRepos,
           skippedRepos: response.skippedRepos,
         },

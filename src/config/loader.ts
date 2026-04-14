@@ -1,18 +1,13 @@
 /**
- * Configuration loader for Qianji Studio
+ * Frontend-local config helpers.
  *
- * Loads wendao.toml from the project root and parses it.
- * The config is then used to configure both frontend and backend.
- *
- * IMPORTANT: No hardcoded defaults - configuration comes exclusively from wendao.toml.
+ * Wendao Studio no longer loads backend configuration files at runtime. This
+ * module remains as a pure helper surface for tests and normalization logic.
  */
 
-import * as TOML from "smol-toml";
+import { STUDIO_SEARCH_FLIGHT_SCHEMA_VERSION } from "../api/flightSearchTransport";
 import type { UiConfig, UiProjectConfig, UiRepoProjectConfig } from "../api/bindings";
 
-/**
- * Qianji Studio configuration schema
- */
 export interface WendaoConfig {
   gateway?: {
     bind?: string;
@@ -41,41 +36,6 @@ export class WendaoConfigError extends Error {
   }
 }
 
-function assertValidConfig(config: WendaoConfig): WendaoConfig {
-  const gatewayBind = config.gateway?.bind?.trim();
-  if (!gatewayBind) {
-    throw new WendaoConfigError("wendao.toml must define [gateway].bind");
-  }
-
-  const projects = config.link_graph?.projects;
-  if (!projects || Object.keys(projects).length === 0) {
-    throw new WendaoConfigError(
-      "wendao.toml must define at least one [link_graph.projects.<name>] section",
-    );
-  }
-
-  return config;
-}
-
-/**
- * Load wendao.toml configuration
- *
- * Configuration is loaded exclusively from wendao.toml.
- *
- * Throws when the file is missing or does not contain the required gateway
- * and link_graph.projects sections.
- */
-export async function loadConfig(): Promise<WendaoConfig> {
-  const response = await fetch("/wendao.toml");
-  if (!response.ok) {
-    throw new WendaoConfigError(`wendao.toml could not be loaded: HTTP ${response.status}`);
-  }
-
-  const tomlContent = await response.text();
-  const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
-  return assertValidConfig(config);
-}
-
 function normalizePath(value: string | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
@@ -91,16 +51,6 @@ function normalizePath(value: string | undefined): string | null {
 function normalizeNonemptyString(value: string | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
-}
-
-export function resolveSearchFlightSchemaVersion(config: WendaoConfig): string {
-  const schemaVersion = normalizeNonemptyString(config.search_flight?.schema_version);
-  if (!schemaVersion) {
-    throw new WendaoConfigError(
-      "wendao.toml must define [search_flight].schema_version for Flight search",
-    );
-  }
-  return schemaVersion;
 }
 
 function normalizePluginList(values?: string[]): string[] {
@@ -179,6 +129,14 @@ function containsGlobMagic(value: string): boolean {
   return ["*", "?", "[", "]", "{", "}"].some((token) => value.includes(token));
 }
 
+export async function loadConfig(): Promise<WendaoConfig> {
+  return {};
+}
+
+export function resolveSearchFlightSchemaVersion(_config?: WendaoConfig): string {
+  return STUDIO_SEARCH_FLIGHT_SCHEMA_VERSION;
+}
+
 export function toUiConfig(config: WendaoConfig): UiConfig {
   const projectEntries = Object.entries(config.link_graph?.projects ?? {});
   const projects = projectEntries
@@ -189,16 +147,13 @@ export function toUiConfig(config: WendaoConfig): UiConfig {
       const hasRepoIntelligenceOnlySource =
         !!normalizePath(project.url) || (project.plugins?.length ?? 0) > 0;
       if (!trimmedName) {
-        throw new WendaoConfigError("wendao.toml contains a project with an empty name");
+        throw new WendaoConfigError("config contains a project with an empty name");
       }
       if ((!root || dirs.length === 0) && hasRepoIntelligenceOnlySource) {
         return null;
       }
-      if (!root) {
-        throw new WendaoConfigError(`project "${trimmedName}" must define root`);
-      }
-      if (dirs.length === 0) {
-        throw new WendaoConfigError(`project "${trimmedName}" must define at least one dir`);
+      if (!root || dirs.length === 0) {
+        return null;
       }
 
       return {
@@ -239,39 +194,15 @@ export function toUiConfig(config: WendaoConfig): UiConfig {
     })
     .filter((project): project is UiRepoProjectConfig => project !== null);
 
-  if (projects.length === 0) {
-    throw new WendaoConfigError(
-      "wendao.toml does not contain any valid link_graph.projects entries",
-    );
-  }
-
   return { projects, repoProjects };
 }
 
-/**
- * Global config instance (singleton pattern)
- */
-let _config: WendaoConfig | null = null;
-
-/**
- * Get the loaded config, or load it if not yet loaded
- */
 export async function getConfig(): Promise<WendaoConfig> {
-  if (!_config) {
-    _config = await loadConfig();
-  }
-  return _config;
+  return {};
 }
 
-/**
- * Synchronously get the config if already loaded
- */
 export function getConfigSync(): WendaoConfig | null {
-  return _config;
+  return null;
 }
-/**
- * Reset the cached config (useful for testing)
- */
-export function resetConfig(): void {
-  _config = null;
-}
+
+export function resetConfig(): void {}

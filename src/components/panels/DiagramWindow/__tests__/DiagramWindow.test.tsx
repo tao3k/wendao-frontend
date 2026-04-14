@@ -94,12 +94,10 @@ describe("DiagramWindow", () => {
       edges: [],
       projections: [
         {
-          kind: "flowchart",
+          kind: "outline",
           source: "flowchart TD\nA --> B",
           nodeCount: 2,
           edgeCount: 1,
-          complexityScore: 0.2,
-          diagnostics: [],
         },
       ],
       diagnostics: [],
@@ -192,12 +190,10 @@ describe("DiagramWindow", () => {
       ],
       projections: [
         {
-          kind: "flowchart",
+          kind: "outline",
           source: "flowchart TD\nTemplate --> Placeholder",
           nodeCount: 2,
           edgeCount: 1,
-          complexityScore: 0.1,
-          diagnostics: [],
         },
       ],
       diagnostics: [],
@@ -274,7 +270,7 @@ describe("DiagramWindow", () => {
     expect(screen.queryByTestId("markdown-waterfall")).not.toBeInTheDocument();
   });
 
-  it("keeps rendering a local flowchart when backend markdown analysis only returns unsupported mindmap", async () => {
+  it("renders the backend task projection when markdown analysis returns one", async () => {
     mocks.getMarkdownAnalysis.mockResolvedValue({
       path: "main/docs/03_features/202_topology_and_graph_navigation.md",
       documentHash: "h2b",
@@ -284,12 +280,10 @@ describe("DiagramWindow", () => {
       edges: [],
       projections: [
         {
-          kind: "mindmap",
-          source: "mindmap\n  root((Topology and Graph Navigation))",
+          kind: "tasks",
+          source: "flowchart TD\nTasks --> Runtime",
           nodeCount: 1,
           edgeCount: 0,
-          complexityScore: 0.1,
-          diagnostics: [],
         },
       ],
       diagnostics: [],
@@ -314,12 +308,9 @@ describe("DiagramWindow", () => {
     });
 
     expect(mocks.renderMermaidSVG).toHaveBeenCalledWith(
-      expect.stringContaining("flowchart TD"),
+      "flowchart TD\nTasks --> Runtime",
       expect.any(Object),
     );
-    expect(
-      mocks.renderMermaidSVG.mock.calls.some((call) => String(call[0]).includes("mindmap")),
-    ).toBe(false);
     expect(screen.queryByTestId("markdown-waterfall")).not.toBeInTheDocument();
   });
 
@@ -356,12 +347,10 @@ describe("DiagramWindow", () => {
       edges: [],
       projections: [
         {
-          kind: "flowchart",
+          kind: "outline",
           source: "flowchart TD\nDoc --> Diagram",
           nodeCount: 2,
           edgeCount: 1,
-          complexityScore: 0.1,
-          diagnostics: [],
         },
       ],
       diagnostics: [],
@@ -504,17 +493,33 @@ describe("DiagramWindow", () => {
       language: "julia",
       nodeCount: 2,
       edgeCount: 1,
-      nodes: [],
-      edges: [],
-      projections: [
+      nodes: [
         {
-          kind: "structure",
-          source: "graph TD\nRoot --> Module",
-          nodeCount: 2,
-          edgeCount: 1,
-          diagnostics: [],
+          id: "module",
+          kind: "module",
+          label: "BaseModelica",
+          path: "sciml/src/BaseModelica.jl",
+          lineStart: 1,
+          lineEnd: 2,
+        },
+        {
+          id: "simulate",
+          kind: "function",
+          label: "simulate",
+          path: "sciml/src/BaseModelica.jl",
+          lineStart: 1,
+          lineEnd: 2,
         },
       ],
+      edges: [
+        {
+          id: "edge-1",
+          kind: "contains",
+          sourceId: "module",
+          targetId: "simulate",
+        },
+      ],
+      projections: [],
       diagnostics: [],
     });
 
@@ -545,7 +550,7 @@ describe("DiagramWindow", () => {
       nodes: [
         {
           id: "file",
-          kind: "file",
+          kind: "module",
           label: "BaseModelica.jl",
           path: "sciml/src/BaseModelica.jl",
           lineStart: 1,
@@ -562,7 +567,7 @@ describe("DiagramWindow", () => {
         },
         {
           id: "simulate",
-          kind: "symbol",
+          kind: "function",
           label: "simulate",
           path: "sciml/src/BaseModelica.jl",
           lineStart: 5,
@@ -573,24 +578,23 @@ describe("DiagramWindow", () => {
       edges: [
         {
           id: "edge-1",
-          kind: "declares",
+          kind: "contains",
           sourceId: "file",
           targetId: "module",
         },
         {
           id: "edge-2",
-          kind: "declares",
+          kind: "contains",
           sourceId: "module",
           targetId: "simulate",
         },
       ],
       projections: [
         {
-          kind: "structure",
+          kind: "contains",
           source: "graph TD\nTemplate --> Placeholder",
           nodeCount: 2,
           edgeCount: 1,
-          diagnostics: [],
         },
       ],
       diagnostics: [],
@@ -606,14 +610,19 @@ describe("DiagramWindow", () => {
 
     await waitFor(() => {
       expect(mocks.renderMermaidSVG).toHaveBeenCalledWith(
-        [
-          "flowchart LR",
-          'file["BaseModelica.jl"]',
-          'module["BaseModelica"]',
-          "simulate",
-          "file -->|declares| module",
-          "module -->|declares| simulate",
-        ].join("\n"),
+        expect.stringContaining('file["BaseModelica.jl"]'),
+        expect.any(Object),
+      );
+      expect(mocks.renderMermaidSVG).toHaveBeenCalledWith(
+        expect.stringContaining('module["BaseModelica"]'),
+        expect.any(Object),
+      );
+      expect(mocks.renderMermaidSVG).toHaveBeenCalledWith(
+        expect.stringContaining("file -->|contains| module"),
+        expect.any(Object),
+      );
+      expect(mocks.renderMermaidSVG).toHaveBeenCalledWith(
+        expect.stringContaining("module -->|contains| simulate"),
         expect.any(Object),
       );
     });

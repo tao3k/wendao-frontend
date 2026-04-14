@@ -12,10 +12,9 @@ export {
   createRspackDevServer,
   createRspackPlugins,
   normalizeGatewayBind,
-  parseDaochangTargetFromToml,
-  parseGatewayTargetFromToml,
-  resolveDaochangTargetFromCwd,
-  resolveGatewayTargetFromCwd,
+  resolveDaochangTargetFromEnv,
+  resolveGatewayTargetFromEnv,
+  resolveRspackBuildEnvironment,
 } from "./build-environment";
 export {
   createRspackExperimentsConfig,

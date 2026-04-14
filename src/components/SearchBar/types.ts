@@ -1,4 +1,4 @@
-import type { RepoDocCoverageTarget, SearchHit, StudioNavigationTarget } from "../../api";
+import type { RepoDocCoverageTarget, SearchHit } from "../../api";
 
 export type SearchScope =
   | "all"
@@ -22,9 +22,16 @@ export type ResultCategory =
   | "attachment";
 export type UiLocale = "en" | "zh";
 
-export type SearchSelection = StudioNavigationTarget & {
+export interface SearchSelection {
+  path: string;
+  category: string;
+  projectName?: string;
+  rootLabel?: string;
+  line?: number;
+  lineEnd?: number;
+  column?: number;
   graphPath?: string;
-};
+}
 
 export type SearchSelectionActionDecision = void | boolean;
 export type SearchSelectionActionResult =
@@ -34,12 +41,12 @@ export type SearchSelectionAction = (selection: SearchSelection) => SearchSelect
 
 export interface SearchResult extends SearchHit {
   category: ResultCategory;
-  projectName?: string;
-  rootLabel?: string;
+  projectName?: string | null;
+  rootLabel?: string | null;
   previewPath?: string;
-  line?: number;
-  lineEnd?: number;
-  column?: number;
+  line?: number | null;
+  lineEnd?: number | null;
+  column?: number | null;
   projectionPageIds?: string[];
   navigationTarget: SearchSelection;
   codeLanguage?: string;

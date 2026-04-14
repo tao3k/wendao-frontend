@@ -76,6 +76,7 @@ export function decodeVfsContentResponseFromArrowIpc(
     path: requireString(firstRow, "path"),
     content: requireString(firstRow, "content"),
     contentType: requireString(firstRow, "contentType"),
+    modified: toOptionalNumber(firstRow.modified) ?? 0,
   };
 }
 

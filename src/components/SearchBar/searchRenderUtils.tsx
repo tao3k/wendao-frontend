@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowRight, BookOpen, FileText, Hash, Paperclip, Search, Zap } from "lucide-react";
 
-export function getDocIcon(docType?: string): React.ReactNode {
+export function getDocIcon(docType?: string | null): React.ReactNode {
   switch (docType) {
     case "skill":
       return <Zap size={14} className="search-result-icon skill" />;

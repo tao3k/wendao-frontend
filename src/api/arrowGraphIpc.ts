@@ -5,7 +5,7 @@ import type {
   GraphNeighborsResponse,
   GraphNode,
   StudioNavigationTarget,
-  Topology3D,
+  Topology3dPayload,
 } from "./bindings";
 import { isArrowIpcPayloadEmpty, type ArrowIpcPayload } from "./arrowIpcPayload";
 
@@ -119,16 +119,16 @@ export function decodeGraphNeighborsFromArrowIpc(payload: ArrowIpcPayload): Grap
   };
 }
 
-export function decodeTopology3DFromArrowIpc(payload: ArrowIpcPayload): Topology3D {
+export function decodeTopology3DFromArrowIpc(payload: ArrowIpcPayload): Topology3dPayload {
   if (isArrowIpcPayloadEmpty(payload)) {
     return { nodes: [], links: [], clusters: [] };
   }
 
   const table = tableFromIPC(payload);
   const rows = table.toArray() as ArrowRowRecord[];
-  const nodes: Topology3D["nodes"] = [];
-  const links: Topology3D["links"] = [];
-  const clusters: Topology3D["clusters"] = [];
+  const nodes: Topology3dPayload["nodes"] = [];
+  const links: Topology3dPayload["links"] = [];
+  const clusters: Topology3dPayload["clusters"] = [];
 
   for (const row of rows) {
     const rowType = requireString(row, "rowType");

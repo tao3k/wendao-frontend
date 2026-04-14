@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback } from "react";
+import type { StudioNavigationTarget } from "../../../api";
 import type { GraphSidebarSummary } from "../GraphView/types";
 import type { RuntimeStatus } from "../../statusBar/types";
 import { GraphView } from "./mainViewLazyPanels";
@@ -29,9 +30,18 @@ export function MainViewGraphPanel({
   onGraphRuntimeStatusChange,
 }: MainViewGraphPanelProps): React.ReactElement {
   const handleNodeClick = useCallback(
-    (_nodeId: string, selection: MainViewGraphSelection) => {
+    (_nodeId: string, selection: StudioNavigationTarget & { graphPath?: string }) => {
       if (selection.path) {
-        onGraphFileSelect?.(selection);
+        onGraphFileSelect?.({
+          path: selection.path,
+          category: selection.category,
+          ...(selection.projectName ? { projectName: selection.projectName } : {}),
+          ...(selection.rootLabel ? { rootLabel: selection.rootLabel } : {}),
+          ...(typeof selection.line === "number" ? { line: selection.line } : {}),
+          ...(typeof selection.lineEnd === "number" ? { lineEnd: selection.lineEnd } : {}),
+          ...(typeof selection.column === "number" ? { column: selection.column } : {}),
+          ...(selection.graphPath ? { graphPath: selection.graphPath } : {}),
+        });
       }
     },
     [onGraphFileSelect],

@@ -54,7 +54,7 @@ export function buildSymbols(
       .map((atom) => {
         const node = nodeById.get(atom.ownerId);
         const path = normalizeText(node?.path) ?? selectedPath;
-        const line = node?.lineStart ?? atom.lineStart;
+        const line = node?.lineStart ?? atom.lineStart ?? undefined;
         const label = node?.label ?? deriveFallbackSymbolLabel(atom);
         const kind = normalizeKind(node?.kind ?? atom.semanticType) || "other";
         const nodeId = node?.id ?? atom.ownerId;
@@ -131,7 +131,7 @@ export function buildSymbols(
       label: node.label,
       kind: normalizeKind(node.kind) || "other",
       path: normalizeText(node.path) ?? selectedPath,
-      line: node.lineStart,
+      line: node.lineStart ?? undefined,
       references: countReferences(analysis, node.id),
       query: node.label,
     }))

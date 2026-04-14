@@ -1,22 +1,4 @@
 import { Agent } from "node:http";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import * as TOML from "smol-toml";
-
-interface GatewaySection {
-  bind?: string;
-}
-
-interface DaochangSection {
-  bind?: string;
-}
-
-interface WendaoConfig {
-  gateway?: GatewaySection;
-  daochang?: DaochangSection;
-}
-
-type ReadTextFile = (filePath: string, encoding: BufferEncoding) => string;
 
 type PluginConstructor = new (options?: unknown) => unknown;
 type RspackStaticConfig = {
@@ -48,14 +30,19 @@ export interface RspackDevServerConfig {
   static: RspackStaticConfig;
 }
 
+export interface RspackBuildEnvironment {
+  gatewayTarget: string;
+  daochangTarget: string | null;
+}
+
 const GATEWAY_PROXY_KEEPALIVE_MSECS = 1_000;
 const GATEWAY_PROXY_MAX_SOCKETS = 32;
 const GATEWAY_PROXY_MAX_FREE_SOCKETS = 8;
 const GATEWAY_PROXY_TIMEOUT_MSECS = 30_000;
+const DEFAULT_GATEWAY_TARGET = "http://127.0.0.1:9517";
 
 interface RspackPluginConstructors {
   HtmlRspackPlugin: PluginConstructor;
-  CopyRspackPlugin: PluginConstructor;
   ReactRefreshRspackPlugin?: PluginConstructor;
 }
 
@@ -76,53 +63,23 @@ export function normalizeGatewayBind(bind: string | undefined): string | null {
   return `http://${trimmed}`;
 }
 
-export function parseGatewayTargetFromToml(tomlContent: string): string {
-  const parsed = TOML.parse(tomlContent) as WendaoConfig;
-  const target = normalizeGatewayBind(parsed?.gateway?.bind);
-
-  if (!target) {
-    throw new Error("Rspack requires [gateway].bind in wendao.toml");
-  }
-
-  return target;
+export function resolveGatewayTargetFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+  return normalizeGatewayBind(env.WENDAO_GATEWAY_TARGET) ?? DEFAULT_GATEWAY_TARGET;
 }
 
-export function parseDaochangTargetFromToml(tomlContent: string): string | null {
-  const parsed = TOML.parse(tomlContent) as WendaoConfig;
-  return normalizeGatewayBind(parsed?.daochang?.bind);
+export function resolveDaochangTargetFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  return normalizeGatewayBind(env.WENDAO_DAOCHANG_TARGET);
 }
 
-export function resolveDaochangTargetFromCwd({
-  cwd = process.cwd(),
-  readTextFile = (filePath, encoding) => readFileSync(filePath, encoding),
-}: {
-  cwd?: string;
-  readTextFile?: ReadTextFile;
-} = {}): string | null {
-  try {
-    const tomlContent = readTextFile(resolve(cwd, "wendao.toml"), "utf8");
-    return parseDaochangTargetFromToml(tomlContent);
-  } catch {
-    return null;
-  }
-}
-
-export function resolveGatewayTargetFromCwd({
-  cwd = process.cwd(),
-  readTextFile = (filePath, encoding) => readFileSync(filePath, encoding),
-}: {
-  cwd?: string;
-  readTextFile?: ReadTextFile;
-} = {}): string {
-  try {
-    const tomlContent = readTextFile(resolve(cwd, "wendao.toml"), "utf8");
-    return parseGatewayTargetFromToml(tomlContent);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown error";
-    throw new Error(`Rspack could not resolve gateway target from wendao.toml: ${message}`, {
-      cause: error,
-    });
-  }
+export function resolveRspackBuildEnvironment(
+  env: NodeJS.ProcessEnv = process.env,
+): RspackBuildEnvironment {
+  return {
+    gatewayTarget: resolveGatewayTargetFromEnv(env),
+    daochangTarget: resolveDaochangTargetFromEnv(env),
+  };
 }
 
 export function createRspackPlugins({
@@ -135,9 +92,6 @@ export function createRspackPlugins({
   const plugins = [
     new constructors.HtmlRspackPlugin({
       template: "./index.html",
-    }),
-    new constructors.CopyRspackPlugin({
-      patterns: [{ from: "wendao.toml", to: "wendao.toml" }],
     }),
   ];
 
@@ -165,7 +119,6 @@ export function createRspackDevServer({
 }: {
   isDev: boolean;
   gatewayTarget: string;
-  /** Daochang agent gateway target for /vercel/* streaming. Omit to disable chat proxy. */
   daochangTarget?: string | null;
 }): RspackDevServerConfig | undefined {
   if (!isDev) {

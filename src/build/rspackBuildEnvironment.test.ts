@@ -5,8 +5,9 @@ import {
   createRspackDevServer,
   createRspackPlugins,
   normalizeGatewayBind,
-  parseGatewayTargetFromToml,
-  resolveGatewayTargetFromCwd,
+  resolveDaochangTargetFromEnv,
+  resolveGatewayTargetFromEnv,
+  resolveRspackBuildEnvironment,
 } from "../../scripts/rspack/build-environment";
 
 class PluginStub {
@@ -27,53 +28,49 @@ describe("normalizeGatewayBind", () => {
   });
 });
 
-describe("parseGatewayTargetFromToml", () => {
-  it("reads the gateway bind from toml", () => {
-    expect(
-      parseGatewayTargetFromToml(`
-[gateway]
-bind = "127.0.0.1:9517"
-`),
-    ).toBe("http://127.0.0.1:9517");
+describe("resolveGatewayTargetFromEnv", () => {
+  it("falls back to the frontend default gateway target", () => {
+    expect(resolveGatewayTargetFromEnv({})).toBe("http://127.0.0.1:9517");
   });
 
-  it("rejects missing binds", () => {
-    expect(() => parseGatewayTargetFromToml("[gateway]\n")).toThrow(
-      "Rspack requires [gateway].bind in wendao.toml",
+  it("normalizes an explicit env override", () => {
+    expect(resolveGatewayTargetFromEnv({ WENDAO_GATEWAY_TARGET: "127.0.0.1:9521" })).toBe(
+      "http://127.0.0.1:9521",
     );
   });
 });
 
-describe("resolveGatewayTargetFromCwd", () => {
-  it("wraps read errors with the shared rspack message", () => {
-    expect(() =>
-      resolveGatewayTargetFromCwd({
-        cwd: "/tmp/project",
-        readTextFile: () => {
-          throw new Error("ENOENT");
-        },
+describe("resolveRspackBuildEnvironment", () => {
+  it("resolves gateway and daochang targets from env", () => {
+    expect(
+      resolveRspackBuildEnvironment({
+        WENDAO_GATEWAY_TARGET: "127.0.0.1:9521",
+        WENDAO_DAOCHANG_TARGET: "http://127.0.0.1:3001",
       }),
-    ).toThrow("Rspack could not resolve gateway target from wendao.toml: ENOENT");
+    ).toEqual({
+      gatewayTarget: "http://127.0.0.1:9521",
+      daochangTarget: "http://127.0.0.1:3001",
+    });
+  });
+
+  it("keeps daochang disabled when no env override exists", () => {
+    expect(resolveDaochangTargetFromEnv({})).toBeNull();
   });
 });
 
 describe("createRspackPlugins", () => {
-  it("builds html and copy plugins plus react refresh in dev", () => {
+  it("builds html plus react refresh in dev", () => {
     const plugins = createRspackPlugins({
       isDev: true,
       constructors: {
         HtmlRspackPlugin: PluginStub,
-        CopyRspackPlugin: PluginStub,
         ReactRefreshRspackPlugin: PluginStub,
       },
     }) as PluginStub[];
 
-    expect(plugins).toHaveLength(3);
+    expect(plugins).toHaveLength(2);
     expect(plugins[0]?.options).toEqual({ template: "./index.html" });
-    expect(plugins[1]?.options).toEqual({
-      patterns: [{ from: "wendao.toml", to: "wendao.toml" }],
-    });
-    expect(plugins[2]?.options).toBeUndefined();
+    expect(plugins[1]?.options).toBeUndefined();
   });
 });
 

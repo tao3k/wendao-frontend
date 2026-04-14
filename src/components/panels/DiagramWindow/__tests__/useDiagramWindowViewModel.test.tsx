@@ -160,6 +160,7 @@ describe("useDiagramWindowViewModel", () => {
         {
           id: "edge-1",
           kind: "contains",
+          label: "",
           sourceId: "doc",
           targetId: "search",
           evidence: {

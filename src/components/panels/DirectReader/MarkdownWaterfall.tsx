@@ -6,7 +6,7 @@ import {
   buildSectionTitle,
   formatSectionLabel,
 } from "./markdownWaterfallModel";
-import type { MarkdownWaterfallProps } from "./markdownWaterfallShared";
+import type { MarkdownIdentityLink, MarkdownWaterfallProps } from "./markdownWaterfallShared";
 import { copyToClipboard, WATERFALL_COPY } from "./markdownWaterfallShared";
 import "./MarkdownWaterfall.css";
 
@@ -18,24 +18,26 @@ const MarkdownWaterfallSectionBody = lazy(async () => {
 });
 
 interface MarkdownWaterfallPillButtonProps {
-  item: string;
+  item: MarkdownIdentityLink;
   onBiLinkClick?: (link: string) => void;
-  onClickPrefix?: string;
 }
 
 const MarkdownWaterfallPillButton = React.memo(function MarkdownWaterfallPillButton({
   item,
   onBiLinkClick,
-  onClickPrefix,
 }: MarkdownWaterfallPillButtonProps): React.ReactElement {
-  const target = onClickPrefix ? `${onClickPrefix}${item}` : item;
   const handleClick = React.useCallback(() => {
-    onBiLinkClick?.(target);
-  }, [onBiLinkClick, target]);
+    onBiLinkClick?.(item.target);
+  }, [item.target, onBiLinkClick]);
 
   return (
-    <button type="button" className="markdown-waterfall__pill" onClick={handleClick} title={target}>
-      {item}
+    <button
+      type="button"
+      className="markdown-waterfall__pill"
+      onClick={handleClick}
+      title={item.target}
+    >
+      {item.label}
     </button>
   );
 });
@@ -119,14 +121,19 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
   const copy = WATERFALL_COPY[locale];
   const analysisAtoms = analysis?.retrievalAtoms ?? EMPTY_MARKDOWN_ANALYSIS_ATOMS;
   const model = useMemo(
-    () => buildMarkdownWaterfallModel(content, path, analysisAtoms),
-    [analysisAtoms, content, path],
+    () =>
+      buildMarkdownWaterfallModel(
+        content,
+        path,
+        analysisAtoms,
+        analysis?.documentMetadata ?? undefined,
+      ),
+    [analysis?.documentMetadata, analysisAtoms, content, path],
   );
 
   const renderPillRow = (
     label: string,
-    items: string[],
-    onClickPrefix?: string,
+    items: MarkdownIdentityLink[],
   ): React.ReactNode => {
     if (items.length === 0) {
       return null;
@@ -139,14 +146,13 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
           {items.map((item) =>
             onBiLinkClick ? (
               <MarkdownWaterfallPillButton
-                key={`${label}-${item}`}
+                key={`${label}-${item.target}`}
                 item={item}
                 onBiLinkClick={onBiLinkClick}
-                onClickPrefix={onClickPrefix}
               />
             ) : (
-              <span key={`${label}-${item}`} className="markdown-waterfall__pill">
-                {item}
+              <span key={`${label}-${item.target}`} className="markdown-waterfall__pill">
+                {item.label}
               </span>
             ),
           )}
@@ -165,19 +171,19 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
         <div className="markdown-waterfall__identity-header">
           <div className="markdown-waterfall__identity-label">{copy.identityLabel}</div>
           <div className="markdown-waterfall__identity-meta">
-            {model.frontmatter.type && (
+            {model.identity.type && (
               <div className="markdown-waterfall__identity-meta-pill">
                 <span className="markdown-waterfall__meta-pill-label">{copy.typeLabel}</span>
                 <span className="markdown-waterfall__meta-pill-value">
-                  {model.frontmatter.type}
+                  {model.identity.type}
                 </span>
               </div>
             )}
-            {model.frontmatter.updated && (
+            {model.identity.updated && (
               <div className="markdown-waterfall__identity-meta-pill">
                 <span className="markdown-waterfall__meta-pill-label">{copy.updatedLabel}</span>
                 <span className="markdown-waterfall__meta-pill-value">
-                  {model.frontmatter.updated}
+                  {model.identity.updated}
                 </span>
               </div>
             )}
@@ -193,8 +199,17 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
           {copy.pathLabel}: <span>{model.pathLabel || copy.documentLabel}</span>
         </div>
 
-        {renderPillRow(copy.tagsLabel, model.frontmatter.tags, "tag:")}
-        {renderPillRow(copy.linkedLabel, model.frontmatter.linked)}
+        {renderPillRow(
+          copy.tagsLabel,
+          model.identity.tags.map((tag) => ({
+            label: tag,
+            target: `tag:${tag}`,
+            kind: "index",
+          })),
+        )}
+        {model.identity.parent ? renderPillRow(copy.parentLabel, [model.identity.parent]) : null}
+        {renderPillRow(copy.linkedLabel, model.identity.linked)}
+        {renderPillRow(copy.backlinksLabel, model.identity.backlinks)}
       </section>
 
       <div className="markdown-waterfall__section-stack">

@@ -44,7 +44,7 @@ describe("diagramSignature", () => {
     expect(isCodeDiagramPath("docs/overview.md")).toBe(false);
   });
 
-  it("prefers flowchart projection over other kinds", () => {
+  it("prefers outline projection over other kinds", () => {
     const source = selectPreferredProjectionSource({
       path: "docs/index.md",
       documentHash: "h",
@@ -55,20 +55,16 @@ describe("diagramSignature", () => {
       diagnostics: [],
       projections: [
         {
-          kind: "graph",
+          kind: "knowledge",
           source: "graph TD\nA-->B",
           nodeCount: 2,
           edgeCount: 1,
-          complexityScore: 0.2,
-          diagnostics: [],
         },
         {
-          kind: "flowchart",
+          kind: "outline",
           source: "flowchart TD\nX-->Y",
           nodeCount: 2,
           edgeCount: 1,
-          complexityScore: 0.1,
-          diagnostics: [],
         },
       ],
     });
@@ -76,7 +72,7 @@ describe("diagramSignature", () => {
     expect(source).toBe("flowchart TD\nX-->Y");
   });
 
-  it("ignores markdown mindmap projections for inline-renderable selection", () => {
+  it("returns task projections for inline-renderable selection", () => {
     const source = selectPreferredRenderableProjectionSource({
       path: "docs/index.md",
       documentHash: "hm",
@@ -87,20 +83,18 @@ describe("diagramSignature", () => {
       diagnostics: [],
       projections: [
         {
-          kind: "mindmap",
+          kind: "tasks",
           source: "mindmap\n  root((Doc))",
           nodeCount: 1,
           edgeCount: 0,
-          complexityScore: 0.1,
-          diagnostics: [],
         },
       ],
     });
 
-    expect(source).toBeNull();
+    expect(source).toBe("mindmap\n  root((Doc))");
   });
 
-  it("prefers structure projection for code ast source selection", () => {
+  it("returns null for code ast source selection without embedded sources", () => {
     const source = selectPreferredCodeProjectionSource({
       repoId: "sciml",
       path: "src/BaseModelica.jl",
@@ -113,21 +107,17 @@ describe("diagramSignature", () => {
       projections: [
         {
           kind: "calls",
-          source: "graph TD\nA --> B",
           nodeCount: 2,
           edgeCount: 1,
-          diagnostics: [],
         },
         {
-          kind: "structure",
-          source: "graph TD\nRoot --> Module",
+          kind: "contains",
           nodeCount: 2,
           edgeCount: 1,
-          diagnostics: [],
         },
       ],
     });
 
-    expect(source).toBe("graph TD\nRoot --> Module");
+    expect(source).toBeNull();
   });
 });

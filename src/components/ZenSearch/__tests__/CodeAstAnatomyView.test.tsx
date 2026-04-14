@@ -23,7 +23,7 @@ function buildAnalysis(): CodeAstAnalysisResponse {
       {
         id: "fn:process_data",
         label: "process_data",
-        kind: "symbol",
+        kind: "function",
         path: "kernel/src/lib.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -31,7 +31,7 @@ function buildAnalysis(): CodeAstAnalysisResponse {
       {
         id: "type:Config",
         label: "Config",
-        kind: "symbol",
+        kind: "type",
         path: "kernel/src/config.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -39,7 +39,7 @@ function buildAnalysis(): CodeAstAnalysisResponse {
       {
         id: "const:Empty",
         label: "Empty",
-        kind: "symbol",
+        kind: "constant",
         path: "kernel/src/error.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -79,25 +79,19 @@ function buildAnalysis(): CodeAstAnalysisResponse {
     ],
     projections: [
       {
-        kind: "structure",
-        source: "test-structure",
+        kind: "contains",
         nodeCount: 5,
         edgeCount: 1,
-        diagnostics: [],
       },
       {
         kind: "calls",
-        source: "test-calls",
         nodeCount: 5,
         edgeCount: 1,
-        diagnostics: [],
       },
       {
-        kind: "flow",
-        source: "test-flow",
+        kind: "uses",
         nodeCount: 5,
         edgeCount: 2,
-        diagnostics: [],
       },
     ],
     diagnostics: [],
@@ -616,7 +610,7 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "fn:buildWidget",
               label: "buildWidget",
-              kind: "symbol",
+              kind: "function",
               path: "src/demo.ts",
               lineStart: 1,
               lineEnd: 1,
@@ -683,7 +677,7 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "fn:solve",
               label: "solve",
-              kind: "symbol",
+              kind: "function",
               path: "solver/src/CodeAstJulia.jl",
               lineStart: 1,
               lineEnd: 1,
@@ -691,7 +685,7 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "binding:problem",
               label: "problem",
-              kind: "symbol",
+              kind: "function",
               path: "solver/src/CodeAstJulia.jl",
               lineStart: 1,
               lineEnd: 1,
@@ -764,7 +758,7 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "model:PI",
               label: "PI",
-              kind: "symbol",
+              kind: "function",
               path: "mcl/Modelica/Blocks/PI.mo",
               lineStart: 1,
               lineEnd: 1,
@@ -772,7 +766,7 @@ describe("CodeAstAnatomyView", () => {
             {
               id: "symbol:k",
               label: "k",
-              kind: "symbol",
+              kind: "function",
               path: "mcl/Modelica/Blocks/PI.mo",
               lineStart: 2,
               lineEnd: 2,
@@ -783,7 +777,7 @@ describe("CodeAstAnatomyView", () => {
               id: "edge:model-parameter",
               sourceId: "model:PI",
               targetId: "symbol:k",
-              kind: "declares",
+              kind: "contains",
             },
           ],
           projections: [],

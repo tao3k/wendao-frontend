@@ -45,7 +45,7 @@ interface UseSearchViewStateParams {
   canOpenReferences: boolean;
   canOpenGraph: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
-  renderIcon: (docType?: string) => React.ReactNode;
+  renderIcon: (docType?: string | null) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
 }
 

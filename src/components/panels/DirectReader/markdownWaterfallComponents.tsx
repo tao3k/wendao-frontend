@@ -236,11 +236,15 @@ export function buildMarkdownComponents({
       const chunk = backendAtom
         ? toDisplayMarkdownChunk(
             backendAtom,
-            buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+            buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart ?? 1),
           )
         : undefined;
       const observationBody = backendAtom
-        ? sliceMarkdownContentLines(documentContent, backendAtom.lineStart, backendAtom.lineEnd)
+        ? sliceMarkdownContentLines(
+            documentContent,
+            backendAtom.lineStart ?? 1,
+            backendAtom.lineEnd ?? backendAtom.lineStart ?? 1,
+          )
         : "";
 
       return (
@@ -281,11 +285,15 @@ export function buildMarkdownComponents({
       const chunk = backendAtom
         ? toDisplayMarkdownChunk(
             backendAtom,
-            buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+            buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart ?? 1),
           )
         : undefined;
       const tableBody = backendAtom
-        ? sliceMarkdownContentLines(documentContent, backendAtom.lineStart, backendAtom.lineEnd)
+        ? sliceMarkdownContentLines(
+            documentContent,
+            backendAtom.lineStart ?? 1,
+            backendAtom.lineEnd ?? backendAtom.lineStart ?? 1,
+          )
         : "";
 
       return (
@@ -335,11 +343,15 @@ export function buildMarkdownComponents({
         const chunk = backendAtom
           ? toDisplayMarkdownChunk(
               backendAtom,
-              buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+              buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart ?? 1),
             )
           : undefined;
         const mathBody = backendAtom
-          ? sliceMarkdownContentLines(documentContent, backendAtom.lineStart, backendAtom.lineEnd)
+          ? sliceMarkdownContentLines(
+              documentContent,
+              backendAtom.lineStart ?? 1,
+              backendAtom.lineEnd ?? backendAtom.lineStart ?? 1,
+            )
           : "";
 
         return (
@@ -470,7 +482,7 @@ export function buildMarkdownComponents({
           const chunk = backendAtom
             ? toDisplayMarkdownChunk(
                 backendAtom,
-                buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+                buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart ?? 1),
               )
             : buildMarkdownRichSlotChunk(
                 sourcePath,
@@ -503,7 +515,7 @@ export function buildMarkdownComponents({
         const chunk = backendAtom
           ? toDisplayMarkdownChunk(
               backendAtom,
-              buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart),
+              buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart ?? 1),
             )
           : buildMarkdownRichSlotChunk(
               sourcePath,

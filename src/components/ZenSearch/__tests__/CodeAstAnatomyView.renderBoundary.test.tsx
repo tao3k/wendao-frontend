@@ -31,7 +31,7 @@ function buildAnalysis(): CodeAstAnalysisResponse {
       {
         id: "fn:process_data",
         label: "process_data",
-        kind: "symbol",
+        kind: "function",
         path: "kernel/src/lib.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -39,7 +39,7 @@ function buildAnalysis(): CodeAstAnalysisResponse {
       {
         id: "type:Config",
         label: "Config",
-        kind: "symbol",
+        kind: "type",
         path: "kernel/src/config.rs",
         lineStart: 2,
         lineEnd: 2,

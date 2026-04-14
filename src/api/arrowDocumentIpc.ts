@@ -63,6 +63,7 @@ function normalizeProjectedPageIndexNode(value: unknown): ProjectedPageIndexNode
     token_count: coerceFiniteNumber(record.token_count) ?? 0,
     is_thinned: record.is_thinned === true,
     text: typeof record.text === "string" ? record.text : "",
+    ...(typeof record.summary === "string" ? { summary: record.summary } : {}),
     children,
   };
 }
@@ -89,6 +90,7 @@ export function decodeProjectedPageIndexTreeFromArrowIpc(
   return {
     repo_id: requireString(firstRow, "repoId"),
     page_id: requireString(firstRow, "pageId"),
+    kind: requireString(firstRow, "kind") as ProjectedPageIndexTree["kind"],
     path: requireString(firstRow, "path"),
     doc_id: requireString(firstRow, "docId"),
     title: requireString(firstRow, "title"),

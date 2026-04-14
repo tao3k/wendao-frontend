@@ -3,7 +3,7 @@ import { createClient, ConnectError } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
 import { decodeGraphNeighborsFromArrowIpc, decodeTopology3DFromArrowIpc } from "./arrowGraphIpc";
-import type { GraphNeighborsResponse, Topology3D } from "./bindings";
+import type { GraphNeighborsResponse, Topology3dPayload } from "./bindings";
 import {
   FlightData,
   FlightDescriptor,
@@ -50,7 +50,7 @@ export interface FlightServiceClientLike {
 export interface FlightGraphTransportDeps {
   createClient?: (baseUrl: string) => FlightServiceClientLike;
   decodeGraphNeighbors?: (payload: ArrayBuffer) => GraphNeighborsResponse;
-  decodeTopology3D?: (payload: ArrayBuffer) => Topology3D;
+  decodeTopology3D?: (payload: ArrayBuffer) => Topology3dPayload;
 }
 
 export function buildGraphNeighborsFlightDescriptor(): FlightDescriptor {
@@ -117,7 +117,7 @@ export async function loadGraphNeighborsFlight(
 export async function loadTopology3DFlight(
   request: GraphTopologyFlightRequest,
   deps: FlightGraphTransportDeps = {},
-): Promise<Topology3D> {
+): Promise<Topology3dPayload> {
   const client = (deps.createClient ?? createFlightServiceClient)(request.baseUrl);
   const descriptor = buildTopology3DFlightDescriptor();
   const headers = buildTopology3DFlightHeaders(request);

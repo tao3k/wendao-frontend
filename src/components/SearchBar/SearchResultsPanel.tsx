@@ -15,7 +15,7 @@ interface SearchResultsPanelProps {
   canOpenGraph: boolean;
   openOnSelect?: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
-  renderIcon: (docType?: string) => React.ReactNode;
+  renderIcon: (docType?: string | null) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onSelectIndex: (index: number) => void;
   onOpen: (

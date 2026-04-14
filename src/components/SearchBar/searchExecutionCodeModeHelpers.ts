@@ -31,6 +31,10 @@ interface RepoAwareCodeModeResolution {
   codeIntentSettled: PromiseSettledResult<SearchResponse | null>;
 }
 
+function toOptionalNumber(value: number | null | undefined): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
 export async function resolveCodeSearchIntentMeta(
   query: string,
   repo?: string,
@@ -136,11 +140,11 @@ export function resolveRepoAwareCodeModeOutcome({
       selectedMode: repoFacet
         ? `Code (Repo: ${repoFilter} · ${repoFacet})`
         : `Code (Repo: ${repoFilter})`,
-      searchMode: resolvedSearchMode,
-      intent: codeIntentMeta?.intent,
-      intentConfidence: codeIntentMeta?.intentConfidence,
+      searchMode: resolvedSearchMode ?? undefined,
+      intent: codeIntentMeta?.intent ?? undefined,
+      intentConfidence: toOptionalNumber(codeIntentMeta?.intentConfidence),
       partial: codeIntentMeta?.partial,
-      indexingState: codeIntentMeta?.indexingState,
+      indexingState: codeIntentMeta?.indexingState ?? undefined,
       pendingRepos: codeIntentMeta?.pendingRepos,
       skippedRepos: codeIntentMeta?.skippedRepos,
       runtimeWarning: runtimeWarnings.length > 0 ? runtimeWarnings.join(" | ") : undefined,
@@ -160,12 +164,12 @@ export function buildStandaloneCodeModeOutcome(
       query: codeResponse.query,
       hitCount: codeResponse.hitCount,
       selectedMode: codeResponse.searchMode ?? codeResponse.selectedMode ?? "code_search",
-      searchMode: codeResponse.searchMode,
-      graphConfidenceScore: codeResponse.graphConfidenceScore,
-      intent: codeResponse.intent,
-      intentConfidence: codeResponse.intentConfidence,
+      searchMode: codeResponse.searchMode ?? undefined,
+      graphConfidenceScore: toOptionalNumber(codeResponse.graphConfidenceScore),
+      intent: codeResponse.intent ?? undefined,
+      intentConfidence: toOptionalNumber(codeResponse.intentConfidence),
       partial: codeResponse.partial,
-      indexingState: codeResponse.indexingState,
+      indexingState: codeResponse.indexingState ?? undefined,
       pendingRepos: codeResponse.pendingRepos,
       skippedRepos: codeResponse.skippedRepos,
     },
@@ -193,12 +197,12 @@ export function buildRepoScopedBackendCodeModeOutcome({
       selectedMode: repoFacet
         ? `Code (Repo: ${repoFilter} · ${repoFacet})`
         : `Code (Repo: ${repoFilter})`,
-      searchMode: codeResponse.searchMode ?? codeResponse.selectedMode,
-      graphConfidenceScore: codeResponse.graphConfidenceScore,
-      intent: codeResponse.intent,
-      intentConfidence: codeResponse.intentConfidence,
+      searchMode: codeResponse.searchMode ?? codeResponse.selectedMode ?? undefined,
+      graphConfidenceScore: toOptionalNumber(codeResponse.graphConfidenceScore),
+      intent: codeResponse.intent ?? undefined,
+      intentConfidence: toOptionalNumber(codeResponse.intentConfidence),
       partial: codeResponse.partial,
-      indexingState: codeResponse.indexingState,
+      indexingState: codeResponse.indexingState ?? undefined,
       pendingRepos: codeResponse.pendingRepos,
       skippedRepos: codeResponse.skippedRepos,
     },

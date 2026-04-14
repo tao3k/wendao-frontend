@@ -1,7 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../../api";
-import * as apiModule from "../../../api";
 import { useRepoSyncStatus } from "../useRepoSyncStatus";
 
 describe("useRepoSyncStatus", () => {
@@ -38,22 +37,13 @@ describe("useRepoSyncStatus", () => {
     });
   });
 
-  it("does not call api for search-only repos", async () => {
-    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
-      projects: [
-        {
-          name: "kernel",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-      repoProjects: [
-        {
-          id: "lancd",
-          url: "https://github.com/lance-format/lance",
-          plugins: ["ast-grep"],
-        },
-      ],
+  it("calls api whenever code scope has a repo filter", async () => {
+    vi.spyOn(api, "getRepoSync").mockResolvedValue({
+      repoId: "lancd",
+      mode: "status",
+      healthState: "healthy",
+      stalenessState: "fresh",
+      driftState: "in_sync",
     });
     const syncSpy = vi.spyOn(api, "getRepoSync");
 
@@ -66,9 +56,9 @@ describe("useRepoSyncStatus", () => {
     );
 
     await waitFor(() => {
-      expect(result.current.repoSyncStatus).toBeNull();
+      expect(result.current.repoSyncStatus?.repoId).toBe("lancd");
     });
 
-    expect(syncSpy).not.toHaveBeenCalled();
+    expect(syncSpy).toHaveBeenCalledWith("lancd", "status");
   });
 });

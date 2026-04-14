@@ -25,7 +25,6 @@ import {
   Ticket,
   TicketSchema,
 } from "./flight/generated/Flight_pb";
-import type { WendaoConfig } from "../config/loader";
 
 const WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version";
 const WENDAO_SEARCH_QUERY_HEADER = "x-wendao-search-query";
@@ -43,6 +42,7 @@ const SEARCH_REFERENCES_ROUTE = "/search/references";
 const SEARCH_SYMBOLS_ROUTE = "/search/symbols";
 const IPC_CONTINUATION_TOKEN = 0xffffffff;
 const ARROW_STREAM_END = new Uint8Array([255, 255, 255, 255, 0, 0, 0, 0]);
+export const STUDIO_SEARCH_FLIGHT_SCHEMA_VERSION = "v2";
 
 type SearchFlightRoute =
   | typeof SEARCH_KNOWLEDGE_ROUTE
@@ -138,19 +138,12 @@ function nowMs(): number {
   return Date.now();
 }
 
-export function resolveKnowledgeSearchFlightSchemaVersion(config: WendaoConfig): string {
-  const schemaVersion = config.search_flight?.schema_version?.trim();
-  if (!schemaVersion) {
-    throw new ApiClientError(
-      "FLIGHT_CONFIG_REQUIRED",
-      "wendao.toml must define [search_flight].schema_version for pure Flight knowledge search",
-    );
-  }
-  return schemaVersion;
+export function resolveKnowledgeSearchFlightSchemaVersion(): string {
+  return STUDIO_SEARCH_FLIGHT_SCHEMA_VERSION;
 }
 
-export function resolveSearchFlightSchemaVersion(config: WendaoConfig): string {
-  return resolveKnowledgeSearchFlightSchemaVersion(config);
+export function resolveSearchFlightSchemaVersion(): string {
+  return resolveKnowledgeSearchFlightSchemaVersion();
 }
 
 function normalizeSearchIntent(intent?: string): string | null {

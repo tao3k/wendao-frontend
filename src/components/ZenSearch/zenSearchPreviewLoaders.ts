@@ -108,8 +108,10 @@ function normalizeGraphNeighborsCounts(
 
 export function buildZenSearchPreviewLoadPlan(result: SearchResult): ZenSearchPreviewLoadPlan {
   const navigationTarget = result.navigationTarget;
-  const projectName = navigationTarget?.projectName ?? result.projectName;
-  const rootLabel = navigationTarget?.rootLabel ?? result.rootLabel;
+  const projectName =
+    navigationTarget?.projectName?.trim() || result.projectName?.trim() || undefined;
+  const rootLabel =
+    navigationTarget?.rootLabel?.trim() || result.rootLabel?.trim() || undefined;
   const contentSourcePath = preferMoreCanonicalSelectionPath(
     result.previewPath ?? result.path,
     result.previewPath ? undefined : navigationTarget?.path,

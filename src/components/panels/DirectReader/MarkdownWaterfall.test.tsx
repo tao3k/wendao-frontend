@@ -170,6 +170,102 @@ describe("MarkdownWaterfall", () => {
     );
   });
 
+  it("prefers backend-issued document metadata for the identity card", async () => {
+    const onBiLinkClick = vi.fn();
+    const { container } = render(
+      <MarkdownWaterfall
+        locale="en"
+        path="main/docs/deepwiki.md"
+        onBiLinkClick={onBiLinkClick}
+        analysis={{
+          path: "main/docs/deepwiki.md",
+          documentHash: "deepwiki",
+          nodeCount: 2,
+          edgeCount: 0,
+          nodes: [
+            {
+              id: "doc:0",
+              kind: "document",
+              label: "main/docs/deepwiki.md",
+              depth: 0,
+              lineStart: 1,
+              lineEnd: 8,
+            },
+            {
+              id: "sec:1",
+              kind: "section",
+              label: "DeepWiki Kernel",
+              depth: 1,
+              lineStart: 1,
+              lineEnd: 8,
+              parentId: "doc:0",
+            },
+          ],
+          edges: [],
+          projections: [],
+          retrievalAtoms: [],
+          documentMetadata: {
+            docId: "docs/deepwiki",
+            title: "DeepWiki Kernel",
+            tags: ["feature", "docs"],
+            docType: "feature",
+            parent: {
+              label: "Index",
+              kind: "parent",
+              literal: "[[index]]",
+              docId: "docs/index",
+              path: "main/docs/index.md",
+              title: "Index",
+            },
+            outgoingLinks: [
+              {
+                label: "Guide",
+                kind: "relation",
+                literal: "[[guide]]",
+                relationType: "RELATED_TO",
+                metadataOwner: "#DeepWikiKernel",
+                docId: "docs/guide",
+                path: "main/docs/guide.md",
+                title: "Guide",
+              },
+            ],
+            backlinks: [
+              {
+                label: "Guide",
+                kind: "backlink",
+                docId: "docs/guide",
+                path: "main/docs/guide.md",
+                title: "Guide",
+              },
+            ],
+          },
+          diagnostics: [],
+        }}
+        content={
+          "---\n" +
+          "title: Frontmatter fallback title\n" +
+          "linked: [Legacy_Link.md]\n" +
+          "---\n\n" +
+          "# DeepWiki Kernel\n\n" +
+          "Reader content.\n"
+        }
+      />,
+    );
+
+    await waitForMarkdownWaterfallHydration(container);
+    const identityCard = screen.getByTestId("markdown-waterfall-identity");
+    expect(identityCard).toHaveTextContent("DeepWiki Kernel");
+    expect(identityCard).toHaveTextContent("Tags");
+    expect(screen.getByRole("button", { name: "feature" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "docs" })).toBeInTheDocument();
+    expect(screen.getByText("Index")).toBeInTheDocument();
+    expect(screen.getAllByText("Guide")).toHaveLength(2);
+    expect(screen.queryByText("Legacy_Link.md")).toBeNull();
+
+    screen.getByRole("button", { name: "Index" }).click();
+    expect(onBiLinkClick).toHaveBeenCalledWith("id:docs/index");
+  });
+
   it("prefers backend-issued retrieval atoms when analysis is provided", async () => {
     const { container } = render(
       <MarkdownWaterfall

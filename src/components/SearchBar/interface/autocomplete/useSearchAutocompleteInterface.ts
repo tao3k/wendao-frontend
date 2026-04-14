@@ -39,7 +39,7 @@ function flattenCollections(
   collections
     .flatMap((collection) => collection.items)
     .forEach((suggestion) => {
-      const key = `${suggestion.docType ?? ""}::${suggestion.suggestionType}::${suggestion.text}`;
+      const key = `${suggestion.suggestionType}::${suggestion.text}`;
       if (!merged.has(key)) {
         merged.set(key, suggestion);
       }
@@ -59,8 +59,7 @@ function areAutocompleteSuggestionsEqual(
     const candidate = next[index];
     return (
       suggestion.text === candidate?.text &&
-      suggestion.suggestionType === candidate?.suggestionType &&
-      suggestion.docType === candidate?.docType
+      suggestion.suggestionType === candidate?.suggestionType
     );
   });
 }

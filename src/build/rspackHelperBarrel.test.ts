@@ -14,7 +14,8 @@ import {
   createRspackResolve,
   createSplitChunkCacheGroups,
   createSplitChunksConfig,
-  resolveGatewayTargetFromCwd,
+  resolveGatewayTargetFromEnv,
+  resolveRspackBuildEnvironment,
   RSPACK_MAX_ASYNC_CHUNK_SIZE,
   RSPACK_TARGETS,
 } from "../../scripts/rspack";
@@ -36,7 +37,8 @@ describe("Rspack helper barrel", () => {
     expect(typeof createRspackPlugins).toBe("function");
     expect(typeof createGatewayProxyAgent).toBe("function");
     expect(typeof createRspackDevServer).toBe("function");
-    expect(typeof resolveGatewayTargetFromCwd).toBe("function");
+    expect(typeof resolveGatewayTargetFromEnv).toBe("function");
+    expect(typeof resolveRspackBuildEnvironment).toBe("function");
     expect(typeof createRspackMinimizers).toBe("function");
     expect(typeof createRspackPerformanceConfig).toBe("function");
     expect(typeof createRspackExperimentsConfig).toBe("function");

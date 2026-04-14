@@ -109,7 +109,7 @@ export function deriveCodeAstAnatomy(
   );
   const focusNode = pickPrimaryNode(analysis);
   const contentLines = splitContentLines(content);
-  const declarationLine = focusNode?.lineStart;
+  const declarationLine = focusNode?.lineStart ?? undefined;
   const retrievalAtomLookup = buildBackendAtomLookup(analysis);
   const declarationAtom = focusNode
     ? resolveDisplayRetrievalAtom(retrievalAtomLookup, focusNode.id, "declaration", 1, () =>
@@ -130,7 +130,7 @@ export function deriveCodeAstAnatomy(
           label: focusNode.label,
           kind: normalizeKind(focusNode.kind) || "other",
           path: normalizeText(focusNode.path) ?? selectedPath,
-          line: focusNode.lineStart,
+          line: focusNode.lineStart ?? undefined,
           signature:
             normalizeText(declarationAtom.excerpt) ??
             (buildSignatureSnippet(contentLines, declarationLine) || focusNode.label),

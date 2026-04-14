@@ -182,7 +182,7 @@ function buildCodeAstAnalysis(): CodeAstAnalysisResponse {
       {
         id: "fn:process_data",
         label: "process_data",
-        kind: "symbol",
+        kind: "function",
         path: "kernel/src/lib.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -190,7 +190,7 @@ function buildCodeAstAnalysis(): CodeAstAnalysisResponse {
       {
         id: "type:Config",
         label: "Config",
-        kind: "symbol",
+        kind: "type",
         path: "kernel/src/config.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -198,7 +198,7 @@ function buildCodeAstAnalysis(): CodeAstAnalysisResponse {
       {
         id: "const:Empty",
         label: "Empty",
-        kind: "symbol",
+        kind: "constant",
         path: "kernel/src/error.rs",
         lineStart: 1,
         lineEnd: 1,
@@ -240,25 +240,19 @@ function buildCodeAstAnalysis(): CodeAstAnalysisResponse {
     ],
     projections: [
       {
-        kind: "structure",
-        source: "ast",
+        kind: "contains",
         nodeCount: 5,
         edgeCount: 1,
-        diagnostics: [],
       },
       {
         kind: "calls",
-        source: "ast",
         nodeCount: 5,
         edgeCount: 1,
-        diagnostics: [],
       },
       {
-        kind: "flow",
-        source: "ast",
+        kind: "uses",
         nodeCount: 5,
         edgeCount: 2,
-        diagnostics: [],
       },
     ],
     retrievalAtoms: [
@@ -703,7 +697,7 @@ describe("StructuredIntelligenceDashboard", () => {
                 {
                   id: "symbol:method",
                   label: "method",
-                  kind: "symbol",
+                  kind: "function",
                   path: "mcl/Modelica/Blocks/package.mo",
                   lineStart: 3,
                   lineEnd: 3,

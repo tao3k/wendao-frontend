@@ -95,15 +95,14 @@ const BOOTSTRAP_COPY: Record<
   en: {
     tag: "Studio bootstrap",
     blockedTitle: "Studio startup blocked",
-    blockedDescription:
-      "Qianji Studio will not enter the workspace until gateway health and config sync both succeed.",
+    blockedDescription: "Qianji Studio will not enter the workspace until gateway health succeeds.",
     retryLabel: "Retry studio bootstrap",
     errorFallback: "Studio bootstrap failed",
   },
   zh: {
     tag: "工作区引导",
     blockedTitle: "工作区启动被阻止",
-    blockedDescription: "只有在 Gateway 健康和配置同步都成功后，Qianji Studio 才会进入工作区。",
+    blockedDescription: "只有在 Gateway 健康检查成功后，Qianji Studio 才会进入工作区。",
     retryLabel: "重试工作区引导",
     errorFallback: "工作区引导失败",
   },
@@ -145,15 +144,6 @@ export function StudioBootstrap(): React.ReactElement {
     const bootstrap = async () => {
       try {
         await api.health();
-        await api.getUiConfig();
-        try {
-          await api.getUiCapabilities();
-        } catch (error) {
-          console.warn(
-            "Gateway capabilities probe failed; continuing without capability cache.",
-            error,
-          );
-        }
 
         if (!cancelled) {
           setBootstrapState({ status: "ready" });

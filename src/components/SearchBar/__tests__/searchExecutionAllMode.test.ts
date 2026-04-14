@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../../../api";
-import * as apiModule from "../../../api";
 import { executeAllModeSearch } from "../searchExecutionAllMode";
 
 function createDeferred<T>() {
@@ -71,6 +70,7 @@ describe("searchExecutionAllMode", () => {
       query: "solver",
       hitCount: 1,
       selectedScope: "definitions",
+      partial: false,
       hits: [
         {
           kind: "Function",
@@ -88,12 +88,14 @@ describe("searchExecutionAllMode", () => {
       query: "solver",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solver",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -177,6 +179,7 @@ describe("searchExecutionAllMode", () => {
       query: "solver",
       hitCount: 1,
       selectedScope: "definitions",
+      partial: false,
       hits: [
         {
           kind: "Function",
@@ -193,18 +196,21 @@ describe("searchExecutionAllMode", () => {
       query: "solver",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     deferredSymbols.resolve({
       query: "solver",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     deferredAttachments.resolve({
       query: "solver",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -259,24 +265,28 @@ describe("searchExecutionAllMode", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAst").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     } as never);
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -301,182 +311,6 @@ describe("searchExecutionAllMode", () => {
     expect(outcome.meta.selectedMode).toBe("Hybrid + Code");
     expect(outcome.meta.searchMode).toBe("hybrid");
     expect(outcome.meta.intent).toBe("hybrid_search");
-  });
-
-  it("routes repo-seed-only all-mode queries on ast-grep repos through placeholder AST analysis", async () => {
-    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
-      projects: [
-        {
-          name: "kernel",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-      repoProjects: [
-        {
-          id: "lancd",
-          url: "https://github.com/lance-format/lance",
-          plugins: ["ast-grep"],
-        },
-      ],
-    });
-    const searchKnowledgeSpy = vi
-      .spyOn(api, "searchKnowledge")
-      .mockResolvedValueOnce({
-        query: "lance",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "hybrid",
-        searchMode: "hybrid",
-        intent: "hybrid_search",
-        intentConfidence: 0.91,
-      })
-      .mockResolvedValueOnce({
-        query: 'ast:"$PATTERN"',
-        hitCount: 1,
-        hits: [
-          {
-            stem: "Dataset",
-            title: "rust/lance/src/dataset.rs",
-            path: "rust/lance/src/dataset.rs",
-            docType: "ast_match",
-            tags: ["code", "lang:rust", "kind:ast_match"],
-            score: 0.91,
-            bestSection: "pub struct Dataset",
-            navigationTarget: {
-              path: "rust/lance/src/dataset.rs",
-              category: "repo_code",
-              projectName: "lancd",
-              line: 24,
-            },
-          },
-        ],
-        selectedMode: "code_search",
-        searchMode: "code_search",
-        intent: "code_search",
-        intentConfidence: 0.74,
-      });
-    const searchRepoContentFlightSpy = vi.spyOn(api, "searchRepoContentFlight");
-    const searchReferencesSpy = vi.spyOn(api, "searchReferences");
-    const searchAstSpy = vi.spyOn(api, "searchAst").mockResolvedValue({
-      query: "lance",
-      hitCount: 0,
-      selectedScope: "definitions",
-      hits: [],
-    } as never);
-    const searchSymbolsSpy = vi.spyOn(api, "searchSymbols").mockResolvedValue({
-      query: "lance",
-      hitCount: 0,
-      selectedScope: "project",
-      hits: [],
-    });
-    const searchAttachmentsSpy = vi.spyOn(api, "searchAttachments").mockResolvedValue({
-      query: "lance",
-      hitCount: 0,
-      selectedScope: "attachments",
-      hits: [],
-    });
-
-    const outcome = await executeAllModeSearch("lance", {
-      repoFilter: "lancd",
-    });
-
-    expect(searchKnowledgeSpy).toHaveBeenNthCalledWith(1, "lance", 10, {
-      intent: "hybrid_search",
-    });
-    expect(searchKnowledgeSpy).toHaveBeenNthCalledWith(2, 'ast:"$PATTERN"', 10, {
-      intent: "code_search",
-      repo: "lancd",
-    });
-    expect(searchRepoContentFlightSpy).not.toHaveBeenCalled();
-    expect(searchReferencesSpy).toHaveBeenCalledWith("lance", 10);
-    expect(searchAstSpy).toHaveBeenCalled();
-    expect(searchSymbolsSpy).toHaveBeenCalled();
-    expect(searchAttachmentsSpy).toHaveBeenCalled();
-    expect(outcome.results[0]?.path).toBe("rust/lance/src/dataset.rs");
-    expect(outcome.meta.query).toBe("lance");
-    expect(outcome.meta.selectedMode).toBe("Hybrid + Code");
-  });
-
-  it("routes structural all-mode queries on ast-grep repos through backend code_search", async () => {
-    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
-      projects: [
-        {
-          name: "kernel",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-      repoProjects: [
-        {
-          id: "lance",
-          url: "https://github.com/lance-format/lance",
-          plugins: ["ast-grep"],
-        },
-      ],
-    });
-    const searchKnowledgeSpy = vi
-      .spyOn(api, "searchKnowledge")
-      .mockResolvedValueOnce({
-        query: "lance",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "hybrid",
-        searchMode: "hybrid",
-        intent: "hybrid_search",
-        intentConfidence: 0.91,
-      })
-      .mockResolvedValueOnce({
-        query: 'lance ast:"$PATTERN" lang:rust',
-        hitCount: 1,
-        hits: [
-          {
-            stem: "Dataset",
-            title: "rust/lance/src/dataset.rs",
-            path: "rust/lance/src/dataset.rs",
-            docType: "ast_match",
-            tags: ["code", "lang:rust", "kind:ast_match"],
-            score: 0.91,
-            bestSection: "pub struct Dataset",
-            navigationTarget: {
-              path: "rust/lance/src/dataset.rs",
-              category: "repo_code",
-              projectName: "lance",
-              line: 24,
-            },
-          },
-        ],
-        selectedMode: "code_search",
-        searchMode: "code_search",
-        intent: "code_search",
-        intentConfidence: 0.74,
-      });
-    const searchRepoContentFlightSpy = vi.spyOn(api, "searchRepoContentFlight");
-    const searchReferencesSpy = vi.spyOn(api, "searchReferences");
-    const searchAstSpy = vi.spyOn(api, "searchAst");
-    const searchSymbolsSpy = vi.spyOn(api, "searchSymbols");
-    const searchAttachmentsSpy = vi.spyOn(api, "searchAttachments");
-
-    const outcome = await executeAllModeSearch('lance ast:"$PATTERN" lang:rust', {
-      repoFilter: "lance",
-    });
-
-    expect(searchKnowledgeSpy).toHaveBeenNthCalledWith(1, 'lance ast:"$PATTERN"', 10, {
-      intent: "hybrid_search",
-    });
-    expect(searchKnowledgeSpy).toHaveBeenNthCalledWith(2, 'lance ast:"$PATTERN" lang:rust', 10, {
-      intent: "code_search",
-      repo: "lance",
-    });
-    expect(searchRepoContentFlightSpy).not.toHaveBeenCalled();
-    expect(searchReferencesSpy).not.toHaveBeenCalled();
-    expect(searchAstSpy).not.toHaveBeenCalled();
-    expect(searchSymbolsSpy).not.toHaveBeenCalled();
-    expect(searchAttachmentsSpy).not.toHaveBeenCalled();
-    expect(outcome.results[0]?.path).toBe("rust/lance/src/dataset.rs");
-    expect(outcome.meta.query).toBe('lance ast:"$PATTERN" lang:rust');
-    expect(outcome.meta.selectedMode).toBe("Hybrid + Code");
-    expect(outcome.meta.runtimeWarning).toBeUndefined();
   });
 
   it("routes repo-aware module facets through repo-search Flight inside all mode", async () => {
@@ -516,24 +350,28 @@ describe("searchExecutionAllMode", () => {
       query: "module",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     } as never);
     vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "module",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "module",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "module",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -597,24 +435,28 @@ describe("searchExecutionAllMode", () => {
       query: "example",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     } as never);
     vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "example",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "example",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "example",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -670,24 +512,28 @@ describe("searchExecutionAllMode", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     } as never);
     vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -746,24 +592,28 @@ describe("searchExecutionAllMode", () => {
       query: "sec",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     } as never);
     const referenceSpy = vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "sec",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     const symbolSpy = vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "sec",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     const attachmentSpy = vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "sec",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 

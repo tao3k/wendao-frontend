@@ -50,12 +50,13 @@ export function isCodeDiagramPath(path: string): boolean {
   return /\.(jl|mo|rs|py|ts|tsx|js|jsx|java|go|c|cc|cpp|h|hpp)$/i.test(path);
 }
 
-export function selectPreferredProjectionSource(analysis: MarkdownAnalysisResponse): string | null {
-  const projection =
-    analysis.projections.find((item) => item.kind === "flowchart") ??
-    analysis.projections.find((item) => item.kind === "graph") ??
-    analysis.projections.find((item) => item.kind === "mindmap") ??
-    null;
+function selectMarkdownProjection(
+  analysis: MarkdownAnalysisResponse,
+  preferredKinds: readonly MarkdownAnalysisResponse["projections"][number]["kind"][],
+): string | null {
+  const projection = preferredKinds
+    .map((kind) => analysis.projections.find((item) => item.kind === kind))
+    .find((item) => item != null);
 
   if (!projection) {
     return null;
@@ -63,37 +64,20 @@ export function selectPreferredProjectionSource(analysis: MarkdownAnalysisRespon
 
   const source = projection.source.trim();
   return source.length > 0 ? source : null;
+}
+
+export function selectPreferredProjectionSource(analysis: MarkdownAnalysisResponse): string | null {
+  return selectMarkdownProjection(analysis, ["outline", "tasks", "knowledge"]);
 }
 
 export function selectPreferredRenderableProjectionSource(
   analysis: MarkdownAnalysisResponse,
 ): string | null {
-  const projection =
-    analysis.projections.find((item) => item.kind === "flowchart") ??
-    analysis.projections.find((item) => item.kind === "graph") ??
-    null;
-
-  if (!projection) {
-    return null;
-  }
-
-  const source = projection.source.trim();
-  return source.length > 0 ? source : null;
+  return selectMarkdownProjection(analysis, ["outline", "tasks", "knowledge"]);
 }
 
 export function selectPreferredCodeProjectionSource(
-  analysis: CodeAstAnalysisResponse,
+  _analysis: CodeAstAnalysisResponse,
 ): string | null {
-  const projection =
-    analysis.projections.find((item) => item.kind === "structure") ??
-    analysis.projections.find((item) => item.kind === "calls") ??
-    analysis.projections.find((item) => item.kind === "flow") ??
-    null;
-
-  if (!projection) {
-    return null;
-  }
-
-  const source = projection.source.trim();
-  return source.length > 0 ? source : null;
+  return null;
 }

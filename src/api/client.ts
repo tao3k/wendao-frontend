@@ -10,7 +10,7 @@ export type {
   VfsScanEntry,
   VfsScanResult,
   VfsContentResponse,
-  Topology3D,
+  Topology3dPayload,
   GraphNeighborsResponse,
   UiConfig,
   UiProjectConfig,
@@ -72,8 +72,5 @@ export type {
 
 export {
   api,
-  getUiCapabilitiesSync,
-  getUiConfigSync,
-  resetUiCapabilitiesCache,
 } from "./clientRuntime";
 export { ApiClientError } from "./responseTransport";

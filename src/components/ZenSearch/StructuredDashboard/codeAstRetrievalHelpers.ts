@@ -50,6 +50,14 @@ function estimateTokenCount(value: string): number {
   return Math.max(1, Math.ceil(normalized.length / 4));
 }
 
+function toDisplaySurface(
+  surface: ApiCodeAstRetrievalAtom["surface"],
+): CodeAstRetrievalAtom["surface"] | undefined {
+  return surface === "declaration" || surface === "block" || surface === "symbol"
+    ? surface
+    : undefined;
+}
+
 export function buildCodeAstRetrievalAtom(
   path: string,
   scope: "declaration" | "block" | "symbol",
@@ -100,11 +108,11 @@ export function toDisplayRetrievalAtom(
     semanticType: atom.semanticType,
     fingerprint: atom.fingerprint,
     tokenEstimate: atom.tokenEstimate,
-    displayLabel: atom.displayLabel,
-    excerpt: atom.excerpt,
-    lineStart: atom.lineStart,
-    lineEnd: atom.lineEnd,
-    surface: atom.surface,
+    displayLabel: atom.displayLabel ?? undefined,
+    excerpt: atom.excerpt ?? undefined,
+    lineStart: atom.lineStart ?? undefined,
+    lineEnd: atom.lineEnd ?? undefined,
+    surface: toDisplaySurface(atom.surface),
     attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
   };
 }

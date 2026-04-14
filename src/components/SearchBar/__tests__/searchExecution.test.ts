@@ -65,6 +65,7 @@ describe("searchExecution repo intelligence routing", () => {
       query: "solve",
       hitCount: 2,
       selectedScope: "references",
+      partial: false,
       hits: [
         {
           name: "solve",
@@ -160,6 +161,7 @@ describe("searchExecution repo intelligence routing", () => {
       query: "modelica",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
 
@@ -271,6 +273,7 @@ describe("searchExecution repo intelligence routing", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
 
@@ -329,6 +332,7 @@ describe("searchExecution repo intelligence routing", () => {
       query: "reexport",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
 
@@ -659,24 +663,28 @@ describe("searchExecution repo intelligence routing", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -763,24 +771,28 @@ describe("searchExecution repo intelligence routing", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -826,24 +838,28 @@ describe("searchExecution repo intelligence routing", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     });
     const referenceSpy = vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     const symbolSpy = vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     const attachmentSpy = vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -937,24 +953,28 @@ describe("searchExecution repo intelligence routing", () => {
       query: "solve",
       hitCount: 0,
       selectedScope: "definitions",
+      partial: false,
       hits: [],
     });
     const referenceSpy = vi.spyOn(api, "searchReferences").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     const symbolSpy = vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     const attachmentSpy = vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "solve",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 
@@ -1055,18 +1075,21 @@ describe("searchExecution repo intelligence routing", () => {
       query: "context",
       hitCount: 0,
       selectedScope: "references",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchSymbols").mockResolvedValue({
       query: "context",
       hitCount: 0,
       selectedScope: "project",
+      partial: false,
       hits: [],
     });
     vi.spyOn(api, "searchAttachments").mockResolvedValue({
       query: "context",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 

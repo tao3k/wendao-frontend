@@ -22,7 +22,7 @@ function mergeAutocompleteSuggestions(
 ): AutocompleteSuggestion[] {
   const merged = new Map<string, AutocompleteSuggestion>();
   [...filterSuggestions, ...backendSuggestions].forEach((suggestion) => {
-    const key = `${suggestion.docType ?? ""}::${suggestion.text}`;
+    const key = `${suggestion.suggestionType}::${suggestion.text}`;
     if (!merged.has(key)) {
       merged.set(key, suggestion);
     }

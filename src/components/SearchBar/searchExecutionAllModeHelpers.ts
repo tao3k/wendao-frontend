@@ -32,11 +32,19 @@ export interface AllModeResolvedResponses {
 
 interface PartialLaneState {
   partial?: boolean;
-  indexingState?: string;
-  indexError?: string;
+  indexingState?: string | null;
+  indexError?: string | null;
 }
 
 const INDEXING_STATE_PRIORITY = ["failed", "indexing", "degraded", "idle", "ready"] as const;
+
+function toOptionalText(value: string | null | undefined): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function toOptionalNumber(value: number | null | undefined): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
 
 function resolveAggregatedIndexingState(
   laneStates: readonly PartialLaneState[],
@@ -108,6 +116,9 @@ export function createFallbackSymbolResponse(query: string): SymbolSearchRespons
     hits: [],
     hitCount: 0,
     selectedScope: "project",
+    partial: false,
+    indexingState: undefined,
+    indexError: undefined,
   };
 }
 
@@ -134,6 +145,9 @@ export function buildAllModeOutcome({
   attachmentResponse,
   failures,
 }: AllModeResolvedResponses): SearchExecutionOutcome {
+  const resolvedKnowledgeMode = toOptionalText(
+    knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode,
+  );
   const codeResults = resolveCodeResults(codeResponse, codeOutcome);
   const codeRuntimeWarning = codeOutcome?.meta.runtimeWarning;
   const semanticSuffix = [
@@ -189,12 +203,12 @@ export function buildAllModeOutcome({
       query: queryToSearch,
       hitCount: mergedResults.length,
       selectedMode: semanticSuffix
-        ? `${formatSearchMode(knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode, "en")} + ${semanticSuffix}`
-        : (knowledgeResponse.searchMode ?? knowledgeResponse.selectedMode),
-      searchMode: knowledgeResponse.searchMode,
-      graphConfidenceScore: knowledgeResponse.graphConfidenceScore,
-      intent: knowledgeResponse.intent,
-      intentConfidence: knowledgeResponse.intentConfidence,
+        ? `${formatSearchMode(resolvedKnowledgeMode ?? "default", "en")} + ${semanticSuffix}`
+        : resolvedKnowledgeMode,
+      searchMode: toOptionalText(knowledgeResponse.searchMode),
+      graphConfidenceScore: toOptionalNumber(knowledgeResponse.graphConfidenceScore),
+      intent: knowledgeResponse.intent ?? undefined,
+      intentConfidence: toOptionalNumber(knowledgeResponse.intentConfidence),
       partial,
       indexingState: resolveAggregatedIndexingState(laneStates),
       pendingRepos: codeOutcome?.meta.pendingRepos ?? codeResponse.pendingRepos,

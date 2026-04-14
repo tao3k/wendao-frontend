@@ -194,6 +194,7 @@ const createMockSymbolResponse = (
   })),
   hitCount: hits.length,
   selectedScope: "project",
+  partial: false,
 });
 
 const createMockAttachmentResponse = (
@@ -225,6 +226,8 @@ const createMockAttachmentResponse = (
   query,
   hits: hits.map((hit) => ({
     ...hit,
+    name: hit.sourceTitle ?? hit.attachmentName,
+    sourceTitle: hit.sourceTitle ?? hit.sourceStem,
     navigationTarget: hit.navigationTarget || {
       path: hit.sourcePath,
       category: "doc",
@@ -235,6 +238,7 @@ const createMockAttachmentResponse = (
   })),
   hitCount: hits.length,
   selectedScope: "attachments",
+  partial: false,
 });
 
 const createMockAstResponse = (
@@ -366,6 +370,7 @@ const createMockDefinitionResponse = (
       line: definition.lineStart,
       lineEnd: definition.lineEnd,
     },
+    observationHints: [],
   },
   candidateCount: definition.name ? 1 : 0,
   selectedScope: "definition",
@@ -1074,6 +1079,7 @@ describe("SearchBar", () => {
       query: "topology",
       hits: [
         {
+          name: "topology.png",
           path: "docs/alpha.md",
           sourceId: "docs/alpha",
           sourceStem: "alpha",
@@ -1086,6 +1092,10 @@ describe("SearchBar", () => {
           kind: "image",
           score: 0.91,
           visionSnippet: "Architecture topology screenshot",
+          navigationTarget: {
+            path: "docs/alpha.md",
+            category: "doc",
+          },
         },
       ],
       hitCount: 1,
@@ -2575,6 +2585,7 @@ describe("SearchBar", () => {
         lineStart: 8,
         lineEnd: 14,
         score: 0.98,
+        observationHints: [],
       },
       candidateCount: 1,
       selectedScope: "definition",

@@ -164,7 +164,9 @@ function withOptionalSelectionMetadata(
   return {
     path: selection.path,
     category: selection.category,
-    ...(metadata ? metadata : {}),
+    ...(metadata?.projectName ? { projectName: metadata.projectName } : {}),
+    ...(metadata?.rootLabel ? { rootLabel: metadata.rootLabel } : {}),
+    ...(metadata?.graphPath ? { graphPath: metadata.graphPath } : {}),
   };
 }
 
@@ -508,10 +510,16 @@ function App() {
       let resolutionError: unknown = null;
       try {
         const resolvedTarget = await api.resolveStudioPath(link);
-        await hydrateSelectedFile({
-          ...resolvedTarget,
-          graphPath: resolvedTarget.path,
-        });
+        await hydrateSelectedFile(
+          withOptionalSelectionMetadata(
+            { path: resolvedTarget.path, category: resolvedTarget.category },
+            {
+              projectName: resolvedTarget.projectName ?? undefined,
+              rootLabel: resolvedTarget.rootLabel ?? undefined,
+              graphPath: resolvedTarget.path,
+            },
+          ),
+        );
         return;
       } catch (err) {
         resolutionError = err;

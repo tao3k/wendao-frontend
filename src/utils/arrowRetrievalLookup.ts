@@ -6,11 +6,11 @@ export interface ArrowRetrievalChunkLike {
   semanticType: string;
   fingerprint: string;
   tokenEstimate: number;
-  displayLabel?: string;
-  excerpt?: string;
-  lineStart?: number;
-  lineEnd?: number;
-  surface?: string;
+  displayLabel?: string | null;
+  excerpt?: string | null;
+  lineStart?: number | null;
+  lineEnd?: number | null;
+  surface?: string | null;
 }
 
 export interface ArrowRetrievalLookup<T extends ArrowRetrievalChunkLike> {

@@ -1,7 +1,7 @@
 import type { SearchResult } from "./types";
 import { normalizeSelectionPathForVfs } from "../../utils/selectionPath";
 
-function identitySegment(value: string | number | undefined): string {
+function identitySegment(value: string | number | null | undefined): string {
   return value == null ? "" : String(value);
 }
 
@@ -10,16 +10,16 @@ export function getSearchResultIdentity(result: SearchResult): string {
   const primaryPath = normalizeSelectionPathForVfs({
     path: navigationTarget?.path ?? result.path,
     category: navigationTarget?.category ?? result.category,
-    projectName: navigationTarget?.projectName ?? result.projectName,
-    rootLabel: navigationTarget?.rootLabel ?? result.rootLabel,
+    projectName: navigationTarget?.projectName ?? result.projectName ?? undefined,
+    rootLabel: navigationTarget?.rootLabel ?? result.rootLabel ?? undefined,
   });
   const previewPath = result.previewPath
-    ? normalizeSelectionPathForVfs({
-        path: result.previewPath,
-        category: result.category,
-        projectName: result.projectName,
-        rootLabel: result.rootLabel,
-      })
+      ? normalizeSelectionPathForVfs({
+          path: result.previewPath,
+          category: result.category,
+          projectName: result.projectName ?? undefined,
+          rootLabel: result.rootLabel ?? undefined,
+        })
     : "";
   const primaryLine = navigationTarget?.line ?? result.line;
   const primaryColumn = navigationTarget?.column ?? result.column;

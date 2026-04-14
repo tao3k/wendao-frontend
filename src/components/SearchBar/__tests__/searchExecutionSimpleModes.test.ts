@@ -111,6 +111,10 @@ describe("searchExecution simple modes", () => {
           attachmentExt: "pdf",
           kind: "pdf",
           score: 0.82,
+          navigationTarget: {
+            path: "docs/schema.md",
+            category: "doc",
+          },
         },
       ],
     });
@@ -151,6 +155,7 @@ describe("searchExecution simple modes", () => {
       query: "topology",
       hitCount: 0,
       selectedScope: "attachments",
+      partial: false,
       hits: [],
     });
 

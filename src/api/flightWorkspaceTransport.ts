@@ -213,6 +213,7 @@ function decodeVfsContentMetadata(appMetadata: Uint8Array): VfsContentResponse |
     path?: string;
     contentType?: string;
     content?: string;
+    modified?: number;
   };
   if (
     typeof parsed.path !== "string" ||
@@ -225,6 +226,7 @@ function decodeVfsContentMetadata(appMetadata: Uint8Array): VfsContentResponse |
     path: parsed.path,
     contentType: parsed.contentType,
     content: parsed.content,
+    modified: typeof parsed.modified === "number" ? parsed.modified : 0,
   };
 }
 

@@ -488,8 +488,7 @@ export function buildCodeFilterSuggestions(
 
     return candidates.map((value) => ({
       text: replaceLastQueryToken(query, `${prefix}:${value}`),
-      suggestionType: "stem",
-      docType: "filter",
+      suggestionType: "filter",
     }));
   }
 
@@ -499,8 +498,7 @@ export function buildCodeFilterSuggestions(
   if (lastToken && !lastToken.includes(":") && prefixMatches.length > 0 && lastToken.length <= 4) {
     return prefixMatches.map((prefix) => ({
       text: replaceLastQueryToken(query, `${prefix}:`),
-      suggestionType: "stem",
-      docType: "filter",
+      suggestionType: "filter",
     }));
   }
 
@@ -510,13 +508,12 @@ export function buildCodeFilterSuggestions(
 
   return CODE_FILTER_PREFIXES.map((prefix) => ({
     text: `${query} ${prefix}:`.trim(),
-    suggestionType: "stem",
-    docType: "filter",
+    suggestionType: "filter",
   }));
 }
 
 export function isFilterSuggestion(suggestion: AutocompleteSuggestion): boolean {
-  return suggestion.docType === "filter";
+  return suggestion.suggestionType === "filter";
 }
 
 export function buildActiveCodeFilterEntries(

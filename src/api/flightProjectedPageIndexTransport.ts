@@ -128,6 +128,7 @@ function decodeProjectedPageIndexTreeMetadata(
   if (
     typeof repoId !== "string" ||
     typeof pageId !== "string" ||
+    typeof parsed.kind !== "string" ||
     typeof parsed.path !== "string" ||
     typeof docId !== "string" ||
     typeof parsed.title !== "string" ||
@@ -138,6 +139,7 @@ function decodeProjectedPageIndexTreeMetadata(
   return {
     repo_id: repoId,
     page_id: pageId,
+    kind: parsed.kind as ProjectedPageIndexTree["kind"],
     path: parsed.path,
     doc_id: docId,
     title: parsed.title,

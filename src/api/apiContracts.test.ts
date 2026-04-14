@@ -1,4 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
+import type { UiProjectConfig, UiRepoProjectConfig } from "./bindings";
 import type {
   RepoBacklinkItem,
   RepoIndexStatusResponse,
@@ -23,6 +24,8 @@ describe("api contracts", () => {
       supportedLanguages: string[];
       supportedRepositories: string[];
       supportedKinds: string[];
+      projects?: UiProjectConfig[];
+      repoProjects?: UiRepoProjectConfig[];
     }>();
   });
 

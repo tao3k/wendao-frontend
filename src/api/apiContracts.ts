@@ -1,3 +1,5 @@
+import type { UiProjectConfig, UiRepoProjectConfig } from "./bindings";
+
 export interface RepoBacklinkItem {
   id: string;
   title?: string;
@@ -111,6 +113,8 @@ export interface UiCapabilities {
   supportedLanguages: string[];
   supportedRepositories: string[];
   supportedKinds: string[];
+  projects?: UiProjectConfig[];
+  repoProjects?: UiRepoProjectConfig[];
 }
 
 export interface UiJuliaAnalyzerLaunchManifest {

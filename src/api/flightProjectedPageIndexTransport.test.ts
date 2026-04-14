@@ -42,6 +42,7 @@ describe("flightProjectedPageIndexTransport", () => {
                   repoId: "gateway-sync",
                   pageId:
                     "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+                  kind: "reference",
                   path: "docs/solve.md",
                   docId: "repo:gateway-sync:doc:docs/solve.md",
                   title: "solve",
@@ -73,6 +74,7 @@ describe("flightProjectedPageIndexTransport", () => {
             repo_id: "gateway-sync",
             page_id:
               "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+            kind: "reference",
             path: "docs/solve.md",
             doc_id: "repo:gateway-sync:doc:docs/solve.md",
             title: "solve",

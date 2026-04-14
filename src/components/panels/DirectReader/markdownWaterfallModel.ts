@@ -2,12 +2,18 @@ import type { Root } from "mdast";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
-import type { MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom } from "../../../api";
+import type {
+  MarkdownAnalysisDocumentLink as ApiMarkdownAnalysisDocumentLink,
+  MarkdownAnalysisDocumentMetadata as ApiMarkdownAnalysisDocumentMetadata,
+  MarkdownRetrievalAtom as ApiMarkdownRetrievalAtom,
+} from "../../../api";
 import {
   buildArrowRetrievalLookup,
   type ArrowRetrievalLookup,
 } from "../../../utils/arrowRetrievalLookup";
 import type {
+  MarkdownDocumentIdentity,
+  MarkdownIdentityLink,
   MarkdownAstNode,
   MarkdownFrontmatter,
   MarkdownRetrievalChunk,
@@ -118,6 +124,94 @@ function parseDelimitedFrontmatter(raw: string | undefined): MarkdownFrontmatter
   metadata.linked = Array.from(new Set(metadata.linked));
 
   return metadata;
+}
+
+function resolveAnalysisLinkTarget(link: ApiMarkdownAnalysisDocumentLink): string | null {
+  const normalizedAddress = link.targetAddress?.trim() ?? undefined;
+  if (link.docId) {
+    return `id:${link.docId}${normalizedAddress ?? ""}`;
+  }
+  if (link.path) {
+    return `${link.path}${normalizedAddress ?? ""}`;
+  }
+  return null;
+}
+
+function toMarkdownIdentityLink(
+  link: ApiMarkdownAnalysisDocumentLink,
+): MarkdownIdentityLink | null {
+  const target = resolveAnalysisLinkTarget(link);
+  if (!target) {
+    return null;
+  }
+
+  return {
+    label: link.label,
+    target,
+    kind: link.kind,
+    title: link.title ?? undefined,
+    path: link.path ?? undefined,
+    relationType: link.relationType ?? undefined,
+    metadataOwner: link.metadataOwner ?? undefined,
+    targetAddress: link.targetAddress ?? undefined,
+  };
+}
+
+function isMarkdownIdentityLink(
+  value: MarkdownIdentityLink | null,
+): value is MarkdownIdentityLink {
+  return value !== null;
+}
+
+function buildIdentityFromFrontmatter(
+  frontmatter: MarkdownFrontmatter,
+  title: string,
+): MarkdownDocumentIdentity {
+  return {
+    title,
+    tags: frontmatter.tags,
+    linked: frontmatter.linked.map((item) => ({
+      label: item,
+      target: item,
+      kind: "index",
+    })),
+    backlinks: [],
+    parent: undefined,
+    updated: frontmatter.updated,
+    type: frontmatter.type,
+  };
+}
+
+function buildDocumentIdentity(args: {
+  frontmatter: MarkdownFrontmatter;
+  fallbackTitle: string;
+  metadata?: ApiMarkdownAnalysisDocumentMetadata;
+}): MarkdownDocumentIdentity {
+  const { fallbackTitle, frontmatter, metadata } = args;
+  if (!metadata) {
+    return buildIdentityFromFrontmatter(frontmatter, fallbackTitle);
+  }
+
+  const metadataTags = metadata.tags ?? [];
+  const metadataOutgoingLinks = metadata.outgoingLinks ?? [];
+  const metadataBacklinks = metadata.backlinks ?? [];
+
+  return {
+    title: metadata.title || fallbackTitle,
+    tags: metadataTags.length > 0 ? metadataTags : frontmatter.tags,
+    linked:
+      metadataOutgoingLinks.length > 0
+        ? metadataOutgoingLinks.map(toMarkdownIdentityLink).filter(isMarkdownIdentityLink)
+        : frontmatter.linked.map((item) => ({
+            label: item,
+            target: item,
+            kind: "index",
+          })),
+    backlinks: metadataBacklinks.map(toMarkdownIdentityLink).filter(isMarkdownIdentityLink),
+    parent: metadata.parent ? toMarkdownIdentityLink(metadata.parent) ?? undefined : undefined,
+    updated: metadata.updated ?? frontmatter.updated,
+    type: metadata.docType ?? frontmatter.type,
+  };
 }
 
 function formatDisplayPath(path?: string): string {
@@ -244,8 +338,8 @@ export function toDisplayMarkdownChunk(
     semanticType: atom.semanticType,
     fingerprint: atom.fingerprint,
     tokenEstimate: atom.tokenEstimate,
-    displayLabel: atom.displayLabel,
-    excerpt: atom.excerpt,
+    displayLabel: atom.displayLabel ?? undefined,
+    excerpt: atom.excerpt ?? undefined,
   };
 }
 
@@ -347,7 +441,11 @@ export function findMarkdownRichSlotAtom(args: {
     .collectBySemanticTypeInRange(semanticType, section.lineStart, section.lineEnd)
     .find((atom) => {
       const excerpt = stripMarkdownCodeFence(
-        sliceMarkdownContentLines(content, atom.lineStart, atom.lineEnd),
+        sliceMarkdownContentLines(
+          content,
+          atom.lineStart ?? 1,
+          atom.lineEnd ?? atom.lineStart ?? 1,
+        ),
       );
       return excerpt === normalizedBody;
     });
@@ -374,8 +472,16 @@ export function buildSectionCopyPayload(
   section: MarkdownSection,
   copy: MarkdownWaterfallCopy,
 ): string {
-  const tags = model.frontmatter.tags.length > 0 ? model.frontmatter.tags.join(", ") : "";
-  const linked = model.frontmatter.linked.length > 0 ? model.frontmatter.linked.join(", ") : "";
+  const tags = model.identity.tags.length > 0 ? model.identity.tags.join(", ") : "";
+  const linked =
+    model.identity.linked.length > 0
+      ? model.identity.linked.map((item) => item.label).join(", ")
+      : "";
+  const backlinks =
+    model.identity.backlinks.length > 0
+      ? model.identity.backlinks.map((item) => item.label).join(", ")
+      : "";
+  const parent = model.identity.parent?.label ?? "";
   const sectionTitle = buildSectionTitle(section, copy);
   const sectionBody = section.chunk.excerpt?.trim() || section.body || copy.sectionEmpty;
 
@@ -388,7 +494,9 @@ export function buildSectionCopyPayload(
     `Tokens: ~${section.chunk.tokenEstimate}`,
     model.pathLabel ? `Path: ${model.pathLabel}` : null,
     tags ? `Tags: ${tags}` : null,
-    linked ? `Linked: ${linked}` : null,
+    linked ? `${copy.linkedLabel}: ${linked}` : null,
+    parent ? `${copy.parentLabel}: ${parent}` : null,
+    backlinks ? `${copy.backlinksLabel}: ${backlinks}` : null,
     "",
     sectionBody,
   ]
@@ -438,6 +546,7 @@ export function buildMarkdownWaterfallModel(
   content: string,
   path?: string,
   retrievalAtoms?: ApiMarkdownRetrievalAtom[],
+  documentMetadata?: ApiMarkdownAnalysisDocumentMetadata,
 ): MarkdownWaterfallModel {
   const root = unified()
     .use(remarkParse)
@@ -459,7 +568,15 @@ export function buildMarkdownWaterfallModel(
   const firstHeading = headingNodes[0] ?? null;
   const hasExplicitDocumentTitle = Boolean(frontmatter.title);
   const title =
-    frontmatter.title || extractMarkdownText(firstHeading) || formatDocumentTitleFromPath(path);
+    documentMetadata?.title ||
+    frontmatter.title ||
+    extractMarkdownText(firstHeading) ||
+    formatDocumentTitleFromPath(path);
+  const identity = buildDocumentIdentity({
+    frontmatter,
+    fallbackTitle: title,
+    metadata: documentMetadata,
+  });
 
   const sections: Array<Omit<MarkdownSection, "chunk">> = [];
   const firstHeadingStart = firstHeading?.position?.start?.offset ?? content.length;
@@ -559,6 +676,7 @@ export function buildMarkdownWaterfallModel(
     title,
     pathLabel: formatDisplayPath(path),
     frontmatter,
+    identity,
     sections: sections.map((section, index) => ({
       id: section.id,
       title: section.title,

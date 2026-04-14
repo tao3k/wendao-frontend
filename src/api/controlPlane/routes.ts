@@ -1,6 +1,5 @@
 export const CONTROL_PLANE_ROUTE_PATHS = {
   health: "/health",
-  uiConfig: "/ui/config",
   uiCapabilities: "/ui/capabilities",
   juliaDeploymentArtifact: "/ui/julia-deployment-artifact",
 } as const;

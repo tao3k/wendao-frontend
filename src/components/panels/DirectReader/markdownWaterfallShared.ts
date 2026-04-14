@@ -26,7 +26,9 @@ export interface MarkdownWaterfallCopy {
   copiedSectionLabel: string;
   pivotSectionLabel: string;
   tagsLabel: string;
+  parentLabel: string;
   linkedLabel: string;
+  backlinksLabel: string;
   updatedLabel: string;
   typeLabel: string;
   documentLabel: string;
@@ -71,6 +73,27 @@ export interface MarkdownRetrievalChunk {
   excerpt?: string;
 }
 
+export interface MarkdownIdentityLink {
+  label: string;
+  target: string;
+  kind: "body" | "relation" | "index" | "parent" | "backlink";
+  title?: string;
+  path?: string;
+  relationType?: string;
+  metadataOwner?: string;
+  targetAddress?: string;
+}
+
+export interface MarkdownDocumentIdentity {
+  title: string;
+  tags: string[];
+  linked: MarkdownIdentityLink[];
+  backlinks: MarkdownIdentityLink[];
+  parent?: MarkdownIdentityLink;
+  updated?: string;
+  type?: string;
+}
+
 export interface MarkdownSection {
   id: string;
   title: string;
@@ -87,6 +110,7 @@ export interface MarkdownWaterfallModel {
   title: string;
   pathLabel: string;
   frontmatter: MarkdownFrontmatter;
+  identity: MarkdownDocumentIdentity;
   sections: MarkdownSection[];
 }
 
@@ -106,7 +130,9 @@ export const WATERFALL_COPY: Record<MarkdownWaterfallLocale, MarkdownWaterfallCo
     copiedSectionLabel: "Copied",
     pivotSectionLabel: "Pivot section",
     tagsLabel: "Tags",
+    parentLabel: "Parent",
     linkedLabel: "Linked",
+    backlinksLabel: "Backlinks",
     updatedLabel: "Updated",
     typeLabel: "Type",
     documentLabel: "Markdown document",
@@ -134,7 +160,9 @@ export const WATERFALL_COPY: Record<MarkdownWaterfallLocale, MarkdownWaterfallCo
     copiedSectionLabel: "已复制",
     pivotSectionLabel: "聚焦章节",
     tagsLabel: "标签",
+    parentLabel: "父级",
     linkedLabel: "关联",
+    backlinksLabel: "反向链接",
     updatedLabel: "更新",
     typeLabel: "类型",
     documentLabel: "Markdown 文档",

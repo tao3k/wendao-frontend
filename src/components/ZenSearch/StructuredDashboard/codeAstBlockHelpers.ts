@@ -222,7 +222,7 @@ export function buildCodeBlocks(
           id: atom.chunkId,
           kind: normalizeBlockKind(atom.semanticType),
           title: atom.displayLabel ?? atom.semanticType,
-          lineRange: formatLineRange(atom.lineStart, atom.lineEnd),
+          lineRange: formatLineRange(atom.lineStart ?? undefined, atom.lineEnd ?? undefined),
           excerpt: atom.excerpt ?? "(empty block)",
           anchors: [],
           query: atom.displayLabel ?? atom.semanticType,
@@ -276,14 +276,16 @@ export function buildCodeBlocks(
               .filter((label) => label.trim().length > 0)
           : [];
       const excerpt =
-        atom.excerpt ?? buildExcerptFromContentLines(contentLines, start, end) ?? "(empty block)";
+        atom.excerpt ??
+        buildExcerptFromContentLines(contentLines, start ?? undefined, end ?? undefined) ??
+        "(empty block)";
 
       return {
         id: atom.chunkId,
         kind: normalizeBlockKind(atom.semanticType),
         title:
           atom.displayLabel ?? buildBlockTitle(normalizeBlockKind(atom.semanticType), [excerpt]),
-        lineRange: formatLineRange(start, end),
+        lineRange: formatLineRange(start ?? undefined, end ?? undefined),
         excerpt,
         anchors,
         query: anchors[0] ?? atom.displayLabel ?? atom.semanticType,

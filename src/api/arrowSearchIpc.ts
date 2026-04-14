@@ -301,15 +301,21 @@ export function decodeAttachmentSearchHitsFromArrowIpc(
     const sourceTitle = toOptionalString(record.sourceTitle);
     const navigationTarget = parseOptionalJson<StudioNavigationTarget>(record.navigationTargetJson);
     const visionSnippet = toOptionalString(record.visionSnippet);
+    const sourcePath = requireString(record, "sourcePath");
 
     return {
-      ...(name ? { name } : {}),
+      name: name ?? requireString(record, "attachmentName"),
       path: requireString(record, "path"),
       sourceId: requireString(record, "sourceId"),
       sourceStem: requireString(record, "sourceStem"),
-      ...(sourceTitle ? { sourceTitle } : {}),
-      ...(navigationTarget ? { navigationTarget } : {}),
-      sourcePath: requireString(record, "sourcePath"),
+      sourceTitle: sourceTitle ?? requireString(record, "sourceStem"),
+      navigationTarget:
+        navigationTarget ??
+        ({
+          path: sourcePath,
+          category: "doc",
+        } satisfies StudioNavigationTarget),
+      sourcePath,
       attachmentId: requireString(record, "attachmentId"),
       attachmentPath: requireString(record, "attachmentPath"),
       attachmentName: requireString(record, "attachmentName"),

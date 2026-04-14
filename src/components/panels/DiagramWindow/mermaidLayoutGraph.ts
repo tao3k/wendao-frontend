@@ -44,13 +44,13 @@ export interface MermaidLayoutGraph {
 interface AnalysisGraphNodeLike {
   readonly id: string;
   readonly label: string;
-  readonly parentId?: string;
+  readonly parentId?: string | null;
 }
 
 interface AnalysisGraphEdgeLike {
   readonly sourceId: string;
   readonly targetId: string;
-  readonly label?: string;
+  readonly label?: string | null;
 }
 
 const FLOW_LAYOUT_DIRECTIONS: readonly MermaidFlowLayoutDirection[] = ["TD", "LR", "RL", "BT"];
@@ -238,7 +238,7 @@ function resolveMarkdownEdgeLabel(edge: AnalysisEdge): string {
     return edge.label.trim();
   }
 
-  if (edge.kind === "next_step") {
+  if (edge.kind === "nextstep") {
     return "next";
   }
 
@@ -250,7 +250,7 @@ function resolveMarkdownEdgeLabel(edge: AnalysisEdge): string {
 }
 
 function resolveCodeNodeShape(node: CodeAstNode): MermaidLayoutNodeShape {
-  if (node.kind === "file" || node.kind === "module") {
+  if (node.kind === "module") {
     return "state";
   }
 
@@ -266,8 +266,16 @@ function resolveCodeEdgeLabel(edge: CodeAstEdge): string {
     return "uses";
   }
 
-  if (edge.kind === "declares") {
-    return "declares";
+  if (edge.kind === "calls") {
+    return "calls";
+  }
+
+  if (edge.kind === "imports") {
+    return "imports";
+  }
+
+  if (edge.kind === "contains") {
+    return "contains";
   }
 
   return "";

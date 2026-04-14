@@ -107,9 +107,10 @@ describe("mermaidLayoutGraph", () => {
       [
         {
           id: "edge-1",
-          kind: "next_step",
+          kind: "nextstep",
           sourceId: "doc",
           targetId: "task",
+          label: "next",
           evidence: {
             path: "docs/system_overview.md",
             lineStart: 10,
@@ -133,7 +134,7 @@ describe("mermaidLayoutGraph", () => {
       [
         {
           id: "file",
-          kind: "file",
+          kind: "module",
           label: "BaseModelica.jl",
           path: "sciml/src/BaseModelica.jl",
           lineStart: 1,
@@ -141,18 +142,17 @@ describe("mermaidLayoutGraph", () => {
         },
         {
           id: "module",
-          kind: "module",
+          kind: "type",
           label: "BaseModelica",
           path: "sciml/src/BaseModelica.jl",
           lineStart: 1,
           lineEnd: 20,
-          parentId: "file",
         },
       ],
       [
         {
           id: "edge-1",
-          kind: "declares",
+          kind: "contains",
           sourceId: "file",
           targetId: "module",
         },
@@ -165,7 +165,7 @@ describe("mermaidLayoutGraph", () => {
         "flowchart LR",
         'file["BaseModelica.jl"]',
         'module["BaseModelica"]',
-        "file -->|declares| module",
+        "file -->|contains| module",
       ].join("\n"),
     );
   });

@@ -15,7 +15,7 @@ interface VirtualizedSearchResultsListProps {
   canOpenGraph: boolean;
   openOnSelect?: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
-  renderIcon: (docType?: string) => React.ReactNode;
+  renderIcon: (docType?: string | null) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onSelectIndex: (index: number) => void;
   onOpen: (
@@ -85,7 +85,7 @@ interface SearchResultsRowRendererProps {
   canOpenGraph: boolean;
   openOnSelect: boolean;
   isResultPreviewExpanded: (result: SearchResult) => boolean;
-  renderIcon: (docType?: string) => React.ReactNode;
+  renderIcon: (docType?: string | null) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onSelectIndex: (index: number) => void;
   onOpen: (
@@ -134,7 +134,7 @@ function renderSearchResultsRow(
 
   const { displayIndex, result } = row;
   const isCodeResultRow = isCodeSearchResult(result);
-  const lineRange = normalizeCodeLineLabel(result.line, result.lineEnd);
+  const lineRange = normalizeCodeLineLabel(result.line ?? undefined, result.lineEnd ?? undefined);
   const previewExpanded = isResultPreviewExpanded(result);
 
   return (

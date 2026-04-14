@@ -20,7 +20,7 @@ interface SearchResultRowProps {
   canOpenReferences: boolean;
   canOpenGraph: boolean;
   openOnSelect?: boolean;
-  renderIcon: (docType?: string) => React.ReactNode;
+  renderIcon: (docType?: string | null) => React.ReactNode;
   renderTitle: (text: string, query: string) => React.ReactNode;
   onHoverIndex: (index: number) => void;
   onSelectIndex: (index: number) => void;
@@ -151,11 +151,11 @@ export const SearchResultRow = React.memo(function SearchResultRow({
           <div className="search-result-title">
             {renderTitle(result.title || result.stem, query)}
             <SkepticBadge state={result.verification_state} />
-            {result.saliencyScore !== undefined && result.saliencyScore > 0 && (
+            {typeof result.saliencyScore === "number" && result.saliencyScore > 0 && (
               <SaliencyIndicator score={result.saliencyScore} />
             )}
           </div>
-          {result.hierarchicalUri ? (
+          {typeof result.hierarchicalUri === "string" && result.hierarchicalUri.length > 0 ? (
             <TopoBreadcrumbs uri={result.hierarchicalUri} />
           ) : (
             <div className="search-result-path">{displayPath}</div>

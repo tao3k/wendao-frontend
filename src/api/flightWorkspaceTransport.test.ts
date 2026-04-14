@@ -150,6 +150,7 @@ describe("flightWorkspaceTransport", () => {
           path: "docs/index.md",
           contentType: "text/plain",
           content: "# Index",
+          modified: 0,
         }),
       },
     );
@@ -158,6 +159,7 @@ describe("flightWorkspaceTransport", () => {
       path: "docs/index.md",
       contentType: "text/plain",
       content: "# Index",
+      modified: 0,
     });
   });
 

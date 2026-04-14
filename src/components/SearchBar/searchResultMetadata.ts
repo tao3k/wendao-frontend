@@ -16,7 +16,7 @@ export interface SearchResultMetaPill {
   label: string;
 }
 
-function asNonEmptyText(value: string | undefined): string | null {
+function asNonEmptyText(value: string | null | undefined): string | null {
   if (!value) {
     return null;
   }

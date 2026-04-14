@@ -146,8 +146,8 @@ describe("useSearchBarControllerPresentation", () => {
         codeQuickExampleTokens: [],
         codeQuickScenarios: [],
         suggestions: [
-          { text: "lang:julia", suggestionType: "stem", docType: "filter" },
-          { text: "kind:function", suggestionType: "stem", docType: "filter" },
+          { text: "lang:julia", suggestionType: "filter" },
+          { text: "kind:function", suggestionType: "filter" },
         ],
         activeSuggestionIndex: 0,
         setActiveSuggestionIndex,

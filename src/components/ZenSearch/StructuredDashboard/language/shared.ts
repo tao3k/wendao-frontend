@@ -6,6 +6,8 @@ import type {
 } from "../structuredIntelligenceTypes";
 import type { LanguageProjectionInput } from "./types";
 
+type CodeSurface = "declaration" | "block" | "symbol";
+
 function normalizeText(value: string | undefined | null): string | null {
   if (!value) {
     return null;
@@ -25,8 +27,8 @@ function truncateText(value: string, maxLength = 220): string {
 
 function buildExcerptFromContentLines(
   contentLines: string[],
-  lineStart: number | undefined,
-  lineEnd: number | undefined,
+  lineStart: number | null | undefined,
+  lineEnd: number | null | undefined,
 ): string | null {
   if (!lineStart || lineStart <= 0 || contentLines.length === 0) {
     return null;
@@ -124,7 +126,7 @@ function buildFragmentDetail(
   language: string | null,
 ): string | undefined {
   const detail = [
-    buildSemanticLabel(atom.semanticType, atom.surface),
+    buildSemanticLabel(atom.semanticType, atom.surface ?? "fragment"),
     normalizeText(language),
     formatAtomLineRange(atom),
   ]
@@ -219,7 +221,7 @@ function buildFragments(input: LanguageProjectionInput): StructuredFragment[] {
   }
 
   const contentLines = input.content ? input.content.split(/\r?\n/) : [];
-  const surfacePriority: Record<CodeAstRetrievalAtom["surface"], number> = {
+  const surfacePriority: Record<CodeSurface, number> = {
     declaration: 0,
     block: 1,
     symbol: 2,
@@ -229,9 +231,8 @@ function buildFragments(input: LanguageProjectionInput): StructuredFragment[] {
 
   const fragments: StructuredFragment[] = [];
   const orderedAtoms = analysis.retrievalAtoms
-    .filter(
-      (atom) =>
-        atom.surface === "declaration" || atom.surface === "block" || atom.surface === "symbol",
+    .filter((atom): atom is CodeAstRetrievalAtom & { surface: "declaration" | "block" | "symbol" } =>
+      atom.surface === "declaration" || atom.surface === "block" || atom.surface === "symbol",
     )
     .toSorted((left, right) => {
       const leftPriority = surfacePriority[left.surface];

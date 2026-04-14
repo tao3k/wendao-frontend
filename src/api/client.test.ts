@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, getUiCapabilitiesSync, getUiConfigSync, resetUiCapabilitiesCache } from "./index";
+import { api } from "./index";
 import * as flightAnalysisTransport from "./flightAnalysisTransport";
 import * as flightDocumentTransport from "./flightDocumentTransport";
 import * as flightGraphTransport from "./flightGraphTransport";
@@ -14,11 +14,6 @@ import * as flightRepoSearchTransport from "./flightRepoSearchTransport";
 import * as flightSearchTransport from "./flightSearchTransport";
 import * as flightWorkspaceTransport from "./flightWorkspaceTransport";
 import { ApiClientError } from "./responseTransport";
-import { resetConfig } from "../config/loader";
-
-afterEach(() => {
-  resetConfig();
-});
 
 function mockFrontendFlightConfigFetch() {
   return vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -43,7 +38,6 @@ dirs = ["docs"]
 describe("api client Flight document transport", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    resetUiCapabilitiesCache();
   });
 
   it("routes definition resolution through same-origin Flight", async () => {
@@ -77,6 +71,7 @@ describe("api client Flight document transport", () => {
           lineStart: 11,
           lineEnd: 13,
           score: 0.97,
+          observationHints: [],
         },
         candidateCount: 1,
         selectedScope: "definition",
@@ -132,7 +127,6 @@ describe("api client Flight document transport", () => {
 describe("api client Flight repo transport", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    resetUiCapabilitiesCache();
   });
 
   it("routes repo-content search through same-origin Flight", async () => {
@@ -379,6 +373,7 @@ describe("api client Flight repo transport", () => {
       .mockResolvedValue({
         repo_id: "gateway-sync",
         page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+        kind: "reference",
         path: "docs/solve.md",
         doc_id: "repo:gateway-sync:doc:docs/solve.md",
         title: "solve",
@@ -449,85 +444,9 @@ describe("api client Flight repo transport", () => {
   });
 });
 
-describe("api client ui capabilities contract", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    resetUiCapabilitiesCache();
-  });
-
-  it("loads gateway-supported languages from /api/ui/capabilities and caches them", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          supportedLanguages: ["julia", "modelica"],
-          supportedRepositories: ["kernel", "sciml"],
-          supportedKinds: ["function", "module", "struct"],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-
-    const capabilities = await api.getUiCapabilities();
-
-    expect(fetchSpy).toHaveBeenCalledWith("/api/ui/capabilities");
-    expect(capabilities.supportedLanguages).toEqual(["julia", "modelica"]);
-    expect(capabilities.supportedRepositories).toEqual(["kernel", "sciml"]);
-    expect(capabilities.supportedKinds).toEqual(["function", "module", "struct"]);
-    expect(getUiCapabilitiesSync()).toEqual({
-      supportedLanguages: ["julia", "modelica"],
-      supportedRepositories: ["kernel", "sciml"],
-      supportedKinds: ["function", "module", "struct"],
-    });
-  });
-});
-
-describe("api client ui config contract", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    resetUiCapabilitiesCache();
-  });
-
-  it("loads UI config from /api/ui/config and caches repo projects", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          projects: [
-            {
-              name: "kernel",
-              root: ".",
-              dirs: ["docs"],
-            },
-          ],
-          repoProjects: [
-            {
-              id: "lancd",
-              url: "https://github.com/lance-format/lance",
-              plugins: ["ast-grep"],
-            },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-
-    const config = await api.getUiConfig();
-
-    expect(fetchSpy).toHaveBeenCalledWith("/api/ui/config");
-    expect(config.repoProjects).toEqual([
-      {
-        id: "lancd",
-        url: "https://github.com/lance-format/lance",
-        plugins: ["ast-grep"],
-      },
-    ]);
-    expect(getUiConfigSync()).toEqual(config);
-  });
-});
-
 describe("api client Flight workspace transport", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    resetUiCapabilitiesCache();
   });
 
   it("routes VFS content through same-origin Flight", async () => {
@@ -538,6 +457,7 @@ describe("api client Flight workspace transport", () => {
         path: "main/docs/index.md",
         contentType: "text/plain",
         content: "# Index",
+        modified: 0,
       });
 
     const response = await api.getVfsContent("docs/index.md");
@@ -787,7 +707,7 @@ describe("api client Arrow retrieval chunk contract", () => {
   });
 
   it("loads markdown retrieval chunks through the Flight analysis helper", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         `
 [gateway]
@@ -825,7 +745,6 @@ dirs = ["docs"]
 
     const response = await api.getMarkdownRetrievalChunksArrow("main/docs/index.md");
 
-    expect(fetchSpy).toHaveBeenCalledWith("/wendao.toml");
     expect(flightSpy).toHaveBeenCalledWith({
       baseUrl: "http://localhost:3000",
       schemaVersion: "v2",
@@ -909,6 +828,7 @@ describe("api client Flight search hit contract", () => {
       query: "topology",
       hitCount: 1,
       selectedScope: "attachments",
+      partial: false,
       hits: [
         {
           name: "topology.png",
@@ -1075,6 +995,7 @@ describe("api client Arrow reference hit contract", () => {
       query: "solve",
       hitCount: 1,
       selectedScope: "references",
+      partial: false,
       hits: [
         {
           name: "solve",
@@ -1132,6 +1053,7 @@ describe("api client Arrow AST hit contract", () => {
       query: "IndexTask",
       hitCount: 1,
       selectedScope: "definitions",
+      partial: false,
       hits: [
         {
           name: "IndexTask",
@@ -1229,70 +1151,24 @@ dirs = ["docs"]
     );
   });
 
-  it("re-syncs ui config and retries once when gateway returns UNKNOWN_REPOSITORY", async () => {
-    let searchCalls = 0;
-    vi.spyOn(flightSearchTransport, "searchKnowledgeFlight").mockImplementation(async () => {
-      searchCalls += 1;
-      if (searchCalls === 1) {
-        throw new ApiClientError(
+  it("surfaces UNKNOWN_REPOSITORY directly without frontend config refresh", async () => {
+    const searchSpy = vi
+      .spyOn(flightSearchTransport, "searchKnowledgeFlight")
+      .mockRejectedValue(
+        new ApiClientError(
           "UNKNOWN_REPOSITORY",
           "Repo Intelligence repository `gateway-sync` is not registered",
-        );
-      }
-      return {
-        query: "solve",
-        hitCount: 0,
-        hits: [],
-        selectedMode: "code_search",
-        searchMode: "code_search",
+        ),
+      );
+
+    await expect(
+      api.searchKnowledge("solve", 5, {
         intent: "code_search",
-        intentConfidence: 1,
-      };
-    });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-      const url = String(input);
-      if (url === "/wendao.toml") {
-        return new Response(
-          `
-[gateway]
-bind = "127.0.0.1:9517"
+        repo: "gateway-sync",
+      }),
+    ).rejects.toThrow("Repo Intelligence repository `gateway-sync` is not registered");
 
-[search_flight]
-bind = "127.0.0.1:9527"
-schema_version = "v2"
-
-[link_graph.projects.kernel]
-root = "."
-dirs = ["docs"]
-
-[link_graph.projects.gateway-sync]
-url = "https://github.com/example/gateway-sync.git"
-plugins = ["julia"]
-`,
-          { status: 200, headers: { "Content-Type": "text/plain" } },
-        );
-      }
-      if (url === "/api/ui/config" && init?.method === "POST") {
-        return new Response("null", {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`unexpected fetch call: ${url}`);
-    });
-
-    const response = await api.searchKnowledge("solve", 5, {
-      intent: "code_search",
-      repo: "gateway-sync",
-    });
-
-    expect(response.searchMode).toBe("code_search");
-    expect(searchCalls).toBe(2);
-    expect(fetchSpy).toHaveBeenCalledWith("/wendao.toml");
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/ui/config",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(searchSpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1302,7 +1178,7 @@ describe("api client code ast analysis contract", () => {
   });
 
   it("routes markdown analysis through the Flight analysis helper", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         `
 [gateway]
@@ -1334,7 +1210,6 @@ dirs = ["docs"]
 
     await api.getMarkdownAnalysis("main/docs/index.md");
 
-    expect(fetchSpy).toHaveBeenCalledWith("/wendao.toml");
     expect(flightSpy).toHaveBeenCalledWith({
       baseUrl: "http://localhost:3000",
       schemaVersion: "v2",
@@ -1343,7 +1218,7 @@ dirs = ["docs"]
   });
 
   it("routes code AST analysis through the Flight analysis helper", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         `
 [gateway]
@@ -1379,7 +1254,6 @@ dirs = ["src"]
       line: 42,
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith("/wendao.toml");
     expect(flightSpy).toHaveBeenCalledWith({
       baseUrl: "http://localhost:3000",
       schemaVersion: "v2",

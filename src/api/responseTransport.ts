@@ -1,5 +1,9 @@
 import type { ApiError } from "./bindings";
 
+function toOptionalDetails(value: string | null | undefined): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 export class ApiClientError extends Error {
   constructor(
     public code: string,
@@ -17,7 +21,7 @@ export async function handleResponse<T>(response: Response): Promise<T> {
       code: "UNKNOWN_ERROR",
       message: `HTTP ${response.status}: ${response.statusText}`,
     }));
-    throw new ApiClientError(error.code, error.message, error.details);
+    throw new ApiClientError(error.code, error.message, toOptionalDetails(error.details));
   }
   return response.json();
 }
@@ -28,7 +32,7 @@ export async function handleBinaryResponse(response: Response): Promise<ArrayBuf
       code: "UNKNOWN_ERROR",
       message: `HTTP ${response.status}: ${response.statusText}`,
     }));
-    throw new ApiClientError(error.code, error.message, error.details);
+    throw new ApiClientError(error.code, error.message, toOptionalDetails(error.details));
   }
   return response.arrayBuffer();
 }
@@ -39,7 +43,7 @@ export async function handleTextResponse(response: Response): Promise<string> {
       code: "UNKNOWN_ERROR",
       message: `HTTP ${response.status}: ${response.statusText}`,
     }));
-    throw new ApiClientError(error.code, error.message, error.details);
+    throw new ApiClientError(error.code, error.message, toOptionalDetails(error.details));
   }
   return response.text();
 }

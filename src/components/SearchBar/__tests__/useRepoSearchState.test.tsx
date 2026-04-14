@@ -1,6 +1,5 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as apiModule from "../../../api";
 import { useRepoSearchState } from "../useRepoSearchState";
 
 const useRepoOverviewStatusMock = vi.fn();
@@ -18,8 +17,6 @@ describe("useRepoSearchState", () => {
   beforeEach(() => {
     useRepoOverviewStatusMock.mockReset();
     useRepoSyncStatusMock.mockReset();
-    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue(null);
-
     useRepoOverviewStatusMock.mockReturnValue({ repoOverviewStatus: null });
     useRepoSyncStatusMock.mockReturnValue({ repoSyncStatus: null });
   });
@@ -79,24 +76,7 @@ describe("useRepoSearchState", () => {
     expect(result.current.primaryRepoFilter).toBe("override");
   });
 
-  it("infers a repo filter from configured repo project fields before default scope", () => {
-    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
-      projects: [
-        {
-          name: "kernel",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-      repoProjects: [
-        {
-          id: "lancd",
-          url: "https://github.com/lance-format/lance",
-          plugins: ["ast-grep"],
-        },
-      ],
-    });
-
+  it("keeps the default repo filter when the query has no explicit repo token", () => {
     const { result } = renderHook(() =>
       useRepoSearchState({
         query: "lance",
@@ -107,7 +87,7 @@ describe("useRepoSearchState", () => {
       }),
     );
 
-    expect(result.current.activeRepoFilter).toBe("lancd");
-    expect(result.current.primaryRepoFilter).toBe("lancd");
+    expect(result.current.activeRepoFilter).toBe("kernel");
+    expect(result.current.primaryRepoFilter).toBe("kernel");
   });
 });

@@ -13,15 +13,13 @@ import {
   createRspackPerformanceConfig,
   createRspackPlugins,
   createRspackResolve,
+  resolveRspackBuildEnvironment,
   createSplitChunksConfig,
-  resolveDaochangTargetFromCwd,
-  resolveGatewayTargetFromCwd,
 } from "./scripts/rspack";
 
 const isDev = process.env.NODE_ENV === "development";
 const targets = [...RSPACK_TARGETS];
-const GATEWAY_TARGET = resolveGatewayTargetFromCwd();
-const DAOCHANG_TARGET = resolveDaochangTargetFromCwd();
+const buildEnvironment = resolveRspackBuildEnvironment();
 
 export default defineConfig({
   entry: createRspackEntry(),
@@ -38,7 +36,6 @@ export default defineConfig({
       isDev,
       constructors: {
         HtmlRspackPlugin: rspack.HtmlRspackPlugin,
-        CopyRspackPlugin: rspack.CopyRspackPlugin,
         ReactRefreshRspackPlugin,
       },
     }),
@@ -61,7 +58,7 @@ export default defineConfig({
   performance: createRspackPerformanceConfig(),
   devServer: createRspackDevServer({
     isDev,
-    gatewayTarget: GATEWAY_TARGET,
-    daochangTarget: DAOCHANG_TARGET,
+    gatewayTarget: buildEnvironment.gatewayTarget,
+    daochangTarget: buildEnvironment.daochangTarget,
   }),
 } as Configuration);

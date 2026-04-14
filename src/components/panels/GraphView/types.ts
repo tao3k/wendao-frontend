@@ -52,7 +52,7 @@ export interface SimulatedNode {
   id: string;
   label: string;
   path: string;
-  navigationTarget?: StudioNavigationTarget;
+  navigationTarget?: StudioNavigationTarget | null;
   nodeType: string;
   isCenter: boolean;
   distance: number;

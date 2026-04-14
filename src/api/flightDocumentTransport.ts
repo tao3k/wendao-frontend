@@ -128,8 +128,11 @@ export async function resolveDefinitionFlight(
     query: typeof metadata.query === "string" ? metadata.query : request.query,
     ...(typeof metadata.sourcePath === "string" ? { sourcePath: metadata.sourcePath } : {}),
     ...(typeof metadata.sourceLine === "number" ? { sourceLine: metadata.sourceLine } : {}),
-    ...(navigationTarget ? { navigationTarget } : {}),
-    definition,
+    navigationTarget: navigationTarget ?? definition.navigationTarget,
+    definition: {
+      ...definition,
+      observationHints: [],
+    },
     candidateCount:
       typeof metadata.candidateCount === "number" ? metadata.candidateCount : definitionHits.length,
     selectedScope:

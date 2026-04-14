@@ -1,7 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../../api";
-import * as apiModule from "../../../api";
 import { useRepoOverviewStatus } from "../useRepoOverviewStatus";
 
 describe("useRepoOverviewStatus", () => {
@@ -59,22 +58,14 @@ describe("useRepoOverviewStatus", () => {
     expect(overviewSpy).not.toHaveBeenCalled();
   });
 
-  it("does not call api for search-only repos", async () => {
-    vi.spyOn(apiModule, "getUiConfigSync").mockReturnValue({
-      projects: [
-        {
-          name: "kernel",
-          root: ".",
-          dirs: ["docs"],
-        },
-      ],
-      repoProjects: [
-        {
-          id: "lancd",
-          url: "https://github.com/lance-format/lance",
-          plugins: ["ast-grep"],
-        },
-      ],
+  it("calls api whenever code scope has a repo filter", async () => {
+    vi.spyOn(api, "getRepoOverview").mockResolvedValue({
+      repoId: "lancd",
+      displayName: "Lance",
+      moduleCount: 0,
+      symbolCount: 0,
+      exampleCount: 0,
+      docCount: 0,
     });
     const overviewSpy = vi.spyOn(api, "getRepoOverview");
 
@@ -87,9 +78,9 @@ describe("useRepoOverviewStatus", () => {
     );
 
     await waitFor(() => {
-      expect(result.current.repoOverviewStatus).toBeNull();
+      expect(result.current.repoOverviewStatus?.repoId).toBe("lancd");
     });
 
-    expect(overviewSpy).not.toHaveBeenCalled();
+    expect(overviewSpy).toHaveBeenCalledWith("lancd");
   });
 });

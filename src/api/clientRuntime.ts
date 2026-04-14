@@ -2,9 +2,8 @@
  * Type-safe API client for Qianji Studio backend
  *
  * Uses the bindings generated from Rust Specta types.
- * HTTP control-plane requests are routed by the Rspack dev proxy according to
- * `.data/wendao-frontend/wendao.toml`, while semantic knowledge search now
- * uses the browser-facing Arrow Flight path.
+ * HTTP control-plane requests are routed by the Rspack dev proxy, while
+ * semantic knowledge search uses the browser-facing Arrow Flight path.
  */
 
 import type {
@@ -12,10 +11,8 @@ import type {
   VfsScanEntry,
   VfsScanResult,
   VfsContentResponse,
-  Topology3D,
+  Topology3dPayload,
   GraphNeighborsResponse,
-  UiConfig,
-  UiProjectConfig,
   SearchHit,
   SearchResponse,
   StudioNavigationTarget,
@@ -62,10 +59,8 @@ export type {
   VfsScanEntry,
   VfsScanResult,
   VfsContentResponse,
-  Topology3D,
+  Topology3dPayload,
   GraphNeighborsResponse,
-  UiConfig,
-  UiProjectConfig,
   SearchHit,
   SearchResponse,
   StudioNavigationTarget,
@@ -112,7 +107,6 @@ export type {
   RepoIndexStatusResponse,
   RepoOverviewResponse,
   RepoSyncResponse,
-  UiCapabilities,
 };
 
 import {
@@ -147,12 +141,9 @@ import * as flightDocumentTransport from "./flightDocumentTransport";
 import * as flightGraphTransport from "./flightGraphTransport";
 import * as flightWorkspaceTransport from "./flightWorkspaceTransport";
 import { ApiClientError, handleResponse, handleTextResponse } from "./responseTransport";
-import { createUiConfigTransportState } from "./uiConfigTransport";
 import {
   fetchControlPlaneJuliaDeploymentArtifact,
   fetchControlPlaneJuliaDeploymentArtifactToml,
-  fetchControlPlaneUiConfig,
-  postControlPlaneUiConfig,
 } from "./controlPlane/transport";
 import { fetchHealthResponse } from "./workspaceTransport";
 import type {
@@ -166,34 +157,10 @@ import type {
   RepoIndexStatusResponse,
   RepoOverviewResponse,
   RepoSyncResponse,
-  UiCapabilities,
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
-import { getConfig } from "../config/loader";
 
 const API_BASE = "/api";
-let uiConfigCache: UiConfig | null = null;
-
-const uiConfigTransportState = createUiConfigTransportState({
-  apiBase: API_BASE,
-  handleResponse,
-  onUiConfigSynced: (config) => {
-    uiConfigCache = config;
-  },
-});
-
-export function getUiCapabilitiesSync(): UiCapabilities | null {
-  return uiConfigTransportState.getUiCapabilitiesSync();
-}
-
-export function getUiConfigSync(): UiConfig | null {
-  return uiConfigCache;
-}
-
-export function resetUiCapabilitiesCache(): void {
-  uiConfigTransportState.resetUiCapabilitiesCache();
-  uiConfigCache = null;
-}
 
 const workspaceTransportDeps = {
   apiBase: API_BASE,
@@ -227,6 +194,10 @@ function nextRepoIndexFlightRequestId(): string {
   return `repo-index-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function resolveStudioFlightSchemaVersion(): string {
+  return flightSearchTransport.resolveSearchFlightSchemaVersion();
+}
+
 /**
  * API client for Qianji Studio
  */
@@ -246,10 +217,9 @@ export const api = {
    * Get raw file content from VFS
    */
   async getVfsContent(path: string): Promise<VfsContentResponse> {
-    const config = await getConfig();
     return flightWorkspaceTransport.loadVfsContentFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       path,
     });
   },
@@ -258,10 +228,9 @@ export const api = {
    * Resolve a display-ready studio navigation target from a semantic or VFS path.
    */
   async resolveStudioPath(path: string): Promise<StudioNavigationTarget> {
-    const config = await getConfig();
     return flightWorkspaceTransport.resolveStudioPathFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       path,
     });
   },
@@ -270,12 +239,9 @@ export const api = {
    * Scan VFS directories for files
    */
   async scanVfs(): Promise<VfsScanResult> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightWorkspaceTransport.loadVfsScanFlight({
-        baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-      });
+    return flightWorkspaceTransport.loadVfsScanFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
     });
   },
 
@@ -289,10 +255,9 @@ export const api = {
     nodeId: string,
     options?: { direction?: string; hops?: number; limit?: number },
   ): Promise<GraphNeighborsResponse> {
-    const config = await getConfig();
     return flightGraphTransport.loadGraphNeighborsFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       nodeId,
       direction: options?.direction,
       hops: options?.hops,
@@ -303,13 +268,10 @@ export const api = {
   /**
    * Get full 3D topology for visualization
    */
-  async get3DTopology(): Promise<Topology3D> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightGraphTransport.loadTopology3DFlight({
-        baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-      });
+  async get3DTopology(): Promise<Topology3dPayload> {
+    return flightGraphTransport.loadTopology3DFlight({
+      baseUrl: resolveBrowserFlightBaseUrl(),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
     });
   },
 
@@ -323,23 +285,20 @@ export const api = {
     limit: number = 10,
     options?: { intent?: string; repo?: string; signal?: AbortSignal },
   ): Promise<SearchResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightSearchTransport.searchKnowledgeFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          query,
-          limit,
-          intent: options?.intent,
-          repo: options?.repo,
-          signal: options?.signal,
-        },
-        {
-          decodeSearchHits: decodeSearchHitsFromArrowIpc,
-        },
-      );
-    });
+    return flightSearchTransport.searchKnowledgeFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        query,
+        limit,
+        intent: options?.intent,
+        repo: options?.repo,
+        signal: options?.signal,
+      },
+      {
+        decodeSearchHits: decodeSearchHitsFromArrowIpc,
+      },
+    );
   },
 
   /**
@@ -358,27 +317,24 @@ export const api = {
       signal?: AbortSignal;
     },
   ): Promise<SearchResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRepoSearchTransport.searchRepoContentFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          repo,
-          query,
-          limit,
-          languageFilters: options?.languageFilters,
-          pathPrefixes: options?.pathPrefixes,
-          titleFilters: options?.titleFilters,
-          tagFilters: options?.tagFilters,
-          filenameFilters: options?.filenameFilters,
-          signal: options?.signal,
-        },
-        {
-          decodeRepoSearchHits: decodeRepoSearchHitsFromArrowIpc,
-        },
-      );
-    });
+    return flightRepoSearchTransport.searchRepoContentFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        repo,
+        query,
+        limit,
+        languageFilters: options?.languageFilters,
+        pathPrefixes: options?.pathPrefixes,
+        titleFilters: options?.titleFilters,
+        tagFilters: options?.tagFilters,
+        filenameFilters: options?.filenameFilters,
+        signal: options?.signal,
+      },
+      {
+        decodeRepoSearchHits: decodeRepoSearchHitsFromArrowIpc,
+      },
+    );
   },
 
   /**
@@ -394,11 +350,10 @@ export const api = {
       signal?: AbortSignal;
     },
   ): Promise<AttachmentSearchResponse> {
-    const config = await getConfig();
     return flightSearchTransport.searchAttachmentsFlight(
       {
         baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
         query,
         limit,
         ext: options?.ext,
@@ -420,11 +375,10 @@ export const api = {
     limit: number = 10,
     options?: { signal?: AbortSignal },
   ): Promise<AstSearchResponse> {
-    const config = await getConfig();
     return flightSearchTransport.searchAstFlight(
       {
         baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
         query,
         limit,
         signal: options?.signal,
@@ -442,21 +396,18 @@ export const api = {
     query: string,
     options?: { path?: string; line?: number },
   ): Promise<DefinitionResolveResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightDocumentTransport.resolveDefinitionFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          query,
-          ...(options?.path ? { path: options.path } : {}),
-          ...(typeof options?.line === "number" ? { line: options.line } : {}),
-        },
-        {
-          decodeDefinitionHits: decodeDefinitionHitsFromArrowIpc,
-        },
-      );
-    });
+    return flightDocumentTransport.resolveDefinitionFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        query,
+        ...(options?.path ? { path: options.path } : {}),
+        ...(typeof options?.line === "number" ? { line: options.line } : {}),
+      },
+      {
+        decodeDefinitionHits: decodeDefinitionHitsFromArrowIpc,
+      },
+    );
   },
 
   /**
@@ -467,11 +418,10 @@ export const api = {
     limit: number = 10,
     options?: { signal?: AbortSignal },
   ): Promise<ReferenceSearchResponse> {
-    const config = await getConfig();
     return flightSearchTransport.searchReferencesFlight(
       {
         baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
         query,
         limit,
         signal: options?.signal,
@@ -490,11 +440,10 @@ export const api = {
     limit: number = 10,
     options?: { signal?: AbortSignal },
   ): Promise<SymbolSearchResponse> {
-    const config = await getConfig();
     return flightSearchTransport.searchSymbolsFlight(
       {
         baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
         query,
         limit,
         signal: options?.signal,
@@ -512,20 +461,17 @@ export const api = {
     repo: string,
     options?: { signal?: AbortSignal },
   ): Promise<RepoOverviewResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRepoOverviewTransport.loadRepoOverviewFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          repo,
-          signal: options?.signal,
-        },
-        {
-          decodeRepoOverviewResponse: decodeRepoOverviewResponseFromArrowIpc,
-        },
-      );
-    });
+    return flightRepoOverviewTransport.loadRepoOverviewFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        repo,
+        signal: options?.signal,
+      },
+      {
+        decodeRepoOverviewResponse: decodeRepoOverviewResponseFromArrowIpc,
+      },
+    );
   },
 
   /**
@@ -536,21 +482,18 @@ export const api = {
     moduleQualifiedName?: string,
     options?: { signal?: AbortSignal },
   ): Promise<RepoDocCoverageResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRepoDocCoverageTransport.loadRepoDocCoverageFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          repo,
-          moduleQualifiedName,
-          signal: options?.signal,
-        },
-        {
-          decodeRepoDocCoverageDocs: decodeRepoDocCoverageDocsFromArrowIpc,
-        },
-      );
-    });
+    return flightRepoDocCoverageTransport.loadRepoDocCoverageFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        repo,
+        moduleQualifiedName,
+        signal: options?.signal,
+      },
+      {
+        decodeRepoDocCoverageDocs: decodeRepoDocCoverageDocsFromArrowIpc,
+      },
+    );
   },
 
   /**
@@ -560,80 +503,68 @@ export const api = {
     repo: string,
     mode: "ensure" | "refresh" | "status" = "status",
   ): Promise<RepoSyncResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRepoSyncTransport.loadRepoSyncFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          repo,
-          mode,
-        },
-        {
-          decodeRepoSyncResponse: decodeRepoSyncResponseFromArrowIpc,
-        },
-      );
-    });
+    return flightRepoSyncTransport.loadRepoSyncFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        repo,
+        mode,
+      },
+      {
+        decodeRepoSyncResponse: decodeRepoSyncResponseFromArrowIpc,
+      },
+    );
   },
 
   /**
    * Get aggregated background repo index progress for the current UI config.
    */
   async getRepoIndexStatus(repo?: string): Promise<RepoIndexStatusResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRepoIndexStatusTransport.loadRepoIndexStatusFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          ...(repo?.trim() ? { repo } : {}),
-        },
-        {
-          decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
-        },
-      );
-    });
+    return flightRepoIndexStatusTransport.loadRepoIndexStatusFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        ...(repo?.trim() ? { repo } : {}),
+      },
+      {
+        decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+      },
+    );
   },
 
   /**
    * Enqueue one or more repositories for background indexing.
    */
   async enqueueRepoIndex(request: RepoIndexRequest = {}): Promise<RepoIndexStatusResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRepoIndexTransport.loadRepoIndexFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          requestId: nextRepoIndexFlightRequestId(),
-          repo: request.repo,
-          refresh: request.refresh,
-        },
-        {
-          decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
-        },
-      );
-    });
+    return flightRepoIndexTransport.loadRepoIndexFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        requestId: nextRepoIndexFlightRequestId(),
+        repo: request.repo,
+        refresh: request.refresh,
+      },
+      {
+        decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+      },
+    );
   },
 
   /**
    * Get autocomplete suggestions for typeahead
    */
   async searchAutocomplete(prefix: string, limit: number = 5): Promise<AutocompleteResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightDocumentTransport.searchAutocompleteFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          prefix,
-          limit,
-        },
-        {
-          decodeAutocompleteSuggestions: decodeAutocompleteSuggestionsFromArrowIpc,
-        },
-      );
-    });
+    return flightDocumentTransport.searchAutocompleteFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        prefix,
+        limit,
+      },
+      {
+        decodeAutocompleteSuggestions: decodeAutocompleteSuggestionsFromArrowIpc,
+      },
+    );
   },
 
   /**
@@ -643,39 +574,33 @@ export const api = {
     repo: string,
     pageId: string,
   ): Promise<ProjectedPageIndexTree> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightProjectedPageIndexTransport.loadRepoProjectedPageIndexTreeFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          repo,
-          pageId,
-        },
-        {
-          decodeProjectedPageIndexTree: decodeProjectedPageIndexTreeFromArrowIpc,
-        },
-      );
-    });
+    return flightProjectedPageIndexTransport.loadRepoProjectedPageIndexTreeFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        repo,
+        pageId,
+      },
+      {
+        decodeProjectedPageIndexTree: decodeProjectedPageIndexTreeFromArrowIpc,
+      },
+    );
   },
 
   /**
    * Refine documentation for an entity using the Trinity loop.
    */
   async refineEntityDoc(request: RefineEntityDocRequest): Promise<RefineEntityDocResponse> {
-    return uiConfigTransportState.withUiConfigSyncRetry(async () => {
-      const config = await getConfig();
-      return flightRefineEntityDocTransport.loadRefineEntityDocFlight(
-        {
-          baseUrl: resolveBrowserFlightBaseUrl(),
-          schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
-          request,
-        },
-        {
-          decodeRefineEntityDocResponse: decodeRefineEntityDocResponseFromArrowIpc,
-        },
-      );
-    });
+    return flightRefineEntityDocTransport.loadRefineEntityDocFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        request,
+      },
+      {
+        decodeRefineEntityDocResponse: decodeRefineEntityDocResponseFromArrowIpc,
+      },
+    );
   },
 
   // === Analysis Endpoints ===
@@ -684,10 +609,9 @@ export const api = {
    * Compile deterministic Markdown analysis IR and projections for a file path.
    */
   async getMarkdownAnalysis(path: string): Promise<MarkdownAnalysisResponse> {
-    const config = await getConfig();
     return flightAnalysisTransport.loadMarkdownAnalysisFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       path,
     });
   },
@@ -696,10 +620,9 @@ export const api = {
    * Load markdown retrieval chunks as Arrow IPC.
    */
   async getMarkdownRetrievalChunksArrow(path: string): Promise<RetrievalChunk[]> {
-    const config = await getConfig();
     return flightAnalysisTransport.loadMarkdownRetrievalChunksFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       path,
     });
   },
@@ -715,10 +638,9 @@ export const api = {
       signal?: AbortSignal;
     },
   ): Promise<CodeAstAnalysisResponse> {
-    const config = await getConfig();
     return flightAnalysisTransport.loadCodeAstAnalysisFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       path,
       repo: options?.repo,
       line: options?.line,
@@ -737,33 +659,14 @@ export const api = {
       signal?: AbortSignal;
     },
   ): Promise<RetrievalChunk[]> {
-    const config = await getConfig();
     return flightAnalysisTransport.loadCodeAstRetrievalChunksFlight({
       baseUrl: resolveBrowserFlightBaseUrl(),
-      schemaVersion: flightSearchTransport.resolveSearchFlightSchemaVersion(config),
+      schemaVersion: resolveStudioFlightSchemaVersion(),
       path,
       repo: options?.repo,
       line: options?.line,
       signal: options?.signal,
     });
-  },
-
-  // === UI Config Endpoints ===
-
-  /**
-   * Get UI configuration from backend
-   */
-  async getUiConfig(): Promise<UiConfig> {
-    const config = await fetchControlPlaneUiConfig<UiConfig>(controlPlaneJsonTransportDeps);
-    uiConfigCache = config;
-    return config;
-  },
-
-  /**
-   * Get gateway-reported studio capabilities.
-   */
-  async getUiCapabilities(): Promise<UiCapabilities> {
-    return uiConfigTransportState.loadUiCapabilities();
   },
 
   /**
@@ -782,14 +685,6 @@ export const api = {
     return fetchControlPlaneJuliaDeploymentArtifactToml(controlPlaneTextTransportDeps);
   },
 
-  /**
-   * Update UI configuration on backend
-   * This allows frontend to synchronize runtime UI config loaded from wendao.toml.
-   */
-  async setUiConfig(config: UiConfig): Promise<void> {
-    await postControlPlaneUiConfig(controlPlaneJsonTransportDeps, config);
-    uiConfigCache = config;
-  },
 };
 
 export { ApiClientError };

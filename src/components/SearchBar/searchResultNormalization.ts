@@ -526,7 +526,7 @@ export function normalizeAstHit(hit: AstSearchHit): SearchResult {
     line: hit.lineStart,
     lineEnd: hit.lineEnd,
     codeLanguage: hit.language,
-    codeKind: isMarkdownOutline ? hit.nodeKind ?? undefined : (hit.nodeKind ?? "symbol"),
+    codeKind: isMarkdownOutline ? (hit.nodeKind ?? undefined) : (hit.nodeKind ?? "symbol"),
     codeRepo: hit.projectName ?? hit.crateName ?? undefined,
     searchSource: "search-index",
     navigationTarget: canonicalizeSearchSelection({

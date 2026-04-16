@@ -231,8 +231,9 @@ function buildFragments(input: LanguageProjectionInput): StructuredFragment[] {
 
   const fragments: StructuredFragment[] = [];
   const orderedAtoms = analysis.retrievalAtoms
-    .filter((atom): atom is CodeAstRetrievalAtom & { surface: "declaration" | "block" | "symbol" } =>
-      atom.surface === "declaration" || atom.surface === "block" || atom.surface === "symbol",
+    .filter(
+      (atom): atom is CodeAstRetrievalAtom & { surface: "declaration" | "block" | "symbol" } =>
+        atom.surface === "declaration" || atom.surface === "block" || atom.surface === "symbol",
     )
     .toSorted((left, right) => {
       const leftPriority = surfacePriority[left.surface];

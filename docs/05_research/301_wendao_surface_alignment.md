@@ -13,18 +13,18 @@ This note records the intentional mapping between the Wendao Studio backend and 
 
 ## Alignment Matrix
 
-| Wendao Surface           | Qianji Studio Surface                  | Current State |
-| :----------------------- | :------------------------------------- | :------------ |
-| `/api/ui/capabilities`   | Indexed Roots bootstrap                | Live          |
-| `/api/vfs/*`             | FileTree and content hydration         | Live          |
-| `/api/topology/3d`       | Main topology shell                    | Live          |
-| `/api/graph/neighbors/*` | Graph tab and references hydration     | Live          |
-| `/api/repo/projected-page-index-trees` + same-origin Flight `repo-projected-page-index-tree` | Repo document projection discovery and page-index tree opening | Live |
-| `/api/search`            | Knowledge search                       | Live          |
-| `/api/search/symbols`    | Symbol search scope                    | Live          |
-| `/api/search/ast`        | AST search scope                       | Live          |
-| `/api/search/definition` | Native definition action               | Live          |
-| `/api/search/references` | References scope and references action | Live          |
+| Wendao Surface                                                                               | Qianji Studio Surface                                          | Current State |
+| :------------------------------------------------------------------------------------------- | :------------------------------------------------------------- | :------------ |
+| `/api/ui/capabilities`                                                                       | Indexed Roots bootstrap                                        | Live          |
+| `/api/vfs/*`                                                                                 | FileTree and content hydration                                 | Live          |
+| `/api/topology/3d`                                                                           | Main topology shell                                            | Live          |
+| `/api/graph/neighbors/*`                                                                     | Graph tab and references hydration                             | Live          |
+| `/api/repo/projected-page-index-trees` + same-origin Flight `repo-projected-page-index-tree` | Repo document projection discovery and page-index tree opening | Live          |
+| `/api/search`                                                                                | Knowledge search                                               | Live          |
+| `/api/search/symbols`                                                                        | Symbol search scope                                            | Live          |
+| `/api/search/ast`                                                                            | AST search scope                                               | Live          |
+| `/api/search/definition`                                                                     | Native definition action                                       | Live          |
+| `/api/search/references`                                                                     | References scope and references action                         | Live          |
 
 ## Research to Roadmap Handoff
 

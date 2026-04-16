@@ -11,7 +11,8 @@ describe("repo projected page-index JSON transport", () => {
           trees: [
             {
               repo_id: "gateway-sync",
-              page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+              page_id:
+                "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
               kind: "reference",
               path: "docs/solve.md",
               doc_id: "repo:gateway-sync:doc:docs/solve.md",
@@ -39,7 +40,9 @@ describe("repo projected page-index JSON transport", () => {
       " gateway-sync ",
     );
 
-    expect(fetchImpl).toHaveBeenCalledWith("/api/repo/projected-page-index-trees?repo=gateway-sync");
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/repo/projected-page-index-trees?repo=gateway-sync",
+    );
     expect(response.repo_id).toBe("gateway-sync");
     expect(response.trees[0]?.path).toBe("docs/solve.md");
   });

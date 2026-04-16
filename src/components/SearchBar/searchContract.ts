@@ -42,11 +42,7 @@ export interface SearchContractValidationIssue {
   message: string;
 }
 
-function pushIssue(
-  issues: SearchContractValidationIssue[],
-  field: string,
-  message: string,
-): void {
+function pushIssue(issues: SearchContractValidationIssue[], field: string, message: string): void {
   issues.push({ field, message });
 }
 

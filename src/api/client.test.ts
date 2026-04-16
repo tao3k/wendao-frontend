@@ -421,7 +421,8 @@ describe("api client Flight repo transport", () => {
         trees: [
           {
             repo_id: "gateway-sync",
-            page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+            page_id:
+              "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
             kind: "reference",
             path: "docs/solve.md",
             doc_id: "repo:gateway-sync:doc:docs/solve.md",

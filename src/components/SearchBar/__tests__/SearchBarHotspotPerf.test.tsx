@@ -132,14 +132,14 @@ describe("SearchBar hotspot perf scenarios", () => {
       hits: [],
       hitCount: 0,
       selectedScope: "attachments",
-    partial: false,
+      partial: false,
     });
     mockedApi.searchAst.mockResolvedValue({
       query: "",
       hits: [],
       hitCount: 0,
       selectedScope: "ast",
-    partial: false,
+      partial: false,
     });
     mockedApi.resolveDefinition.mockResolvedValue({
       navigationTarget: {
@@ -153,14 +153,14 @@ describe("SearchBar hotspot perf scenarios", () => {
       hits: [],
       hitCount: 0,
       selectedScope: "project",
-    partial: false,
+      partial: false,
     });
     mockedApi.searchSymbols.mockResolvedValue({
       query: "",
       hits: [],
       hitCount: 0,
       selectedScope: "project",
-    partial: false,
+      partial: false,
     });
     mockedApi.getVfsContent.mockResolvedValue({
       content: "# Documentation Index",
@@ -208,7 +208,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "definitions",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchReferences.mockImplementation(async () => {
@@ -218,7 +218,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "references",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchSymbols.mockImplementation(async () => {
@@ -228,7 +228,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "project",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchAttachments.mockImplementation(async () => {
@@ -238,7 +238,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "attachments",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchKnowledge.mockImplementation(async (query, _limit, options) => {
@@ -350,7 +350,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "definitions",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchReferences.mockImplementation(async () => {
@@ -360,7 +360,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "references",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchSymbols.mockImplementation(async () => {
@@ -370,7 +370,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "project",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchAttachments.mockImplementation(async () => {
@@ -380,7 +380,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         hits: [],
         hitCount: 0,
         selectedScope: "attachments",
-      partial: false,
+        partial: false,
       };
     });
     mockedApi.searchKnowledge.mockImplementation(async (query, _limit, options) => {

@@ -67,9 +67,7 @@ export function resolveGatewayTargetFromEnv(env: NodeJS.ProcessEnv = process.env
   return normalizeGatewayBind(env.WENDAO_GATEWAY_TARGET) ?? DEFAULT_GATEWAY_TARGET;
 }
 
-export function resolveDaochangTargetFromEnv(
-  env: NodeJS.ProcessEnv = process.env,
-): string | null {
+export function resolveDaochangTargetFromEnv(env: NodeJS.ProcessEnv = process.env): string | null {
   return normalizeGatewayBind(env.WENDAO_DAOCHANG_TARGET);
 }
 

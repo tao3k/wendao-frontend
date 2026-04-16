@@ -131,10 +131,7 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
     [analysis?.documentMetadata, analysisAtoms, content, path],
   );
 
-  const renderPillRow = (
-    label: string,
-    items: MarkdownIdentityLink[],
-  ): React.ReactNode => {
+  const renderPillRow = (label: string, items: MarkdownIdentityLink[]): React.ReactNode => {
     if (items.length === 0) {
       return null;
     }
@@ -174,9 +171,7 @@ export const MarkdownWaterfall: React.FC<MarkdownWaterfallProps> = ({
             {model.identity.type && (
               <div className="markdown-waterfall__identity-meta-pill">
                 <span className="markdown-waterfall__meta-pill-label">{copy.typeLabel}</span>
-                <span className="markdown-waterfall__meta-pill-value">
-                  {model.identity.type}
-                </span>
+                <span className="markdown-waterfall__meta-pill-value">{model.identity.type}</span>
               </div>
             )}
             {model.identity.updated && (

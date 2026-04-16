@@ -110,8 +110,7 @@ export function buildZenSearchPreviewLoadPlan(result: SearchResult): ZenSearchPr
   const navigationTarget = result.navigationTarget;
   const projectName =
     navigationTarget?.projectName?.trim() || result.projectName?.trim() || undefined;
-  const rootLabel =
-    navigationTarget?.rootLabel?.trim() || result.rootLabel?.trim() || undefined;
+  const rootLabel = navigationTarget?.rootLabel?.trim() || result.rootLabel?.trim() || undefined;
   const contentSourcePath = preferMoreCanonicalSelectionPath(
     result.previewPath ?? result.path,
     result.previewPath ? undefined : navigationTarget?.path,

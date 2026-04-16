@@ -482,7 +482,10 @@ export function buildMarkdownComponents({
           const chunk = backendAtom
             ? toDisplayMarkdownChunk(
                 backendAtom,
-                buildMarkdownRichSlotDisplayId(backendAtom.semanticType, backendAtom.lineStart ?? 1),
+                buildMarkdownRichSlotDisplayId(
+                  backendAtom.semanticType,
+                  backendAtom.lineStart ?? 1,
+                ),
               )
             : buildMarkdownRichSlotChunk(
                 sourcePath,

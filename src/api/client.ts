@@ -76,9 +76,5 @@ export type {
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
 
-export {
-  api,
-  getRepoIndexStatusSync,
-  getUiCapabilitiesSync,
-} from "./clientRuntime";
+export { api, getRepoIndexStatusSync, getUiCapabilitiesSync } from "./clientRuntime";
 export { ApiClientError } from "./responseTransport";

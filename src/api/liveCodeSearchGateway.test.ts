@@ -72,7 +72,10 @@ liveDescribe("live gateway code search contract", () => {
 
     const capabilities = await fetchJson<LiveUiCapabilities>("/ui/capabilities");
     const searchOnlyRepo = capabilities.repoProjects?.find((project) => project.id === "lance");
-    expect(searchOnlyRepo, "expected live ui capabilities to include repo project `lance`").toBeDefined();
+    expect(
+      searchOnlyRepo,
+      "expected live ui capabilities to include repo project `lance`",
+    ).toBeDefined();
     expect(
       (searchOnlyRepo?.plugins ?? []).map((plugin) => plugin.toLowerCase()),
       "expected repo `lance` to remain search-only via ast-grep",

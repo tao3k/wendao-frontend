@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../../api";
 import type { RepoIndexStatus } from "../../statusBar/types";
-import {
-  startRepoIndexStatusPolling,
-  toRepoIndexStatusSnapshot,
-} from "./repoIndexStatus";
+import { startRepoIndexStatusPolling, toRepoIndexStatusSnapshot } from "./repoIndexStatus";
 import { buildTree } from "./treeModel";
 import type { FileNode, FileTreeLocale } from "./types";
 

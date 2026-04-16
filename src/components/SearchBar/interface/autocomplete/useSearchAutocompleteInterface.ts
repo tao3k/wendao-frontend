@@ -87,8 +87,7 @@ function areAutocompleteSuggestionsEqual(
   return previous.every((suggestion, index) => {
     const candidate = next[index];
     return (
-      suggestion.text === candidate?.text &&
-      suggestion.suggestionType === candidate?.suggestionType
+      suggestion.text === candidate?.text && suggestion.suggestionType === candidate?.suggestionType
     );
   });
 }

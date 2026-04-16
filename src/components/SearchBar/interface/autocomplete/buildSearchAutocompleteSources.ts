@@ -101,7 +101,9 @@ export function buildSearchAutocompleteSources({
     return [createBackendAutocompleteSource(trimmedQuery, [], scope)];
   }
 
-  const baseAutocompleteQuery = parseCodeFilters(normalizeCodeSearchQuery(rawQuery)).baseQuery.trim();
+  const baseAutocompleteQuery = parseCodeFilters(
+    normalizeCodeSearchQuery(rawQuery),
+  ).baseQuery.trim();
   const hasFilterAwareAllQuery = trimmedQuery !== baseAutocompleteQuery;
   const allScopeFilterSuggestions = buildCodeFilterSuggestions(
     rawQuery,

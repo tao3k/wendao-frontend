@@ -14,12 +14,12 @@ export function getSearchResultIdentity(result: SearchResult): string {
     rootLabel: navigationTarget?.rootLabel ?? result.rootLabel ?? undefined,
   });
   const previewPath = result.previewPath
-      ? normalizeSelectionPathForVfs({
-          path: result.previewPath,
-          category: result.category,
-          projectName: result.projectName ?? undefined,
-          rootLabel: result.rootLabel ?? undefined,
-        })
+    ? normalizeSelectionPathForVfs({
+        path: result.previewPath,
+        category: result.category,
+        projectName: result.projectName ?? undefined,
+        rootLabel: result.rootLabel ?? undefined,
+      })
     : "";
   const primaryLine = navigationTarget?.line ?? result.line;
   const primaryColumn = navigationTarget?.column ?? result.column;

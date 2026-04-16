@@ -157,9 +157,7 @@ function toMarkdownIdentityLink(
   };
 }
 
-function isMarkdownIdentityLink(
-  value: MarkdownIdentityLink | null,
-): value is MarkdownIdentityLink {
+function isMarkdownIdentityLink(value: MarkdownIdentityLink | null): value is MarkdownIdentityLink {
   return value !== null;
 }
 
@@ -208,7 +206,7 @@ function buildDocumentIdentity(args: {
             kind: "index",
           })),
     backlinks: metadataBacklinks.map(toMarkdownIdentityLink).filter(isMarkdownIdentityLink),
-    parent: metadata.parent ? toMarkdownIdentityLink(metadata.parent) ?? undefined : undefined,
+    parent: metadata.parent ? (toMarkdownIdentityLink(metadata.parent) ?? undefined) : undefined,
     updated: metadata.updated ?? frontmatter.updated,
     type: metadata.docType ?? frontmatter.type,
   };

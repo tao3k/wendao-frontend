@@ -1980,11 +1980,14 @@ describe("App topology wiring", () => {
       expect(mocks.getVfsContentMock).toHaveBeenLastCalledWith("main/docs/guide.md");
     });
 
-    expect(mocks.getGraphNeighborsMock).toHaveBeenLastCalledWith("main/docs/guide.md#semantic-root", {
-      direction: "both",
-      hops: 1,
-      limit: 20,
-    });
+    expect(mocks.getGraphNeighborsMock).toHaveBeenLastCalledWith(
+      "main/docs/guide.md#semantic-root",
+      {
+        direction: "both",
+        hops: 1,
+        limit: 20,
+      },
+    );
   });
 
   it("routes the search graph action into the graph tab hydration flow", async () => {

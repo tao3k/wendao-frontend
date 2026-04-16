@@ -57,7 +57,10 @@ const PREFERRED_MODELICA_LIVE_CANDIDATE_SUFFIXES = [
   "Modelica/Electrical/PowerConverters/Types/PWMType.mo",
   "Modelica/Magnetic/FluxTubes/Interfaces/MagneticPort.mo",
 ] as const;
-const liveCodeAstAnalysisCache = new Map<string, Promise<Awaited<ReturnType<typeof loadCodeAstAnalysisFlight>>>>();
+const liveCodeAstAnalysisCache = new Map<
+  string,
+  Promise<Awaited<ReturnType<typeof loadCodeAstAnalysisFlight>>>
+>();
 
 type LiveVfsScanResult = {
   entries: Array<{
@@ -450,7 +453,9 @@ liveDescribe("live gateway studio contract", () => {
     expect(health).toBeDefined();
 
     const capabilities = await fetchLiveUiCapabilities();
-    expect((capabilities.projects ?? []).map((project) => project.name)).toContain(targetProjectName);
+    expect((capabilities.projects ?? []).map((project) => project.name)).toContain(
+      targetProjectName,
+    );
     expect(capabilities.supportedRepositories.length).toBeGreaterThan(0);
     expect(capabilities.supportedRepositories).toContain(targetRepoId);
     expect(capabilities.supportedLanguages.length).toBeGreaterThan(0);
@@ -480,22 +485,26 @@ liveDescribe("live gateway studio contract", () => {
     expect(entry?.isDir).toBe(false);
   });
 
-  it("resolves graph neighbors for a live qianji studio document path", async () => {
-    const response = (await loadGraphNeighborsFlight({
-      baseUrl: flightOrigin,
-      schemaVersion: flightSchemaVersion,
-      nodeId: qianjiDocPath,
-      direction: "both",
-      hops: 1,
-      limit: 20,
-    })) as LiveGraphNeighbors;
+  it(
+    "resolves graph neighbors for a live qianji studio document path",
+    async () => {
+      const response = (await loadGraphNeighborsFlight({
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        nodeId: qianjiDocPath,
+        direction: "both",
+        hops: 1,
+        limit: 20,
+      })) as LiveGraphNeighbors;
 
-    expect(response.center.path).toBe(qianjiDocPath);
-    expect(response.center.navigationTarget).toBeDefined();
-    expect(response.center.navigationTarget?.path).toBe(qianjiDocPath);
-    expect(response.center.navigationTarget?.category).toBeDefined();
-    expect(response.totalNodes).toBeGreaterThanOrEqual(1);
-  }, LIVE_GRAPH_TIMEOUT_MS);
+      expect(response.center.path).toBe(qianjiDocPath);
+      expect(response.center.navigationTarget).toBeDefined();
+      expect(response.center.navigationTarget?.path).toBe(qianjiDocPath);
+      expect(response.center.navigationTarget?.category).toBeDefined();
+      expect(response.totalNodes).toBeGreaterThanOrEqual(1);
+    },
+    LIVE_GRAPH_TIMEOUT_MS,
+  );
 
   it("returns VFS content over same-origin Flight for a live studio document", async () => {
     const response = await loadVfsContentFlight({
@@ -530,44 +539,52 @@ liveDescribe("live gateway studio contract", () => {
     expect(response.content.length).toBeGreaterThan(0);
   });
 
-  it("returns topology 3d over same-origin Flight for a live studio graph", async () => {
-    const response = await loadTopology3DFlight({
-      baseUrl: flightOrigin,
-      schemaVersion: flightSchemaVersion,
-    });
+  it(
+    "returns topology 3d over same-origin Flight for a live studio graph",
+    async () => {
+      const response = await loadTopology3DFlight({
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+      });
 
-    expect(response.nodes.length).toBeGreaterThan(0);
-    expect(response.links.length).toBeGreaterThanOrEqual(0);
-    expect(response.clusters.length).toBeGreaterThanOrEqual(0);
-  }, LIVE_TOPOLOGY_TIMEOUT_MS);
+      expect(response.nodes.length).toBeGreaterThan(0);
+      expect(response.links.length).toBeGreaterThanOrEqual(0);
+      expect(response.clusters.length).toBeGreaterThanOrEqual(0);
+    },
+    LIVE_TOPOLOGY_TIMEOUT_MS,
+  );
 
-  it("returns projected page-index trees over same-origin Flight for a live repo page", async () => {
-    const projectedTrees = await fetchRepoProjectedPageIndexTrees(
-      {
-        apiBase: `${gatewayOrigin}/api`,
-        handleResponse,
-      },
-      targetRepoId,
-    );
-    const projectedTree = projectedTrees.trees.find((tree) => tree.path.endsWith(".md"));
+  it(
+    "returns projected page-index trees over same-origin Flight for a live repo page",
+    async () => {
+      const projectedTrees = await fetchRepoProjectedPageIndexTrees(
+        {
+          apiBase: `${gatewayOrigin}/api`,
+          handleResponse,
+        },
+        targetRepoId,
+      );
+      const projectedTree = projectedTrees.trees.find((tree) => tree.path.endsWith(".md"));
 
-    expect(
-      projectedTree,
-      `expected projected page-index trees for repo ${targetRepoId} to include one markdown page`,
-    ).toBeDefined();
+      expect(
+        projectedTree,
+        `expected projected page-index trees for repo ${targetRepoId} to include one markdown page`,
+      ).toBeDefined();
 
-    const response = await loadRepoProjectedPageIndexTreeFlight({
-      baseUrl: flightOrigin,
-      schemaVersion: flightSchemaVersion,
-      repo: targetRepoId,
-      pageId: projectedTree!.page_id,
-    });
+      const response = await loadRepoProjectedPageIndexTreeFlight({
+        baseUrl: flightOrigin,
+        schemaVersion: flightSchemaVersion,
+        repo: targetRepoId,
+        pageId: projectedTree!.page_id,
+      });
 
-    expect(response.repo_id).toBe(targetRepoId);
-    expect(response.page_id).toBe(projectedTree!.page_id);
-    expect(response.path).toBe(projectedTree!.path);
-    expect(response.root_count).toBeGreaterThanOrEqual(1);
-  }, LIVE_PROJECTED_PAGE_INDEX_TIMEOUT_MS);
+      expect(response.repo_id).toBe(targetRepoId);
+      expect(response.page_id).toBe(projectedTree!.page_id);
+      expect(response.path).toBe(projectedTree!.path);
+      expect(response.root_count).toBeGreaterThanOrEqual(1);
+    },
+    LIVE_PROJECTED_PAGE_INDEX_TIMEOUT_MS,
+  );
 
   it("returns refine-doc payloads over same-origin Flight for a live repo symbol", async () => {
     const symbolId = await fetchFirstRefinableSymbolId(targetRepoId);
@@ -716,41 +733,49 @@ liveDescribe("live gateway studio contract", () => {
     expect(analysis.edgeCount).toBeGreaterThanOrEqual(0);
   });
 
-  it("returns code AST analysis over same-origin Flight for a live Julia repo file", async () => {
-    const analysis = await loadCachedCodeAstAnalysis(
-      buildLiveCodeAstRequest(liveJuliaCodeAstPath, liveJuliaCodeAstRepo),
-    );
+  it(
+    "returns code AST analysis over same-origin Flight for a live Julia repo file",
+    async () => {
+      const analysis = await loadCachedCodeAstAnalysis(
+        buildLiveCodeAstRequest(liveJuliaCodeAstPath, liveJuliaCodeAstRepo),
+      );
 
-    expect(analysis.repoId).toBe(liveJuliaCodeAstRepo);
-    expect(analysis.path).toBe(liveJuliaCodeAstPath);
-    expect(analysis.language).toBe("julia");
-    expect(Array.isArray(analysis.nodes)).toBe(true);
-    expect(Array.isArray(analysis.retrievalAtoms)).toBe(true);
-    expect(analysis.nodeCount).toBeGreaterThan(0);
-    expect(
-      analysis.retrievalAtoms?.some(
-        (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
-      ),
-    ).toBe(true);
-  }, LIVE_CODE_AST_TIMEOUT_MS);
+      expect(analysis.repoId).toBe(liveJuliaCodeAstRepo);
+      expect(analysis.path).toBe(liveJuliaCodeAstPath);
+      expect(analysis.language).toBe("julia");
+      expect(Array.isArray(analysis.nodes)).toBe(true);
+      expect(Array.isArray(analysis.retrievalAtoms)).toBe(true);
+      expect(analysis.nodeCount).toBeGreaterThan(0);
+      expect(
+        analysis.retrievalAtoms?.some(
+          (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
+        ),
+      ).toBe(true);
+    },
+    LIVE_CODE_AST_TIMEOUT_MS,
+  );
 
-  it("returns code AST analysis over same-origin Flight for a live Modelica repo file", async () => {
-    const analysis = await loadCachedCodeAstAnalysis(
-      buildLiveCodeAstRequest(liveModelicaCodeAstPath, liveModelicaCodeAstRepo),
-    );
+  it(
+    "returns code AST analysis over same-origin Flight for a live Modelica repo file",
+    async () => {
+      const analysis = await loadCachedCodeAstAnalysis(
+        buildLiveCodeAstRequest(liveModelicaCodeAstPath, liveModelicaCodeAstRepo),
+      );
 
-    expect(analysis.repoId).toBe(liveModelicaCodeAstRepo);
-    expect(analysis.path).toBe(liveModelicaCodeAstPath);
-    expect(analysis.language).toBe("modelica");
-    expect(Array.isArray(analysis.nodes)).toBe(true);
-    expect(Array.isArray(analysis.retrievalAtoms)).toBe(true);
-    expect(analysis.nodeCount).toBeGreaterThan(0);
-    expect(
-      analysis.retrievalAtoms?.some(
-        (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
-      ),
-    ).toBe(true);
-  }, LIVE_MODELICA_CODE_AST_TIMEOUT_MS);
+      expect(analysis.repoId).toBe(liveModelicaCodeAstRepo);
+      expect(analysis.path).toBe(liveModelicaCodeAstPath);
+      expect(analysis.language).toBe("modelica");
+      expect(Array.isArray(analysis.nodes)).toBe(true);
+      expect(Array.isArray(analysis.retrievalAtoms)).toBe(true);
+      expect(analysis.nodeCount).toBeGreaterThan(0);
+      expect(
+        analysis.retrievalAtoms?.some(
+          (atom) => Array.isArray(atom.attributes) && atom.attributes.length > 0,
+        ),
+      ).toBe(true);
+    },
+    LIVE_MODELICA_CODE_AST_TIMEOUT_MS,
+  );
 
   it("returns code AST analysis over same-origin Flight for a live search-only Rust repo file", async () => {
     const analysis = await loadCachedCodeAstAnalysis(

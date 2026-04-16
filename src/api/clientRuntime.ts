@@ -548,14 +548,14 @@ export const api = {
   async getRepoIndexStatus(repo?: string): Promise<RepoIndexStatusResponse> {
     return cacheRepoIndexStatus(
       await flightRepoIndexStatusTransport.loadRepoIndexStatusFlight(
-      {
-        baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: resolveStudioFlightSchemaVersion(),
-        ...(repo?.trim() ? { repo } : {}),
-      },
-      {
-        decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
-      },
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: resolveStudioFlightSchemaVersion(),
+          ...(repo?.trim() ? { repo } : {}),
+        },
+        {
+          decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+        },
       ),
     );
   },
@@ -566,16 +566,16 @@ export const api = {
   async enqueueRepoIndex(request: RepoIndexRequest = {}): Promise<RepoIndexStatusResponse> {
     return cacheRepoIndexStatus(
       await flightRepoIndexTransport.loadRepoIndexFlight(
-      {
-        baseUrl: resolveBrowserFlightBaseUrl(),
-        schemaVersion: resolveStudioFlightSchemaVersion(),
-        requestId: nextRepoIndexFlightRequestId(),
-        repo: request.repo,
-        refresh: request.refresh,
-      },
-      {
-        decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
-      },
+        {
+          baseUrl: resolveBrowserFlightBaseUrl(),
+          schemaVersion: resolveStudioFlightSchemaVersion(),
+          requestId: nextRepoIndexFlightRequestId(),
+          repo: request.repo,
+          refresh: request.refresh,
+        },
+        {
+          decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
+        },
       ),
     );
   },
@@ -724,7 +724,6 @@ export const api = {
   async getJuliaDeploymentArtifactToml(): Promise<string> {
     return fetchControlPlaneJuliaDeploymentArtifactToml(controlPlaneTextTransportDeps);
   },
-
 };
 
 export function getUiCapabilitiesSync(): UiCapabilities | null {

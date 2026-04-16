@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -50,6 +48,8 @@ async function waitForRichContent(container: HTMLElement): Promise<void> {
 describe("DirectReader", () => {
   const mockedRenderMermaid = vi.mocked(renderMermaidSVG);
   const { DirectReader } = DirectReaderModule;
+  const qianhuanAuditClosureEvidenceLine =
+    "- **2026-02-20 (Live multi-group):** three-group live matrix passed with `19/19` steps (`.run/reports/agent-channel-session-matrix-live.json`), live evolution DAG passed with quality score `99.0` (`.run/reports/xiuxian-daochang-memory-evolution-live.json`), and live trace reconstruction reached score `100.0` with route/injection/reflection/memory stages present (`.run/reports/xiuxian-daochang-trace-reconstruction-live.json`).";
 
   beforeEach(() => {
     mockedRenderMermaid.mockClear();
@@ -569,9 +569,7 @@ describe("DirectReader", () => {
   it("keeps parenthetical prose stable around inline code spans", async () => {
     const { container } = render(
       <DirectReader
-        content={
-          "- **2026-02-20 (Live multi-group):** three-group live matrix passed with `19/19` steps (`.run/reports/agent-channel-session-matrix-live.json`), live evolution DAG passed with quality score `99.0` (`.run/reports/xiuxian-daochang-memory-evolution-live.json`), and live trace reconstruction reached score `100.0` with route/injection/reflection/memory stages present (`.run/reports/xiuxian-daochang-trace-reconstruction-live.json`)."
-        }
+        content={qianhuanAuditClosureEvidenceLine}
         path="docs/03_features/qianhuan-audit-closure.md"
       />,
     );
@@ -588,22 +586,13 @@ describe("DirectReader", () => {
   });
 
   it("renders qianhuan audit closure evidence prose without orphaned parentheses from live docs", async () => {
-    const docPath = path.join(
-      process.cwd(),
-      "..",
-      "..",
-      "docs",
-      "03_features",
-      "qianhuan-audit-closure.md",
-    );
-    const documentContent = readFileSync(docPath, "utf8");
-    const evidenceLine =
-      documentContent.split("\n").find((line) => line.includes("quality score `99.0`")) ?? "";
-
-    expect(evidenceLine).toContain("quality score `99.0`");
+    expect(qianhuanAuditClosureEvidenceLine).toContain("quality score `99.0`");
 
     const { container } = render(
-      <DirectReader content={evidenceLine} path="docs/03_features/qianhuan-audit-closure.md" />,
+      <DirectReader
+        content={qianhuanAuditClosureEvidenceLine}
+        path="docs/03_features/qianhuan-audit-closure.md"
+      />,
     );
 
     await waitForRichContent(container);

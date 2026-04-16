@@ -6,7 +6,7 @@ import type {
   SearchResponse,
   SymbolSearchResponse,
 } from "../../api";
-import { parseCodeFilters } from "./codeSearchUtils";
+import { normalizeCodeSearchQuery, parseCodeFilters } from "./codeSearchUtils";
 import { errorMessage } from "./searchResultNormalization";
 import { executeRepoIntelligenceCodeSearch } from "./repoIntelligenceSearchExecution";
 import {
@@ -78,10 +78,12 @@ function resolveAllModeQueryPlan(
   options: SearchExecutionOptions,
 ): {
   trimmedQuery: string;
+  normalizedCodeQuery: string;
   semanticQuery: string;
   shouldRunSupplementalLanes: boolean;
 } {
-  const parsed = parseCodeFilters(rawQuery);
+  const normalizedCodeQuery = normalizeCodeSearchQuery(rawQuery);
+  const parsed = parseCodeFilters(normalizedCodeQuery);
   const trimmedQuery = rawQuery.trim();
   const semanticQuery = parsed.baseQuery.length > 0 ? parsed.baseQuery : trimmedQuery;
   const hasInlineCodeFilters =
@@ -92,6 +94,7 @@ function resolveAllModeQueryPlan(
 
   return {
     trimmedQuery,
+    normalizedCodeQuery,
     semanticQuery,
     shouldRunSupplementalLanes: !hasInlineCodeFilters && !(options.repoFacet ?? null),
   };
@@ -148,10 +151,8 @@ export async function executeAllModeSearch(
   options: SearchExecutionOptions = {},
 ): Promise<SearchExecutionOutcome> {
   const repoFilter = options.repoFilter?.trim();
-  const { trimmedQuery, semanticQuery, shouldRunSupplementalLanes } = resolveAllModeQueryPlan(
-    queryToSearch,
-    options,
-  );
+  const { trimmedQuery, normalizedCodeQuery, semanticQuery, shouldRunSupplementalLanes } =
+    resolveAllModeQueryPlan(queryToSearch, options);
   const progress: ProgressiveAllModeState = {
     knowledgeResponse: null,
     codeResponse: null,
@@ -178,8 +179,8 @@ export async function executeAllModeSearch(
     ...(options.signal ? { signal: options.signal } : {}),
   });
   const codePromise = repoFilter
-    ? executeRepoAwareAllModeCodeSearch(trimmedQuery, semanticQuery, repoFilter, options)
-    : api.searchKnowledge(trimmedQuery, 10, {
+    ? executeRepoAwareAllModeCodeSearch(normalizedCodeQuery, semanticQuery, repoFilter, options)
+    : api.searchKnowledge(normalizedCodeQuery, 10, {
         intent: "code_search",
         ...(options.signal ? { signal: options.signal } : {}),
       });

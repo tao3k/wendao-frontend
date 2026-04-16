@@ -48,6 +48,7 @@ describe("Arrow workspace IPC decoder", () => {
       path: "main/docs/index.md",
       contentType: "text/plain",
       content: "# Index",
+      modified: 42,
     });
   });
 

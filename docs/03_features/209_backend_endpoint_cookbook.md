@@ -31,6 +31,24 @@ Expected metadata:
 - `supportedLanguages`
 - `supportedRepositories`
 - `supportedKinds`
+- `searchContract`
+
+Search-contract notes:
+
+- `searchContract` is the Rust-owned grammar manifest for frontend search alignment.
+- Frontend validation should treat `searchContract.codeSearch` as the stable source for:
+  - backend filter prefixes
+  - frontend-composed prefixes
+  - accepted prefix aliases
+  - backend `kind:` directive values
+  - canonical code-search route bindings
+  - normative query normalization examples
+- Frontend validation should treat `searchContract.repoDiscovery` as the stable source for:
+  - `repo:` suggestion semantics
+  - query-scoped repo facet semantics
+  - exhaustive repo inventory semantics
+  - default result budgets or browse windows for each repo-discovery surface
+- Snapshot and live gateway proofs should validate this manifest instead of re-deriving the grammar from scattered frontend constants alone.
 
 ## VFS Endpoints
 

@@ -14,11 +14,13 @@ import {
   loadCodeAstPreviewWithTimeout,
   type ZenSearchPreviewInflightEntry,
 } from "./zenSearchPreviewPhases";
+import { shouldPrefetchCodeAstPreview } from "./codeAstPreviewSupport";
 import { computeZenSearchPreviewLoadNeeds, createEmptyPreviewState } from "./zenSearchPreviewState";
 import type { ZenSearchPreviewState } from "./zenSearchPreviewState";
 
 export { ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS } from "./zenSearchPreviewPhases";
 export type { ZenSearchPreviewState } from "./zenSearchPreviewState";
+export const ZEN_SEARCH_PREVIEW_CODE_AST_CONTENT_HEAD_START_MS = 150;
 
 export function useZenSearchPreview(
   selectedResult: SearchResult | null,
@@ -70,6 +72,27 @@ export function useZenSearchPreview(
     const codeAstPreview = codeAstAbortController
       ? loadCodeAstPreviewWithTimeout(resolvedLoadPlanPromise, codeAstAbortController)
       : null;
+    let contentHeadStartTimerId: ReturnType<typeof globalThis.setTimeout> | null = null;
+    const contentHeadStartPromise =
+      loadNeeds.content &&
+      loadNeeds.codeAst &&
+      !inflightPreview &&
+      shouldPrefetchCodeAstPreview(selectedResult)
+        ? Promise.race([
+            codeAstPreview!.promise.then(() => undefined),
+            new Promise<void>((resolve) => {
+              contentHeadStartTimerId = globalThis.setTimeout(() => {
+                contentHeadStartTimerId = null;
+                resolve();
+              }, ZEN_SEARCH_PREVIEW_CODE_AST_CONTENT_HEAD_START_MS);
+            }),
+          ]).finally(() => {
+            if (contentHeadStartTimerId !== null) {
+              globalThis.clearTimeout(contentHeadStartTimerId);
+              contentHeadStartTimerId = null;
+            }
+          })
+        : Promise.resolve();
 
     if (!cachedPreview) {
       setState((current) => ({
@@ -94,12 +117,32 @@ export function useZenSearchPreview(
       void (async () => {
         const [resolvedLoadPlan, content] = inflightPreview
           ? await Promise.all([inflightPreview.loadPlanPromise, inflightPreview.contentPromise])
-          : await Promise.all([
-              resolvedLoadPlanPromise,
-              resolvedLoadPlanPromise.then((resolvedLoadPlan) =>
-                loadZenSearchPreviewContentData(resolvedLoadPlan),
-              ),
-            ]);
+          : await (async () => {
+              await contentHeadStartPromise;
+              if (cancelled) {
+                return [
+                  await resolvedLoadPlanPromise,
+                  {
+                    content: null,
+                    contentType: null,
+                    error: null,
+                  },
+                ] as const;
+              }
+              const resolvedLoadPlan = await resolvedLoadPlanPromise;
+              if (cancelled) {
+                return [
+                  resolvedLoadPlan,
+                  {
+                    content: null,
+                    contentType: null,
+                    error: null,
+                  },
+                ] as const;
+              }
+              const content = await loadZenSearchPreviewContentData(resolvedLoadPlan);
+              return [resolvedLoadPlan, content] as const;
+            })();
 
         if (cancelled) {
           return;
@@ -208,6 +251,9 @@ export function useZenSearchPreview(
 
     return () => {
       cancelled = true;
+      if (contentHeadStartTimerId !== null) {
+        globalThis.clearTimeout(contentHeadStartTimerId);
+      }
       codeAstPreview?.cancelTimeout();
       codeAstAbortController?.abort();
     };
@@ -230,7 +276,7 @@ export function useZenSearchPreview(
       }
 
       const inflight = createZenSearchPreviewInflightEntry(result, {
-        includeCodeAst: false,
+        includeCodeAst: shouldPrefetchCodeAstPreview(result),
       });
       void inflight.snapshotPromise
         .then((snapshot) => {

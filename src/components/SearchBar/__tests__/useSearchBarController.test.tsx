@@ -81,6 +81,7 @@ describe("useSearchBarController", () => {
       },
       repoSyncStatus: null,
       activeCodeFilterEntries: [],
+      codeRepoFacets: [],
       codeQuickExampleTokens: [],
       codeQuickScenarios: [],
       suggestions: [],

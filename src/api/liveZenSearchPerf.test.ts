@@ -12,7 +12,7 @@ import type {
 } from "./bindings";
 import type { WendaoConfig } from "../config/loader";
 import { resolveSearchFlightSchemaVersion } from "../config/loader";
-import type { UiCapabilities } from "./apiContracts";
+import type { UiCapabilities } from "./bindings";
 import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeSearchHitsFromArrowIpc,
@@ -426,8 +426,26 @@ async function waitForStableGatewayState(): Promise<void> {
 }
 
 async function readLocalUiConfig(): Promise<void> {
-  const tomlPath = resolve(process.cwd(), "wendao.toml");
-  const tomlContent = await readFile(tomlPath, "utf8");
+  const prjRoot = process.env.PRJ_ROOT?.trim();
+  const candidatePaths = [
+    ...(prjRoot && isAbsolute(prjRoot) ? [resolve(prjRoot, "wendao.toml")] : []),
+    resolve(process.cwd(), "wendao.toml"),
+  ];
+  let tomlContent: string | null = null;
+  let lastError: unknown = null;
+  for (const tomlPath of candidatePaths) {
+    try {
+      tomlContent = await readFile(tomlPath, "utf8");
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (tomlContent == null) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("failed to read live ZenSearch UI config");
+  }
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   gatewayOrigin = normalizeLoopbackGatewayOrigin(resolveGatewayOrigin(config));
   flightSchemaVersion = resolveSearchFlightSchemaVersion(config);

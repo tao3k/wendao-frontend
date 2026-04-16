@@ -55,6 +55,7 @@ describe("SearchStatusBar repo overview facets", () => {
 
     expect(container.querySelectorAll(".search-status-row")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: /Show details/i }));
+    expect(screen.getByText("Selected Repo: gateway-sync")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Filter by modules" }));
     expect(onApplyRepoFacet).toHaveBeenCalledWith("module");

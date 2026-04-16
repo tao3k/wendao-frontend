@@ -412,7 +412,7 @@ export type GraphNode = {
 	distance: number,
 };
 
-// One DeepWiki-style document link row.
+// One `DeepWiki`-style document link row.
 export type MarkdownAnalysisDocumentLink = {
 	// Display label shown in the reader.
 	label: string,
@@ -434,7 +434,7 @@ export type MarkdownAnalysisDocumentLink = {
 	targetAddress?: string | null,
 };
 
-// DeepWiki-style document link kind emitted by markdown analysis.
+// `DeepWiki`-style document link kind emitted by markdown analysis.
 export type MarkdownAnalysisDocumentLinkKind = 
 // Ordinary structural body wikilink.
 "body" | 
@@ -447,7 +447,7 @@ export type MarkdownAnalysisDocumentLinkKind =
 // Materialized backlink row from the reverse index.
 "backlink";
 
-// DeepWiki-style document identity payload emitted by markdown analysis.
+// `DeepWiki`-style document identity payload emitted by markdown analysis.
 export type MarkdownAnalysisDocumentMetadata = {
 	// Canonical document id when the graph index can resolve the file.
 	docId?: string | null,
@@ -485,7 +485,7 @@ export type MarkdownAnalysisResponse = {
 	projections: MermaidProjection[],
 	// Compact retrieval atoms for document / section surfaces.
 	retrievalAtoms?: RetrievalChunk[],
-	// Backend-owned DeepWiki document identity and link metadata.
+	// Backend-owned `DeepWiki` document identity and link metadata.
 	documentMetadata?: MarkdownAnalysisDocumentMetadata | null,
 	// Analysis diagnostics.
 	diagnostics: string[],
@@ -804,6 +804,82 @@ export type TopologyNode = {
 	clusterId?: string | null,
 };
 
+// Gateway-reported studio capabilities.
+export type UiCapabilities = {
+	// Local project roots available to the current Studio runtime.
+	projects: UiProjectConfig[],
+	// External repository projects available to the current Studio runtime.
+	repoProjects: UiRepoProjectConfig[],
+	// Supported language identifiers reported by the gateway capability surface.
+	supportedLanguages: string[],
+	// Supported repository identifiers reported by the gateway UI config.
+	supportedRepositories: string[],
+	// Supported code filter kinds reported by the gateway capability surface.
+	supportedKinds: string[],
+	// Rust-owned search contract manifest for frontend search alignment.
+	searchContract: UiSearchContract,
+	// Whether bootstrap-time background indexing is enabled during gateway startup.
+	studioBootstrapBackgroundIndexingEnabled: boolean,
+	// Stable mode label for bootstrap-time background indexing during gateway startup.
+	studioBootstrapBackgroundIndexingMode: string,
+	// Whether deferred bootstrap indexing has been lazily activated since process boot.
+	studioBootstrapBackgroundIndexingDeferredActivationObserved: boolean,
+};
+
+// Studio code-search contract exported for frontend validation.
+export type UiCodeSearchContract = {
+	// Stable grammar version for the backend parser-backed query shape.
+	queryGrammarVersion: string,
+	// Search intent label used for backend code-search requests.
+	intent: string,
+	// Parser-owned backend prefixes accepted by the Rust gateway.
+	backendPrefixes: string[],
+	// Frontend-composed prefixes that stay valid within the Studio search UI.
+	composedPrefixes: string[],
+	// Stable alias mappings accepted by the grammar.
+	prefixAliases: UiSearchContractAlias[],
+	// Structural prefixes preserved by the frontend and interpreted by Rust.
+	structuralPrefixes: string[],
+	// Backend-supported `kind:` directive values.
+	backendKindFilters: string[],
+	// Stable route bindings used by code-search transport paths.
+	routes: UiCodeSearchRoutes,
+	// Normative examples used by frontend contract validation.
+	examples: UiCodeSearchContractExample[],
+};
+
+// One normative code-search query example exported by the Rust contract.
+export type UiCodeSearchContractExample = {
+	// Stable example identifier.
+	id: string,
+	// Execution lane label for the example.
+	lane: string,
+	// Example user query accepted by the frontend search surface.
+	query: string,
+	// Expected normalized query after frontend canonicalization.
+	normalizedQuery: string,
+	// Expected free-text base query after filter extraction.
+	baseQuery: string,
+	// Expected normalized language filters.
+	languageFilters: string[],
+	// Expected normalized kind filters.
+	kindFilters: string[],
+	// Expected normalized repo filters.
+	repoFilters: string[],
+	// Expected normalized path filters.
+	pathFilters: string[],
+};
+
+// Stable route bindings for Studio code-search control-plane requests.
+export type UiCodeSearchRoutes = {
+	// Backend route for `code_search` intent requests.
+	knowledge: string,
+	// Backend route for intent classification requests.
+	intent: string,
+	// Backend route for autocomplete requests.
+	autocomplete: string,
+};
+
 // Global UI configuration for Studio.
 export type UiConfig = {
 	// Local project roots to scan.
@@ -822,6 +898,28 @@ export type UiProjectConfig = {
 	dirs: string[],
 };
 
+// Studio repo-discovery contract exported for frontend validation.
+export type UiRepoDiscoveryContract = {
+	// Prefix-oriented repo suggestion surface.
+	suggest: UiRepoDiscoverySurfaceContract,
+	// Query-scoped repo facet surface.
+	facet: UiRepoDiscoverySurfaceContract,
+	// Exhaustive repo inventory surface.
+	inventory: UiRepoDiscoverySurfaceContract,
+};
+
+// One repo-discovery surface exported by the Studio contract.
+export type UiRepoDiscoverySurfaceContract = {
+	// Stable owner label for the underlying source surface.
+	source: string,
+	// Default UI budget or browse window for this surface.
+	defaultLimit: number,
+	// Whether the surface is scoped to the active query/result set.
+	queryScoped: boolean,
+	// Whether the surface is allowed to claim exhaustive repo coverage.
+	exhaustive: boolean,
+};
+
 // Configuration for an external analyzed repository.
 export type UiRepoProjectConfig = {
 	// Unique identifier.
@@ -836,6 +934,24 @@ export type UiRepoProjectConfig = {
 	refresh?: string | null,
 	// Enabled analysis plugins.
 	plugins: string[],
+};
+
+// Rust-owned search contract manifest for Studio frontend consumers.
+export type UiSearchContract = {
+	// Stable schema version for the exported contract payload.
+	contractVersion: string,
+	// Code-search grammar and lane contract.
+	codeSearch: UiCodeSearchContract,
+	// Repo-discovery surface semantics for suggestion, facet, and inventory consumers.
+	repoDiscovery: UiRepoDiscoveryContract,
+};
+
+// One accepted alias for a canonical search prefix.
+export type UiSearchContractAlias = {
+	// Accepted alias token.
+	alias: string,
+	// Canonical token expected by the stable contract surface.
+	canonical: string,
 };
 
 // Category classification for VFS entries.

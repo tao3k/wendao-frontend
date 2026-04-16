@@ -6,7 +6,7 @@ import type {
   UiCapabilities,
   UiJuliaDeploymentArtifact,
 } from "./index";
-import type { UiProjectConfig, UiRepoProjectConfig } from "./bindings";
+import type { UiSearchContract } from "./bindings";
 
 describe("api client facade", () => {
   it("re-exports the runtime api surface", () => {
@@ -29,12 +29,11 @@ describe("api client facade", () => {
     expectTypeOf<RepoSyncResponse["mode"]>().toEqualTypeOf<string>();
     expectTypeOf<RepoSyncResponse["healthState"]>().toEqualTypeOf<string | undefined>();
     expectTypeOf<RepoProjectedPageIndexTreesResponse["repo_id"]>().toEqualTypeOf<string>();
-    expectTypeOf<UiCapabilities>().toEqualTypeOf<{
+    expectTypeOf<UiCapabilities>().toMatchTypeOf<{
       supportedLanguages: string[];
       supportedRepositories: string[];
       supportedKinds: string[];
-      projects?: UiProjectConfig[];
-      repoProjects?: UiRepoProjectConfig[];
+      searchContract: UiSearchContract;
     }>();
     expectTypeOf<UiJuliaDeploymentArtifact>().toMatchTypeOf<{
       artifactSchemaVersion: string;

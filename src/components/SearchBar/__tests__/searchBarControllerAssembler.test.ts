@@ -37,6 +37,7 @@ describe("searchBarControllerAssembler", () => {
       onSuggestionClick,
       onSuggestionHover,
       activeCodeFilterEntries: [],
+      codeRepoFacets: [],
       codeQuickExampleTokens: [],
       codeQuickScenarios: [],
       onInsertPrefix,

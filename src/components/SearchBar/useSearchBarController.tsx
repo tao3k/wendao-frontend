@@ -74,6 +74,7 @@ export function useSearchBarController({
     repoOverviewStatus,
     repoSyncStatus,
     activeCodeFilterEntries,
+    codeRepoFacets,
     codeQuickExampleTokens,
     codeQuickScenarios,
   } = repoSlice;
@@ -147,6 +148,7 @@ export function useSearchBarController({
       repoOverviewStatus,
       repoSyncStatus,
       activeCodeFilterEntries,
+      codeRepoFacets,
       codeQuickExampleTokens,
       codeQuickScenarios,
       suggestions,
@@ -174,6 +176,7 @@ export function useSearchBarController({
     onSuggestionClick: handleSuggestionClick,
     onSuggestionHover: setActiveSuggestionIndex,
     activeCodeFilterEntries,
+    codeRepoFacets,
     codeQuickExampleTokens,
     codeQuickScenarios,
     onInsertPrefix: insertCodeFilterPrefix,

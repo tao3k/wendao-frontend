@@ -37,19 +37,12 @@ describe("buildSearchAutocompleteSources", () => {
     expect(items).toMatchInlineSnapshot(`
       [
         {
-          "docType": "filter",
-          "suggestionType": "stem",
+          "suggestionType": "filter",
           "text": "lang:julia",
         },
         {
-          "docType": "filter",
-          "suggestionType": "stem",
+          "suggestionType": "filter",
           "text": "lang:javascript",
-        },
-        {
-          "docType": "filter",
-          "suggestionType": "stem",
-          "text": "lang:j",
         },
       ]
     `);
@@ -90,14 +83,8 @@ describe("buildSearchAutocompleteSources", () => {
     expect(backendItems).toMatchInlineSnapshot(`
       [
         {
-          "docType": "filter",
-          "suggestionType": "stem",
+          "suggestionType": "filter",
           "text": "sec lang:julia",
-        },
-        {
-          "docType": "filter",
-          "suggestionType": "stem",
-          "text": "sec lang:j",
         },
         {
           "suggestionType": "stem",
@@ -105,5 +92,38 @@ describe("buildSearchAutocompleteSources", () => {
         },
       ]
     `);
+  });
+
+  it("deduplicates repeated free-text tokens before backend autocomplete in all scope", async () => {
+    searchAutocompleteMock.mockResolvedValue({
+      prefix: "sec",
+      suggestions: [
+        {
+          text: "section",
+          suggestionType: "stem",
+        },
+      ],
+    });
+
+    const sources = buildSearchAutocompleteSources({
+      scope: "all",
+      rawQuery: "sec lang:j sec kind:f",
+      parsedCodeFilters: {
+        language: [],
+        kind: [],
+        repo: [],
+        path: [],
+      },
+      codeFilterCatalog: {
+        language: ["julia"],
+        kind: ["function"],
+        repo: ["sciml"],
+        path: ["src/"],
+      },
+    });
+
+    expect(sources).toHaveLength(2);
+    await sources[1]!.getItems({} as never);
+    expect(searchAutocompleteMock).toHaveBeenCalledWith("sec", 5);
   });
 });

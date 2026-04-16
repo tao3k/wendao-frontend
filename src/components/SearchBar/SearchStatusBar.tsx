@@ -160,7 +160,7 @@ export const SearchStatusBar: React.FC<SearchStatusBarProps> = ({
           {repoOverviewStatus && (
             <span className="search-status-item repo-overview">
               <span>
-                {copy.repoIndex}: {repoOverviewStatus.repoId}
+                {copy.selectedRepo}: {repoOverviewStatus.repoId}
               </span>
               <span className="search-status-mini-actions">
                 <RepoFacetButton

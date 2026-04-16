@@ -52,6 +52,12 @@ export type {
   ProjectedPageIndexSection,
   ProjectedPageIndexNode,
   ProjectedPageIndexTree,
+  UiCapabilities,
+  UiCodeSearchContract,
+  UiCodeSearchContractExample,
+  UiCodeSearchRoutes,
+  UiSearchContract,
+  UiSearchContractAlias,
 } from "./bindings";
 
 export type {
@@ -66,12 +72,13 @@ export type {
   RepoOverviewResponse,
   RepoProjectedPageIndexTreesResponse,
   RepoSyncResponse,
-  UiCapabilities,
   UiJuliaAnalyzerLaunchManifest,
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
 
 export {
   api,
+  getRepoIndexStatusSync,
+  getUiCapabilitiesSync,
 } from "./clientRuntime";
 export { ApiClientError } from "./responseTransport";

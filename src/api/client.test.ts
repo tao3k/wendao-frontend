@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api } from "./index";
+import { api, getRepoIndexStatusSync, getUiCapabilitiesSync } from "./index";
 import * as flightAnalysisTransport from "./flightAnalysisTransport";
 import * as flightDocumentTransport from "./flightDocumentTransport";
 import * as flightGraphTransport from "./flightGraphTransport";
@@ -283,6 +283,7 @@ describe("api client Flight repo transport", () => {
     );
     expect(response.total).toBe(3);
     expect(response.repos[0]?.repoId).toBe("gateway-sync");
+    expect(getRepoIndexStatusSync()).toEqual(response);
   });
 
   it("routes repo index commands through same-origin Flight", async () => {
@@ -492,12 +493,12 @@ describe("api client Flight workspace transport", () => {
         modified: 0,
       });
 
-    const response = await api.getVfsContent("docs/index.md");
+    const response = await api.getVfsContent("main/docs/index.md");
 
     expect(contentSpy).toHaveBeenCalledWith({
       baseUrl: "http://localhost:3000",
       schemaVersion: "v2",
-      path: "docs/index.md",
+      path: "main/docs/index.md",
     });
     expect(response.content).toBe("# Index");
   });
@@ -554,6 +555,68 @@ describe("api client Flight workspace transport", () => {
 describe("api client Julia deployment artifact contract", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("loads and caches the Studio UI capabilities payload", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          supportedLanguages: ["julia", "rust"],
+          supportedRepositories: ["kernel", "gateway-sync"],
+          supportedKinds: ["function", "module"],
+          searchContract: {
+            contractVersion: "1",
+            codeSearch: {
+              queryGrammarVersion: "repo_code_query.v1",
+              intent: "code_search",
+              backendPrefixes: ["lang", "kind", "repo"],
+              composedPrefixes: ["path"],
+              prefixAliases: [{ alias: "language", canonical: "lang" }],
+              structuralPrefixes: ["ast", "sg"],
+              backendKindFilters: ["function", "module"],
+              routes: {
+                knowledge: "/search/knowledge",
+                intent: "/search/intent",
+                autocomplete: "/search/autocomplete",
+              },
+              examples: [],
+            },
+            repoDiscovery: {
+              suggest: {
+                source: "repo_index_status",
+                defaultLimit: 6,
+                queryScoped: false,
+                exhaustive: true,
+              },
+              facet: {
+                source: "search_results",
+                defaultLimit: 6,
+                queryScoped: true,
+                exhaustive: false,
+              },
+              inventory: {
+                source: "repo_index_status",
+                defaultLimit: 200,
+                queryScoped: false,
+                exhaustive: true,
+              },
+            },
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const capabilities = await api.getUiCapabilities();
+
+    expect(fetchSpy).toHaveBeenCalledWith("/api/ui/capabilities");
+    expect(capabilities.supportedLanguages).toEqual(["julia", "rust"]);
+    expect(capabilities.searchContract.codeSearch.backendPrefixes).toEqual([
+      "lang",
+      "kind",
+      "repo",
+    ]);
+    expect(getUiCapabilitiesSync()).toEqual(capabilities);
   });
 
   it("loads the Studio Julia deployment artifact as structured JSON", async () => {

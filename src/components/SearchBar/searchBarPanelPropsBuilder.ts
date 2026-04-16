@@ -24,6 +24,7 @@ interface BuildCodeFilterHelperPropsParams {
   copy: SearchBarControllerCodeFilterHelperProps["copy"];
   locale: UiLocale;
   activeEntries: SearchBarControllerCodeFilterHelperProps["activeEntries"];
+  repoFacets: SearchBarControllerCodeFilterHelperProps["repoFacets"];
   exampleTokens: SearchBarControllerCodeFilterHelperProps["exampleTokens"];
   scenarios: SearchBarControllerCodeFilterHelperProps["scenarios"];
   onInsertPrefix: SearchBarControllerCodeFilterHelperProps["onInsertPrefix"];
@@ -129,6 +130,7 @@ export function buildCodeFilterHelperProps({
   copy,
   locale,
   activeEntries,
+  repoFacets,
   exampleTokens,
   scenarios,
   onInsertPrefix,
@@ -142,6 +144,7 @@ export function buildCodeFilterHelperProps({
     locale,
     prefixes: CODE_FILTER_PREFIXES,
     activeEntries,
+    repoFacets,
     exampleTokens,
     scenarios,
     onInsertPrefix,

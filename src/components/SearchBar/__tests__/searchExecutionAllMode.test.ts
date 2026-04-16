@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../../../api";
 import { executeAllModeSearch } from "../searchExecutionAllMode";
+import {
+  createFallbackAttachmentResponse,
+  createFallbackAstResponse,
+  createFallbackReferenceResponse,
+  createFallbackSymbolResponse,
+} from "../searchExecutionAllModeHelpers";
 
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
@@ -218,6 +224,54 @@ describe("searchExecutionAllMode", () => {
 
     expect(outcome.results).toHaveLength(3);
     expect(outcome.meta.selectedMode).toBe("Hybrid + Code + AST");
+  });
+
+  it("canonicalizes repeated free-text tokens before all-scope code_search reaches the gateway contract", async () => {
+    vi.spyOn(api, "searchKnowledge")
+      .mockResolvedValueOnce({
+        query: "sec",
+        hitCount: 0,
+        hits: [],
+        selectedMode: "hybrid",
+        searchMode: "hybrid",
+        intent: "hybrid_search",
+      })
+      .mockResolvedValueOnce({
+        query: "sec lang:julia kind:function",
+        hitCount: 1,
+        hits: [
+          {
+            stem: "solve",
+            title: "solve",
+            path: "src/solver.jl",
+            docType: "symbol",
+            tags: ["code", "lang:julia", "kind:function"],
+            score: 0.88,
+            bestSection: "solve()",
+            matchReason: "repo_symbol_search",
+          },
+        ],
+        selectedMode: "code_search",
+        searchMode: "code_search",
+        intent: "code_search",
+      });
+    vi.spyOn(api, "searchAst").mockResolvedValue(createFallbackAstResponse("sec") as never);
+    vi.spyOn(api, "searchReferences").mockResolvedValue(
+      createFallbackReferenceResponse("sec") as never,
+    );
+    vi.spyOn(api, "searchSymbols").mockResolvedValue(createFallbackSymbolResponse("sec") as never);
+    vi.spyOn(api, "searchAttachments").mockResolvedValue(
+      createFallbackAttachmentResponse("sec") as never,
+    );
+
+    await executeAllModeSearch("sec lang:julia sec kind:function");
+
+    expect(api.searchKnowledge).toHaveBeenNthCalledWith(1, "sec", 10, {
+      intent: "hybrid_search",
+    });
+    expect(api.searchKnowledge).toHaveBeenNthCalledWith(2, "sec lang:julia kind:function", 10, {
+      intent: "code_search",
+    });
   });
 
   it("uses repo-intelligence code search inside all mode when repo filter is present", async () => {

@@ -251,6 +251,38 @@ describe("searchExecutionCodeMode", () => {
     expect(result.meta.runtimeWarning).toBeUndefined();
   });
 
+  it("canonicalizes repeated free-text tokens before standalone code_search reaches the gateway contract", async () => {
+    vi.spyOn(api, "searchKnowledge").mockResolvedValue({
+      query: "sec lang:julia kind:function",
+      hitCount: 1,
+      hits: [
+        {
+          stem: "solve",
+          title: "solve",
+          path: "src/solver.jl",
+          docType: "symbol",
+          tags: ["code", "lang:julia", "kind:function"],
+          score: 0.88,
+          bestSection: "solve()",
+          matchReason: "repo_symbol_search",
+        },
+      ],
+      selectedMode: "code_search",
+      searchMode: "code_search",
+      intent: "code_search",
+      intentConfidence: 1,
+    });
+
+    const result = await executeCodeModeSearch("sec lang:julia sec kind:function");
+
+    expect(api.searchKnowledge).toHaveBeenCalledWith("sec lang:julia kind:function", 10, {
+      intent: "code_search",
+    });
+    expect(result.meta.selectedMode).toBe("code_search");
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.path).toBe("src/solver.jl");
+  });
+
   it("keeps parser-owned languages on the repo-intelligence lane", async () => {
     vi.spyOn(api, "searchKnowledge").mockResolvedValue({
       query: "docs lang:modelica",

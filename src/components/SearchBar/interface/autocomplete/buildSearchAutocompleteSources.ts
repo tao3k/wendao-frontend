@@ -2,6 +2,7 @@ import type { AutocompleteSuggestion } from "../../../../api";
 import { api } from "../../../../api";
 import {
   buildCodeFilterSuggestions,
+  normalizeCodeSearchQuery,
   parseCodeFilters,
   type SearchFilters,
 } from "../../codeSearchUtils";
@@ -100,7 +101,7 @@ export function buildSearchAutocompleteSources({
     return [createBackendAutocompleteSource(trimmedQuery, [], scope)];
   }
 
-  const baseAutocompleteQuery = parseCodeFilters(rawQuery).baseQuery.trim();
+  const baseAutocompleteQuery = parseCodeFilters(normalizeCodeSearchQuery(rawQuery)).baseQuery.trim();
   const hasFilterAwareAllQuery = trimmedQuery !== baseAutocompleteQuery;
   const allScopeFilterSuggestions = buildCodeFilterSuggestions(
     rawQuery,

@@ -32,6 +32,35 @@ function serializeSearchFilters(filters: SearchFilters): string {
   ].join("|");
 }
 
+function serializeRelevantCodeFilterCatalog(
+  rawQuery: string,
+  codeFilterCatalog: SearchFilters,
+): string {
+  const explicitFilterToken = /(?:^|\s)(lang|language|kind|repo|path|ast|sg):([^\s]*)$/i.exec(
+    rawQuery.trim(),
+  );
+  if (!explicitFilterToken) {
+    return "";
+  }
+
+  switch (explicitFilterToken[1].toLowerCase()) {
+    case "lang":
+    case "language":
+      return `language:${codeFilterCatalog.language.join(",")}`;
+    case "kind":
+      return `kind:${codeFilterCatalog.kind.join(",")}`;
+    case "repo":
+      return `repo:${codeFilterCatalog.repo.join(",")}`;
+    case "path":
+      return `path:${codeFilterCatalog.path.join(",")}`;
+    case "ast":
+    case "sg":
+      return `structural:${serializeSearchFilters(codeFilterCatalog)}`;
+    default:
+      return "";
+  }
+}
+
 function flattenCollections(
   collections: Array<{ items: SearchAutocompleteItem[] }>,
 ): SearchAutocompleteItem[] {
@@ -86,6 +115,10 @@ export function useSearchAutocompleteInterface({
   const activeSuggestionIndexRef = useRef(0);
   const lastRefreshKeyRef = useRef<string | null>(null);
   const parsedCodeFiltersKey = serializeSearchFilters(parsedCodeFilters);
+  const relevantCodeFilterCatalogKey = serializeRelevantCodeFilterCatalog(
+    debouncedAutocomplete,
+    codeFilterCatalog,
+  );
   const paramsRef = useRef<AutocompleteParamsRef>({
     scope,
     rawQuery: debouncedAutocomplete,
@@ -211,7 +244,12 @@ export function useSearchAutocompleteInterface({
       return;
     }
 
-    const refreshKey = [scope, debouncedAutocomplete, parsedCodeFiltersKey].join("::");
+    const refreshKey = [
+      scope,
+      debouncedAutocomplete,
+      parsedCodeFiltersKey,
+      relevantCodeFilterCatalogKey,
+    ].join("::");
     if (lastRefreshKeyRef.current === refreshKey) {
       return;
     }
@@ -224,6 +262,7 @@ export function useSearchAutocompleteInterface({
     debouncedAutocomplete,
     isOpen,
     parsedCodeFiltersKey,
+    relevantCodeFilterCatalogKey,
     scope,
     clearSuggestions,
     showSuggestions,

@@ -1,4 +1,6 @@
 import type { AutocompleteSuggestion } from "../../api";
+import type { SearchResult } from "./types";
+import { isCodeSearchResult } from "./searchResultNormalization";
 
 export interface SearchFilters {
   language: string[];
@@ -10,6 +12,14 @@ export interface SearchFilters {
 export interface ParsedCodeFilters {
   baseQuery: string;
   filters: SearchFilters;
+}
+
+export interface CodeRepoFacetEntry {
+  id: string;
+  repoId: string;
+  count: number;
+  token: string;
+  label: string;
 }
 
 interface BuildCodeFilterSuggestionsOptions {
@@ -198,6 +208,32 @@ function uniqueSuggestionValues(values: string[]): string[] {
   return output;
 }
 
+function rankFilterSuggestionValues(values: string[], typedValue: string): string[] {
+  if (!typedValue) {
+    return values;
+  }
+
+  const exactMatches: string[] = [];
+  const prefixMatches: string[] = [];
+  const substringMatches: string[] = [];
+
+  values.forEach((value) => {
+    if (value === typedValue) {
+      exactMatches.push(value);
+      return;
+    }
+    if (value.startsWith(typedValue)) {
+      prefixMatches.push(value);
+      return;
+    }
+    if (value.includes(typedValue)) {
+      substringMatches.push(value);
+    }
+  });
+
+  return [...exactMatches, ...prefixMatches, ...substringMatches];
+}
+
 function normalizeStructuralLanguage(value: string | undefined): string | null {
   const normalized = value?.trim().toLowerCase();
   return normalized && AST_STRUCTURAL_LANGUAGE_SET.has(normalized) ? normalized : null;
@@ -347,6 +383,7 @@ export function parseCodeFilters(query: string): ParsedCodeFilters {
 
   const tokens = normalized.split(/\s+/);
   const baseTokens: string[] = [];
+  const seenBaseTokens = new Set<string>();
   const filters: SearchFilters = {
     language: [],
     kind: [],
@@ -391,10 +428,40 @@ export function parseCodeFilters(query: string): ParsedCodeFilters {
       }
       return;
     }
-    baseTokens.push(token);
+    if (!seenBaseTokens.has(lower)) {
+      seenBaseTokens.add(lower);
+      baseTokens.push(token);
+    }
   });
 
   return { baseQuery: baseTokens.join(" ").trim(), filters };
+}
+
+export function normalizeCodeSearchQuery(query: string): string {
+  const normalized = query.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const tokens = normalized.split(/\s+/);
+  const dedupedTokens: string[] = [];
+  const seenBaseTokens = new Set<string>();
+
+  tokens.forEach((token) => {
+    if (token.includes(":")) {
+      dedupedTokens.push(token);
+      return;
+    }
+
+    const lower = token.toLowerCase();
+    if (seenBaseTokens.has(lower)) {
+      return;
+    }
+    seenBaseTokens.add(lower);
+    dedupedTokens.push(token);
+  });
+
+  return dedupedTokens.join(" ").trim();
 }
 
 export function stripCodeFilters(query: string): string {
@@ -477,14 +544,17 @@ export function buildCodeFilterSuggestions(
     const typedValue = explicitFilterToken[2].toLowerCase();
     const prefix = CODE_FILTER_PREFIX_BY_KEY[filterKey];
     const activeSet = new Set(activeFilters[filterKey].map((value) => value.toLowerCase()));
-    const candidates = uniqueSuggestionValues([
+    const candidatePool = uniqueSuggestionValues([
       ...catalog[filterKey],
       ...CODE_FILTER_DEFAULT_VALUES[filterKey],
-      ...(typedValue ? [typedValue] : []),
-    ])
-      .filter((value) => (typedValue ? value.includes(typedValue) : true))
+    ]);
+    const candidates = rankFilterSuggestionValues(candidatePool, typedValue)
       .filter((value) => !activeSet.has(value) || value === typedValue)
       .slice(0, 6);
+
+    if (candidates.length === 0 && typedValue) {
+      candidates.push(typedValue);
+    }
 
     return candidates.map((value) => ({
       text: replaceLastQueryToken(query, `${prefix}:${value}`),
@@ -624,6 +694,41 @@ export function buildCodeQuickScenarios(
   }
 
   return scenarios;
+}
+
+export function buildCodeRepoFacetEntries(
+  results: readonly SearchResult[],
+  limit: number,
+): CodeRepoFacetEntry[] {
+  if (limit <= 0) {
+    return [];
+  }
+
+  const repoCounts = new Map<string, number>();
+
+  results.forEach((result) => {
+    if (!isCodeSearchResult(result)) {
+      return;
+    }
+
+    const normalizedRepo = result.codeRepo?.trim().toLowerCase();
+    if (!normalizedRepo) {
+      return;
+    }
+
+    repoCounts.set(normalizedRepo, (repoCounts.get(normalizedRepo) ?? 0) + 1);
+  });
+
+  return Array.from(repoCounts.entries())
+    .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, limit)
+    .map(([repoId, count]) => ({
+      id: repoId,
+      repoId,
+      count,
+      token: `repo:${repoId}`,
+      label: `repo:${repoId} (${count})`,
+    }));
 }
 
 export interface CodeFilterMatchTarget {

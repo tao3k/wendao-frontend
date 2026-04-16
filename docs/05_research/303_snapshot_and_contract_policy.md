@@ -33,6 +33,7 @@ Representative payload contracts include:
 - `graph_neighbors_payload.snap`
 - `topology_3d_payload.snap`
 - `vfs_scan_roots_payload.snap`
+- `ui_capabilities_search_contract_payload.snap`
 
 ## Policy for Qianji Studio Docs
 
@@ -40,6 +41,7 @@ Representative payload contracts include:
 2. If the frontend composes a behavior client-side, mark it as composed rather than native.
 3. Do not document a frontend capability as stable if there is no corresponding gateway contract or accepted local runtime path.
 4. Keep example flows aligned with current snapshot-backed backend payload families.
+5. Treat the Rust-owned `searchContract` manifest inside `ui/capabilities` as the stable search grammar and repo-discovery source before trusting frontend-local filter constants or repo-list semantics.
 
 ## Policy for Qianji Studio Runtime
 

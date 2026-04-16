@@ -15,6 +15,7 @@ export const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
     confidence: "Confidence",
     fallback: "Fallback",
     fallbackRestore: "Restore original query",
+    selectedRepo: "Selected Repo",
     repoSync: "Repo Sync",
     repoIndex: "Repo Index",
     repoIndexModules: "Filter by modules",
@@ -45,6 +46,7 @@ export const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
     runtimeSearching: "Searching knowledge graph...",
     codeFilterOnlyHint:
       "Add a keyword with filters to run code search, for example: repo:gateway-sync lang:julia solve",
+    codeRepoFacets: "Repo facets",
     codeQuickFilters: "Quick filters",
     codeQuickExamples: "Examples",
     codeQuickScenarios: "Scenarios",
@@ -61,6 +63,7 @@ export const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
     confidence: "置信度",
     fallback: "回退",
     fallbackRestore: "恢复原始查询",
+    selectedRepo: "当前仓库",
     repoSync: "仓库同步",
     repoIndex: "仓库索引",
     repoIndexModules: "按模块筛选",
@@ -91,6 +94,7 @@ export const SEARCH_BAR_COPY: Record<UiLocale, SearchBarCopy> = {
     runtimeSearching: "正在搜索知识图谱...",
     codeFilterOnlyHint:
       "请在过滤器后补充关键词再执行代码搜索，例如：repo:gateway-sync lang:julia solve",
+    codeRepoFacets: "仓库分面",
     codeQuickFilters: "快速过滤",
     codeQuickExamples: "示例",
     codeQuickScenarios: "场景",

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { basename, isAbsolute, resolve } from "node:path";
 
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import * as TOML from "smol-toml";
@@ -114,8 +114,26 @@ function resolveGatewayOrigin(config: WendaoConfig): string {
 }
 
 async function readLocalUiConfig(): Promise<void> {
-  const tomlPath = resolve(process.cwd(), "wendao.toml");
-  const tomlContent = await readFile(tomlPath, "utf8");
+  const prjRoot = process.env.PRJ_ROOT?.trim();
+  const candidatePaths = [
+    ...(prjRoot && isAbsolute(prjRoot) ? [resolve(prjRoot, "wendao.toml")] : []),
+    resolve(process.cwd(), "wendao.toml"),
+  ];
+  let tomlContent: string | null = null;
+  let lastError: unknown = null;
+  for (const tomlPath of candidatePaths) {
+    try {
+      tomlContent = await readFile(tomlPath, "utf8");
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (tomlContent == null) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("failed to read live ZenSearch UI config");
+  }
   const config = TOML.parse(tomlContent) as unknown as WendaoConfig;
   liveState.gatewayOrigin = resolveGatewayOrigin(config);
   liveState.flightSchemaVersion = resolveSearchFlightSchemaVersion(config);

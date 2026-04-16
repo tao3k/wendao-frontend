@@ -51,12 +51,11 @@ describe("useSearchAutocompleteInterface", () => {
     );
 
     await waitFor(() => {
-      expect(result.current.suggestions).toHaveLength(3);
+      expect(result.current.suggestions).toHaveLength(2);
     });
 
     expect(result.current.suggestions.map((suggestion) => suggestion.text)).toEqual([
       "sec lang:julia",
-      "sec lang:j",
       "section",
     ]);
     expect(result.current.activeSuggestionIndex).toBe(0);
@@ -78,6 +77,66 @@ describe("useSearchAutocompleteInterface", () => {
     });
 
     unmount();
+  });
+
+  it("refreshes projected suggestions when the code filter catalog changes", async () => {
+    const parsedCodeFilters = {
+      language: [],
+      kind: [],
+      repo: [],
+      path: [],
+    };
+    const initialCatalog: {
+      language: string[];
+      kind: string[];
+      repo: string[];
+      path: string[];
+    } = {
+      language: ["julia"],
+      kind: ["function"],
+      repo: [],
+      path: ["src/"],
+    };
+
+    const { result, rerender } = renderHook(
+      ({
+        codeFilterCatalog,
+      }: {
+        codeFilterCatalog: { language: string[]; kind: string[]; repo: string[]; path: string[] };
+      }) =>
+        useSearchAutocompleteInterface({
+          isOpen: true,
+          showSuggestions: true,
+          scope: "code",
+          debouncedAutocomplete: "repo:s",
+          parsedCodeFilters,
+          codeFilterCatalog,
+        }),
+      {
+        initialProps: {
+          codeFilterCatalog: initialCatalog,
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.suggestions.map((suggestion) => suggestion.text)).toEqual(["repo:s"]);
+    });
+
+    rerender({
+      codeFilterCatalog: {
+        language: ["julia"],
+        kind: ["function"],
+        repo: ["sciml"],
+        path: ["src/"],
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.suggestions.map((suggestion) => suggestion.text)).toEqual([
+        "repo:sciml",
+      ]);
+    });
   });
 
   it("caps projected suggestions to the shared visible dropdown budget", async () => {

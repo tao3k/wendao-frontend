@@ -1,10 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { UiProjectConfig, UiRepoProjectConfig } from "./bindings";
 import type {
   RepoBacklinkItem,
   RepoIndexStatusResponse,
   RepoSyncResponse,
-  UiCapabilities,
   UiJuliaDeploymentArtifact,
 } from "./apiContracts";
 
@@ -16,16 +14,6 @@ describe("api contracts", () => {
       healthState?: string;
       stalenessState?: string;
       driftState?: string;
-    }>();
-  });
-
-  it("keeps the UI capabilities contract stable", () => {
-    expectTypeOf<UiCapabilities>().toEqualTypeOf<{
-      supportedLanguages: string[];
-      supportedRepositories: string[];
-      supportedKinds: string[];
-      projects?: UiProjectConfig[];
-      repoProjects?: UiRepoProjectConfig[];
     }>();
   });
 

@@ -5,7 +5,7 @@ import * as TOML from "smol-toml";
 
 import type { WendaoConfig } from "../config/loader";
 import { resolveSearchFlightSchemaVersion } from "../config/loader";
-import type { UiCapabilities } from "./apiContracts";
+import type { UiCapabilities } from "./bindings";
 import { fetchControlPlaneUiCapabilities } from "./controlPlane/transport";
 import { loadGraphNeighborsFlight } from "./flightGraphTransport";
 import { loadTopology3DFlight } from "./flightGraphTransport";
@@ -37,6 +37,7 @@ import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeRepoSyncResponseFromArrowIpc,
 } from "./arrowSearchIpc";
+import { validateSearchContract } from "../components/SearchBar/searchContract";
 
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
@@ -126,6 +127,17 @@ let liveModelicaCodeAstPath = "";
 let liveModelicaCodeAstRepo = "";
 let liveSearchOnlyCodeAstPath = "";
 let liveSearchOnlyAstRepo = "";
+
+function deriveRelativeStudioPath(canonicalPath: string, projectName: string): string {
+  const trimmedProjectName = projectName.trim();
+  const prefix = `${trimmedProjectName}/`;
+  if (!trimmedProjectName || !canonicalPath.startsWith(prefix)) {
+    throw new Error(
+      `expected canonical studio path \`${canonicalPath}\` to be scoped under project \`${trimmedProjectName}\``,
+    );
+  }
+  return canonicalPath.slice(prefix.length);
+}
 
 function resolveGatewayOrigin(config: WendaoConfig): string {
   if (process.env.STUDIO_LIVE_GATEWAY_URL) {
@@ -223,36 +235,36 @@ async function resolveCanonicalGraphCandidatePath(
   });
 }
 
+function scoreCodeAstCandidate(entry: LiveVfsEntry): number {
+  const normalizedPath = entry.path.replace(/\\/g, "/");
+  let points = 0;
+  if (/^(?:[^/]+\/)?src\//.test(normalizedPath) || normalizedPath.includes("/src/")) {
+    points += 8;
+  }
+  if (/\.(jl|rs|mo)$/i.test(normalizedPath)) {
+    points += 2;
+  }
+  if (/package\.mo$/i.test(normalizedPath)) {
+    points -= 4;
+  }
+  if (/(^|\/)(test|tests|docs|examples|usersguide|resources)\//i.test(normalizedPath)) {
+    points -= 3;
+  }
+  if (/(^|\/)(types|interfaces|baseclasses)\//i.test(normalizedPath)) {
+    points += 4;
+  }
+  if (/(^|\/)blocks\//i.test(normalizedPath)) {
+    points -= 2;
+  }
+  return points;
+}
+
 function rankCodeAstCandidates(
   entries: LiveVfsEntry[],
   predicate: (entry: LiveVfsEntry) => boolean,
 ): LiveVfsEntry[] {
-  function score(entry: LiveVfsEntry): number {
-    const normalizedPath = entry.path.replace(/\\/g, "/");
-    let points = 0;
-    if (/^(?:[^/]+\/)?src\//.test(normalizedPath) || normalizedPath.includes("/src/")) {
-      points += 8;
-    }
-    if (/\.(jl|rs|mo)$/i.test(normalizedPath)) {
-      points += 2;
-    }
-    if (/package\.mo$/i.test(normalizedPath)) {
-      points -= 4;
-    }
-    if (/(^|\/)(test|tests|docs|examples|usersguide|resources)\//i.test(normalizedPath)) {
-      points -= 3;
-    }
-    if (/(^|\/)(types|interfaces|baseclasses)\//i.test(normalizedPath)) {
-      points += 4;
-    }
-    if (/(^|\/)blocks\//i.test(normalizedPath)) {
-      points -= 2;
-    }
-    return points;
-  }
-
   return entries.filter(predicate).toSorted((left, right) => {
-    const scoreDelta = score(right) - score(left);
+    const scoreDelta = scoreCodeAstCandidate(right) - scoreCodeAstCandidate(left);
     if (scoreDelta !== 0) {
       return scoreDelta;
     }
@@ -443,6 +455,7 @@ liveDescribe("live gateway studio contract", () => {
     expect(capabilities.supportedRepositories).toContain(targetRepoId);
     expect(capabilities.supportedLanguages.length).toBeGreaterThan(0);
     expect(capabilities.supportedKinds.length).toBeGreaterThan(0);
+    expect(validateSearchContract(capabilities.searchContract)).toEqual([]);
 
     const scan = (await loadVfsScanFlight({
       baseUrl: flightOrigin,
@@ -493,6 +506,27 @@ liveDescribe("live gateway studio contract", () => {
 
     expect(response.path).toBe(qianjiDocPath);
     expect(response.contentType.length).toBeGreaterThan(0);
+    expect(response.content.length).toBeGreaterThan(0);
+  });
+
+  it("canonicalizes relative studio document paths before VFS content lookup", async () => {
+    const relativePath = deriveRelativeStudioPath(qianjiDocPath, targetProjectName);
+    const resolvedTarget = await resolveStudioPathFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      path: relativePath,
+    });
+
+    expect(resolvedTarget.path).toBe(qianjiDocPath);
+    expect(resolvedTarget.projectName).toBe(targetProjectName);
+
+    const response = await loadVfsContentFlight({
+      baseUrl: flightOrigin,
+      schemaVersion: flightSchemaVersion,
+      path: resolvedTarget.path,
+    });
+
+    expect(response.path).toBe(qianjiDocPath);
     expect(response.content.length).toBeGreaterThan(0);
   });
 

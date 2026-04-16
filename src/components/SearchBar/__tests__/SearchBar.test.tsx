@@ -13,6 +13,7 @@ import { SearchBar } from "../SearchBar";
 
 const mocks = vi.hoisted(() => ({
   getUiCapabilitiesSync: vi.fn(),
+  getRepoIndexStatusSync: vi.fn(),
   getUiConfigSync: vi.fn(),
   getVfsContent: vi.fn(),
   getGraphNeighbors: vi.fn(),
@@ -33,6 +34,7 @@ vi.mock("../../../api", () => ({
     searchSymbols: vi.fn(),
     searchAutocomplete: vi.fn(),
     searchRepoContentFlight: vi.fn(),
+    getRepoIndexStatus: vi.fn(),
     getRepoOverview: vi.fn(),
     getRepoDocCoverage: vi.fn(),
     getRepoProjectedPageIndexTree: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock("../../../api", () => ({
     getMarkdownRetrievalChunksArrow: mocks.getMarkdownRetrievalChunksArrow,
   },
   getUiCapabilitiesSync: mocks.getUiCapabilitiesSync,
+  getRepoIndexStatusSync: mocks.getRepoIndexStatusSync,
   getUiConfigSync: mocks.getUiConfigSync,
 }));
 
@@ -390,18 +393,78 @@ describe("SearchBar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getUiCapabilitiesSync.mockReset();
+    mocks.getRepoIndexStatusSync.mockReset();
     mocks.getUiConfigSync.mockReset();
     mocks.getUiCapabilitiesSync.mockReturnValue({
       supportedLanguages: ["julia"],
       supportedRepositories: ["kernel"],
       supportedKinds: ["function", "module", "struct"],
+      searchContract: {
+        contractVersion: "1",
+        codeSearch: {
+          queryGrammarVersion: "repo_code_query.v1",
+          intent: "code_search",
+          backendPrefixes: ["lang", "kind", "repo"],
+          composedPrefixes: ["path"],
+          prefixAliases: [{ alias: "language", canonical: "lang" }],
+          structuralPrefixes: ["ast", "sg"],
+          backendKindFilters: ["file", "symbol", "function", "module", "example"],
+          routes: {
+            knowledge: "/search/knowledge",
+            intent: "/search/intent",
+            autocomplete: "/search/autocomplete",
+          },
+          examples: [],
+        },
+        repoDiscovery: {
+          suggest: {
+            source: "repo_index_status",
+            defaultLimit: 6,
+            queryScoped: false,
+            exhaustive: true,
+          },
+          facet: {
+            source: "search_results",
+            defaultLimit: 6,
+            queryScoped: true,
+            exhaustive: false,
+          },
+          inventory: {
+            source: "repo_index_status",
+            defaultLimit: 200,
+            queryScoped: false,
+            exhaustive: true,
+          },
+        },
+      },
     });
     mocks.getUiConfigSync.mockReturnValue({
       projects: [],
       repoProjects: [],
     });
+    mocks.getRepoIndexStatusSync.mockReturnValue(null);
     mockedApi.searchAutocomplete.mockResolvedValue(createMockAutocompleteResponse([]));
     mockedApi.searchRepoContentFlight.mockResolvedValue(createMockSearchResponse("", []));
+    mockedApi.getRepoIndexStatus.mockResolvedValue({
+      total: 1,
+      queued: 0,
+      checking: 0,
+      syncing: 0,
+      indexing: 0,
+      ready: 1,
+      unsupported: 0,
+      failed: 0,
+      targetConcurrency: 1,
+      maxConcurrency: 1,
+      syncConcurrencyLimit: 1,
+      repos: [
+        {
+          repoId: "kernel",
+          phase: "ready",
+          attemptCount: 1,
+        },
+      ],
+    } as never);
     mockedApi.searchAttachments.mockResolvedValue(createMockAttachmentResponse("", []));
     mockedApi.searchAst.mockResolvedValue(createMockAstResponse("", []));
     mockedApi.resolveDefinition.mockResolvedValue(
@@ -2858,9 +2921,34 @@ describe("SearchBar", () => {
   it("should include gateway repos in repo filter suggestions", async () => {
     mocks.getUiCapabilitiesSync.mockReturnValue({
       supportedLanguages: ["julia"],
-      supportedRepositories: ["kernel", "sciml"],
+      supportedRepositories: ["kernel"],
       supportedKinds: ["function", "module", "struct"],
     });
+    mockedApi.getRepoIndexStatus.mockResolvedValue({
+      total: 2,
+      queued: 0,
+      checking: 0,
+      syncing: 0,
+      indexing: 0,
+      ready: 2,
+      unsupported: 0,
+      failed: 0,
+      targetConcurrency: 1,
+      maxConcurrency: 1,
+      syncConcurrencyLimit: 1,
+      repos: [
+        {
+          repoId: "kernel",
+          phase: "ready",
+          attemptCount: 1,
+        },
+        {
+          repoId: "sciml",
+          phase: "ready",
+          attemptCount: 1,
+        },
+      ],
+    } as never);
     mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse("", []));
     mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse("", []));
     mockedApi.searchAst.mockResolvedValue(createMockAstResponse("", []));
@@ -2891,7 +2979,45 @@ describe("SearchBar", () => {
     mocks.getUiCapabilitiesSync.mockReturnValue({
       supportedLanguages: ["julia"],
       supportedRepositories: ["kernel"],
-      supportedKinds: ["function", "module", "struct"],
+      supportedKinds: ["struct"],
+      searchContract: {
+        contractVersion: "1",
+        codeSearch: {
+          queryGrammarVersion: "repo_code_query.v1",
+          intent: "code_search",
+          backendPrefixes: ["lang", "kind", "repo"],
+          composedPrefixes: ["path"],
+          prefixAliases: [{ alias: "language", canonical: "lang" }],
+          structuralPrefixes: ["ast", "sg"],
+          backendKindFilters: ["file", "symbol", "function", "module", "example"],
+          routes: {
+            knowledge: "/search/knowledge",
+            intent: "/search/intent",
+            autocomplete: "/search/autocomplete",
+          },
+          examples: [],
+        },
+        repoDiscovery: {
+          suggest: {
+            source: "repo_index_status",
+            defaultLimit: 6,
+            queryScoped: false,
+            exhaustive: true,
+          },
+          facet: {
+            source: "search_results",
+            defaultLimit: 6,
+            queryScoped: true,
+            exhaustive: false,
+          },
+          inventory: {
+            source: "repo_index_status",
+            defaultLimit: 200,
+            queryScoped: false,
+            exhaustive: true,
+          },
+        },
+      },
     });
     mockedApi.searchKnowledge.mockResolvedValue(createMockSearchResponse("", []));
     mockedApi.searchSymbols.mockResolvedValue(createMockSymbolResponse("", []));

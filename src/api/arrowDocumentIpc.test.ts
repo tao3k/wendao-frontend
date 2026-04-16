@@ -12,6 +12,7 @@ describe("Arrow document IPC decoder", () => {
       tableFromArrays({
         repoId: ["gateway-sync"],
         pageId: ["repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md"],
+        kind: ["reference"],
         path: ["docs/solve.md"],
         docId: ["repo:gateway-sync:doc:docs/solve.md"],
         title: ["solve"],
@@ -39,6 +40,7 @@ describe("Arrow document IPC decoder", () => {
     expect(decodeProjectedPageIndexTreeFromArrowIpc(payload)).toEqual({
       repo_id: "gateway-sync",
       page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+      kind: "reference",
       path: "docs/solve.md",
       doc_id: "repo:gateway-sync:doc:docs/solve.md",
       title: "solve",
@@ -53,6 +55,7 @@ describe("Arrow document IPC decoder", () => {
           token_count: 4,
           is_thinned: false,
           text: "solve docs",
+          summary: "ignored by frontend binding",
           children: [],
         },
       ],
@@ -64,6 +67,7 @@ describe("Arrow document IPC decoder", () => {
       tableFromArrays({
         repoId: ["gateway-sync"],
         pageId: ["repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md"],
+        kind: ["reference"],
         path: ["docs/solve.md"],
         docId: ["repo:gateway-sync:doc:docs/solve.md"],
         title: ["solve"],
@@ -76,6 +80,7 @@ describe("Arrow document IPC decoder", () => {
     expect(decodeProjectedPageIndexTreeFromArrowIpc(payload)).toEqual({
       repo_id: "gateway-sync",
       page_id: "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md",
+      kind: "reference",
       path: "docs/solve.md",
       doc_id: "repo:gateway-sync:doc:docs/solve.md",
       title: "solve",

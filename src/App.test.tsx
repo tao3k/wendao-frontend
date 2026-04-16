@@ -1915,6 +1915,78 @@ describe("App topology wiring", () => {
     expect(mocks.resolveStudioPathMock).toHaveBeenCalledWith("id:internal_skills/writer/SKILL.md");
   });
 
+  it("canonicalizes workspace-local file tree paths before VFS content lookup", async () => {
+    mocks.get3DTopologyMock.mockResolvedValue({
+      nodes: [],
+      links: [],
+      clusters: [],
+    });
+    mocks.getVfsContentMock.mockResolvedValue({ content: "# Frontend guide" });
+    mocks.getGraphNeighborsMock.mockResolvedValue({
+      center: {
+        id: "main/docs/guide.md#semantic-root",
+        label: "guide.md",
+        path: "main/docs/guide.md#semantic-root",
+        nodeType: "knowledge",
+        navigationTarget: {
+          path: "main/docs/guide.md",
+          category: "knowledge",
+          projectName: "main",
+          rootLabel: "docs",
+        },
+        isCenter: true,
+        distance: 0,
+      },
+      nodes: [],
+      links: [],
+      totalNodes: 1,
+      totalLinks: 0,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+        | {
+            onFileSelect: (
+              path: string,
+              category: string,
+              metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
+            ) => Promise<void>;
+          }
+        | undefined;
+      expect(fileTreeProps?.onFileSelect).toBeDefined();
+    });
+
+    const fileTreeProps = mocks.fileTreeSpy.mock.calls.at(-1)?.[0] as
+      | {
+          onFileSelect: (
+            path: string,
+            category: string,
+            metadata?: { projectName?: string; rootLabel?: string; graphPath?: string },
+          ) => Promise<void>;
+        }
+      | undefined;
+
+    await act(async () => {
+      await fileTreeProps?.onFileSelect(".data/wendao-frontend/docs/guide.md", "knowledge", {
+        projectName: "main",
+        rootLabel: "docs",
+        graphPath: ".data/wendao-frontend/docs/guide.md#semantic-root",
+      });
+    });
+
+    await waitFor(() => {
+      expect(mocks.getVfsContentMock).toHaveBeenLastCalledWith("main/docs/guide.md");
+    });
+
+    expect(mocks.getGraphNeighborsMock).toHaveBeenLastCalledWith("main/docs/guide.md#semantic-root", {
+      direction: "both",
+      hops: 1,
+      limit: 20,
+    });
+  });
+
   it("routes the search graph action into the graph tab hydration flow", async () => {
     mocks.get3DTopologyMock.mockResolvedValue({
       nodes: [],

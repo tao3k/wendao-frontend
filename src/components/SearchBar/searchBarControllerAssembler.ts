@@ -23,6 +23,7 @@ interface AssembleSearchBarControllerResultParams {
   onSuggestionClick: SearchBarControllerSuggestionsPanelProps["onSuggestionClick"];
   onSuggestionHover: SearchBarControllerSuggestionsPanelProps["onSuggestionHover"];
   activeCodeFilterEntries: SearchBarControllerCodeFilterHelperProps["activeEntries"];
+  codeRepoFacets: SearchBarControllerCodeFilterHelperProps["repoFacets"];
   codeQuickExampleTokens: SearchBarControllerCodeFilterHelperProps["exampleTokens"];
   codeQuickScenarios: SearchBarControllerCodeFilterHelperProps["scenarios"];
   onInsertPrefix: SearchBarControllerCodeFilterHelperProps["onInsertPrefix"];
@@ -47,6 +48,7 @@ export function assembleSearchBarControllerResult({
   onSuggestionClick,
   onSuggestionHover,
   activeCodeFilterEntries,
+  codeRepoFacets,
   codeQuickExampleTokens,
   codeQuickScenarios,
   onInsertPrefix,
@@ -74,6 +76,7 @@ export function assembleSearchBarControllerResult({
     copy,
     locale,
     activeEntries: activeCodeFilterEntries,
+    repoFacets: codeRepoFacets,
     exampleTokens: codeQuickExampleTokens,
     scenarios: codeQuickScenarios,
     onInsertPrefix,

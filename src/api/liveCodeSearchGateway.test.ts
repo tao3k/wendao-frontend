@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import * as TOML from "smol-toml";
 
 import type { SearchResponse } from "./bindings";
-import type { UiCapabilities } from "./apiContracts";
+import type { UiCapabilities } from "./bindings";
 import { searchKnowledgeFlight } from "./flightSearchTransport";
 import { loadRepoOverviewFlight } from "./flightRepoOverviewTransport";
 import {
@@ -14,6 +14,7 @@ import {
 import type { WendaoConfig } from "../config/loader";
 import { resolveSearchFlightSchemaVersion } from "../config/loader";
 import { normalizeCodeSearchHit } from "../components/SearchBar/searchResultNormalization";
+import { validateSearchContract } from "../components/SearchBar/searchContract";
 
 const runLiveGateway =
   process.env.RUN_LIVE_GATEWAY_TEST === "1" || Boolean(process.env.STUDIO_LIVE_GATEWAY_URL);
@@ -76,6 +77,7 @@ liveDescribe("live gateway code search contract", () => {
       (searchOnlyRepo?.plugins ?? []).map((plugin) => plugin.toLowerCase()),
       "expected repo `lance` to remain search-only via ast-grep",
     ).toEqual(["ast-grep"]);
+    expect(validateSearchContract(capabilities.searchContract)).toEqual([]);
     searchOnlyRepoId = searchOnlyRepo!.id;
 
     candidateRepoQueries = buildCandidateQueries(capabilities.supportedRepositories.slice(0, 12));

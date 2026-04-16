@@ -1,4 +1,4 @@
-import type { ProjectedPageIndexTree, UiProjectConfig, UiRepoProjectConfig } from "./bindings";
+import type { ProjectedPageIndexTree } from "./bindings";
 
 export interface RepoBacklinkItem {
   id: string;
@@ -112,14 +112,6 @@ export interface RepoIndexStatusResponse {
 export interface RepoIndexRequest {
   repo?: string;
   refresh?: boolean;
-}
-
-export interface UiCapabilities {
-  supportedLanguages: string[];
-  supportedRepositories: string[];
-  supportedKinds: string[];
-  projects?: UiProjectConfig[];
-  repoProjects?: UiRepoProjectConfig[];
 }
 
 export interface UiJuliaAnalyzerLaunchManifest {

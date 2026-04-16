@@ -6,7 +6,7 @@ import * as TOML from "smol-toml";
 
 import type { WendaoConfig } from "../config/loader";
 import { resolveSearchFlightSchemaVersion } from "../config/loader";
-import type { UiCapabilities } from "./apiContracts";
+import type { UiCapabilities } from "./bindings";
 import {
   decodeRepoIndexStatusResponseFromArrowIpc,
   decodeSearchHitsFromArrowIpc,

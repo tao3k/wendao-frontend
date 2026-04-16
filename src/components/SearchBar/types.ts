@@ -69,6 +69,7 @@ export interface SearchBarCopy {
   confidence: string;
   fallback: string;
   fallbackRestore: string;
+  selectedRepo: string;
   repoSync: string;
   repoIndex: string;
   repoIndexModules: string;
@@ -98,6 +99,7 @@ export interface SearchBarCopy {
   close: string;
   runtimeSearching: string;
   codeFilterOnlyHint: string;
+  codeRepoFacets: string;
   codeQuickFilters: string;
   codeQuickExamples: string;
   codeQuickScenarios: string;

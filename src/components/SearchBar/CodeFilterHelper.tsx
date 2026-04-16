@@ -7,6 +7,7 @@ interface CodeFilterHelperProps {
   locale: UiLocale;
   prefixes: readonly CodeFilterPrefix[];
   exampleTokens: string[];
+  repoFacets: Array<{ id: string; label: string; token: string }>;
   scenarios: Array<{ id: string; label: string; tokens: string[] }>;
   activeEntries: Array<{ key: keyof SearchFilters; label: string }>;
   onInsertPrefix: (prefix: CodeFilterPrefix) => void;
@@ -78,6 +79,28 @@ const CodeFilterTokenButton = React.memo(function CodeFilterTokenButton({
   );
 });
 
+interface CodeFilterRepoFacetButtonProps {
+  facet: { id: string; label: string; token: string };
+  onApplyExample: (token: string) => void;
+}
+
+const CodeFilterRepoFacetButton = React.memo(function CodeFilterRepoFacetButton({
+  facet,
+  onApplyExample,
+}: CodeFilterRepoFacetButtonProps): React.ReactElement {
+  const handleClick = React.useCallback(() => {
+    onApplyExample(facet.token);
+  }, [facet.token, onApplyExample]);
+
+  return (
+    <CodeFilterActionButton
+      className="search-code-filter-helper-btn facet"
+      onClick={handleClick}
+      title={facet.label}
+    />
+  );
+});
+
 interface CodeFilterScenarioButtonProps {
   scenario: { id: string; label: string; tokens: string[] };
   onApplyScenario: (tokens: string[]) => void;
@@ -133,6 +156,7 @@ export const CodeFilterHelper: React.FC<CodeFilterHelperProps> = ({
   locale,
   prefixes,
   exampleTokens,
+  repoFacets,
   scenarios,
   activeEntries,
   onInsertPrefix,
@@ -159,6 +183,20 @@ export const CodeFilterHelper: React.FC<CodeFilterHelperProps> = ({
           ))}
         </div>
       </div>
+      {repoFacets.length > 0 && (
+        <div className="search-code-filter-helper-row">
+          <span className="search-code-filter-helper-label">{copy.codeRepoFacets}</span>
+          <div className="search-code-filter-helper-buttons">
+            {repoFacets.map((facet) => (
+              <CodeFilterRepoFacetButton
+                key={facet.id}
+                facet={facet}
+                onApplyExample={onApplyExample}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       <div className="search-code-filter-helper-row">
         <span className="search-code-filter-helper-label">{copy.codeQuickScenarios}</span>
         <div className="search-code-filter-helper-buttons">

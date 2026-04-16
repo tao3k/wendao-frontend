@@ -143,6 +143,7 @@ describe("useSearchBarControllerPresentation", () => {
         repoOverviewStatus: null,
         repoSyncStatus: null,
         activeCodeFilterEntries: [{ key: "language", label: "lang:julia" }],
+        codeRepoFacets: [],
         codeQuickExampleTokens: [],
         codeQuickScenarios: [],
         suggestions: [

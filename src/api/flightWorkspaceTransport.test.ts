@@ -116,7 +116,7 @@ describe("flightWorkspaceTransport", () => {
       {
         baseUrl: "http://127.0.0.1:9517",
         schemaVersion: "v2",
-        path: "docs/index.md",
+        path: "main/docs/index.md",
       },
       {
         createClient: () => ({
@@ -133,7 +133,7 @@ describe("flightWorkspaceTransport", () => {
               ],
               appMetadata: new TextEncoder().encode(
                 JSON.stringify({
-                  path: "docs/index.md",
+                  path: "main/docs/index.md",
                   contentType: "text/plain",
                 }),
               ),
@@ -147,7 +147,7 @@ describe("flightWorkspaceTransport", () => {
           },
         }),
         decodeVfsContent: () => ({
-          path: "docs/index.md",
+          path: "main/docs/index.md",
           contentType: "text/plain",
           content: "# Index",
           modified: 0,
@@ -156,7 +156,7 @@ describe("flightWorkspaceTransport", () => {
     );
 
     expect(response).toEqual({
-      path: "docs/index.md",
+      path: "main/docs/index.md",
       contentType: "text/plain",
       content: "# Index",
       modified: 0,

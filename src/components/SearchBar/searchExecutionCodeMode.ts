@@ -1,5 +1,6 @@
 import type { RepoOverviewFacet } from "./repoOverviewQueryBuilder";
 import { requestRepoIndexPriority } from "../repoIndexPriority";
+import { normalizeCodeSearchQuery } from "./codeSearchUtils";
 import {
   buildStandaloneCodeModeOutcome,
   buildRepoScopedBackendCodeModeOutcome,
@@ -22,11 +23,12 @@ export async function executeCodeModeSearch(
   queryToSearch: string,
   options: CodeModeExecutionOptions = {},
 ): Promise<SearchExecutionOutcome> {
+  const normalizedCodeQuery = normalizeCodeSearchQuery(queryToSearch);
   const repoFilter = options.repoFilter?.trim();
   if (repoFilter) {
     const repoFacet = options.repoFacet ?? null;
     const backendCodeSearchQuery = resolveRepoScopedBackendCodeSearchQuery(
-      queryToSearch,
+      normalizedCodeQuery,
       repoFilter,
       repoFacet,
     );
@@ -38,7 +40,7 @@ export async function executeCodeModeSearch(
         options.signal,
       );
       return buildRepoScopedBackendCodeModeOutcome({
-        query: queryToSearch,
+        query: normalizedCodeQuery,
         repoFilter,
         repoFacet,
         codeResponse,
@@ -46,14 +48,14 @@ export async function executeCodeModeSearch(
     }
     requestRepoIndexPriority(repoFilter);
     const [repoIntelligenceSettled, codeIntentSettled] = await Promise.allSettled([
-      executeRepoIntelligenceCodeSearch(queryToSearch, repoFilter, {
+      executeRepoIntelligenceCodeSearch(normalizedCodeQuery, repoFilter, {
         facet: repoFacet,
         signal: options.signal,
       }),
-      resolveCodeSearchIntentMeta(queryToSearch, repoFilter, 10, options.signal),
+      resolveCodeSearchIntentMeta(normalizedCodeQuery, repoFilter, 10, options.signal),
     ]);
     return resolveRepoAwareCodeModeOutcome({
-      queryToSearch,
+      queryToSearch: normalizedCodeQuery,
       repoFilter,
       repoFacet,
       repoIntelligenceSettled,
@@ -61,6 +63,10 @@ export async function executeCodeModeSearch(
     });
   }
 
-  const codeResponse = await fetchStandaloneCodeSearchResponse(queryToSearch, 10, options.signal);
+  const codeResponse = await fetchStandaloneCodeSearchResponse(
+    normalizedCodeQuery,
+    10,
+    options.signal,
+  );
   return buildStandaloneCodeModeOutcome(codeResponse);
 }

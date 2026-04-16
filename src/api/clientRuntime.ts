@@ -51,6 +51,7 @@ import type {
   ProjectedPageIndexSection,
   ProjectedPageIndexNode,
   ProjectedPageIndexTree,
+  UiCapabilities,
 } from "./bindings";
 
 // Re-export types for convenience
@@ -143,6 +144,7 @@ import * as flightWorkspaceTransport from "./flightWorkspaceTransport";
 import * as repoProjectedPageIndexTransport from "./repoProjectedPageIndexTransport";
 import { ApiClientError, handleResponse, handleTextResponse } from "./responseTransport";
 import {
+  fetchControlPlaneUiCapabilities,
   fetchControlPlaneJuliaDeploymentArtifact,
   fetchControlPlaneJuliaDeploymentArtifactToml,
 } from "./controlPlane/transport";
@@ -179,6 +181,19 @@ const controlPlaneTextTransportDeps = {
   handleTextResponse,
 };
 
+let uiCapabilitiesCache: UiCapabilities | null = null;
+let repoIndexStatusCache: RepoIndexStatusResponse | null = null;
+
+function cacheUiCapabilities(capabilities: UiCapabilities): UiCapabilities {
+  uiCapabilitiesCache = capabilities;
+  return capabilities;
+}
+
+function cacheRepoIndexStatus(status: RepoIndexStatusResponse): RepoIndexStatusResponse {
+  repoIndexStatusCache = status;
+  return status;
+}
+
 function resolveBrowserFlightBaseUrl(): string {
   if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin;
@@ -211,6 +226,15 @@ export const api = {
    */
   async health(): Promise<string> {
     return fetchHealthResponse(workspaceTransportDeps);
+  },
+
+  /**
+   * Load the Studio capabilities control-plane payload.
+   */
+  async getUiCapabilities(): Promise<UiCapabilities> {
+    return cacheUiCapabilities(
+      await fetchControlPlaneUiCapabilities<UiCapabilities>(controlPlaneJsonTransportDeps),
+    );
   },
 
   // === VFS Endpoints ===
@@ -522,7 +546,8 @@ export const api = {
    * Get aggregated background repo index progress for the current UI config.
    */
   async getRepoIndexStatus(repo?: string): Promise<RepoIndexStatusResponse> {
-    return flightRepoIndexStatusTransport.loadRepoIndexStatusFlight(
+    return cacheRepoIndexStatus(
+      await flightRepoIndexStatusTransport.loadRepoIndexStatusFlight(
       {
         baseUrl: resolveBrowserFlightBaseUrl(),
         schemaVersion: resolveStudioFlightSchemaVersion(),
@@ -531,6 +556,7 @@ export const api = {
       {
         decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
       },
+      ),
     );
   },
 
@@ -538,7 +564,8 @@ export const api = {
    * Enqueue one or more repositories for background indexing.
    */
   async enqueueRepoIndex(request: RepoIndexRequest = {}): Promise<RepoIndexStatusResponse> {
-    return flightRepoIndexTransport.loadRepoIndexFlight(
+    return cacheRepoIndexStatus(
+      await flightRepoIndexTransport.loadRepoIndexFlight(
       {
         baseUrl: resolveBrowserFlightBaseUrl(),
         schemaVersion: resolveStudioFlightSchemaVersion(),
@@ -549,6 +576,7 @@ export const api = {
       {
         decodeRepoIndexStatusResponse: decodeRepoIndexStatusResponseFromArrowIpc,
       },
+      ),
     );
   },
 
@@ -698,5 +726,13 @@ export const api = {
   },
 
 };
+
+export function getUiCapabilitiesSync(): UiCapabilities | null {
+  return uiCapabilitiesCache;
+}
+
+export function getRepoIndexStatusSync(): RepoIndexStatusResponse | null {
+  return repoIndexStatusCache;
+}
 
 export { ApiClientError };

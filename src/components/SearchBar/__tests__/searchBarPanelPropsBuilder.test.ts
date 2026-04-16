@@ -58,6 +58,7 @@ describe("searchBarPanelPropsBuilder", () => {
       codeFilterTitle: "Code filters",
     } as unknown as SearchBarControllerCodeFilterHelperProps["copy"];
     const activeEntries = [] as SearchBarControllerCodeFilterHelperProps["activeEntries"];
+    const repoFacets = [] as SearchBarControllerCodeFilterHelperProps["repoFacets"];
     const exampleTokens = [
       "repo:gateway-sync",
     ] as SearchBarControllerCodeFilterHelperProps["exampleTokens"];
@@ -72,6 +73,7 @@ describe("searchBarPanelPropsBuilder", () => {
       copy,
       locale: "zh",
       activeEntries,
+      repoFacets,
       exampleTokens,
       scenarios,
       onInsertPrefix,
@@ -83,6 +85,7 @@ describe("searchBarPanelPropsBuilder", () => {
 
     expect(result.prefixes).toEqual(CODE_FILTER_PREFIXES);
     expect(result.copy).toBe(copy);
+    expect(result.repoFacets).toBe(repoFacets);
     expect(result.onInsertPrefix).toBe(onInsertPrefix);
     expect(result.onClearFilters).toBe(onClearFilters);
   });

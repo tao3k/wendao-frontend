@@ -5,6 +5,7 @@ import { createPerfTrace } from "../../../lib/testPerfTrace";
 import type { SearchResult } from "../../SearchBar/types";
 import {
   useZenSearchPreview,
+  ZEN_SEARCH_PREVIEW_CODE_AST_CONTENT_HEAD_START_MS,
   ZEN_SEARCH_PREVIEW_CODE_AST_TIMEOUT_MS,
 } from "../useZenSearchPreview";
 
@@ -113,6 +114,31 @@ function buildGatewayResolvedCodeSearchResult(): SearchResult {
     navigationTarget: {
       path: "src/Blocks/continuous.jl",
       category: "repo_code",
+    },
+    searchSource: "search-index",
+  } as SearchResult;
+}
+
+function buildRepoScopedRelativeJuliaCodeSearchResult(): SearchResult {
+  return {
+    stem: "ODE",
+    title: "ODE",
+    path: "src/ODE.jl",
+    docType: "symbol",
+    tags: ["code", "julia", "kind:function", "repo:ODE.jl"],
+    score: 0.94,
+    category: "symbol",
+    projectName: "ODE.jl",
+    codeLanguage: "julia",
+    codeKind: "function",
+    codeRepo: "ODE.jl",
+    bestSection: "solve",
+    matchReason: "repo_symbol_search",
+    navigationTarget: {
+      path: "src/ODE.jl",
+      category: "repo_code",
+      projectName: "ODE.jl",
+      line: 1,
     },
     searchSource: "search-index",
   } as SearchResult;
@@ -777,6 +803,61 @@ describe("useZenSearchPreview", () => {
     });
   });
 
+  it("gives Julia AST requests a short head start before content loads on relative repo hits", async () => {
+    vi.useFakeTimers();
+    const selectedResult = buildRepoScopedRelativeJuliaCodeSearchResult();
+    const deferredAnalysis = createDeferred<{
+      repoId: string;
+      path: string;
+      language: string;
+      nodes: [];
+      edges: [];
+      projections: [];
+      diagnostics: [];
+      retrievalAtoms: [];
+    }>();
+
+    mocks.getCodeAstAnalysis.mockImplementationOnce(() => deferredAnalysis.promise);
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledWith(
+      "ODE.jl/src/ODE.jl",
+      expect.objectContaining({
+        repo: "ODE.jl",
+        line: 1,
+      }),
+    );
+    expect(mocks.getVfsContent).not.toHaveBeenCalled();
+    expect(result.current.codeAstLoading).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ZEN_SEARCH_PREVIEW_CODE_AST_CONTENT_HEAD_START_MS);
+      await Promise.resolve();
+    });
+
+    expect(mocks.getVfsContent).toHaveBeenCalledWith("ODE.jl/src/ODE.jl");
+
+    deferredAnalysis.resolve({
+      repoId: "ODE.jl",
+      path: "ODE.jl/src/ODE.jl",
+      language: "julia",
+      nodes: [],
+      edges: [],
+      projections: [],
+      diagnostics: [],
+      retrievalAtoms: [],
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+  });
+
   it("publishes markdown content before the graph summary lane finishes", async () => {
     const selectedResult = buildSearchResult();
     const deferredGraph = createDeferred<{
@@ -1031,7 +1112,7 @@ describe("useZenSearchPreview", () => {
     expect(mocks.getVfsContent).toHaveBeenCalledTimes(1);
   });
 
-  it("prefetches adjacent results without eagerly triggering code AST analysis", async () => {
+  it("keeps non-Julia adjacent prefetches on the content-only path", async () => {
     const trace = createPerfTrace("useZenSearchPreview.prefetch-hot-path");
     mocks.getVfsContent.mockImplementation(async (path: string) => {
       trace.increment("vfs-fetches");
@@ -1121,6 +1202,115 @@ describe("useZenSearchPreview", () => {
     });
     recordPerfTraceSnapshot(
       "ZenSearch/useZenSearchPreview adjacent selection activation",
+      activationSnapshot,
+    );
+  });
+
+  it("warms adjacent Julia code AST previews during bounded prefetch", async () => {
+    const trace = createPerfTrace("useZenSearchPreview.prefetch-julia-code-ast");
+    mocks.resolveStudioPath.mockResolvedValueOnce({
+      path: "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      category: "repo_code",
+      projectName: "ModelingToolkitStandardLibrary.jl",
+      line: 42,
+    });
+    mocks.getVfsContent.mockImplementation(async (path: string) => {
+      trace.increment("vfs-fetches");
+      return {
+        content: `content:${path}`,
+        contentType: path.endsWith(".jl") ? "text/julia" : "text/plain",
+      };
+    });
+    mocks.getCodeAstAnalysis.mockImplementation(async (path: string) => {
+      trace.increment("ast-fetches");
+      const isJuliaPath = path.endsWith(".jl");
+      return {
+        repoId: isJuliaPath ? "ModelingToolkitStandardLibrary.jl" : "kernel",
+        path,
+        language: isJuliaPath ? "julia" : "rust",
+        nodes: [],
+        edges: [],
+        projections: [],
+        diagnostics: [],
+        retrievalAtoms: [
+          {
+            ownerId: `symbol:${path}`,
+            chunkId: `atom:${path}`,
+            semanticType: "function",
+            fingerprint: `fp:${path}`,
+            tokenEstimate: 12,
+            surface: "declaration",
+          },
+        ],
+      };
+    });
+
+    const primary = buildCodeSearchResult();
+    const secondary = buildGatewayResolvedCodeSearchResult();
+    const { result, rerender } = renderHook(
+      ({ selected, prefetch }) => useZenSearchPreview(selected, prefetch),
+      {
+        initialProps: {
+          selected: primary as SearchResult | null,
+          prefetch: [secondary] as SearchResult[],
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.content).toBe("content:kernel/src/lib.rs");
+      expect(result.current.codeAstAnalysis?.path).toBe("kernel/src/lib.rs");
+    });
+
+    await waitFor(() => {
+      expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
+      expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+    });
+
+    const prefetchSnapshot = trace.snapshot();
+    expect(prefetchSnapshot).toMatchObject({
+      label: "useZenSearchPreview.prefetch-julia-code-ast",
+      counters: {
+        "vfs-fetches": 2,
+        "ast-fetches": 2,
+      },
+    });
+    recordPerfTraceSnapshot(
+      "ZenSearch/useZenSearchPreview adjacent Julia prefetch warm state",
+      prefetchSnapshot,
+    );
+
+    rerender({
+      selected: secondary,
+      prefetch: [primary],
+    });
+
+    await waitFor(() => {
+      expect(result.current.contentPath).toBe(
+        "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      );
+      expect(result.current.content).toBe(
+        "content:ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      );
+      expect(result.current.codeAstAnalysis?.path).toBe(
+        "ModelingToolkitStandardLibrary.jl/src/Blocks/continuous.jl",
+      );
+    });
+
+    expect(mocks.resolveStudioPath).toHaveBeenCalledWith("src/Blocks/continuous.jl");
+    expect(mocks.getVfsContent).toHaveBeenCalledTimes(2);
+    expect(mocks.getCodeAstAnalysis).toHaveBeenCalledTimes(2);
+
+    const activationSnapshot = trace.snapshot();
+    expect(activationSnapshot).toMatchObject({
+      label: "useZenSearchPreview.prefetch-julia-code-ast",
+      counters: {
+        "vfs-fetches": 2,
+        "ast-fetches": 2,
+      },
+    });
+    recordPerfTraceSnapshot(
+      "ZenSearch/useZenSearchPreview adjacent Julia activation",
       activationSnapshot,
     );
   });

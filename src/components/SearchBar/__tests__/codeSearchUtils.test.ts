@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   CODE_FILTER_PREFIXES,
+  buildCodeRepoFacetEntries,
   buildCodeQuickExampleTokens,
   buildCodeQuickScenarios,
   buildCodeFilterSuggestions,
   buildStructuralSearchGuidance,
   hasStructuralCodeQuery,
   inferStructuralSearchLanguage,
+  normalizeCodeSearchQuery,
   parseCodeFilters,
 } from "../codeSearchUtils";
 
@@ -118,5 +120,83 @@ describe("codeSearchUtils", () => {
     expect(buildStructuralSearchGuidance("generic")).toBe(
       'Try structural code search with ast:"$PATTERN" or sg:"$PATTERN"',
     );
+  });
+
+  it("deduplicates repeated free-text tokens while preserving code filters", () => {
+    expect(normalizeCodeSearchQuery("sec lang:julia sec kind:function")).toBe(
+      "sec lang:julia kind:function",
+    );
+    expect(parseCodeFilters("sec lang:julia sec kind:function")).toEqual({
+      baseQuery: "sec",
+      filters: {
+        language: ["julia"],
+        kind: ["function"],
+        repo: [],
+        path: [],
+      },
+    });
+  });
+
+  it("prefers complete filter candidates over echoing partial explicit tokens", () => {
+    expect(
+      buildCodeFilterSuggestions(
+        "repo:s",
+        { language: [], kind: [], repo: [], path: [] },
+        {
+          language: ["julia"],
+          kind: ["function"],
+          repo: ["sciml", "kernel", "sci-ml-base"],
+          path: ["src/"],
+        },
+      ).map((suggestion) => suggestion.text),
+    ).toEqual(["repo:sciml", "repo:sci-ml-base"]);
+  });
+
+  it("builds bounded repo facets from query-scoped code results", () => {
+    expect(
+      buildCodeRepoFacetEntries(
+        [
+          {
+            category: "symbol",
+            path: "src/a.jl",
+            navigationTarget: { path: "src/a.jl", category: "code" },
+            codeRepo: "SciML",
+          },
+          {
+            category: "ast",
+            path: "src/b.jl",
+            navigationTarget: { path: "src/b.jl", category: "code" },
+            codeRepo: "SciML",
+          },
+          {
+            category: "symbol",
+            path: "src/c.jl",
+            navigationTarget: { path: "src/c.jl", category: "code" },
+            codeRepo: "Kernel",
+          },
+          {
+            category: "knowledge",
+            path: "docs/index.md",
+            navigationTarget: { path: "docs/index.md", category: "knowledge" },
+          },
+        ] as never,
+        2,
+      ),
+    ).toEqual([
+      {
+        id: "sciml",
+        repoId: "sciml",
+        count: 2,
+        token: "repo:sciml",
+        label: "repo:sciml (2)",
+      },
+      {
+        id: "kernel",
+        repoId: "kernel",
+        count: 1,
+        token: "repo:kernel",
+        label: "repo:kernel (1)",
+      },
+    ]);
   });
 });

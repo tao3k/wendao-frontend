@@ -6,6 +6,7 @@ import { SearchBar } from "../SearchBar";
 
 const mocks = vi.hoisted(() => ({
   getUiCapabilitiesSync: vi.fn(),
+  getRepoIndexStatusSync: vi.fn(),
   getUiConfigSync: vi.fn(),
   getVfsContent: vi.fn(),
   getGraphNeighbors: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock("../../../api", () => ({
     getMarkdownRetrievalChunksArrow: mocks.getMarkdownRetrievalChunksArrow,
   },
   getUiCapabilitiesSync: mocks.getUiCapabilitiesSync,
+  getRepoIndexStatusSync: mocks.getRepoIndexStatusSync,
   getUiConfigSync: mocks.getUiConfigSync,
 }));
 
@@ -108,6 +110,7 @@ describe("SearchBar hotspot perf scenarios", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getUiCapabilitiesSync.mockReset();
+    mocks.getRepoIndexStatusSync.mockReset();
     mocks.getUiConfigSync.mockReset();
     mocks.getUiCapabilitiesSync.mockReturnValue({
       supportedLanguages: ["julia", "rust"],
@@ -122,6 +125,7 @@ describe("SearchBar hotspot perf scenarios", () => {
         { id: "ModelingToolkitStandardLibrary.jl", plugins: ["ast-grep"] },
       ],
     });
+    mocks.getRepoIndexStatusSync.mockReturnValue(null);
     mockedApi.searchAutocomplete.mockResolvedValue({ prefix: "", suggestions: [] } as never);
     mockedApi.searchAttachments.mockResolvedValue({
       query: "",

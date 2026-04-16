@@ -178,6 +178,29 @@ direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test'
 direnv exec . bash -lc 'cd .data/wendao-frontend && npm run build'
 ```
 
+Dedicated performance workflows:
+
+- `./.github/workflows/performance.yml`: broader hotspot trace lane for
+  SearchBar, autocomplete, and app-shell search hydration scenarios.
+- `./.github/workflows/zen-search-performance.yml`: ZenSearch-specific preview
+  and workspace hotspot lane, reported independently from the broader perf
+  surface.
+
+Repo-local split commands:
+
+```bash
+PRJ_CACHE_HOME="$(pwd)/.cache" npm run test:hotspot-perf:reset
+PRJ_CACHE_HOME="$(pwd)/.cache" npm run test:hotspot-perf:core
+PRJ_CACHE_HOME="$(pwd)/.cache" npm run test:hotspot-perf:zen-search
+```
+
+The umbrella command still runs the combined hotspot suite when one merged
+artifact is desired:
+
+```bash
+PRJ_CACHE_HOME="$(pwd)/.cache" npm run test:hotspot-perf
+```
+
 ## Known Gaps
 
 1. No browser-level end-to-end suite validates the dev proxy and live gateway together.

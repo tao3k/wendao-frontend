@@ -137,12 +137,29 @@ Outcome:
 
 - The last semantically important search action stopped depending on frontend endpoint composition.
 
+### Milestone 10: Tighten The Build And Strict-TypeScript Surface
+
+Completed:
+
+- `npm run build` post-build size gate
+- build-tooling declaration seam under `scripts/build/*` and `scripts/rspack/*`
+- bounded strict-TypeScript closure for `App`, `DiagramWindow`, `DirectReader`,
+  `FileTree`, `GraphView`, `MainView`, `PropertyEditor`, `VfsSidebar`, and
+  repo-diagnostics
+
+Outcome:
+
+- The repo entrypoint can stay concise while the deeper operational detail
+  lives in focused docs, and the remaining strict-TypeScript frontier is now
+  centered on `SearchBar`, ZenSearch, controller wiring, and shared surfaces.
+
 ## Next Milestones
 
-1. Richer reference classifications
-2. Physics-worker continuity for topology refreshes
-3. Browser-level end-to-end validation
-4. Contract-driven doc examples tied more directly to snapshot evolution
+1. SearchBar and ZenSearch strict-TypeScript closure
+2. Richer reference classifications
+3. Physics-worker continuity for topology refreshes
+4. Browser-level end-to-end validation
+5. Contract-driven doc examples tied more directly to snapshot evolution
 
 :RELATIONS:
 :LINKS: [[01_core/107_docs_graph_map]], [[05_research/301_wendao_surface_alignment]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/305_architecture_decision_log]], [[05_research/307_contract_changelog]], [[06_roadmap/401_semantic_studio_runtime]]

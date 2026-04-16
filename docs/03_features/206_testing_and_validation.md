@@ -155,6 +155,29 @@ For focused diagram projection validation:
 direnv exec . npm test -- src/components/panels/DiagramWindow/__tests__/DiagramWindow.test.tsx
 ```
 
+## GitHub Actions CI
+
+The repo-local workflow at `./.github/workflows/ci.yml` runs on pull requests
+and on pushes to `main`.
+
+Default CI gate:
+
+```bash
+npm ci
+./node_modules/.bin/tsc --noEmit --pretty false
+npm run test
+npm run build
+```
+
+Local reproduction from the integrated workspace:
+
+```bash
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm ci'
+direnv exec . bash -lc 'cd .data/wendao-frontend && ./node_modules/.bin/tsc --noEmit --pretty false'
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm run test'
+direnv exec . bash -lc 'cd .data/wendao-frontend && npm run build'
+```
+
 ## Known Gaps
 
 1. No browser-level end-to-end suite validates the dev proxy and live gateway together.
@@ -162,7 +185,7 @@ direnv exec . npm test -- src/components/panels/DiagramWindow/__tests__/DiagramW
 3. No contract-sync automation currently checks that examples in the docs remain aligned with gateway payload changes.
 
 :RELATIONS:
-:LINKS: [[01_core/103_release_checklist]], [[01_core/106_docs_maintenance_playbook]], [[03_features/203_semantic_search_actions]], [[03_features/204_gateway_api_contracts]], [[03_features/205_panel_runtime_map]], [[03_features/207_panel_handbook]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]]
+:LINKS: [[01_core/103_release_checklist]], [[01_core/106_docs_maintenance_playbook]], [[03_features/203_semantic_search_actions]], [[03_features/204_gateway_api_contracts]], [[03_features/205_panel_runtime_map]], [[03_features/207_panel_handbook]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]], [[README]]
 :END:
 
 ---

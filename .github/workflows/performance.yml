@@ -1,0 +1,48 @@
+name: Performance CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hotspot-perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRJ_CACHE_HOME: ${{ github.workspace }}/.cache
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reset hotspot perf artifact
+        run: npm run test:hotspot-perf:reset
+
+      - name: Hotspot performance lane
+        run: npm run test:hotspot-perf:core
+
+      - name: Upload hotspot perf trace artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotspot-perf-traces
+          path: .cache/agent/tmp/wendao_frontend_hotspot_perf_traces.json
+          if-no-files-found: warn
+          retention-days: 14

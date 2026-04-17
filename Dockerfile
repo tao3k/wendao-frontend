@@ -11,9 +11,11 @@ RUN npm run build
 
 # ── Serve stage ──────────────────────────────────────────────────────
 FROM docker.io/library/nginx:alpine
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+ENV NGINX_ENVSUBST_FILTER=NGINX_LOCAL_RESOLVERS
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY <<'NGINX_CONF' /etc/nginx/conf.d/default.conf
-resolver 127.0.0.11 valid=10s;
+COPY <<'NGINX_CONF' /etc/nginx/templates/default.conf.template
+resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
 
 server {
     listen 80;

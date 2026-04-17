@@ -1,0 +1,13 @@
+# Reuse .gitignore patterns
+.DS_Store
+*.local
+*.log*
+node_modules
+dist/
+.rspack-profile-*/
+.vscode
+.idea
+
+# Docker-specific
+.git
+.dockerignore

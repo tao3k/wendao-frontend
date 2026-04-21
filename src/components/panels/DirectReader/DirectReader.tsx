@@ -7,6 +7,8 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeSyntaxHighlighter, normalizeCodeLanguage } from "../../code-syntax";
 import { inferMediaPreviewKind, MediaPreviewSurface } from "../../mediaPreview";
+import { PdfExtractedPanel } from "../PdfExtractedPanel";
+import type { PdfExtractResult } from "../../../api/bindings";
 import { scrollSourceLineIntoView } from "./directReaderScroll";
 import { parseBiLink } from "./markdownWaterfallBiLinks";
 import "./DirectReader.css";
@@ -37,6 +39,8 @@ export interface DirectReaderProps {
   error?: string | null;
   /** Callback when a bi-link is clicked */
   onBiLinkClick?: (link: string) => void;
+  /** PDF extraction result (when displaying a PDF) */
+  pdfExtractResult?: PdfExtractResult | null;
   /** Additional CSS class */
   className?: string;
 }
@@ -399,6 +403,7 @@ export function DirectReader({
   loading = false,
   error = null,
   onBiLinkClick,
+  pdfExtractResult = null,
   className = "",
 }: DirectReaderProps): React.ReactElement {
   const content = typeof rawContent === "string" ? rawContent : "";
@@ -591,13 +596,22 @@ export function DirectReader({
       ) : (
         <div className="direct-reader__content">
           {path && standaloneMediaPreviewKind ? (
-            <MediaPreviewSurface
-              contentType={normalizedContentType}
-              mode="standalone"
-              target={path}
-              testId="direct-reader-media-preview"
-              title={path}
-            />
+            <>
+              <MediaPreviewSurface
+                contentType={normalizedContentType}
+                mode="standalone"
+                target={path}
+                testId="direct-reader-media-preview"
+                title={path}
+              />
+              {standaloneMediaPreviewKind === "pdf" && (
+                <PdfExtractedPanel
+                  pdfPath={path}
+                  result={pdfExtractResult}
+                  locale={locale}
+                />
+              )}
+            </>
           ) : (
             <Suspense fallback={DIRECT_READER_INLINE_FALLBACK}>
               <DirectReaderRichContent

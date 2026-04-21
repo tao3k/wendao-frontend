@@ -14,6 +14,7 @@ export interface MainViewSelectedFile {
   line?: number;
   lineEnd?: number;
   column?: number;
+  pdfExtractResult?: import("../../../api/bindings").PdfExtractResult | null;
 }
 
 export interface MainViewRelationship {

@@ -1,13 +1,37 @@
-# Reuse .gitignore patterns
-.DS_Store
-*.local
-*.log*
+# Dependencies
 node_modules
-dist/
-.rspack-profile-*/
-.vscode
-.idea
 
-# Docker-specific
+# Git
 .git
-.dockerignore
+
+# Build outputs
+dist
+build
+
+# Cache
+.cache
+.rspack
+
+# Logs
+*.log
+logs
+
+# Environment
+.env
+.env.*
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+coverage
+.nyc_output
+
+# Documentation
+*.md
+!README.md

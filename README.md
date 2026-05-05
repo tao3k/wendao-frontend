@@ -35,7 +35,7 @@ Downstream package example:
 ```json
 {
   "dependencies": {
-    "qianji-studio": "git+https://github.com/tao3k/wendao-frontend.git"
+    "wendao-frontend": "git+https://github.com/tao3k/wendao-frontend.git"
   }
 }
 ```
@@ -43,7 +43,7 @@ Downstream package example:
 Runtime usage:
 
 ```ts
-import { createWendaoRuntime } from "qianji-studio/runtime";
+import { createWendaoRuntime } from "wendao-frontend/runtime";
 
 const wendao = createWendaoRuntime({
   baseUrl: "http://127.0.0.1:9517",
@@ -60,7 +60,7 @@ repo content, attachments, AST definitions, references, and symbols. It is a
 protocol package boundary, not a shared React component surface.
 
 Git installs run the package `prepare` script, which emits the built ESM and
-declaration files consumed by the `qianji-studio/runtime` export.
+declaration files consumed by the `wendao-frontend/runtime` export.
 
 ## Documentation
 

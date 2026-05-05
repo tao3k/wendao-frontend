@@ -61,6 +61,10 @@ export type {
 } from "./bindings";
 
 export type {
+  DocumentExtractJobStatus,
+  DocumentExtractMode,
+  DocumentExtractResource,
+  DocumentExtractResult,
   RefineEntityDocRequest,
   RefineEntityDocResponse,
   RepoBacklinkItem,

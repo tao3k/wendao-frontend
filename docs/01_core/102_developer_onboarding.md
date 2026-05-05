@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-developer-onboarding
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: core, onboarding, environment, local-dev
 :STATUS: ACTIVE
 :END:
@@ -130,7 +130,7 @@ That command validates:
 3. pure Arrow Flight knowledge search against `/search/knowledge`
 
 :RELATIONS:
-:LINKS: [[README]], [[01_core/101_studio_surface_protocol]], [[01_core/103_release_checklist]], [[01_core/105_docs_conventions]], [[01_core/106_docs_maintenance_playbook]], [[03_features/204_gateway_api_contracts]], [[03_features/206_testing_and_validation]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]], [[05_research/306_alignment_milestone_log]], [[05_research/308_live_flight_search_perf_report]]
+:LINKS: [[README|Qianji Studio Docs]], [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[01_core/103_release_checklist|Release Checklist]], [[01_core/105_docs_conventions|Docs Conventions]], [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/206_testing_and_validation|Testing and Validation]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[05_research/308_live_flight_search_perf_report|Live Flight Search Performance Report]]
 :END:
 
 ---

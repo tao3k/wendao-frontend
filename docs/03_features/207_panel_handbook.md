@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-panel-handbook
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, panels, handbook, runtime
 :STATUS: ACTIVE
 :END:
@@ -123,5 +123,5 @@ Operator notes:
 - These surfaces should reflect the canonical `selectedFile` and `relationships` state rather than recomputing their own view of runtime state.
 
 :RELATIONS:
-:LINKS: [[03_features/205_panel_runtime_map]], [[03_features/206_testing_and_validation]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/206_testing_and_validation|Testing and Validation]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:

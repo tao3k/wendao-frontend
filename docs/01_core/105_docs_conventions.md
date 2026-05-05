@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-docs-conventions
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: core, docs, conventions, structure
 :STATUS: ACTIVE
 :END:
@@ -76,7 +76,7 @@ Use for:
 4. Update this page if the numbering or placement policy changes.
 
 :RELATIONS:
-:LINKS: [[README]], [[index]], [[01_core/102_developer_onboarding]], [[01_core/104_runtime_glossary]], [[01_core/106_docs_maintenance_playbook]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/307_contract_changelog]]
+:LINKS: [[README|Qianji Studio Docs]], [[index|Qianji Studio DocOS Kernel: Map of Content]], [[01_core/102_developer_onboarding|Developer Onboarding]], [[01_core/104_runtime_glossary|Runtime Glossary]], [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/307_contract_changelog|Contract Changelog]]
 :END:
 
 ---

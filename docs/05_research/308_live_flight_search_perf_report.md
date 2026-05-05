@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-live-flight-search-performance-report
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, performance, flight, search
 :STATUS: ACTIVE
 :END:
@@ -685,5 +685,5 @@ rewrite.
   `$PRJ_CACHE_HOME/agent/tmp/wendao_frontend_hotspot_perf_traces.json`
 
 :RELATIONS:
-:LINKS: [[docs/README]], [[05_research/304_runtime_troubleshooting]], [[05_research/306_alignment_milestone_log]], [[05_research/307_contract_changelog]]
+:LINKS: [[docs/README|Qianji Studio Docs]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[05_research/307_contract_changelog|Contract Changelog]]
 :END:

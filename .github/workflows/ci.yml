@@ -32,8 +32,23 @@ jobs:
       - name: Type check
         run: ./node_modules/.bin/tsc --noEmit --pretty false
 
+      - name: Runtime package build
+        run: npm run build:runtime
+
+      - name: Runtime package smoke
+        run: |
+          node --input-type=module <<'EOF'
+          const runtime = await import("qianji-studio/runtime");
+          if (typeof runtime.createWendaoRuntime !== "function") {
+            throw new Error("qianji-studio/runtime did not export createWendaoRuntime");
+          }
+          EOF
+
       - name: Unit tests
         run: npm run test
+
+      - name: TypeScript project harness
+        run: npm run harness
 
       - name: Production build
         run: npm run build

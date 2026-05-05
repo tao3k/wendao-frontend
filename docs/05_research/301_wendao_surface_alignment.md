@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-wendao-alignment
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, alignment, gateway, frontend
 :STATUS: ACTIVE
 :END:
@@ -47,5 +47,5 @@ Projected repo document trees now follow a two-step frontend contract:
 This keeps repository-scoped discovery cheap while preserving the richer Arrow payload for the selected tree opener.
 
 :RELATIONS:
-:LINKS: [[01_core/107_docs_graph_map]], [[03_features/201_indexed_roots_and_vfs]], [[03_features/202_topology_and_graph_navigation]], [[03_features/203_semantic_search_actions]], [[03_features/204_gateway_api_contracts]], [[05_research/302_backend_alignment_ledger]], [[05_research/305_architecture_decision_log]], [[05_research/306_alignment_milestone_log]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/201_indexed_roots_and_vfs|Indexed Roots and VFS Hydration]], [[03_features/202_topology_and_graph_navigation|Topology and Graph Navigation]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/305_architecture_decision_log|Architecture Decision Log]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:

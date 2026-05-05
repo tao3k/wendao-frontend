@@ -9,10 +9,20 @@ import type { WendaoConfig } from "../../../config/loader";
 import { resolveSearchFlightSchemaVersion } from "../../../config/loader";
 import { loadVfsScanFlight } from "../../../api/flightWorkspaceTransport";
 import { loadCodeAstAnalysisFlight } from "../../../api/flightAnalysisTransport";
-import { searchKnowledgeFlight } from "../../../api/flightSearchTransport";
-import { decodeSearchHitsFromArrowIpc } from "../../../api/arrowSearchIpc";
+import {
+  searchAttachmentsFlight,
+  searchKnowledgeFlight,
+} from "../../../api/flightSearchTransport";
+import {
+  decodeAttachmentSearchHitsFromArrowIpc,
+  decodeSearchHitsFromArrowIpc,
+} from "../../../api/arrowSearchIpc";
 import type { SearchResult } from "../../SearchBar/types";
-import { normalizeCodeSearchHit } from "../../SearchBar/searchResultNormalization";
+import {
+  normalizeAttachmentHit,
+  normalizeCodeSearchHit,
+} from "../../SearchBar/searchResultNormalization";
+import { buildVfsRawAssetUrl } from "../../mediaPreview/model";
 import type { CodeAstAnalysisResponse } from "../../../api";
 import { CodeAstAnatomyView } from "../CodeAstAnatomyView";
 import { useZenSearchPreview } from "../useZenSearchPreview";
@@ -278,6 +288,7 @@ let liveJuliaSearchResult: SearchResult | null = null;
 let liveModelicaSearchResult: SearchResult | null = null;
 let liveJuliaActualSearchResult: SearchResult | null = null;
 let liveModelicaActualSearchResult: SearchResult | null = null;
+let liveAttachmentSearchResult: SearchResult | null = null;
 
 function findFirstLiveAttributeValue(
   result: ReturnType<typeof useZenSearchPreview>,
@@ -314,6 +325,51 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
       }
     });
   });
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise<void>((resolveSleep) => {
+    globalThis.setTimeout(resolveSleep, ms);
+  });
+}
+
+async function loadLiveAttachmentSearchResult(): Promise<SearchResult> {
+  const query = "attachment-live-link-fixture";
+  let lastSummary = "no attachment search response";
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const response = await searchAttachmentsFlight(
+      {
+        baseUrl: liveState.gatewayOrigin,
+        schemaVersion: liveState.flightSchemaVersion,
+        query,
+        limit: 20,
+        ext: ["svg"],
+      },
+      {
+        decodeAttachmentHits: decodeAttachmentSearchHitsFromArrowIpc,
+      },
+    );
+
+    const hit = response.hits.find((candidate) =>
+      candidate.attachmentName.endsWith("attachment-live-link-fixture.svg"),
+    );
+    if (hit) {
+      return normalizeAttachmentHit(hit);
+    }
+
+    lastSummary = [
+      `hitCount=${response.hitCount}`,
+      `selectedScope=${response.selectedScope}`,
+      response.indexingState ? `indexingState=${response.indexingState}` : null,
+      response.indexError ? `indexError=${response.indexError}` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    await sleep(500);
+  }
+
+  throw new Error(`expected live attachment fixture search hit for ${query}: ${lastSummary}`);
 }
 
 function requireCodeAstAnalysis(
@@ -376,7 +432,46 @@ liveDescribe("useZenSearchPreview live gateway integration", () => {
         preferredCodeKinds: ["import"],
       },
     );
+    liveAttachmentSearchResult = await loadLiveAttachmentSearchResult();
   });
+
+  it("loads a real attachment link through Flight search and the VFS raw route", async () => {
+    const selectedResult = liveAttachmentSearchResult;
+    expect(selectedResult).not.toBeNull();
+
+    const resolvedPlan = await resolveZenSearchPreviewLoadPlan(
+      selectedResult!,
+      buildZenSearchPreviewLoadPlan(selectedResult!),
+    );
+
+    expect(resolvedPlan.contentPath).toContain("attachment-live-link-fixture.svg");
+    expect(resolvedPlan.graphable).toBe(false);
+    expect(resolvedPlan.markdownEligible).toBe(false);
+
+    const { result } = renderHook(() => useZenSearchPreview(selectedResult));
+
+    await waitFor(
+      () => {
+        expect(result.current.loading).toBe(false);
+        expect(result.current.contentPath).toContain("attachment-live-link-fixture.svg");
+        expect(result.current.contentType).toBe("image/svg+xml");
+      },
+      { timeout: 10_000 },
+    );
+
+    expect(result.current.content).toBeNull();
+    expect(result.current.graphNeighbors).toBeNull();
+    expect(result.current.markdownAnalysis ?? null).toBeNull();
+    expect(result.current.codeAstAnalysis ?? null).toBeNull();
+
+    const rawResponse = await withTimeout(
+      fetch(`${liveState.gatewayOrigin}${buildVfsRawAssetUrl(result.current.contentPath!)}`),
+      10_000,
+      "live attachment raw VFS request",
+    );
+    expect(rawResponse.ok).toBe(true);
+    expect(await rawResponse.text()).toContain("<svg");
+  }, 30_000);
 
   it("loads a live Julia code AST preview from repo-scoped relative result metadata", async () => {
     const selectedResult = liveJuliaSearchResult;

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-backend-endpoint-cookbook
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, cookbook, gateway, api
 :STATUS: ACTIVE
 :END:
@@ -187,6 +187,75 @@ Notes:
 - The frontend does not currently use `GET /api/docs/page-index-tree` as its steady-state opener.
 - The frontend-facing contract for repo-scoped page-index work is the hybrid discovery/open pair documented in this section.
 
+## Document Extraction
+
+### same-origin Flight `PATH /analysis/document-extract`
+
+Typical purpose:
+
+- Request Rust-owned document extraction for one source path.
+
+Frontend consumers:
+
+- `src/api/clientRuntime.ts`
+- future reader/import flows that need extracted Markdown, table, image, or page resources
+
+Expected metadata:
+
+- request headers:
+  - `x-wendao-schema-version`
+  - `x-wendao-document-extract-source-path`
+  - `x-wendao-document-extract-output-dir`
+  - `x-wendao-document-extract-force`
+  - `x-wendao-document-extract-error-row`
+  - `x-wendao-document-extract-mode`
+  - `x-wendao-document-extract-wait-ms`
+- response Arrow columns:
+  - `sourcePath`
+  - `resourceType`
+  - `resourcePath`
+  - `pageIndex`
+  - `caption`
+  - `content`
+  - `mimeType`
+  - `status`
+  - `elementId`
+
+Notes:
+
+- The frontend calls Rust Flight only. Python Docling is scheduled by Rust and
+  remains an implementation detail behind this route.
+- `async` and `hybrid-page-ocr` are frontend-visible modes only as Rust Flight
+  request metadata; they are not direct Python worker calls.
+
+### same-origin Flight `PATH /analysis/document-extract-status`
+
+Typical purpose:
+
+- Inspect one Rust-scheduled document extraction job.
+
+Frontend consumers:
+
+- `src/api/clientRuntime.ts`
+- future progress surfaces for async document extraction
+
+Expected metadata:
+
+- request headers:
+  - `x-wendao-schema-version`
+  - `x-wendao-document-extract-job-id`
+- response Arrow columns:
+  - `jobId`
+  - `sourcePath`
+  - `outputDir`
+  - `contentHash`
+  - `status`
+  - `attemptCount`
+  - `createdAtMs`
+  - `startedAtMs`
+  - `finishedAtMs`
+  - `errorMessage`
+
 ## Search Surface
 
 General rule:
@@ -283,7 +352,7 @@ Frontend consumers:
 If the frontend adds a new action or view, first place it on top of an existing gateway endpoint family or document the need for a new backend contract before landing the UI behavior as stable.
 
 :RELATIONS:
-:LINKS: [[03_features/204_gateway_api_contracts]], [[03_features/205_panel_runtime_map]], [[03_features/208_navigation_examples]], [[05_research/303_snapshot_and_contract_policy]]
+:LINKS: [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/208_navigation_examples|Navigation Examples]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]]
 :END:
 
 ---

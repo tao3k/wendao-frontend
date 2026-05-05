@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-backend-alignment-ledger
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, alignment, ledger, gateway
 :STATUS: ACTIVE
 :END:
@@ -94,7 +94,7 @@ Gap:
 4. Contract-driven docs examples that stay synchronized with gateway snapshots
 
 :RELATIONS:
-:LINKS: [[01_core/106_docs_maintenance_playbook]], [[01_core/107_docs_graph_map]], [[03_features/204_gateway_api_contracts]], [[03_features/208_navigation_examples]], [[05_research/301_wendao_surface_alignment]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]], [[05_research/305_architecture_decision_log]], [[05_research/306_alignment_milestone_log]], [[05_research/307_contract_changelog]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/208_navigation_examples|Navigation Examples]], [[05_research/301_wendao_surface_alignment|Wendao Surface Alignment]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/305_architecture_decision_log|Architecture Decision Log]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[05_research/307_contract_changelog|Contract Changelog]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:
 
 ---

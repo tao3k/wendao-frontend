@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-docs-maintenance-playbook
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: core, docs, maintenance, playbook
 :STATUS: ACTIVE
 :END:
@@ -100,7 +100,7 @@ Update these pages:
 5. Update the GTD entry and docs ExecPlan note if the docs kernel meaningfully expanded.
 
 :RELATIONS:
-:LINKS: [[01_core/102_developer_onboarding]], [[01_core/103_release_checklist]], [[01_core/104_runtime_glossary]], [[01_core/105_docs_conventions]], [[03_features/206_testing_and_validation]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/307_contract_changelog]]
+:LINKS: [[01_core/102_developer_onboarding|Developer Onboarding]], [[01_core/103_release_checklist|Release Checklist]], [[01_core/104_runtime_glossary|Runtime Glossary]], [[01_core/105_docs_conventions|Docs Conventions]], [[03_features/206_testing_and_validation|Testing and Validation]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/307_contract_changelog|Contract Changelog]]
 :END:
 
 ---

@@ -192,7 +192,7 @@ function buildDocumentIdentity(args: {
 
   const metadataTags = metadata.tags ?? [];
   const metadataOutgoingLinks = metadata.outgoingLinks ?? [];
-  const metadataBacklinks = metadata.backlinks ?? [];
+  const metadataBacklinks = metadata.explicitBacklinks ?? metadata.backlinks ?? [];
 
   return {
     title: metadata.title || fallbackTitle,

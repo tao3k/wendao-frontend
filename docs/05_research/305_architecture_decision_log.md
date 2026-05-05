@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-architecture-decision-log
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, architecture, decisions, runtime
 :STATUS: ACTIVE
 :END:
@@ -100,7 +100,7 @@ Accepted tradeoff:
 - The frontend now owns a small continuity layer in `App` plus additional worker protocol surface, but runtime behavior is stable and testable.
 
 :RELATIONS:
-:LINKS: [[01_core/101_studio_surface_protocol]], [[01_core/107_docs_graph_map]], [[03_features/202_topology_and_graph_navigation]], [[03_features/203_semantic_search_actions]], [[03_features/205_panel_runtime_map]], [[05_research/302_backend_alignment_ledger]], [[05_research/304_runtime_troubleshooting]], [[05_research/306_alignment_milestone_log]], [[05_research/307_contract_changelog]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/202_topology_and_graph_navigation|Topology and Graph Navigation]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[05_research/307_contract_changelog|Contract Changelog]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:
 
 ---

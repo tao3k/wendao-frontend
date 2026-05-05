@@ -229,13 +229,22 @@ describe("MarkdownWaterfall", () => {
                 title: "Guide",
               },
             ],
-            backlinks: [
+            explicitBacklinks: [
               {
                 label: "Guide",
                 kind: "backlink",
                 docId: "docs/guide",
                 path: "main/docs/guide.md",
                 title: "Guide",
+              },
+            ],
+            backlinks: [
+              {
+                label: "Legacy Backlink Alias",
+                kind: "backlink",
+                docId: "docs/legacy",
+                path: "main/docs/legacy.md",
+                title: "Legacy Backlink Alias",
               },
             ],
           },
@@ -260,6 +269,7 @@ describe("MarkdownWaterfall", () => {
     expect(screen.getByRole("button", { name: "docs" })).toBeInTheDocument();
     expect(screen.getByText("Index")).toBeInTheDocument();
     expect(screen.getAllByText("Guide")).toHaveLength(2);
+    expect(screen.queryByText("Legacy Backlink Alias")).toBeNull();
     expect(screen.queryByText("Legacy_Link.md")).toBeNull();
 
     screen.getByRole("button", { name: "Index" }).click();

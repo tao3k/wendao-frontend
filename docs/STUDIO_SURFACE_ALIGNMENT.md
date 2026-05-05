@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-surface-alignment
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: strategy, studio, gateway, alignment
 :STATUS: ACTIVE
 :END:
@@ -18,5 +18,5 @@ Qianji Studio is the frontend cockpit for the Wendao Studio gateway. The fronten
 Frontend docs should describe the live runtime surface that exists today, then isolate planned evolution in `06_roadmap`.
 
 :RELATIONS:
-:LINKS: [[index]], [[03_features/203_semantic_search_actions]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[index|Qianji Studio DocOS Kernel: Map of Content]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:

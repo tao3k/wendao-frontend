@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-navigation-examples
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, examples, navigation, search
 :STATUS: ACTIVE
 :END:
@@ -101,7 +101,7 @@ Notes:
 - Workspace-local paths should not be passed directly into `/api/graph/neighbors`.
 
 :RELATIONS:
-:LINKS: [[03_features/203_semantic_search_actions]], [[03_features/205_panel_runtime_map]], [[03_features/207_panel_handbook]], [[05_research/302_backend_alignment_ledger]]
+:LINKS: [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/207_panel_handbook|Panel Handbook]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]]
 :END:
 
 ---

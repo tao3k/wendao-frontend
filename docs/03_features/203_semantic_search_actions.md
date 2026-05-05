@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-search-actions
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, search, ast, references, symbols
 :STATUS: ACTIVE
 :VERSION: 1.0
@@ -34,7 +34,7 @@ Qianji Studio exposes a blended search surface across knowledge, symbols, AST de
 When line metadata is present, `DirectReader` keeps Markdown documents in rich mode by default while exposing `View source` for exact line inspection. Non-Markdown files open directly in line-numbered source mode and highlight the target line range.
 
 :RELATIONS:
-:LINKS: [[01_core/101_studio_surface_protocol]], [[03_features/202_topology_and_graph_navigation]], [[05_research/301_wendao_surface_alignment]]
+:LINKS: [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[03_features/202_topology_and_graph_navigation|Topology and Graph Navigation]], [[05_research/301_wendao_surface_alignment|Wendao Surface Alignment]]
 :END:
 
 ---

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, getRepoIndexStatusSync, getUiCapabilitiesSync } from "./index";
 import * as flightAnalysisTransport from "./flightAnalysisTransport";
+import * as flightDocumentExtractTransport from "./flightDocumentExtractTransport";
 import * as flightDocumentTransport from "./flightDocumentTransport";
 import * as flightGraphTransport from "./flightGraphTransport";
 import * as flightProjectedPageIndexTransport from "./flightProjectedPageIndexTransport";
@@ -122,6 +123,82 @@ describe("api client Flight document transport", () => {
       expect.any(Object),
     );
     expect(response.suggestions[0]?.text).toBe("AlphaService");
+  });
+
+  it("routes document extraction through same-origin Rust Flight", async () => {
+    mockFrontendFlightConfigFetch();
+    const extractSpy = vi
+      .spyOn(flightDocumentExtractTransport, "loadDocumentExtractFlight")
+      .mockResolvedValue({
+        sourcePath: "/tmp/source.pdf",
+        sourceFormat: "pdf",
+        totalResources: 1,
+        totalPages: 1,
+        resources: [
+          {
+            sourcePath: "/tmp/source.pdf",
+            resourceType: "document",
+            resourcePath: "/tmp/out/source.md",
+            pageIndex: 0,
+            caption: "",
+            content: "# Source",
+            mimeType: "text/markdown",
+            status: "ok",
+            elementId: "_main",
+          },
+        ],
+      });
+
+    const response = await api.extractDocument("/tmp/source.pdf", {
+      outputDir: "/tmp/out",
+      force: true,
+      mode: "async",
+      waitMs: 5000,
+    });
+
+    expect(extractSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "http://localhost:3000",
+        schemaVersion: "v2",
+        sourcePath: "/tmp/source.pdf",
+        outputDir: "/tmp/out",
+        force: true,
+        mode: "async",
+        waitMs: 5000,
+      }),
+      expect.any(Object),
+    );
+    expect(response.resources[0]?.resourcePath).toBe("/tmp/out/source.md");
+  });
+
+  it("routes document extraction status through same-origin Rust Flight", async () => {
+    mockFrontendFlightConfigFetch();
+    const statusSpy = vi
+      .spyOn(flightDocumentExtractTransport, "loadDocumentExtractStatusFlight")
+      .mockResolvedValue({
+        jobId: "job-1",
+        sourcePath: "/tmp/source.pdf",
+        outputDir: "/tmp/out",
+        contentHash: "abc123",
+        status: "running",
+        attemptCount: 1,
+        createdAtMs: 10,
+        startedAtMs: 20,
+        finishedAtMs: 0,
+        errorMessage: "",
+      });
+
+    const status = await api.getDocumentExtractJobStatus("job-1");
+
+    expect(statusSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "http://localhost:3000",
+        schemaVersion: "v2",
+        jobId: "job-1",
+      }),
+      expect.any(Object),
+    );
+    expect(status.status).toBe("running");
   });
 });
 

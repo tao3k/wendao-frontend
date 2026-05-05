@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-contract-changelog
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, contract, changelog, gateway
 :STATUS: ACTIVE
 :END:
@@ -10,6 +10,21 @@
 ## Purpose
 
 This changelog records contract-level changes on the Wendao Studio surface and the frontend impact they introduced for Qianji Studio.
+
+## 2026-05-05
+
+### Added Rust Flight document extraction consumption
+
+Backend change:
+
+- same-origin Flight `PATH /analysis/document-extract`
+- same-origin Flight `PATH /analysis/document-extract-status`
+
+Frontend impact:
+
+- `api.extractDocument(...)` consumes document extraction resources through the Rust-owned Flight route.
+- `api.getDocumentExtractJobStatus(...)` consumes Rust-scheduled extraction job status rows through the status Flight route.
+- Python Docling is explicitly documented as a Rust-scheduled worker, not a frontend transport surface.
 
 ## 2026-03-17
 
@@ -122,7 +137,7 @@ Add entries here when either:
 2. Qianji Studio materially changes how it consumes or composes an existing contract.
 
 :RELATIONS:
-:LINKS: [[01_core/106_docs_maintenance_playbook]], [[01_core/107_docs_graph_map]], [[03_features/203_semantic_search_actions]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]], [[05_research/305_architecture_decision_log]], [[05_research/306_alignment_milestone_log]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/305_architecture_decision_log|Architecture Decision Log]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:
 
 ---

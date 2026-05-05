@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-topology-graph
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, topology, graph, navigation
 :STATUS: STABLE
 :END:
@@ -29,5 +29,5 @@ Qianji Studio has two live graph-facing surfaces:
 - Graph navigation is valid only when the focused file path is stable and hydrated.
 
 :RELATIONS:
-:LINKS: [[01_core/101_studio_surface_protocol]], [[01_core/107_docs_graph_map]], [[03_features/201_indexed_roots_and_vfs]], [[03_features/203_semantic_search_actions]], [[03_features/205_panel_runtime_map]], [[03_features/208_navigation_examples]], [[03_features/209_backend_endpoint_cookbook]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/201_indexed_roots_and_vfs|Indexed Roots and VFS Hydration]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/208_navigation_examples|Navigation Examples]], [[03_features/209_backend_endpoint_cookbook|Backend Endpoint Cookbook]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:

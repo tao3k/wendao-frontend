@@ -2,11 +2,25 @@
   "name": "qianji-studio",
   "version": "1.0.0",
   "private": true,
+  "exports": {
+    "./runtime": {
+      "types": "./dist/runtime/runtime/index.d.ts",
+      "import": "./dist/runtime/runtime/index.mjs"
+    }
+  },
+  "files": [
+    "README.md",
+    "dist/runtime"
+  ],
   "scripts": {
     "dev": "rspack dev",
-    "build": "rspack build && node scripts/check-build-size.mjs",
+    "build": "npm run build:runtime && rspack build && node scripts/check-build-size.mjs",
+    "build:runtime": "tsc -p tsconfig.runtime.json && node scripts/build/runtime-package.mjs",
     "build:mermaid-report": "node scripts/mermaid-bundle-report.mjs",
     "generate:flight-client": "node scripts/generate-flight-client.mjs",
+    "harness": "typescript-project-harness .",
+    "harness:agent": "typescript-project-harness --agent-snapshot .",
+    "prepare": "npm run build:runtime",
     "preview": "rspack preview",
     "test": "vitest run",
     "test:hotspot-perf:reset": "rm -f \"${PRJ_CACHE_HOME}/agent/tmp/wendao_frontend_hotspot_perf_traces.json\"",
@@ -69,6 +83,7 @@
     "jsdom": "^29.0.2",
     "react-refresh": "^0.18.0",
     "typescript": "^6.0.2",
+    "typescript-lang-project-harness": "git+https://github.com/tao3k/typescript-lang-project-harness.git#f824aa682afffac3cdbb24a7b3e81bd9c4baaf37",
     "vitest": "^4.1.4"
   },
   "overrides": {

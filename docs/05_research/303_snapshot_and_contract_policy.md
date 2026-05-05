@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-snapshot-contract-policy
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, snapshot, contract, gateway
 :STATUS: ACTIVE
 :END:
@@ -76,7 +76,7 @@ After a backend contract change:
 3. Update the backend alignment ledger if the capability moved from `Partial` to `Implemented`.
 
 :RELATIONS:
-:LINKS: [[01_core/102_developer_onboarding]], [[01_core/103_release_checklist]], [[01_core/106_docs_maintenance_playbook]], [[03_features/204_gateway_api_contracts]], [[03_features/206_testing_and_validation]], [[05_research/302_backend_alignment_ledger]], [[05_research/304_runtime_troubleshooting]], [[05_research/307_contract_changelog]]
+:LINKS: [[01_core/102_developer_onboarding|Developer Onboarding]], [[01_core/103_release_checklist|Release Checklist]], [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/206_testing_and_validation|Testing and Validation]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/307_contract_changelog|Contract Changelog]]
 :END:
 
 ---

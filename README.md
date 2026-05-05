@@ -16,10 +16,51 @@ npm run dev
 ./node_modules/.bin/tsc --noEmit --pretty false
 npm run test
 npm run build
+npm run harness
 ```
 
 `npm run build` includes the post-build size gate. The default GitHub Actions
 workflow runs the same typecheck, test, and build surface after `npm ci`.
+`npm run harness` runs the TypeScript project harness over the frontend source.
+`npm run build:runtime` emits the git-installable runtime package under
+`dist/runtime`.
+
+## Runtime Package
+
+This repository also exposes a runtime subpath for downstream frontends that
+need the Wendao Flight contract without embedding Qianji Studio UI code.
+
+Downstream package example:
+
+```json
+{
+  "dependencies": {
+    "qianji-studio": "git+https://github.com/tao3k/wendao-frontend.git"
+  }
+}
+```
+
+Runtime usage:
+
+```ts
+import { createWendaoRuntime } from "qianji-studio/runtime";
+
+const wendao = createWendaoRuntime({
+  baseUrl: "http://127.0.0.1:9517",
+});
+
+const results = await wendao.searchKnowledge("solver", {
+  intent: "code_search",
+  limit: 20,
+});
+```
+
+The runtime package exposes typed Wendao Flight search helpers for knowledge,
+repo content, attachments, AST definitions, references, and symbols. It is a
+protocol package boundary, not a shared React component surface.
+
+Git installs run the package `prepare` script, which emits the built ESM and
+declaration files consumed by the `qianji-studio/runtime` export.
 
 ## Documentation
 

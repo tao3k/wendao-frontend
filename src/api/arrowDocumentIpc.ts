@@ -1,7 +1,11 @@
 import { tableFromIPC } from "apache-arrow";
 
 import type { ProjectedPageIndexNode, ProjectedPageIndexTree } from "./bindings";
-import type { RefineEntityDocResponse } from "./apiContracts";
+import type {
+  DocumentExtractJobStatus,
+  DocumentExtractResource,
+  RefineEntityDocResponse,
+} from "./apiContracts";
 import { isArrowIpcPayloadEmpty, type ArrowIpcPayload } from "./arrowIpcPayload";
 
 type ArrowRowRecord = Record<string, unknown>;
@@ -115,5 +119,53 @@ export function decodeRefineEntityDocResponseFromArrowIpc(
     entity_id: requireString(firstRow, "entityId"),
     refined_content: requireString(firstRow, "refinedContent"),
     verification_state: requireString(firstRow, "verificationState"),
+  };
+}
+
+export function decodeDocumentExtractResourcesFromArrowIpc(
+  payload: ArrowIpcPayload,
+): DocumentExtractResource[] {
+  if (isArrowIpcPayloadEmpty(payload)) {
+    return [];
+  }
+  const table = tableFromIPC(payload);
+  return table.toArray().map((row) => {
+    const record = row as ArrowRowRecord;
+    return {
+      sourcePath: requireString(record, "sourcePath"),
+      resourceType: requireString(record, "resourceType"),
+      resourcePath: requireString(record, "resourcePath"),
+      pageIndex: requireNumber(record, "pageIndex"),
+      caption: requireString(record, "caption"),
+      content: requireString(record, "content"),
+      mimeType: requireString(record, "mimeType"),
+      status: requireString(record, "status"),
+      elementId: requireString(record, "elementId"),
+    };
+  });
+}
+
+export function decodeDocumentExtractStatusFromArrowIpc(
+  payload: ArrowIpcPayload,
+): DocumentExtractJobStatus | undefined {
+  if (isArrowIpcPayloadEmpty(payload)) {
+    return undefined;
+  }
+  const table = tableFromIPC(payload);
+  const firstRow = table.toArray()[0] as ArrowRowRecord | undefined;
+  if (!firstRow) {
+    return undefined;
+  }
+  return {
+    jobId: requireString(firstRow, "jobId"),
+    sourcePath: requireString(firstRow, "sourcePath"),
+    outputDir: requireString(firstRow, "outputDir"),
+    contentHash: requireString(firstRow, "contentHash"),
+    status: requireString(firstRow, "status"),
+    attemptCount: requireNumber(firstRow, "attemptCount"),
+    createdAtMs: requireNumber(firstRow, "createdAtMs"),
+    startedAtMs: requireNumber(firstRow, "startedAtMs"),
+    finishedAtMs: requireNumber(firstRow, "finishedAtMs"),
+    errorMessage: requireString(firstRow, "errorMessage"),
   };
 }

@@ -125,12 +125,15 @@ import {
   decodeSymbolSearchHitsFromArrowIpc,
 } from "./arrowSearchIpc";
 import {
+  decodeDocumentExtractResourcesFromArrowIpc,
+  decodeDocumentExtractStatusFromArrowIpc,
   decodeProjectedPageIndexTreeFromArrowIpc,
   decodeRefineEntityDocResponseFromArrowIpc,
 } from "./arrowDocumentIpc";
 import * as flightSearchTransport from "./flightSearchTransport";
 import * as flightProjectedPageIndexTransport from "./flightProjectedPageIndexTransport";
 import * as flightRefineEntityDocTransport from "./flightRefineEntityDocTransport";
+import * as flightDocumentExtractTransport from "./flightDocumentExtractTransport";
 import * as flightRepoDocCoverageTransport from "./flightRepoDocCoverageTransport";
 import * as flightRepoIndexTransport from "./flightRepoIndexTransport";
 import * as flightRepoIndexStatusTransport from "./flightRepoIndexStatusTransport";
@@ -150,6 +153,9 @@ import {
 } from "./controlPlane/transport";
 import { fetchHealthResponse } from "./workspaceTransport";
 import type {
+  DocumentExtractJobStatus,
+  DocumentExtractMode,
+  DocumentExtractResult,
   RefineEntityDocRequest,
   RefineEntityDocResponse,
   RepoBacklinkItem,
@@ -639,6 +645,58 @@ export const api = {
       },
       {
         decodeRefineEntityDocResponse: decodeRefineEntityDocResponseFromArrowIpc,
+      },
+    );
+  },
+
+  /**
+   * Extract document resources through the Rust-owned Wendao Flight route.
+   */
+  async extractDocument(
+    sourcePath: string,
+    options?: {
+      outputDir?: string;
+      force?: boolean;
+      errorRow?: boolean;
+      mode?: DocumentExtractMode;
+      waitMs?: number;
+      signal?: AbortSignal;
+    },
+  ): Promise<DocumentExtractResult> {
+    return flightDocumentExtractTransport.loadDocumentExtractFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        sourcePath,
+        outputDir: options?.outputDir,
+        force: options?.force,
+        errorRow: options?.errorRow,
+        mode: options?.mode,
+        waitMs: options?.waitMs,
+        signal: options?.signal,
+      },
+      {
+        decodeResources: decodeDocumentExtractResourcesFromArrowIpc,
+      },
+    );
+  },
+
+  /**
+   * Inspect a Rust-scheduled document extraction job.
+   */
+  async getDocumentExtractJobStatus(
+    jobId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<DocumentExtractJobStatus> {
+    return flightDocumentExtractTransport.loadDocumentExtractStatusFlight(
+      {
+        baseUrl: resolveBrowserFlightBaseUrl(),
+        schemaVersion: resolveStudioFlightSchemaVersion(),
+        jobId,
+        signal: options?.signal,
+      },
+      {
+        decodeStatus: decodeDocumentExtractStatusFromArrowIpc,
       },
     );
   },

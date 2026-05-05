@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": false,
+    "outDir": "dist/runtime",
+    "rootDir": "src",
+    "sourceMap": false
+  },
+  "include": [
+    "src/runtime/**/*.ts",
+    "src/api/arrowIpcPayload.ts",
+    "src/api/arrowSearchIpc.ts",
+    "src/api/bindings.ts",
+    "src/api/flight/generated/Flight_pb.ts",
+    "src/api/flightRepoSearchTransport.ts",
+    "src/api/flightSearchTransport.ts",
+    "src/api/projectionContracts.ts",
+    "src/api/responseTransport.ts",
+    "src/api/studioBindings.generated.ts"
+  ],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+}

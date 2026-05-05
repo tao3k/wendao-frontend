@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-runtime-glossary
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: core, glossary, terminology, runtime
 :STATUS: ACTIVE
 :END:
@@ -77,7 +77,7 @@ A frontend capability built by combining existing backend contracts rather than 
 The research page that records which Wendao Studio capabilities are fully implemented, only partial, or still future work from the Qianji Studio point of view.
 
 :RELATIONS:
-:LINKS: [[01_core/101_studio_surface_protocol]], [[03_features/205_panel_runtime_map]], [[03_features/206_testing_and_validation]], [[05_research/302_backend_alignment_ledger]], [[05_research/305_architecture_decision_log]]
+:LINKS: [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/206_testing_and_validation|Testing and Validation]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/305_architecture_decision_log|Architecture Decision Log]]
 :END:
 
 ---

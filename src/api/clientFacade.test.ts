@@ -1,6 +1,8 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { ApiClientError, api } from "./index";
 import type {
+  DocumentExtractJobStatus,
+  DocumentExtractResult,
   RepoProjectedPageIndexTreesResponse,
   RepoSyncResponse,
   UiCapabilities,
@@ -15,6 +17,8 @@ describe("api client facade", () => {
     expect(typeof api.getJuliaDeploymentArtifact).toBe("function");
     expect(typeof api.getJuliaDeploymentArtifactToml).toBe("function");
     expect(typeof api.getRepoProjectedPageIndexTrees).toBe("function");
+    expect(typeof api.extractDocument).toBe("function");
+    expect(typeof api.getDocumentExtractJobStatus).toBe("function");
   });
 
   it("re-exports ApiClientError through the facade", () => {
@@ -29,6 +33,10 @@ describe("api client facade", () => {
     expectTypeOf<RepoSyncResponse["mode"]>().toEqualTypeOf<string>();
     expectTypeOf<RepoSyncResponse["healthState"]>().toEqualTypeOf<string | undefined>();
     expectTypeOf<RepoProjectedPageIndexTreesResponse["repo_id"]>().toEqualTypeOf<string>();
+    expectTypeOf<DocumentExtractResult["resources"][number]["resourcePath"]>().toEqualTypeOf<
+      string
+    >();
+    expectTypeOf<DocumentExtractJobStatus["status"]>().toEqualTypeOf<string>();
     expectTypeOf<UiCapabilities>().toMatchTypeOf<{
       supportedLanguages: string[];
       supportedRepositories: string[];

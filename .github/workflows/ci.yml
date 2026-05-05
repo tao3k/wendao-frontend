@@ -38,9 +38,9 @@ jobs:
       - name: Runtime package smoke
         run: |
           node --input-type=module <<'EOF'
-          const runtime = await import("qianji-studio/runtime");
+          const runtime = await import("wendao-frontend/runtime");
           if (typeof runtime.createWendaoRuntime !== "function") {
-            throw new Error("qianji-studio/runtime did not export createWendaoRuntime");
+            throw new Error("wendao-frontend/runtime did not export createWendaoRuntime");
           }
           EOF
 

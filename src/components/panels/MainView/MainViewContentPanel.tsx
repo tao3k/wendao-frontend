@@ -37,6 +37,7 @@ export function MainViewContentPanel({
             lineEnd={selectedFile.lineEnd}
             column={selectedFile.column}
             onBiLinkClick={onBiLinkClick}
+            pdfExtractResult={selectedFile.pdfExtractResult}
           />
         </Suspense>
       </div>

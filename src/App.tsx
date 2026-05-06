@@ -247,6 +247,7 @@ function App() {
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
   const [selectedFileContentType, setSelectedFileContentType] = useState<string | null>(null);
   const [selectedFileContentReady, setSelectedFileContentReady] = useState(false);
+  const [pdfExtractedContent, setPdfExtractedContent] = useState<import("./api/bindings").PdfExtractResult | null>(null);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [viewMode, setViewMode] = useState<"normal" | "zen-search">("normal");
   const [mainViewTabRequest, setMainViewTabRequest] = useState<MainViewTabRequest | null>(null);
@@ -416,6 +417,7 @@ function App() {
       setSelectedFileContent(null);
       setSelectedFileContentType(null);
       setSelectedFileContentReady(false);
+      setPdfExtractedContent(null);
       setSelectedFileMetadata(
         resolvedSelectionProjectName || resolvedSelectionRootLabel
           ? {
@@ -436,6 +438,16 @@ function App() {
           setSelectedFileContentReady(true);
           setCurrentXml("");
           setRelationships([]);
+          // For PDFs, eagerly load extraction results
+          if (mediaPreviewKind === "pdf") {
+            try {
+              const extractResult = await api.getPdfExtractResult(resolvedPath);
+              setPdfExtractedContent(extractResult);
+            } catch (extractErr) {
+              console.warn("PDF extraction result not available:", extractErr);
+              setPdfExtractedContent(null);
+            }
+          }
           return true;
         }
 
@@ -483,6 +495,7 @@ function App() {
         console.error("Failed to load file:", err);
         setSelectedFileContent(null);
         setSelectedFileContentType(null);
+        setPdfExtractedContent(null);
         setRelationships([]);
         return false;
       }
@@ -750,18 +763,21 @@ function App() {
   useKeyboardShortcuts(shortcuts);
 
   const selectedFile = selectedFilePath
-    ? buildSelectedFileRecord(
-        selectedFilePath,
-        selectedFileCategory ||
-          (selectedFilePath.endsWith(".md") && selectedFilePath.includes("SKILL")
-            ? "skill"
-            : "doc"),
-        selectedFileContent,
-        selectedFileContentType,
-        selectedFileContentReady,
-        selectedFileMetadata,
-        selectedFileLocation,
-      )
+    ? {
+        ...buildSelectedFileRecord(
+          selectedFilePath,
+          selectedFileCategory ||
+            (selectedFilePath.endsWith(".md") && selectedFilePath.includes("SKILL")
+              ? "skill"
+              : "doc"),
+          selectedFileContent,
+          selectedFileContentType,
+          selectedFileContentReady,
+          selectedFileMetadata,
+          selectedFileLocation,
+        ),
+        pdfExtractResult: pdfExtractedContent,
+      }
     : null;
   const isZenSearchMode = viewMode === "zen-search";
   const shouldHideWorkspace = isZenSearchMode || !isWorkspaceHydrated;

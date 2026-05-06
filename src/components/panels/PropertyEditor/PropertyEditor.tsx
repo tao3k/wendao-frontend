@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Activity, FileText, GitBranch, Layers, Orbit, Settings2 } from "lucide-react";
+import { Activity, FileText, GitBranch, Image, Layers, Orbit, Settings2, Sigma, Table } from "lucide-react";
 import { PropertyGroup } from "./PropertyGroup";
 import { PropertyField } from "./PropertyField";
 import { AcademicNode } from "../../../types";
@@ -18,6 +18,7 @@ interface PropertyEditorProps {
   selectedFile?: {
     path: string;
     category: string;
+    pdfExtractResult?: import("../../../api/bindings").PdfExtractResult | null;
   } | null;
   graphSummary?: GraphSidebarSummary | null;
   locale?: "en" | "zh";
@@ -91,6 +92,12 @@ interface PropertyEditorCopy {
   typeLabel: string;
   zPosition: string;
   noRelationships: string;
+  pdfExtractOverview: string;
+  pdfExtractPages: string;
+  pdfExtractResources: string;
+  pdfExtractImages: string;
+  pdfExtractTables: string;
+  pdfExtractFormulas: string;
   graphInsights: string;
   snapshot: string;
   activeLayer: string;
@@ -141,6 +148,12 @@ const PROPERTY_EDITOR_COPY: Record<"en" | "zh", PropertyEditorCopy> = {
     typeLabel: "Type",
     zPosition: "Z Position",
     noRelationships: "No relationship data available",
+    pdfExtractOverview: "PDF Extraction",
+    pdfExtractPages: "Pages",
+    pdfExtractResources: "Resources",
+    pdfExtractImages: "Images",
+    pdfExtractTables: "Tables",
+    pdfExtractFormulas: "Formulas",
     graphInsights: "Graph Summary",
     snapshot: "Focused Layer",
     activeLayer: "Active Layer",
@@ -189,6 +202,12 @@ const PROPERTY_EDITOR_COPY: Record<"en" | "zh", PropertyEditorCopy> = {
     typeLabel: "类型",
     zPosition: "Z 位置",
     noRelationships: "暂无关系数据",
+    pdfExtractOverview: "PDF 提取",
+    pdfExtractPages: "页数",
+    pdfExtractResources: "资源",
+    pdfExtractImages: "图片",
+    pdfExtractTables: "表格",
+    pdfExtractFormulas: "公式",
     graphInsights: "图谱摘要",
     snapshot: "焦点层",
     activeLayer: "当前层",
@@ -332,6 +351,8 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   locale = "en",
   onUpdate,
 }) => {
+  const isPdf = selectedFile?.path?.toLowerCase().endsWith(".pdf") ?? false;
+  const pdfResult = isPdf ? selectedFile?.pdfExtractResult : null;
   const [activeTab, setActiveTab] = useState<PropertyTab>("properties");
   const [selectedGraphLayer, setSelectedGraphLayer] = useState<number | null>(null);
   const copy = PROPERTY_EDITOR_COPY[locale];
@@ -483,6 +504,49 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                 </span>
                 <div className="property-editor__path">{selectedFile.path}</div>
               </div>
+            )}
+
+            {/* PDF Extract Overview */}
+            {pdfResult && (
+              <PropertyGroup title={copy.pdfExtractOverview} defaultExpanded={true}>
+                <div className="property-editor__metadata">
+                  <div className="property-editor__metadata-item">
+                    <span className="property-editor__metadata-label">{copy.pdfExtractPages}</span>
+                    <span className="property-editor__metadata-value">{pdfResult.totalPages}</span>
+                  </div>
+                  <div className="property-editor__metadata-item">
+                    <span className="property-editor__metadata-label">{copy.pdfExtractResources}</span>
+                    <span className="property-editor__metadata-value">{pdfResult.resources.length}</span>
+                  </div>
+                  <div className="property-editor__metadata-item">
+                    <span className="property-editor__metadata-label">
+                      <Image size={10} style={{ marginRight: 4 }} />
+                      {copy.pdfExtractImages}
+                    </span>
+                    <span className="property-editor__metadata-value">
+                      {pdfResult.resources.filter((r) => r.resourceType === "image").length}
+                    </span>
+                  </div>
+                  <div className="property-editor__metadata-item">
+                    <span className="property-editor__metadata-label">
+                      <Table size={10} style={{ marginRight: 4 }} />
+                      {copy.pdfExtractTables}
+                    </span>
+                    <span className="property-editor__metadata-value">
+                      {pdfResult.resources.filter((r) => r.resourceType === "table").length}
+                    </span>
+                  </div>
+                  <div className="property-editor__metadata-item">
+                    <span className="property-editor__metadata-label">
+                      <Sigma size={10} style={{ marginRight: 4 }} />
+                      {copy.pdfExtractFormulas}
+                    </span>
+                    <span className="property-editor__metadata-value">
+                      {pdfResult.resources.filter((r) => r.resourceType === "formula").length}
+                    </span>
+                  </div>
+                </div>
+              </PropertyGroup>
             )}
 
             {/* Node Properties */}

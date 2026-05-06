@@ -52,6 +52,7 @@ import type {
   ProjectedPageIndexNode,
   ProjectedPageIndexTree,
   UiCapabilities,
+  PdfExtractResult,
 } from "./bindings";
 
 // Re-export types for convenience
@@ -765,6 +766,22 @@ export const api = {
       line: options?.line,
       signal: options?.signal,
     });
+  },
+
+  /**
+   * Retrieve cached PDF extraction results for a given PDF path.
+   */
+  async getPdfExtractResult(path: string): Promise<PdfExtractResult> {
+    const url = new URL(`${API_BASE}/pdf-extract-result`, window.location.origin);
+    url.searchParams.set("path", path);
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new ApiClientError(
+        "PDF_EXTRACT_RESULT_ERROR",
+        `PDF extract result fetch failed: ${response.status} ${response.statusText}`,
+      );
+    }
+    return handleResponse<PdfExtractResult>(response);
   },
 
   /**

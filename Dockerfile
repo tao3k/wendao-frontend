@@ -1,54 +1,44 @@
-# syntax=docker/dockerfile:1
+# Wendao Frontend (Qianji Studio) Dockerfile
+#
+# Build context MUST be the wendao-frontend/ directory itself, NOT the repo
+# root.  Keeping the context narrow prevents Docker from sending gigabytes of
+# unrelated artefacts (Rust target/, Python venvs, other sub-repos, etc.).
 
-# ── Build stage ──────────────────────────────────────────────────────
-FROM docker.io/library/node:22-slim AS build
+# ---------------------------------------------------------------------------- #
+#                                 BUILD STAGE                                  #
+# ---------------------------------------------------------------------------- #
+
+FROM node:24-bookworm AS builder
+
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
-COPY . .
-RUN npm run build
 
-# ── Serve stage ──────────────────────────────────────────────────────
-FROM docker.io/library/nginx:alpine
-ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
-ENV NGINX_ENVSUBST_FILTER=NGINX_LOCAL_RESOLVERS
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY <<'NGINX_CONF' /etc/nginx/templates/default.conf.template
-resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+# Install dependencies first so they can be cached when package.json hasn't changed.
+COPY package*.json ./
+RUN npm ci
 
-server {
-    listen 80;
-    root /usr/share/nginx/html;
-    index index.html;
+# Copy the rest of the source tree.
+COPY . ./
 
-    set $wendao_gateway wendao-gateway:9517;
-    set $daochang xiuxian-daochang:18092;
+# Build production bundle (skip bundle-size audits – they are checked in CI).
+ENV NODE_ENV=production
+RUN npx rspack build
 
-    # SPA fallback
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+# ---------------------------------------------------------------------------- #
+#                               PRODUCTION STAGE                               #
+# ---------------------------------------------------------------------------- #
 
-    # Proxy API requests to wendao-gateway
-    location /api/ {
-        proxy_pass http://$wendao_gateway;
-        proxy_set_header Host $host;
-    }
+FROM nginx:alpine AS production
 
-    # Proxy Arrow Flight gRPC-Web to wendao-gateway
-    location /arrow.flight.protocol.FlightService/ {
-        proxy_pass http://$wendao_gateway;
-        proxy_set_header Host $host;
-    }
+# Serve the built static assets.
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-    # Proxy AI SDK streaming to daochang
-    location /vercel/ {
-        proxy_pass http://$daochang;
-        proxy_set_header Host $host;
-        proxy_buffering off;
-        proxy_cache off;
-    }
-}
-NGINX_CONF
+# nginx configuration (kept inside the frontend directory so the build context
+# is self-contained).
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

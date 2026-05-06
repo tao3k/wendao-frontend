@@ -1,12 +1,26 @@
 {
-  "name": "qianji-studio",
+  "name": "wendao-frontend",
   "version": "1.0.0",
   "private": true,
+  "exports": {
+    "./runtime": {
+      "types": "./dist/runtime/runtime/index.d.ts",
+      "import": "./dist/runtime/runtime/index.mjs"
+    }
+  },
+  "files": [
+    "README.md",
+    "dist/runtime"
+  ],
   "scripts": {
     "dev": "rspack dev",
-    "build": "rspack build && node scripts/check-build-size.mjs",
+    "build": "npm run build:runtime && rspack build && node scripts/check-build-size.mjs",
+    "build:runtime": "tsc -p tsconfig.runtime.json && node scripts/build/runtime-package.mjs",
     "build:mermaid-report": "node scripts/mermaid-bundle-report.mjs",
     "generate:flight-client": "node scripts/generate-flight-client.mjs",
+    "harness": "typescript-project-harness .",
+    "harness:agent": "typescript-project-harness --agent-snapshot .",
+    "prepare": "npm run build:runtime",
     "preview": "rspack preview",
     "test": "vitest run",
     "test:hotspot-perf:reset": "rm -f \"${PRJ_CACHE_HOME}/agent/tmp/wendao_frontend_hotspot_perf_traces.json\"",
@@ -18,24 +32,37 @@
     "test:live-zen-search-perf": "RUN_LIVE_GATEWAY_TEST=1 STUDIO_LIVE_GATEWAY_URL=${STUDIO_LIVE_GATEWAY_URL:-http://127.0.0.1:9517} vitest run src/api/liveZenSearchPerf.test.ts"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.161",
-    "@algolia/autocomplete-core": "^1.19.8",
     "@bufbuild/protobuf": "2.11.0",
     "@connectrpc/connect": "2.1.1",
     "@connectrpc/connect-web": "2.1.1",
+    "apache-arrow": "^21.1.0"
+  },
+  "devDependencies": {
+    "@ai-sdk/react": "^3.0.161",
+    "@algolia/autocomplete-core": "^1.19.8",
+    "@bufbuild/protoc-gen-es": "2.11.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@rspack/cli": "^1.7.11",
+    "@rspack/core": "^1.7.11",
+    "@rspack/plugin-react-refresh": "^1.6.2",
     "@shikijs/core": "^4.0.2",
     "@shikijs/engine-oniguruma": "^4.0.2",
     "@shikijs/langs": "^4.0.2",
     "@shikijs/themes": "^4.0.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/katex": "^0.16.8",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.183.1",
     "@vidstack/react": "^1.12.13",
     "ai": "^6.0.159",
-    "apache-arrow": "^21.1.0",
     "beautiful-mermaid": "^1.1.3",
     "bpmn-js": "^18.14.0",
     "framer-motion": "^12.38.0",
+    "jsdom": "^29.0.2",
     "katex": "^0.16.45",
     "lucide-react": "^1.8.0",
     "mermaid": "^11.14.0",
@@ -44,6 +71,7 @@
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.4.1",
+    "react-refresh": "^0.18.0",
     "react-virtuoso": "^4.18.4",
     "react-zoom-pan-pinch": "^4.0.3",
     "rehype-katex": "^7.0.1",
@@ -52,24 +80,11 @@
     "remark-math": "^6.0.0",
     "smol-toml": "^1.6.0",
     "three": "^0.183.2",
-    "vidstack": "^1.12.13",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@bufbuild/protoc-gen-es": "2.11.0",
-    "@rspack/cli": "^1.7.11",
-    "@rspack/core": "^1.7.11",
-    "@rspack/plugin-react-refresh": "^1.6.2",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/katex": "^0.16.8",
-    "@types/react": "^19.2.8",
-    "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.183.1",
-    "jsdom": "^29.0.2",
-    "react-refresh": "^0.18.0",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
+    "typescript-lang-project-harness": "git+https://github.com/tao3k/typescript-lang-project-harness.git#f824aa682afffac3cdbb24a7b3e81bd9c4baaf37",
+    "vidstack": "^1.12.13",
+    "vitest": "^4.1.4",
+    "zustand": "^5.0.12"
   },
   "overrides": {
     "@bufbuild/protobuf": "2.11.0",

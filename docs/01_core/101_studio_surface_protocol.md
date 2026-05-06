@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-surface-protocol
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: architecture, core, frontend, studio
 :STATUS: ACTIVE
 :END:
@@ -29,7 +29,7 @@ The orchestration contract for Qianji Studio. It defines how `App`, `MainView`, 
 - Graph actions are only valid for note-backed selections. Code, attachment, and other non-note results should not expose graph entry points.
 
 :RELATIONS:
-:LINKS: [[03_features/201_indexed_roots_and_vfs]], [[03_features/202_topology_and_graph_navigation]], [[03_features/203_semantic_search_actions]]
+:LINKS: [[03_features/201_indexed_roots_and_vfs|Indexed Roots and VFS Hydration]], [[03_features/202_topology_and_graph_navigation|Topology and Graph Navigation]], [[03_features/203_semantic_search_actions|Semantic Search Actions]]
 :END:
 
 ---

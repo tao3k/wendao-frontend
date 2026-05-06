@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-vfs
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, vfs, explorer, gateway
 :STATUS: STABLE
 :END:
@@ -34,5 +34,5 @@ Qianji Studio exposes the Wendao VFS surface through the `Indexed Roots` explore
 - Hover provenance should reflect backend metadata for the resolved project root and indexed dirs.
 
 :RELATIONS:
-:LINKS: [[01_core/101_studio_surface_protocol]], [[01_core/107_docs_graph_map]], [[03_features/202_topology_and_graph_navigation]], [[03_features/204_gateway_api_contracts]], [[03_features/205_panel_runtime_map]], [[03_features/208_navigation_examples]]
+:LINKS: [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/202_topology_and_graph_navigation|Topology and Graph Navigation]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/208_navigation_examples|Navigation Examples]]
 :END:

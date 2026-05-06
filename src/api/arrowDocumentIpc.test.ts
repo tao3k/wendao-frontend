@@ -2,6 +2,8 @@ import { tableFromArrays, tableToIPC } from "apache-arrow";
 import { describe, expect, it } from "vitest";
 
 import {
+  decodeDocumentExtractResourcesFromArrowIpc,
+  decodeDocumentExtractStatusFromArrowIpc,
   decodeProjectedPageIndexTreeFromArrowIpc,
   decodeRefineEntityDocResponseFromArrowIpc,
 } from "./arrowDocumentIpc";
@@ -105,6 +107,79 @@ describe("Arrow document IPC decoder", () => {
       entity_id: "repo:gateway-sync:symbol:GatewaySyncPkg.solve",
       refined_content: "## Refined Explanation\n\nUse `solve()`.",
       verification_state: "verified",
+    });
+  });
+
+  it("decodes document extraction resource payloads from Rust Flight", () => {
+    const payload = tableToIPC(
+      tableFromArrays({
+        sourcePath: ["/tmp/source.pdf", "/tmp/source.pdf"],
+        resourceType: ["document", "table"],
+        resourcePath: ["/tmp/out/source.md", "/tmp/out/table-1.html"],
+        pageIndex: [0, 2],
+        caption: ["", "Table 1"],
+        content: ["# Source", "<table></table>"],
+        mimeType: ["text/markdown", "text/html"],
+        status: ["ok", "ok"],
+        elementId: ["_main", "#/tables/0"],
+      }),
+      "stream",
+    );
+
+    expect(decodeDocumentExtractResourcesFromArrowIpc(payload)).toEqual([
+      {
+        sourcePath: "/tmp/source.pdf",
+        resourceType: "document",
+        resourcePath: "/tmp/out/source.md",
+        pageIndex: 0,
+        caption: "",
+        content: "# Source",
+        mimeType: "text/markdown",
+        status: "ok",
+        elementId: "_main",
+      },
+      {
+        sourcePath: "/tmp/source.pdf",
+        resourceType: "table",
+        resourcePath: "/tmp/out/table-1.html",
+        pageIndex: 2,
+        caption: "Table 1",
+        content: "<table></table>",
+        mimeType: "text/html",
+        status: "ok",
+        elementId: "#/tables/0",
+      },
+    ]);
+  });
+
+  it("decodes document extraction job status payloads", () => {
+    const payload = tableToIPC(
+      tableFromArrays({
+        jobId: ["job-1"],
+        sourcePath: ["/tmp/source.pdf"],
+        outputDir: ["/tmp/out"],
+        contentHash: ["abc123"],
+        status: ["running"],
+        attemptCount: [2],
+        createdAtMs: [10],
+        startedAtMs: [20],
+        finishedAtMs: [0],
+        errorMessage: [""],
+      }),
+      "stream",
+    );
+
+    expect(decodeDocumentExtractStatusFromArrowIpc(payload)).toEqual({
+      jobId: "job-1",
+      sourcePath: "/tmp/source.pdf",
+      outputDir: "/tmp/out",
+      contentHash: "abc123",
+      status: "running",
+      attemptCount: 2,
+      createdAtMs: 10,
+      startedAtMs: 20,
+      finishedAtMs: 0,
+      errorMessage: "",
     });
   });
 });

@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-alignment-milestone-log
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, timeline, milestones, alignment
 :STATUS: ACTIVE
 :END:
@@ -162,7 +162,7 @@ Outcome:
 5. Contract-driven doc examples tied more directly to snapshot evolution
 
 :RELATIONS:
-:LINKS: [[01_core/107_docs_graph_map]], [[05_research/301_wendao_surface_alignment]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/305_architecture_decision_log]], [[05_research/307_contract_changelog]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/107_docs_graph_map|Docs Graph Map]], [[05_research/301_wendao_surface_alignment|Wendao Surface Alignment]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/305_architecture_decision_log|Architecture Decision Log]], [[05_research/307_contract_changelog|Contract Changelog]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:
 
 ---

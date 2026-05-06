@@ -41,7 +41,6 @@ export function useZenSearchPreview(
     }
 
     const loadPlan = buildZenSearchPreviewLoadPlan(selectedResult);
-    const resolvedLoadPlanPromise = resolveZenSearchPreviewLoadPlan(selectedResult, loadPlan);
     const cachedPreview = previewIdentity
       ? previewCacheRef.current.get(previewIdentity)
       : undefined;
@@ -67,10 +66,16 @@ export function useZenSearchPreview(
       }
     }
 
+    let resolvedLoadPlanPromise: Promise<ReturnType<typeof buildZenSearchPreviewLoadPlan>> | null =
+      null;
+    const getResolvedLoadPlanPromise = () => {
+      resolvedLoadPlanPromise ??= resolveZenSearchPreviewLoadPlan(selectedResult, loadPlan);
+      return resolvedLoadPlanPromise;
+    };
     let cancelled = false;
     const codeAstAbortController = loadNeeds.codeAst ? new AbortController() : null;
     const codeAstPreview = codeAstAbortController
-      ? loadCodeAstPreviewWithTimeout(resolvedLoadPlanPromise, codeAstAbortController)
+      ? loadCodeAstPreviewWithTimeout(getResolvedLoadPlanPromise(), codeAstAbortController)
       : null;
     let contentHeadStartTimerId: ReturnType<typeof globalThis.setTimeout> | null = null;
     const contentHeadStartPromise =
@@ -121,7 +126,7 @@ export function useZenSearchPreview(
               await contentHeadStartPromise;
               if (cancelled) {
                 return [
-                  await resolvedLoadPlanPromise,
+                  await getResolvedLoadPlanPromise(),
                   {
                     content: null,
                     contentType: null,
@@ -129,7 +134,7 @@ export function useZenSearchPreview(
                   },
                 ] as const;
               }
-              const resolvedLoadPlan = await resolvedLoadPlanPromise;
+              const resolvedLoadPlan = await getResolvedLoadPlanPromise();
               if (cancelled) {
                 return [
                   resolvedLoadPlan,
@@ -172,7 +177,7 @@ export function useZenSearchPreview(
       void (async () => {
         const graph = inflightPreview
           ? await inflightPreview.graphPromise
-          : await resolvedLoadPlanPromise.then((resolvedLoadPlan) =>
+          : await getResolvedLoadPlanPromise().then((resolvedLoadPlan) =>
               loadZenSearchPreviewGraphData(resolvedLoadPlan),
             );
 
@@ -224,7 +229,7 @@ export function useZenSearchPreview(
       void (async () => {
         const markdown = inflightPreview
           ? await inflightPreview.markdownPromise
-          : await resolvedLoadPlanPromise.then((resolvedLoadPlan) =>
+          : await getResolvedLoadPlanPromise().then((resolvedLoadPlan) =>
               loadZenSearchPreviewMarkdownData(resolvedLoadPlan),
             );
 

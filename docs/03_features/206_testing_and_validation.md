@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-testing-validation
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, testing, validation, vitest
 :STATUS: ACTIVE
 :END:
@@ -208,7 +208,7 @@ PRJ_CACHE_HOME="$(pwd)/.cache" npm run test:hotspot-perf
 3. No contract-sync automation currently checks that examples in the docs remain aligned with gateway payload changes.
 
 :RELATIONS:
-:LINKS: [[01_core/103_release_checklist]], [[01_core/106_docs_maintenance_playbook]], [[03_features/203_semantic_search_actions]], [[03_features/204_gateway_api_contracts]], [[03_features/205_panel_runtime_map]], [[03_features/207_panel_handbook]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]], [[README]]
+:LINKS: [[01_core/103_release_checklist|Release Checklist]], [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[03_features/207_panel_handbook|Panel Handbook]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[README|Qianji Studio Docs]]
 :END:
 
 ---

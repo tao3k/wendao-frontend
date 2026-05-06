@@ -388,6 +388,49 @@ describe("useZenSearchPreview", () => {
     expect(mocks.getGraphNeighbors).not.toHaveBeenCalled();
   });
 
+  it("keeps cached attachment media previews off the gateway resolution path", async () => {
+    const selectedResult = buildGatewayResolvedAttachmentMediaSearchResult();
+
+    mocks.resolveStudioPath.mockResolvedValue({
+      path: "main/docs/files/architecture.pdf",
+      category: "knowledge",
+      projectName: "main",
+      rootLabel: "docs",
+    });
+
+    const { result, rerender } = renderHook(({ selected }) => useZenSearchPreview(selected), {
+      initialProps: { selected: selectedResult as SearchResult | null },
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.contentPath).toBe("main/docs/files/architecture.pdf");
+      expect(result.current.contentType).toBe("application/pdf");
+    });
+
+    expect(mocks.resolveStudioPath).toHaveBeenCalledTimes(1);
+
+    rerender({ selected: null });
+
+    await waitFor(() => {
+      expect(result.current.selectedResult).toBeNull();
+    });
+
+    rerender({ selected: selectedResult });
+
+    expect(result.current.contentPath).toBe("main/docs/files/architecture.pdf");
+    expect(result.current.contentType).toBe("application/pdf");
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mocks.resolveStudioPath).toHaveBeenCalledTimes(1);
+    expect(mocks.getVfsContent).not.toHaveBeenCalled();
+    expect(mocks.getGraphNeighbors).not.toHaveBeenCalled();
+    expect(mocks.getMarkdownAnalysis).not.toHaveBeenCalled();
+  });
+
   it("normalizes graph totals from the neighbor payload when totals are stale", async () => {
     const selectedResult = buildSearchResult();
 

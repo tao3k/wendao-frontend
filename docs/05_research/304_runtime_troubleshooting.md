@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-runtime-troubleshooting
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: research, troubleshooting, runtime, gateway
 :STATUS: ACTIVE
 :END:
@@ -92,7 +92,7 @@ Prefer proving the gateway target env, proxy target, and snapshot-backed
 backend contract before assuming a frontend-only failure.
 
 :RELATIONS:
-:LINKS: [[01_core/102_developer_onboarding]], [[01_core/103_release_checklist]], [[01_core/107_docs_graph_map]], [[03_features/204_gateway_api_contracts]], [[03_features/206_testing_and_validation]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/305_architecture_decision_log]], [[05_research/307_contract_changelog]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[01_core/102_developer_onboarding|Developer Onboarding]], [[01_core/103_release_checklist|Release Checklist]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/206_testing_and_validation|Testing and Validation]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/305_architecture_decision_log|Architecture Decision Log]], [[05_research/307_contract_changelog|Contract Changelog]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:
 
 ---

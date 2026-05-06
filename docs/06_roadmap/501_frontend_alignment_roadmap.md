@@ -42,7 +42,7 @@ _Objective: Build developer trust through visual feedback._
 _Objective: Map the code "Geography" to the UI._
 
 1.  **[x] Breadcrumb Path**: Replace the flat path in results with interactive breadcrumbs: `repo > ecosystem > module > entity`.
-2.  **[x] Backlink Portal**: At the bottom of the Side Drawer, render "Referenced in X Tutorials" using the `implicit_backlinks` contract.
+2.  **[x] Backlink Portal**: At the bottom of the Side Drawer, render "Referenced in X Tutorials" using the `implicit_backlinks` contract. This is repo-entity pedagogy metadata, not the canonical Obsidian/ZK note-reader backlink lane.
 3.  **[x] Equations Renderer**: Support LaTeX rendering for Modelica/SciML equations within the dedicated "Equation Slot" of the drawer.
 
 ### Level 4: Interactive Evolution (Completed)

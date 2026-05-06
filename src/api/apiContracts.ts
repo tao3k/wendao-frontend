@@ -20,6 +20,42 @@ export interface RefineEntityDocResponse {
   verification_state: string;
 }
 
+export type DocumentExtractMode = "sync" | "async" | "hybrid-page-ocr";
+
+export interface DocumentExtractResource {
+  sourcePath: string;
+  resourceType: string;
+  resourcePath: string;
+  pageIndex: number;
+  caption: string;
+  content: string;
+  mimeType: string;
+  status: string;
+  elementId: string;
+}
+
+export interface DocumentExtractResult {
+  sourcePath: string;
+  sourceFormat: string;
+  totalResources: number;
+  totalPages: number;
+  extractedAt?: number;
+  resources: DocumentExtractResource[];
+}
+
+export interface DocumentExtractJobStatus {
+  jobId: string;
+  sourcePath: string;
+  outputDir: string;
+  contentHash: string;
+  status: string;
+  attemptCount: number;
+  createdAtMs: number;
+  startedAtMs: number;
+  finishedAtMs: number;
+  errorMessage: string;
+}
+
 export interface RepoOverviewResponse {
   repoId: string;
   displayName: string;

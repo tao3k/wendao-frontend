@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-panel-map
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: feature, panels, runtime, ui
 :STATUS: ACTIVE
 :END:
@@ -131,5 +131,5 @@ Gateway dependencies:
 Tree, search, and graph are not separate navigation systems. They are entry points into the same file-selection runtime.
 
 :RELATIONS:
-:LINKS: [[01_core/101_studio_surface_protocol]], [[01_core/104_runtime_glossary]], [[01_core/107_docs_graph_map]], [[03_features/201_indexed_roots_and_vfs]], [[03_features/202_topology_and_graph_navigation]], [[03_features/203_semantic_search_actions]], [[03_features/204_gateway_api_contracts]], [[03_features/207_panel_handbook]], [[03_features/208_navigation_examples]]
+:LINKS: [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[01_core/104_runtime_glossary|Runtime Glossary]], [[01_core/107_docs_graph_map|Docs Graph Map]], [[03_features/201_indexed_roots_and_vfs|Indexed Roots and VFS Hydration]], [[03_features/202_topology_and_graph_navigation|Topology and Graph Navigation]], [[03_features/203_semantic_search_actions|Semantic Search Actions]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/207_panel_handbook|Panel Handbook]], [[03_features/208_navigation_examples|Navigation Examples]]
 :END:

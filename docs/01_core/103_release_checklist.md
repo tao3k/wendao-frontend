@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-release-checklist
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: core, release, checklist, validation
 :STATUS: ACTIVE
 :END:
@@ -62,7 +62,7 @@ Zen Search is the primary user-facing target in this command; `SearchBar` remain
 4. Do not document a composed frontend behavior as a native backend endpoint.
 
 :RELATIONS:
-:LINKS: [[01_core/102_developer_onboarding]], [[03_features/206_testing_and_validation]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]]
+:LINKS: [[01_core/102_developer_onboarding|Developer Onboarding]], [[03_features/206_testing_and_validation|Testing and Validation]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]]
 :END:
 
 ---

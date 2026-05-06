@@ -2,7 +2,7 @@
 
 :PROPERTIES:
 :ID: qianji-studio-docs-graph-map
-:PARENT: [[index]]
+:PARENT: [[index|Qianji Studio DocOS Kernel: Map of Content]]
 :TAGS: core, docs, graph, navigation
 :STATUS: ACTIVE
 :END:
@@ -109,7 +109,7 @@ Key nodes:
 5. `06_roadmap/401_semantic_studio_runtime.md`
 
 :RELATIONS:
-:LINKS: [[README]], [[index]], [[01_core/101_studio_surface_protocol]], [[01_core/105_docs_conventions]], [[01_core/106_docs_maintenance_playbook]], [[03_features/204_gateway_api_contracts]], [[03_features/205_panel_runtime_map]], [[05_research/301_wendao_surface_alignment]], [[05_research/302_backend_alignment_ledger]], [[05_research/303_snapshot_and_contract_policy]], [[05_research/304_runtime_troubleshooting]], [[05_research/305_architecture_decision_log]], [[05_research/306_alignment_milestone_log]], [[05_research/307_contract_changelog]], [[06_roadmap/401_semantic_studio_runtime]]
+:LINKS: [[README|Qianji Studio Docs]], [[index|Qianji Studio DocOS Kernel: Map of Content]], [[01_core/101_studio_surface_protocol|Studio Surface Protocol]], [[01_core/105_docs_conventions|Docs Conventions]], [[01_core/106_docs_maintenance_playbook|Docs Maintenance Playbook]], [[03_features/204_gateway_api_contracts|Gateway API Contracts]], [[03_features/205_panel_runtime_map|Panel Runtime Map]], [[05_research/301_wendao_surface_alignment|Wendao Surface Alignment]], [[05_research/302_backend_alignment_ledger|Backend Alignment Ledger]], [[05_research/303_snapshot_and_contract_policy|Snapshot and Contract Policy]], [[05_research/304_runtime_troubleshooting|Runtime Troubleshooting]], [[05_research/305_architecture_decision_log|Architecture Decision Log]], [[05_research/306_alignment_milestone_log|Alignment Milestone Log]], [[05_research/307_contract_changelog|Contract Changelog]], [[06_roadmap/401_semantic_studio_runtime|Semantic Studio Runtime]]
 :END:
 
 ---
